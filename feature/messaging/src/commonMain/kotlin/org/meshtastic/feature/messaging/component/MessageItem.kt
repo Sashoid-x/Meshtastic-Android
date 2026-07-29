@@ -16,20 +16,25 @@
  */
 package org.meshtastic.feature.messaging.component
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +50,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalClipboard
@@ -89,6 +97,7 @@ import org.meshtastic.core.ui.icon.ShieldCheck
 import org.meshtastic.core.ui.theme.MessageItemColors
 import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
 import org.meshtastic.core.ui.util.createClipEntry
+import org.meshtastic.feature.messaging.image.MonochromeImageCodec
 
 internal const val MESSAGE_STATUS_LABEL_TEST_TAG = "message_status_label"
 
@@ -317,7 +326,44 @@ fun MessageItem(
             )
 
             Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-                if (searchQuery.isNotEmpty()) {
+                val monoImage =
+                    remember(message.rawBytes, message.portNum) {
+                        val rawBytes = message.rawBytes
+                        if (message.portNum == 264 && rawBytes != null) {
+                            MonochromeImageCodec.decode(rawBytes)
+                        } else {
+                            null
+                        }
+                    }
+                if (monoImage != null) {
+                    Box(
+                        modifier =
+                        Modifier.fillMaxWidth()
+                            .height(140.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.Black),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val cellW = size.width / monoImage.width
+                            val cellH = size.height / monoImage.height
+                            for (y in 0 until monoImage.height) {
+                                for (x in 0 until monoImage.width) {
+                                    val idx = y * monoImage.width + x
+                                    if (
+                                        idx < monoImage.pixels.size && monoImage.pixels[idx] == 0xFFFFFFFF.toInt()
+                                    ) {
+                                        drawRect(
+                                            color = Color.White,
+                                            topLeft = Offset(x * cellW, y * cellH),
+                                            size = Size(cellW + 0.5f, cellH + 0.5f),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else if (searchQuery.isNotEmpty()) {
                     HighlightedText(
                         text = message.text,
                         query = searchQuery,

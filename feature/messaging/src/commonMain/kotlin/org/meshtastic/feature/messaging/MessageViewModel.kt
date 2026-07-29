@@ -341,8 +341,36 @@ class MessageViewModel(
      *   broadcasting on channel 0.
      * @param replyId The ID of the message this is a reply to, if any.
      */
+    private val _selectedImageBytes = MutableStateFlow<ByteArray?>(null)
+    val selectedImageBytes: StateFlow<ByteArray?> = _selectedImageBytes.asStateFlow()
+
+    fun setSelectedImageBytes(bytes: ByteArray?) {
+        _selectedImageBytes.value = bytes
+    }
+
     fun sendMessage(str: String, contactKey: String = "0${NodeAddress.ID_BROADCAST}", replyId: Int? = null) {
         safeLaunch(tag = "sendMessage") { sendMessageUseCase.invoke(str, contactKey, replyId) }
+    }
+
+    fun sendImageMessage(
+        imageBytes: ByteArray,
+        contactKey: String = "0${NodeAddress.ID_BROADCAST}",
+        replyId: Int? = null,
+    ) {
+        safeLaunch(tag = "sendImageMessage") {
+            val key = org.meshtastic.core.model.ContactKey(contactKey)
+            val destNode = key.addressString
+            val channelIndex = key.channel
+            val packet =
+                org.meshtastic.core.model.DataPacket(
+                    to = destNode,
+                    bytes = okio.ByteString.of(*imageBytes),
+                    dataType = 264,
+                    channel = channelIndex,
+                    replyId = replyId,
+                )
+            messagingController.sendMessage(packet)
+        }
     }
 
     fun sendReaction(emoji: String, replyId: Int, contactKey: String) =

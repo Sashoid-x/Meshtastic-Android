@@ -35,6 +35,7 @@ import org.meshtastic.core.resources.ic_filter_alt
 import org.meshtastic.core.resources.ic_filter_alt_off
 import org.meshtastic.core.resources.ic_folder
 import org.meshtastic.core.resources.ic_folder_open
+import org.meshtastic.core.resources.ic_image
 import org.meshtastic.core.resources.ic_list
 import org.meshtastic.core.resources.ic_mark_chat_read
 import org.meshtastic.core.resources.ic_more_vert
@@ -139,3 +140,5 @@ val MeshtasticIcons.List: ImageVector
     @Composable get() = vectorResource(Res.drawable.ic_list)
 val MeshtasticIcons.Translate: ImageVector
     @Composable get() = vectorResource(Res.drawable.ic_translate)
+val MeshtasticIcons.Image: ImageVector
+    @Composable get() = vectorResource(Res.drawable.ic_image)

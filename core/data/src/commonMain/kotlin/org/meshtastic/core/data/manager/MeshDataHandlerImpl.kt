@@ -84,6 +84,8 @@ import org.meshtastic.proto.StatusMessage
 import org.meshtastic.proto.User
 import org.meshtastic.proto.Waypoint
 
+private const val PORT_MONOCHROME_IMAGE = 264
+
 /**
  * Implementation of [MeshDataHandler] that decodes and routes incoming mesh data packets.
  *
@@ -161,6 +163,10 @@ class MeshDataHandlerImpl(
         logInsertJob: Job?,
     ) {
         val decoded = packet.decoded ?: return
+        if (decoded.portnum.value == PORT_MONOCHROME_IMAGE) {
+            rememberDataPacket(dataPacket, myNodeNum, session = session)
+            return
+        }
         when (decoded.portnum) {
             PortNum.TEXT_MESSAGE_APP -> handleTextMessage(packet, dataPacket, myNodeNum, session)
             PortNum.NODE_STATUS_APP -> handleNodeStatus(packet, dataPacket, myNodeNum, session)

@@ -103,10 +103,12 @@ import org.meshtastic.core.resources.unknown_channel
 import org.meshtastic.core.ui.component.InlineStyle
 import org.meshtastic.core.ui.component.SharedContactDialog
 import org.meshtastic.core.ui.component.smartScrollToIndex
+import org.meshtastic.core.ui.icon.Image
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Send
 import org.meshtastic.core.ui.theme.AppTheme
 import org.meshtastic.core.ui.util.createClipEntry
+import org.meshtastic.core.ui.util.rememberOpenFileLauncher
 import org.meshtastic.feature.messaging.component.ActionModeTopBar
 import org.meshtastic.feature.messaging.component.DeleteMessageDialog
 import org.meshtastic.feature.messaging.component.FormattingToolbar
@@ -118,6 +120,7 @@ import org.meshtastic.feature.messaging.component.QuickChatRow
 import org.meshtastic.feature.messaging.component.ReplySnippet
 import org.meshtastic.feature.messaging.component.ScrollToBottomFab
 import org.meshtastic.feature.messaging.component.TranslationModelDownloadDialog
+import org.meshtastic.feature.messaging.image.MonochromeImageEditorDialog
 
 private const val ROUNDED_CORNER_PERCENT = 100
 private const val MAX_LINES = 3
@@ -170,6 +173,12 @@ fun MessageScreen(
     // UI State managed within this Composable
     var replyingToPacketId by rememberSaveable { mutableStateOf<Int?>(null) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
+    var showImageEditor by rememberSaveable { mutableStateOf(false) }
+    val openImageLauncher = rememberOpenFileLauncher { uri ->
+        if (uri != null) {
+            showImageEditor = true
+        }
+    }
     var sharedContact by rememberSaveable { mutableStateOf<Node?>(null) }
     val selectedMessageIds = rememberSaveable { mutableStateOf(emptySet<Long>()) }
     val messageInputState = rememberTextFieldState(message.ifEmpty { viewModel.draftMessage.value })
@@ -445,6 +454,7 @@ fun MessageScreen(
                     isHomoglyphEncodingEnabled = homoglyphEncodingEnabled,
                     textFieldState = messageInputState,
                     mentionCandidates = mentionCandidates,
+                    onPickImage = { openImageLauncher("image/*") },
                     onSendMessage = {
                         val messageText = messageInputState.text.toString().trim { it.isWhitespace() }
                         if (messageText.isNotEmpty()) {
@@ -455,6 +465,17 @@ fun MessageScreen(
             }
         },
     ) { paddingValues ->
+        if (showImageEditor) {
+            MonochromeImageEditorDialog(
+                rawImageGrayValues = null,
+                onDismiss = { showImageEditor = false },
+                onSendImage = { encodedBytes ->
+                    viewModel.sendImageMessage(encodedBytes, contactKey = contactKey, replyId = replyingToPacketId)
+                    replyingToPacketId = null
+                    showImageEditor = false
+                },
+            )
+        }
         Box(Modifier.fillMaxSize().padding(paddingValues).focusable()) {
             MessageListPaged(
                 modifier = Modifier.fillMaxSize(),
@@ -718,6 +739,7 @@ private fun MessageInput(
     mentionCandidates: ImmutableMap<String, MentionCandidate>,
     modifier: Modifier = Modifier,
     maxByteSize: Int = MESSAGE_CHARACTER_LIMIT_BYTES,
+    onPickImage: () -> Unit = {},
     onSendMessage: () -> Unit,
 ) {
     val currentTextRaw = textFieldState.text.toString()
@@ -819,8 +841,13 @@ private fun MessageInput(
             // If strict real-time byte trimming is required, it needs careful handling of
             // cursor position and multi-byte characters, likely outside simple inputTransformation.
             trailingIcon = {
-                IconButton(onClick = onSendAction, enabled = canSend || mentionActive) {
-                    Icon(imageVector = MeshtasticIcons.Send, contentDescription = stringResource(Res.string.send))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onPickImage, enabled = isEnabled) {
+                        Icon(imageVector = MeshtasticIcons.Image, contentDescription = "Pick Image")
+                    }
+                    IconButton(onClick = onSendAction, enabled = canSend || mentionActive) {
+                        Icon(imageVector = MeshtasticIcons.Send, contentDescription = stringResource(Res.string.send))
+                    }
                 }
             },
         )

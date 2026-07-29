@@ -179,6 +179,10 @@ data class Message(
     val translatedText: String? = null,
     /** Whether the bubble currently displays [translatedText] instead of [text]. */
     val showTranslated: Boolean = false,
+    /** Wire protocol port number (e.g. 1 for TEXT_MESSAGE_APP, 264 for monochrome image). */
+    val portNum: Int = 1,
+    /** Raw packet bytes when payload is binary (e.g. encoded monochrome image). */
+    val rawBytes: ByteArray? = null,
 ) {
     /**
      * Epoch millis behind the displayed [time]: mesh time when the radio stamped one, otherwise the local

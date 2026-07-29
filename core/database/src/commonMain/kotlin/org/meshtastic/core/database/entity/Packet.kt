@@ -73,6 +73,8 @@ data class PacketEntity(
             xeddsaSigned = data.xeddsaSigned,
             translatedText = translatedText,
             showTranslated = showTranslated,
+            portNum = port_num,
+            rawBytes = data.bytes?.toByteArray(),
         )
     }
 }
