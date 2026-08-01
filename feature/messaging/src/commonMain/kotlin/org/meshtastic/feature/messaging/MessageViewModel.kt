@@ -40,6 +40,7 @@ import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
 import org.meshtastic.core.common.util.currentLocaleCode
 import org.meshtastic.core.common.util.ioDispatcher
+import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.Node
@@ -352,25 +353,29 @@ class MessageViewModel(
         safeLaunch(tag = "sendMessage") { sendMessageUseCase.invoke(str, contactKey, replyId) }
     }
 
+    private val _imageCooldownTimestamp = MutableStateFlow<Long?>(null)
+    val imageCooldownTimestamp: StateFlow<Long?> = _imageCooldownTimestamp.asStateFlow()
+
     fun sendImageMessage(
         imageBytes: ByteArray,
         contactKey: String = "0${NodeAddress.ID_BROADCAST}",
         replyId: Int? = null,
     ) {
         safeLaunch(tag = "sendImageMessage") {
-            val key = org.meshtastic.core.model.ContactKey(contactKey)
-            val destNode = key.addressString
-            val channelIndex = key.channel
-            val packet =
-                org.meshtastic.core.model.DataPacket(
-                    to = destNode,
-                    bytes = okio.ByteString.of(*imageBytes),
-                    dataType = 264,
-                    channel = channelIndex,
-                    replyId = replyId,
-                )
-            messagingController.sendMessage(packet)
+            sendMessageUseCase.invoke(
+                text = "",
+                contactKey = contactKey,
+                replyId = replyId,
+                dataType = org.meshtastic.proto.PortNum.PRIVATE_APP.value,
+                bytes = okio.ByteString.of(*imageBytes),
+            )
+            _imageCooldownTimestamp.value = nowMillis
         }
+    }
+
+    /** Secret reset — called via triple-tap on cooldown indicator. */
+    fun resetImageCooldown() {
+        _imageCooldownTimestamp.value = null
     }
 
     fun sendReaction(emoji: String, replyId: Int, contactKey: String) =

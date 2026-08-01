@@ -118,3 +118,10 @@ expect fun rememberSaveFileLauncher(
  * that don't require a runtime camera permission.
  */
 @Composable expect fun rememberCameraPermissionState(): PermissionUiState
+
+/**
+ * Returns a suspend function that reads an image from a [CommonUri], scales it to [reqWidth]x[reqHeight], and returns
+ * the normalized (0..1) grayscale pixels as a [FloatArray].
+ */
+@Composable
+expect fun rememberReadImageGrayValuesFromUri(): suspend (uri: CommonUri, reqWidth: Int, reqHeight: Int) -> FloatArray?

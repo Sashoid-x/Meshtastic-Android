@@ -17,6 +17,7 @@
 package org.meshtastic.core.repository.usecase
 
 import co.touchlab.kermit.Logger
+import okio.ByteString.Companion.toByteString
 import org.meshtastic.core.common.util.HomoglyphCharacterStringTransformer
 import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.model.Capabilities
@@ -50,6 +51,8 @@ interface SendMessageUseCase {
         text: String,
         contactKey: String = "0${NodeAddress.ID_BROADCAST}",
         replyId: Int? = null,
+        dataType: Int = org.meshtastic.proto.PortNum.TEXT_MESSAGE_APP.value,
+        bytes: okio.ByteString? = null,
     ): Int
 }
 
@@ -70,7 +73,13 @@ class SendMessageUseCaseImpl(
      * @param replyId Optional ID of a message being replied to.
      */
     @Suppress("NestedBlockDepth", "LongMethod", "CyclomaticComplexMethod")
-    override suspend operator fun invoke(text: String, contactKey: String, replyId: Int?): Int {
+    override suspend operator fun invoke(
+        text: String,
+        contactKey: String,
+        replyId: Int?,
+        dataType: Int,
+        bytes: okio.ByteString?,
+    ): Int {
         val parsedKey = ContactKey(contactKey)
         val channel = parsedKey.channelOrNull
         val dest = parsedKey.addressString
@@ -102,9 +111,8 @@ class SendMessageUseCaseImpl(
             }
         }
 
-        // Apply homoglyph encoding
         val finalMessageText =
-            if (homoglyphEncodingPrefs.homoglyphEncodingEnabled.value) {
+            if (text.isNotEmpty() && homoglyphEncodingPrefs.homoglyphEncodingEnabled.value) {
                 HomoglyphCharacterStringTransformer.optimizeUtf8StringWithHomoglyphs(text)
             } else {
                 text
@@ -112,12 +120,15 @@ class SendMessageUseCaseImpl(
 
         val packetId = Random.nextInt(1, Int.MAX_VALUE)
 
+        val packetBytes = bytes ?: finalMessageText.encodeToByteArray().toByteString()
+
         val packet =
-            DataPacket(dest, channel ?: 0, finalMessageText, replyId).apply {
-                from = fromId
-                id = packetId
-                status = MessageStatus.QUEUED
-            }
+            DataPacket(to = dest, bytes = packetBytes, dataType = dataType, channel = channel ?: 0, replyId = replyId)
+                .apply {
+                    from = fromId
+                    id = packetId
+                    status = MessageStatus.QUEUED
+                }
 
         try {
             // Write to the DB to immediately reflect the queued state on the UI

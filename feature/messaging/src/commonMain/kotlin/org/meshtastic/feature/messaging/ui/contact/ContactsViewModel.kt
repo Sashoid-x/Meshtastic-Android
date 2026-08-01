@@ -120,7 +120,13 @@ class ContactsViewModel(
                     shortName = if (toBroadcast) packetData.channel.toString() else shortName,
                     longName = longName,
                     lastMessageTime = if (packetData.time != 0L) packetData.time else null,
-                    lastMessageText = if (fromLocal) packetData.text else "$shortName: ${packetData.text}",
+                    lastMessageText = if (packetData.dataType == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
+                        "\uD83D\uDCF7 Изображение"
+                    } else if (fromLocal) {
+                        packetData.text
+                    } else {
+                        "$shortName: ${packetData.text}"
+                    },
                     unreadCount = packetRepository.getUnreadCount(contactKey),
                     messageCount = packetRepository.getMessageCount(contactKey),
                     isMuted = settings[contactKey]?.isMuted == true,

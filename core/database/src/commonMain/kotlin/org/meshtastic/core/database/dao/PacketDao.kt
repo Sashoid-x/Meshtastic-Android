@@ -54,10 +54,18 @@ interface PacketDao {
 
     @Query(
         """
-    SELECT * FROM packet
-    WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND filtered = 0
-    ORDER BY received_time DESC
+    SELECT p.* FROM packet p
+    INNER JOIN (
+        SELECT contact_key, MAX(received_time) as max_time
+        FROM packet
+        WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
+            AND port_num IN (1, 256) AND filtered = 0
+        GROUP BY contact_key
+    ) latest ON p.contact_key = latest.contact_key AND p.received_time = latest.max_time
+    WHERE (p.myNodeNum = 0 OR p.myNodeNum = (SELECT myNodeNum FROM my_node))
+        AND p.port_num IN (1, 256) AND p.filtered = 0
+    GROUP BY p.contact_key
+    ORDER BY p.received_time DESC
     """,
     )
     fun getContactKeys(): Flow<
@@ -75,11 +83,11 @@ interface PacketDao {
         SELECT contact_key, MAX(received_time) as max_time
         FROM packet
         WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-            AND port_num = 1 AND filtered = 0
+            AND port_num IN (1, 256) AND filtered = 0
         GROUP BY contact_key
     ) latest ON p.contact_key = latest.contact_key AND p.received_time = latest.max_time
     WHERE (p.myNodeNum = 0 OR p.myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND p.port_num = 1 AND p.filtered = 0
+        AND p.port_num IN (1, 256) AND p.filtered = 0
     GROUP BY p.contact_key
     ORDER BY p.received_time DESC
     """,
@@ -90,7 +98,7 @@ interface PacketDao {
         """
     SELECT COUNT(*) FROM packet
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND contact_key = :contact
+        AND port_num IN (1, 256) AND contact_key = :contact
     """,
     )
     suspend fun getMessageCount(contact: String): Int
@@ -99,7 +107,7 @@ interface PacketDao {
         """
     SELECT COUNT(*) FROM packet
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND contact_key = :contact AND read = 0 AND filtered = 0
+        AND port_num IN (1, 256) AND contact_key = :contact AND read = 0 AND filtered = 0
     """,
     )
     suspend fun getUnreadCount(contact: String): Int
@@ -108,7 +116,7 @@ interface PacketDao {
         """
     SELECT COUNT(*) FROM packet
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND contact_key = :contact AND read = 0 AND filtered = 0
+        AND port_num IN (1, 256) AND contact_key = :contact AND read = 0 AND filtered = 0
     """,
     )
     fun getUnreadCountFlow(contact: String): Flow<Int>
@@ -117,7 +125,7 @@ interface PacketDao {
         """
     SELECT uuid FROM packet
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND contact_key = :contact AND read = 0 AND filtered = 0
+        AND port_num IN (1, 256) AND contact_key = :contact AND read = 0 AND filtered = 0
     ORDER BY received_time ASC
     LIMIT 1
     """,
@@ -128,7 +136,7 @@ interface PacketDao {
         """
     SELECT COUNT(*) > 0 FROM packet
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND contact_key = :contact AND read = 0 AND filtered = 0
+        AND port_num IN (1, 256) AND contact_key = :contact AND read = 0 AND filtered = 0
     """,
     )
     fun hasUnreadMessages(contact: String): Flow<Boolean>
@@ -137,7 +145,7 @@ interface PacketDao {
         """
     SELECT COUNT(*) FROM packet
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND read = 0 AND filtered = 0
+        AND port_num IN (1, 256) AND read = 0 AND filtered = 0
     """,
     )
     fun getUnreadCountTotal(): Flow<Int>
@@ -147,7 +155,7 @@ interface PacketDao {
     UPDATE packet
     SET read = 1
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND contact_key = :contact AND read = 0 AND filtered = 0 AND received_time <= :timestamp
+        AND port_num IN (1, 256) AND contact_key = :contact AND read = 0 AND filtered = 0 AND received_time <= :timestamp
     """,
     )
     suspend fun clearUnreadCount(contact: String, timestamp: Long)
@@ -157,7 +165,7 @@ interface PacketDao {
     UPDATE packet
     SET read = 1
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND read = 0 AND filtered = 0
+        AND port_num IN (1, 256) AND read = 0 AND filtered = 0
     """,
     )
     suspend fun clearAllUnreadCounts()
@@ -169,7 +177,7 @@ interface PacketDao {
         """
     SELECT * FROM packet
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND contact_key = :contact
+        AND port_num IN (1, 256) AND contact_key = :contact
     ORDER BY received_time DESC
     """,
     )
@@ -180,7 +188,7 @@ interface PacketDao {
         """
     SELECT * FROM packet
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND contact_key = :contact
+        AND port_num IN (1, 256) AND contact_key = :contact
     ORDER BY received_time DESC
     LIMIT :limit
     """,
@@ -192,7 +200,7 @@ interface PacketDao {
         """
     SELECT * FROM packet
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND contact_key = :contact
+        AND port_num IN (1, 256) AND contact_key = :contact
         AND (filtered = 0 OR :includeFiltered = 1)
     ORDER BY received_time DESC
     """,
@@ -204,7 +212,7 @@ interface PacketDao {
         """
     SELECT * FROM packet
     WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-        AND port_num = 1 AND contact_key = :contact
+        AND port_num IN (1, 256) AND contact_key = :contact
     ORDER BY received_time DESC
     """,
     )
@@ -438,7 +446,7 @@ interface PacketDao {
         """
         SELECT COUNT(*) FROM packet
         WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-            AND port_num = 1 AND contact_key = :contact AND filtered = 1
+            AND port_num IN (1, 256) AND contact_key = :contact AND filtered = 1
         """,
     )
     suspend fun getFilteredCount(contact: String): Int
@@ -447,7 +455,7 @@ interface PacketDao {
         """
         SELECT COUNT(*) FROM packet
         WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-            AND port_num = 1 AND contact_key = :contact AND filtered = 1
+            AND port_num IN (1, 256) AND contact_key = :contact AND filtered = 1
         """,
     )
     fun getFilteredCountFlow(contact: String): Flow<Int>
@@ -457,7 +465,7 @@ interface PacketDao {
         """
         SELECT * FROM packet
         WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
-            AND port_num = 1 AND contact_key = :contact
+            AND port_num IN (1, 256) AND contact_key = :contact
             AND (filtered = 0 OR :includeFiltered = 1)
         ORDER BY received_time DESC
         """,

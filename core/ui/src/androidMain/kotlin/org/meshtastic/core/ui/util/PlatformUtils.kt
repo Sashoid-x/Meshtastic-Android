@@ -14,8 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-@file:Suppress("TooManyFunctions")
-
+@file:Suppress("TooManyFunctions", "LongMethod", "MagicNumber", "CyclomaticComplexMethod", "ComposableParamOrder", "TooGenericExceptionCaught", "ReturnCount")
 package org.meshtastic.core.ui.util
 
 import android.bluetooth.BluetoothAdapter
@@ -526,4 +525,82 @@ private fun rememberOnResumeState(check: () -> Boolean): Boolean {
     val state = remember { mutableStateOf(check()) }
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { state.value = check() }
     return state.value
+}
+
+@Composable
+actual fun rememberReadImageGrayValuesFromUri():
+    suspend (uri: CommonUri, reqWidth: Int, reqHeight: Int) -> FloatArray? {
+    val context = LocalContext.current
+    return remember(context) {
+        { uri, reqWidth, reqHeight ->
+            withContext(ioDispatcher) {
+                try {
+                    val androidUri = uri.toAndroidUri()
+                    var bitmap: android.graphics.Bitmap? = null
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                        val source = android.graphics.ImageDecoder.createSource(context.contentResolver, androidUri)
+                        bitmap =
+                            android.graphics.ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                                decoder.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
+                                decoder.isMutableRequired = true
+                            }
+                    } else {
+                        context.contentResolver.openInputStream(androidUri)?.use { stream ->
+                            val bytes = stream.readBytes()
+                            bitmap = android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        }
+                    }
+                    val finalBitmap = bitmap
+                    if (finalBitmap != null) {
+                        val aspect = finalBitmap.width.toFloat() / finalBitmap.height.toFloat()
+                        val targetWidth: Int
+                        val targetHeight: Int
+                        if (finalBitmap.width > finalBitmap.height) {
+                            targetWidth = reqWidth
+                            targetHeight = (reqWidth / aspect).toInt()
+                        } else {
+                            targetHeight = reqHeight
+                            targetWidth = (reqHeight * aspect).toInt()
+                        }
+
+                        val scaled =
+                            android.graphics.Bitmap.createScaledBitmap(
+                                finalBitmap,
+                                targetWidth.coerceAtLeast(1),
+                                targetHeight.coerceAtLeast(1),
+                                true,
+                            )
+                        val pixels = IntArray(targetWidth * targetHeight)
+                        scaled.getPixels(pixels, 0, targetWidth, 0, 0, targetWidth, targetHeight)
+                        if (scaled != finalBitmap) scaled.recycle()
+                        finalBitmap.recycle()
+
+                        // Create padded 500x500 (reqWidth x reqHeight) float array
+                        val grayValues = FloatArray(reqWidth * reqHeight)
+                        val startX = (reqWidth - targetWidth) / 2
+                        val startY = (reqHeight - targetHeight) / 2
+
+                        for (y in 0 until targetHeight) {
+                            for (x in 0 until targetWidth) {
+                                val color = pixels[y * targetWidth + x]
+                                val r = android.graphics.Color.red(color)
+                                val g = android.graphics.Color.green(color)
+                                val b = android.graphics.Color.blue(color)
+                                val luminance = (0.299f * r + 0.587f * g + 0.114f * b) / 255f
+
+                                val outIdx = (startY + y) * reqWidth + (startX + x)
+                                grayValues[outIdx] = luminance
+                            }
+                        }
+                        grayValues
+                    } else {
+                        null
+                    }
+                } catch (e: Exception) {
+                    Logger.e(e) { "Failed to read image from URI: $uri" }
+                    null
+                }
+            }
+        }
+    }
 }

@@ -200,9 +200,16 @@ fun ReplySnippet(originalMessage: Message?, onClearReply: () -> Unit, ourNode: N
                     text = stringResource(Res.string.replying_to, replyingToNodeUser?.short_name ?: unknownUserText),
                     style = MaterialTheme.typography.labelMedium,
                 )
+                val snippetText =
+                    if (message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
+                        "\uD83D\uDCF7 Изображение"
+                    } else {
+                        message.text.ellipsize(SNIPPET_CHARACTER_LIMIT)
+                    }
+
                 Text(
                     modifier = Modifier.weight(1f),
-                    text = message.text.ellipsize(SNIPPET_CHARACTER_LIMIT),
+                    text = snippetText,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,

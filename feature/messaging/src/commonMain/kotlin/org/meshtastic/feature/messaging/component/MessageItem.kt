@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -329,17 +330,21 @@ fun MessageItem(
                 val monoImage =
                     remember(message.rawBytes, message.portNum) {
                         val rawBytes = message.rawBytes
-                        if (message.portNum == 264 && rawBytes != null) {
+                        if (message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value && rawBytes != null) {
                             MonochromeImageCodec.decode(rawBytes)
                         } else {
                             null
                         }
                     }
                 if (monoImage != null) {
+                    val imageAspect = monoImage.width.toFloat() / monoImage.height.toFloat()
                     Box(
                         modifier =
-                        Modifier.fillMaxWidth()
-                            .height(140.dp)
+                        Modifier
+                            // For portrait images (tall) restrict max width so height stays reasonable.
+                            // For landscape (wide) use up to 85% of bubble width.
+                            .fillMaxWidth(if (imageAspect >= 1f) 0.85f else (0.85f * imageAspect).coerceAtLeast(0.4f))
+                            .aspectRatio(imageAspect)
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color.Black),
                         contentAlignment = Alignment.Center,

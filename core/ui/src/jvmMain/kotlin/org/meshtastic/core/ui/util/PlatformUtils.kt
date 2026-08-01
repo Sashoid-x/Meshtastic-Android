@@ -157,3 +157,9 @@ actual fun rememberOpenAppSettings(): () -> Unit = { Logger.w { "App settings no
 
 /** JVM — Desktop does not gate the camera behind a runtime permission. */
 @Composable actual fun rememberCameraPermissionState(): PermissionUiState = grantedPermissionUiState()
+
+/** JVM stub — reading images not implemented yet. */
+@Composable
+actual fun rememberReadImageGrayValuesFromUri():
+    suspend (uri: CommonUri, reqWidth: Int, reqHeight: Int) -> FloatArray? =
+    { _, _, _ -> null }

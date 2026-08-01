@@ -84,6 +84,7 @@ internal data class MessageListHandlers(
     val onClickChip: (Node) -> Unit,
     val onDeleteMessages: (List<Long>) -> Unit,
     val onSendMessage: (String, String) -> Unit,
+    val onResendImage: (ByteArray, String) -> Unit = { _, _ -> },
     val onReply: (Message?) -> Unit,
     val onTranslate: (Message) -> Unit = {},
     val onToggleTranslation: (Message) -> Unit = {},
@@ -137,7 +138,12 @@ internal fun MessageListPaged(
             resendOption = message.isStatusRetryable(isDirectMessageConversation),
             onResend = {
                 handlers.onDeleteMessages(listOf(message.uuid))
-                handlers.onSendMessage(message.text, state.contactKey)
+                val rawBytes = message.rawBytes
+                if (rawBytes != null && message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
+                    handlers.onResendImage(rawBytes, state.contactKey)
+                } else {
+                    handlers.onSendMessage(message.text, state.contactKey)
+                }
                 showStatusDialog = null
             },
             onDismiss = { showStatusDialog = null },

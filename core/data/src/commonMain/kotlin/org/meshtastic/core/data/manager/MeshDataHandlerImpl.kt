@@ -126,6 +126,7 @@ class MeshDataHandlerImpl(
             PortNum.ALERT_APP.value,
             PortNum.WAYPOINT_APP.value,
             PortNum.NODE_STATUS_APP.value,
+            PortNum.PRIVATE_APP.value,
         )
 
     override fun handleReceivedData(
@@ -169,12 +170,21 @@ class MeshDataHandlerImpl(
         }
         when (decoded.portnum) {
             PortNum.TEXT_MESSAGE_APP -> handleTextMessage(packet, dataPacket, myNodeNum, session)
+
             PortNum.NODE_STATUS_APP -> handleNodeStatus(packet, dataPacket, myNodeNum, session)
-            PortNum.ALERT_APP -> rememberDataPacket(dataPacket, myNodeNum, session = session)
+
+            PortNum.ALERT_APP,
+            PortNum.PRIVATE_APP,
+            -> rememberDataPacket(dataPacket, myNodeNum, session = session)
+
             PortNum.WAYPOINT_APP -> handleWaypoint(packet, dataPacket, myNodeNum, session)
+
             PortNum.POSITION_APP -> handlePosition(packet, dataPacket, myNodeNum, session)
+
             PortNum.NODEINFO_APP -> if (!fromUs) handleNodeInfo(packet, session)
+
             PortNum.TELEMETRY_APP -> telemetryHandler.handleTelemetry(packet, dataPacket, myNodeNum, session)
+
             else -> handleSpecializedDataPacket(packet, dataPacket, myNodeNum, session, logUuid, logInsertJob)
         }
     }
@@ -219,7 +229,6 @@ class MeshDataHandlerImpl(
 
             PortNum.ATAK_PLUGIN,
             PortNum.ATAK_PLUGIN_V2,
-            PortNum.PRIVATE_APP,
             -> {}
 
             PortNum.RANGE_TEST_APP,
@@ -515,7 +524,10 @@ class MeshDataHandlerImpl(
         // (per meshtastic/design#21). Node mute is a stronger, per-sender signal and stays authoritative:
         // a muted node cannot force a notification by spamming @-mentions.
         val mentionsMe =
-            dataPacket.dataType == PortNum.TEXT_MESSAGE_APP.value &&
+            (
+                dataPacket.dataType == PortNum.TEXT_MESSAGE_APP.value ||
+                    dataPacket.dataType == PortNum.PRIVATE_APP.value
+                ) &&
                 textMentionsNode(dataPacket.text, nodeManager.getMyId())
         val isSilent = nodeMuted || (conversationMuted && !mentionsMe)
         if (dataPacket.dataType == PortNum.ALERT_APP.value && !isSilent) {
@@ -543,8 +555,11 @@ class MeshDataHandlerImpl(
 
     private suspend fun updateNotification(contactKey: String, dataPacket: DataPacket, isSilent: Boolean) {
         when (dataPacket.dataType) {
-            PortNum.TEXT_MESSAGE_APP.value -> {
-                val message = dataPacket.text!!
+            PortNum.TEXT_MESSAGE_APP.value,
+            PortNum.PRIVATE_APP.value,
+            -> {
+                val isImage = dataPacket.dataType == PortNum.PRIVATE_APP.value
+                val message = if (isImage) "\uD83D\uDCF7 Изображение" else dataPacket.text!!
                 val isBroadcast = dataPacket.destination is NodeAddress.Broadcast
                 val channelName =
                     if (isBroadcast) {

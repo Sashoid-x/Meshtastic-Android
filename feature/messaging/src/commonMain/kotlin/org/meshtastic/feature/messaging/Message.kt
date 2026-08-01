@@ -40,6 +40,8 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +49,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -124,6 +127,7 @@ import org.meshtastic.feature.messaging.image.MonochromeImageEditorDialog
 
 private const val ROUNDED_CORNER_PERCENT = 100
 private const val MAX_LINES = 3
+private const val IMAGE_COOLDOWN_MS = 120_000L // 2 minutes
 
 // Minimum draft length before the markdown formatting toolbar appears (matches the iOS client).
 private const val FORMATTING_TOOLBAR_MIN_CHARS = 3
@@ -173,10 +177,27 @@ fun MessageScreen(
     // UI State managed within this Composable
     var replyingToPacketId by rememberSaveable { mutableStateOf<Int?>(null) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
-    var showImageEditor by rememberSaveable { mutableStateOf(false) }
+    var showImageEditor by remember { mutableStateOf(false) }
+    var imageImportTrigger by remember { mutableStateOf(0) }
+    var selectedImageUri by remember { mutableStateOf<org.meshtastic.core.common.util.CommonUri?>(null) }
+    val readImageGrayValues = org.meshtastic.core.ui.util.rememberReadImageGrayValuesFromUri()
+    var rawImageGrayValues by remember { mutableStateOf<FloatArray?>(null) }
+
+    LaunchedEffect(selectedImageUri, imageImportTrigger) {
+        val uri = selectedImageUri
+        if (uri != null) {
+            rawImageGrayValues = readImageGrayValues(uri, 500, 500)
+            // Stay in showImageEditor — the editor will auto-switch to PHOTO_CROP mode
+        }
+    }
+
     val openImageLauncher = rememberOpenFileLauncher { uri ->
         if (uri != null) {
-            showImageEditor = true
+            selectedImageUri = uri
+            imageImportTrigger++
+        } else if (rawImageGrayValues == null) {
+            // User cancelled the picker without having imported anything
+            showImageEditor = false
         }
     }
     var sharedContact by rememberSaveable { mutableStateOf<Node?>(null) }
@@ -192,6 +213,7 @@ fun MessageScreen(
     val searchResultIndex by viewModel.searchResultIndex.collectAsStateWithLifecycle()
     val currentSearchResult by viewModel.currentSearchResult.collectAsStateWithLifecycle()
     val translationAvailable by viewModel.translationAvailable.collectAsStateWithLifecycle()
+    val imageCooldownTimestamp by viewModel.imageCooldownTimestamp.collectAsStateWithLifecycle()
     val translationDialogState by viewModel.translationDialogState.collectAsStateWithLifecycle()
 
     // Sync text field changes back to ViewModel draft
@@ -454,7 +476,14 @@ fun MessageScreen(
                     isHomoglyphEncodingEnabled = homoglyphEncodingEnabled,
                     textFieldState = messageInputState,
                     mentionCandidates = mentionCandidates,
-                    onPickImage = { openImageLauncher("image/*") },
+                    imageCooldownTimestamp = imageCooldownTimestamp,
+                    imageCooldownDuration = IMAGE_COOLDOWN_MS,
+                    onPickImage = {
+                        rawImageGrayValues = null
+                        selectedImageUri = null
+                        showImageEditor = true
+                    },
+                    onResetImageCooldown = { viewModel.resetImageCooldown() },
                     onSendMessage = {
                         val messageText = messageInputState.text.toString().trim { it.isWhitespace() }
                         if (messageText.isNotEmpty()) {
@@ -467,13 +496,22 @@ fun MessageScreen(
     ) { paddingValues ->
         if (showImageEditor) {
             MonochromeImageEditorDialog(
-                rawImageGrayValues = null,
-                onDismiss = { showImageEditor = false },
+                onDismiss = {
+                    showImageEditor = false
+                    selectedImageUri = null
+                    rawImageGrayValues = null
+                },
                 onSendImage = { encodedBytes ->
                     viewModel.sendImageMessage(encodedBytes, contactKey = contactKey, replyId = replyingToPacketId)
                     replyingToPacketId = null
                     showImageEditor = false
+                    selectedImageUri = null
+                    rawImageGrayValues = null
                 },
+                onImportPhoto = { openImageLauncher("image/*") },
+                importedGrayValues = rawImageGrayValues,
+                importedWidth = 500,
+                importedHeight = 500,
             )
         }
         Box(Modifier.fillMaxSize().padding(paddingValues).focusable()) {
@@ -504,6 +542,7 @@ fun MessageScreen(
                     onClickChip = { onEvent(MessageScreenEvent.NodeDetails(it)) },
                     onDeleteMessages = { viewModel.deleteMessages(it) },
                     onSendMessage = { text, key -> viewModel.sendMessage(text, key) },
+                    onResendImage = { bytes, key -> viewModel.sendImageMessage(bytes, contactKey = key) },
                     onReply = { message -> replyingToPacketId = message?.packetId },
                     onTranslate = { onEvent(MessageScreenEvent.TranslateMessage(it)) },
                     onToggleTranslation = { onEvent(MessageScreenEvent.ToggleShowTranslated(it)) },
@@ -739,7 +778,10 @@ private fun MessageInput(
     mentionCandidates: ImmutableMap<String, MentionCandidate>,
     modifier: Modifier = Modifier,
     maxByteSize: Int = MESSAGE_CHARACTER_LIMIT_BYTES,
+    imageCooldownTimestamp: Long? = null,
+    imageCooldownDuration: Long = IMAGE_COOLDOWN_MS,
     onPickImage: () -> Unit = {},
+    onResetImageCooldown: () -> Unit = {},
     onSendMessage: () -> Unit,
 ) {
     val currentTextRaw = textFieldState.text.toString()
@@ -842,9 +884,13 @@ private fun MessageInput(
             // cursor position and multi-byte characters, likely outside simple inputTransformation.
             trailingIcon = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = onPickImage, enabled = isEnabled) {
-                        Icon(imageVector = MeshtasticIcons.Image, contentDescription = "Pick Image")
-                    }
+                    ImageCooldownButton(
+                        isEnabled = isEnabled,
+                        cooldownTimestamp = imageCooldownTimestamp,
+                        cooldownDuration = imageCooldownDuration,
+                        onPickImage = onPickImage,
+                        onResetCooldown = onResetImageCooldown,
+                    )
                     IconButton(onClick = onSendAction, enabled = canSend || mentionActive) {
                         Icon(imageVector = MeshtasticIcons.Send, contentDescription = stringResource(Res.string.send))
                     }
@@ -854,6 +900,62 @@ private fun MessageInput(
         // Markdown formatting toolbar — shown once the field is focused and holds enough text to format (iOS parity).
         if (isEnabled && isFocused && currentText.length >= FORMATTING_TOOLBAR_MIN_CHARS) {
             FormattingToolbar(state = textFieldState, modifier = Modifier.padding(horizontal = 8.dp))
+        }
+    }
+}
+
+private const val COOLDOWN_TICK_MS = 100L
+private const val SECRET_TAP_WINDOW_MS = 2000L
+private const val SECRET_TAP_COUNT = 7
+
+@Composable
+private fun ImageCooldownButton(
+    isEnabled: Boolean,
+    cooldownTimestamp: Long?,
+    cooldownDuration: Long,
+    onPickImage: () -> Unit,
+    onResetCooldown: () -> Unit,
+) {
+    var progress by remember { mutableStateOf(0f) }
+    var isCoolingDown by remember { mutableStateOf(false) }
+
+    LaunchedEffect(cooldownTimestamp, cooldownDuration) {
+        val endTime = (cooldownTimestamp ?: 0L) + cooldownDuration
+        isCoolingDown = org.meshtastic.core.common.util.nowMillis < endTime
+        while (isCoolingDown) {
+            val remaining = endTime - org.meshtastic.core.common.util.nowMillis
+            if (remaining <= 0) break
+            progress = (remaining.toFloat() / cooldownDuration).coerceIn(0f, 1f)
+            kotlinx.coroutines.delay(COOLDOWN_TICK_MS)
+            isCoolingDown = org.meshtastic.core.common.util.nowMillis < endTime
+        }
+        progress = 0f
+        isCoolingDown = false
+    }
+
+    if (isCoolingDown) {
+        // Secret tap sequence to reset
+        var tapTimestamps by remember { mutableStateOf(emptyList<Long>()) }
+        IconButton(
+            onClick = {
+                val now = org.meshtastic.core.common.util.nowMillis
+                tapTimestamps = (tapTimestamps + now).filter { now - it < SECRET_TAP_WINDOW_MS }
+                if (tapTimestamps.size >= SECRET_TAP_COUNT) {
+                    tapTimestamps = emptyList()
+                    onResetCooldown()
+                }
+            },
+            enabled = true,
+        ) {
+            androidx.compose.material3.CircularProgressIndicator(
+                progress = { progress },
+                modifier = Modifier.size(24.dp),
+                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
+            )
+        }
+    } else {
+        IconButton(onClick = onPickImage, enabled = isEnabled) {
+            Icon(imageVector = MeshtasticIcons.Image, contentDescription = "Pick Image")
         }
     }
 }
