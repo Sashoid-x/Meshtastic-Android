@@ -16,6 +16,7 @@
  */
 
 pluginManagement {
+    includeBuild("build-logic/settings-plugin")
     includeBuild("build-logic")
     repositories {
         google {
@@ -32,8 +33,8 @@ pluginManagement {
 }
 
 plugins {
-    id("com.gradle.develocity") version "4.5.0"
-    id("com.gradle.common-custom-user-data-gradle-plugin") version "2.8.0"
+    // Develocity + CCUD + build cache; shared with build-logic, versions from the catalog.
+    id("meshtastic.develocity")
     id("org.gradle.toolchains.foojay-resolver") version "1.0.0"
     id("org.meshtastic.flatpak.sources.settings") version "0.1.5"
 }
@@ -71,20 +72,6 @@ rootProject.name = "MeshtasticAndroid"
 // https://docs.gradle.org/current/userguide/declaring_dependencies.html#sec:type-safe-project-accessors
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-val isCI = System.getenv("CI") != null
-
-develocity {
-    server = "https://community.develocity.cloud"
-    projectId = "meshtastic"
-    buildScan {
-        uploadInBackground = !isCI
-        publishing.onlyIf { it.isAuthenticated }
-        obfuscation { ipAddresses { addresses -> addresses.map { _ -> "0.0.0.0" } } }
-    }
-}
-
-// Build Cache configuration (Develocity remote cache + local)
-apply(from = "gradle/build-cache.settings.gradle")
 
 @Suppress("UnstableApiUsage")
 toolchainManagement {
