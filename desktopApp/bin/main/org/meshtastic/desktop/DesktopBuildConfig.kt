@@ -5,7 +5,7 @@ package org.meshtastic.desktop
  * Do not edit — values are derived from config.properties and git at build time.
  */
 object DesktopBuildConfig {
-    const val VERSION_CODE: Int = 29321709
+    const val VERSION_CODE: Int = 29321746
     const val VERSION_NAME: String = "2.8.0"
     const val IS_DEBUG: Boolean = true
     const val APPLICATION_ID: String = "org.meshtastic.MeshtasticDesktop"

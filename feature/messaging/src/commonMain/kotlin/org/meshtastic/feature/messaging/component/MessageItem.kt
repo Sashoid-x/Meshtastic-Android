@@ -14,6 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+@file:Suppress("MagicNumber", "LongMethod", "CyclomaticComplexMethod")
+
 package org.meshtastic.feature.messaging.component
 
 import androidx.compose.foundation.Canvas
@@ -343,7 +345,9 @@ fun MessageItem(
                         Modifier
                             // For portrait images (tall) restrict max width so height stays reasonable.
                             // For landscape (wide) use up to 85% of bubble width.
-                            .fillMaxWidth(if (imageAspect >= 1f) 0.85f else (0.85f * imageAspect).coerceAtLeast(0.4f))
+                            .fillMaxWidth(
+                                if (imageAspect >= 1f) 0.85f else (0.85f * imageAspect).coerceAtLeast(0.4f),
+                            )
                             .aspectRatio(imageAspect)
                             .clip(RoundedCornerShape(8.dp))
                             .background(Color.Black),

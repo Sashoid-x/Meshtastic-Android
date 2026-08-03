@@ -45,7 +45,10 @@ class MonochromeImageCodecTest {
 
         val encoded = MonochromeImageCodec.encode(testBits, presetIndex)
         // Multi-strategy encoder picks smallest — raw size is the upper bound
-        assertTrue(encoded.size <= 1 + preset.byteSize, "Encoded size ${encoded.size} exceeds raw size ${1 + preset.byteSize}")
+        assertTrue(
+            encoded.size <= 1 + preset.byteSize,
+            "Encoded size ${encoded.size} exceeds raw size ${1 + preset.byteSize}",
+        )
         // Header byte: top 2 bits = strategy, bottom 6 bits = preset index
         val headerPreset = encoded[0].toInt() and 0x3F
         assertEquals(presetIndex, headerPreset)
@@ -68,10 +71,16 @@ class MonochromeImageCodecTest {
         // processToMonochrome uses Bayer ordered dithering; with ditherAmount=0 it behaves
         // as a simple threshold at 0.5. We test on a single row (width=4, height=1).
         val grays = floatArrayOf(0.1f, 0.4f, 0.6f, 0.9f)
-        val mono = MonochromeImageCodec.processToMonochrome(
-            grayValues = grays, width = 4, height = 1,
-            brightness = 0f, contrast = 1f, ditherAmount = 0f, invert = false,
-        )
+        val mono =
+            MonochromeImageCodec.processToMonochrome(
+                grayValues = grays,
+                width = 4,
+                height = 1,
+                brightness = 0f,
+                contrast = 1f,
+                ditherAmount = 0f,
+                invert = false,
+            )
         assertEquals(false, mono[0])
         assertEquals(false, mono[1])
         assertEquals(true, mono[2])

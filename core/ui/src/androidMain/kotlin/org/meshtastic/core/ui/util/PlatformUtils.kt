@@ -14,7 +14,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-@file:Suppress("TooManyFunctions", "LongMethod", "MagicNumber", "CyclomaticComplexMethod", "ComposableParamOrder", "TooGenericExceptionCaught", "ReturnCount")
+@file:Suppress(
+    "TooManyFunctions",
+    "LongMethod",
+    "MagicNumber",
+    "CyclomaticComplexMethod",
+    "ComposableParamOrder",
+    "TooGenericExceptionCaught",
+    "ReturnCount",
+)
+
 package org.meshtastic.core.ui.util
 
 import android.bluetooth.BluetoothAdapter

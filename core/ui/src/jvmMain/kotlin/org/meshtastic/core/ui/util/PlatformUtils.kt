@@ -158,8 +158,82 @@ actual fun rememberOpenAppSettings(): () -> Unit = { Logger.w { "App settings no
 /** JVM — Desktop does not gate the camera behind a runtime permission. */
 @Composable actual fun rememberCameraPermissionState(): PermissionUiState = grantedPermissionUiState()
 
-/** JVM stub — reading images not implemented yet. */
+/** JVM — Reads image, resizes, and converts to grayscale array for import. */
+@Suppress("LongMethod", "TooGenericExceptionCaught", "MagicNumber")
 @Composable
 actual fun rememberReadImageGrayValuesFromUri():
     suspend (uri: CommonUri, reqWidth: Int, reqHeight: Int) -> FloatArray? =
-    { _, _, _ -> null }
+    { uri, reqWidth, reqHeight ->
+        withContext(ioDispatcher) {
+            try {
+                val file = File(URI(uri.toString()))
+                if (file.exists()) {
+                    val originalImage = javax.imageio.ImageIO.read(file)
+                    if (originalImage != null) {
+                        val origW = originalImage.width
+                        val origH = originalImage.height
+                        val aspect = origW.toFloat() / origH.toFloat()
+
+                        val targetWidth: Int
+                        val targetHeight: Int
+                        if (origW > origH) {
+                            targetWidth = reqWidth
+                            targetHeight = (reqWidth / aspect).toInt()
+                        } else {
+                            targetHeight = reqHeight
+                            targetWidth = (reqHeight * aspect).toInt()
+                        }
+
+                        val scaled =
+                            java.awt.image.BufferedImage(
+                                targetWidth.coerceAtLeast(1),
+                                targetHeight.coerceAtLeast(1),
+                                java.awt.image.BufferedImage.TYPE_INT_ARGB,
+                            )
+                        val g2d = scaled.createGraphics()
+                        g2d.setRenderingHint(
+                            java.awt.RenderingHints.KEY_INTERPOLATION,
+                            java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR,
+                        )
+                        g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null)
+                        g2d.dispose()
+
+                        val pixels = IntArray(targetWidth * targetHeight)
+                        scaled.getRGB(0, 0, targetWidth, targetHeight, pixels, 0, targetWidth)
+
+                        val grayValues = FloatArray(reqWidth * reqHeight)
+                        val startX = (reqWidth - targetWidth) / 2
+                        val startY = (reqHeight - targetHeight) / 2
+
+                        for (y in 0 until targetHeight) {
+                            for (x in 0 until targetWidth) {
+                                val color = pixels[y * targetWidth + x]
+                                val r = (color shr 16) and 0xFF
+                                val g = (color shr 8) and 0xFF
+                                val b = color and 0xFF
+                                val a = (color shr 24) and 0xFF
+
+                                val luminance =
+                                    if (a < 128) {
+                                        1f
+                                    } else {
+                                        (0.299f * r + 0.587f * g + 0.114f * b) / 255f
+                                    }
+
+                                val outIdx = (startY + y) * reqWidth + (startX + x)
+                                grayValues[outIdx] = luminance
+                            }
+                        }
+                        grayValues
+                    } else {
+                        null
+                    }
+                } else {
+                    null
+                }
+            } catch (e: Exception) {
+                Logger.e(e) { "Failed to read image from URI: $uri" }
+                null
+            }
+        }
+    }

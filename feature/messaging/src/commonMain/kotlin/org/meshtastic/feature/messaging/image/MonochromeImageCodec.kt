@@ -1,4 +1,4 @@
-﻿/*
+/*
  * Copyright (c) 2026 Meshtastic LLC
  *
  * This program is free software: you can redistribute it and/or modify
@@ -14,28 +14,42 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-@file:Suppress("LongMethod", "MagicNumber", "CyclomaticComplexMethod", "ComposableParamOrder", "TooGenericExceptionCaught", "ReturnCount", "NestedBlockDepth", "MaxLineLength")
+@file:Suppress(
+    "LongMethod",
+    "MagicNumber",
+    "CyclomaticComplexMethod",
+    "ComposableParamOrder",
+    "TooGenericExceptionCaught",
+    "ReturnCount",
+    "NestedBlockDepth",
+    "MaxLineLength",
+)
+
 package org.meshtastic.feature.messaging.image
 
 import kotlin.math.min
 
 data class MonochromeResolutionPreset(val index: Int, val width: Int, val height: Int, val name: String) {
-    val totalPixels: Int get() = width * height
-    val byteSize: Int get() = (totalPixels + 7) / 8
-    val aspectRatio: Float get() = width.toFloat() / height.toFloat()
+    val totalPixels: Int
+        get() = width * height
+
+    val byteSize: Int
+        get() = (totalPixels + 7) / 8
+
+    val aspectRatio: Float
+        get() = width.toFloat() / height.toFloat()
 }
 
-data class DecodedMonochromeImage(
-    val presetIndex: Int,
-    val width: Int,
-    val height: Int,
-    val pixels: IntArray,
-) {
+data class DecodedMonochromeImage(val presetIndex: Int, val width: Int, val height: Int, val pixels: IntArray) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is DecodedMonochromeImage) return false
-        return presetIndex == other.presetIndex && width == other.width && height == other.height && pixels.contentEquals(other.pixels)
+        return presetIndex == other.presetIndex &&
+            width == other.width &&
+            height == other.height &&
+            pixels.contentEquals(other.pixels)
     }
+
     override fun hashCode(): Int {
         var result = presetIndex
         result = 31 * result + width
@@ -45,6 +59,7 @@ data class DecodedMonochromeImage(
     }
 }
 
+@Suppress("TooManyFunctions")
 object MonochromeImageCodec {
     const val PORT_NUM = 264
     private const val ENC_RAW = 0
@@ -52,18 +67,19 @@ object MonochromeImageCodec {
     private const val ENC_VRLE = 2
     private const val ENC_DELTA = 3
 
-    val PRESETS = listOf(
-        MonochromeResolutionPreset(0, 39, 40, "39x40 (Square)"),
-        MonochromeResolutionPreset(1, 32, 32, "32x32 (Small Sq)"),
-        MonochromeResolutionPreset(2, 48, 32, "48x32 (3:2)"),
-        MonochromeResolutionPreset(3, 32, 48, "32x48 (2:3)"),
-        MonochromeResolutionPreset(4, 64, 24, "64x24 (8:3)"),
-        MonochromeResolutionPreset(5, 24, 64, "24x64 (3:8)"),
-        MonochromeResolutionPreset(6, 44, 36, "44x36 (11:9)"),
-        MonochromeResolutionPreset(7, 36, 44, "36x44 (9:11)"),
-        MonochromeResolutionPreset(8, 52, 30, "52x30 (16:9)"),
-        MonochromeResolutionPreset(9, 30, 52, "30x52 (9:16)"),
-    )
+    val PRESETS =
+        listOf(
+            MonochromeResolutionPreset(0, 39, 40, "39x40 (Square)"),
+            MonochromeResolutionPreset(1, 32, 32, "32x32 (Small Sq)"),
+            MonochromeResolutionPreset(2, 48, 32, "48x32 (3:2)"),
+            MonochromeResolutionPreset(3, 32, 48, "32x48 (2:3)"),
+            MonochromeResolutionPreset(4, 64, 24, "64x24 (8:3)"),
+            MonochromeResolutionPreset(5, 24, 64, "24x64 (3:8)"),
+            MonochromeResolutionPreset(6, 44, 36, "44x36 (11:9)"),
+            MonochromeResolutionPreset(7, 36, 44, "36x44 (9:11)"),
+            MonochromeResolutionPreset(8, 52, 30, "52x30 (16:9)"),
+            MonochromeResolutionPreset(9, 30, 52, "30x52 (9:16)"),
+        )
 
     fun getPreset(index: Int): MonochromeResolutionPreset = PRESETS.getOrElse(index) { PRESETS[0] }
 
@@ -132,14 +148,24 @@ object MonochromeImageCodec {
     private fun deltaEncode(bits: BooleanArray, width: Int, height: Int): BooleanArray {
         val out = BooleanArray(width * height)
         for (x in 0 until width) out[x] = bits[x]
-        for (y in 1 until height) for (x in 0 until width) { val i = y * width + x; out[i] = bits[i] xor bits[i - width] }
+        for (y in 1 until height) {
+            for (x in 0 until width) {
+                val i = y * width + x
+                out[i] = bits[i] xor bits[i - width]
+            }
+        }
         return out
     }
 
     private fun deltaDecode(delta: BooleanArray, width: Int, height: Int): BooleanArray {
         val out = BooleanArray(width * height)
         for (x in 0 until width) out[x] = delta[x]
-        for (y in 1 until height) for (x in 0 until width) { val i = y * width + x; out[i] = delta[i] xor out[i - width] }
+        for (y in 1 until height) {
+            for (x in 0 until width) {
+                val i = y * width + x
+                out[i] = delta[i] xor out[i - width]
+            }
+        }
         return out
     }
 
@@ -173,15 +199,28 @@ object MonochromeImageCodec {
         val preset = PRESETS.getOrNull(presetIndex) ?: return null
         val pixelCount = preset.totalPixels
         val payload = bytes.copyOfRange(1, bytes.size)
-        val bits: BooleanArray = when (enc) {
-            ENC_RAW -> bitUnpack(payload, pixelCount)
-            ENC_HRLE -> rleDecode(payload, pixelCount)
-            ENC_VRLE -> transpose(rleDecode(payload, pixelCount), preset.height, preset.width)
-            ENC_DELTA -> deltaDecode(rleDecode(payload, pixelCount), preset.width, preset.height)
-            else -> return null
-        }
-        val pixels = IntArray(pixelCount) { i -> if (i < bits.size && bits[i]) 0xFFFFFFFF.toInt() else 0xFF000000.toInt() }
-        return DecodedMonochromeImage(presetIndex = presetIndex, width = preset.width, height = preset.height, pixels = pixels)
+        val bits: BooleanArray =
+            when (enc) {
+                ENC_RAW -> bitUnpack(payload, pixelCount)
+                ENC_HRLE -> rleDecode(payload, pixelCount)
+                ENC_VRLE -> transpose(rleDecode(payload, pixelCount), preset.height, preset.width)
+                ENC_DELTA -> deltaDecode(rleDecode(payload, pixelCount), preset.width, preset.height)
+                else -> return null
+            }
+        val pixels =
+            IntArray(pixelCount) { i ->
+                if (i < bits.size && bits[i]) {
+                    0xFFFFFFFF.toInt()
+                } else {
+                    0xFF000000.toInt()
+                }
+            }
+        return DecodedMonochromeImage(
+            presetIndex = presetIndex,
+            width = preset.width,
+            height = preset.height,
+            pixels = pixels,
+        )
     }
 
     private val bayerMatrix = intArrayOf(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5)

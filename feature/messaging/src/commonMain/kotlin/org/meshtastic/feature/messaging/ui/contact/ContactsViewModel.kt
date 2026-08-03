@@ -120,7 +120,8 @@ class ContactsViewModel(
                     shortName = if (toBroadcast) packetData.channel.toString() else shortName,
                     longName = longName,
                     lastMessageTime = if (packetData.time != 0L) packetData.time else null,
-                    lastMessageText = if (packetData.dataType == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
+                    lastMessageText =
+                    if (packetData.dataType == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
                         "\uD83D\uDCF7 Изображение"
                     } else if (fromLocal) {
                         packetData.text

@@ -114,7 +114,7 @@
 
 #### `feature/messaging/.../Message.kt`
 - Добавлен диалог `MonochromeImageEditorDialog` с управлением состоянием
-- Добавлен `ImageCooldownButton` с таймером (2 минуты) и секретным сбросом (7 тапов за 2 секунды)
+- Добавлен `ImageCooldownButton` с таймером (2 минуты)
 - Кнопка прикрепления изображения 📷 рядом с кнопкой отправки сообщения
 - Обработка `onSendImage` → `viewModel.sendImageMessage()`
 - Обработка импорта фото через `rememberOpenFileLauncher`
@@ -172,48 +172,7 @@
 
 - **Кулдаун:** 2 минуты (`120_000 мс`) после каждой отправки изображения
 - **Визуализация:** кнопка с круговым прогрессом обратного отсчёта
-- **Секретный сброс:** 7 последовательных нажатий на кнопку кулдауна за 2 секунды
 - **Реализация:** `imageCooldownTimestamp` в `MessageViewModel`, `ImageCooldownButton` в `Message.kt`
-
----
-
-## Архитектура
-
-```
-┌──────────────────────────────────────────────────┐
-│                  UI Layer                         │
-│  Message.kt ──→ MonochromeImageEditorDialog       │
-│  MessageItem.kt ──→ Canvas (decode & render)      │
-│  MessageScreenComponents.kt ──→ "📷 Изображение"  │
-└──────────────────┬───────────────────────────────┘
-                   │
-┌──────────────────▼───────────────────────────────┐
-│              ViewModel Layer                      │
-│  MessageViewModel.sendImageMessage()              │
-│  ContactsViewModel (image preview text)           │
-└──────────────────┬───────────────────────────────┘
-                   │
-┌──────────────────▼───────────────────────────────┐
-│              Domain / Repository                  │
-│  SendMessageUseCase.sendImageMessage()            │
-│  → PortNum.PRIVATE_APP (256)                      │
-└──────────────────┬───────────────────────────────┘
-                   │
-┌──────────────────▼───────────────────────────────┐
-│              Data Layer                           │
-│  MeshDataHandlerImpl (route port 256/264)         │
-│  PacketDao (port_num IN (1, 256))                 │
-│  Packet entity (rawBytes field)                   │
-└──────────────────┬───────────────────────────────┘
-                   │
-┌──────────────────▼───────────────────────────────┐
-│              Codec (commonMain)                   │
-│  MonochromeImageCodec                             │
-│  encode() → auto-select best compression          │
-│  decode() → reconstruct pixels                    │
-│  processToMonochrome() → photo → monochrome bits  │
-└──────────────────────────────────────────────────┘
-```
 
 ---
 
@@ -251,5 +210,5 @@ Unit-тесты кодека (`MonochromeImageCodecTest.kt`):
 ## Известные ограничения
 
 - Desktop и iOS: импорт фото реализован заглушками (`TODO`)
-- Порт 264 (монохромные изображения) не является стандартным протоколом Meshtastic — это экспериментальный мод
-- Максимальный размер пакета ограничен сетью Meshtastic (~237 байт полезной нагрузки)
+- Мод (монохромные изображения) не является стандартным протоколом Meshtastic — это экспериментальный мод
+- Максимальный размер пакета ограничен сетью Meshtastic (200 байт полезной нагрузки)

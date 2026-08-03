@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-@file:Suppress("TooManyFunctions")
+@file:Suppress("MagicNumber", "LongMethod", "CyclomaticComplexMethod", "TooManyFunctions")
 
 package org.meshtastic.feature.messaging
 
@@ -40,8 +40,6 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,7 +47,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -178,7 +175,7 @@ fun MessageScreen(
     var replyingToPacketId by rememberSaveable { mutableStateOf<Int?>(null) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     var showImageEditor by remember { mutableStateOf(false) }
-    var imageImportTrigger by remember { mutableStateOf(0) }
+    var imageImportTrigger by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var selectedImageUri by remember { mutableStateOf<org.meshtastic.core.common.util.CommonUri?>(null) }
     val readImageGrayValues = org.meshtastic.core.ui.util.rememberReadImageGrayValuesFromUri()
     var rawImageGrayValues by remember { mutableStateOf<FloatArray?>(null) }
@@ -916,7 +913,7 @@ private fun ImageCooldownButton(
     onPickImage: () -> Unit,
     onResetCooldown: () -> Unit,
 ) {
-    var progress by remember { mutableStateOf(0f) }
+    var progress by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
     var isCoolingDown by remember { mutableStateOf(false) }
 
     LaunchedEffect(cooldownTimestamp, cooldownDuration) {
