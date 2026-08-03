@@ -41,6 +41,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -124,6 +126,7 @@ fun MonochromeImageEditorDialog(
     // PHOTO_CROP state
     var photoScale by remember { mutableFloatStateOf(1f) }
     var photoOffset by remember { mutableStateOf(Offset.Zero) }
+    var photoRotation by remember { mutableFloatStateOf(0f) }
     var brightness by remember { mutableFloatStateOf(0f) }
     var contrast by remember { mutableFloatStateOf(1f) }
     var ditherAmount by remember { mutableFloatStateOf(1f) }
@@ -131,27 +134,42 @@ fun MonochromeImageEditorDialog(
     androidx.compose.runtime.LaunchedEffect(selectedPresetIndex, importedGrayValues) {
         photoScale = 1f
         photoOffset = Offset.Zero
+        photoRotation = 0f
     }
 
-    val sampledGrayValues = remember(importedGrayValues, selectedPresetIndex, importedWidth, importedHeight, photoScale, photoOffset) {
+    val sampledGrayValues = remember(importedGrayValues, selectedPresetIndex, importedWidth, importedHeight, photoScale, photoOffset, photoRotation) {
         val src = importedGrayValues ?: return@remember FloatArray(preset.totalPixels)
         val result = FloatArray(preset.totalPixels)
-        // fit-scale: map the entire source image into the preset grid
-        val scaleX = importedWidth.toFloat() / preset.width
-        val scaleY = importedHeight.toFloat() / preset.height
-        val fitScale = kotlin.math.max(scaleX, scaleY) // cover-fit
-        val totalScale = fitScale / photoScale // user zoom applied
-        val cx = importedWidth / 2f
-        val cy = importedHeight / 2f
+        // Compute the scale that fits the source image fully into the preset grid (fit = no cropping by default)
+        val fitScaleX = importedWidth.toFloat() / preset.width
+        val fitScaleY = importedHeight.toFloat() / preset.height
+        // Use min so the whole image is visible (fit-inside). User zooms in from there.
+        val fitScale = kotlin.math.min(fitScaleX, fitScaleY)
+        // At photoScale=1 one preset-cell = fitScale source pixels; zoom multiplies.
+        val cellSize = fitScale / photoScale
+        val cosA = kotlin.math.cos(Math.toRadians(photoRotation.toDouble())).toFloat()
+        val sinA = kotlin.math.sin(Math.toRadians(photoRotation.toDouble())).toFloat()
+        val cx = importedWidth / 2f + photoOffset.x
+        val cy = importedHeight / 2f + photoOffset.y
         for (y in 0 until preset.height) for (x in 0 until preset.width) {
-            val sx = cx + (x - preset.width / 2f) * totalScale - photoOffset.x * fitScale
-            val sy = cy + (y - preset.height / 2f) * totalScale - photoOffset.y * fitScale
-            val ix = sx.toInt().coerceIn(0, importedWidth - 1)
-            val iy = sy.toInt().coerceIn(0, importedHeight - 1)
-            result[y * preset.width + x] = src.getOrElse(iy * importedWidth + ix) { 0f }
+            // Offset from preset center in preset cells, then scale to source pixels
+            val dx = (x - preset.width / 2f) * cellSize
+            val dy = (y - preset.height / 2f) * cellSize
+            // Apply rotation around the source center
+            val sx = cx + cosA * dx + sinA * dy
+            val sy = cy - sinA * dx + cosA * dy
+            val ix = sx.toInt()
+            val iy = sy.toInt()
+            // Out-of-bounds → neutral gray (not black/white stretch)
+            result[y * preset.width + x] = if (ix in 0 until importedWidth && iy in 0 until importedHeight) {
+                src[iy * importedWidth + ix]
+            } else {
+                0.5f
+            }
         }
         result
     }
+
 
     val monoBitsPreview by remember(sampledGrayValues, brightness, contrast, ditherAmount, invert) {
         derivedStateOf {
@@ -197,11 +215,12 @@ fun MonochromeImageEditorDialog(
 
                 // Canvas
                 if (editorMode == EditorMode.DRAW) {
-                    DrawCanvas(preset = preset, pixels = pixels, invert = invert, brushColorBlack = brushColorBlack, trigger = trigger, onPixelChanged = { trigger.value++ })
-                    // Packet size
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        Text("~$packetSize байт", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
+                    DrawCanvas(
+                        preset = preset, pixels = pixels, invert = invert,
+                        brushColorBlack = brushColorBlack, trigger = trigger,
+                        packetSize = packetSize,
+                        onPixelChanged = { trigger.value++ },
+                    )
                     Spacer(Modifier.height(8.dp))
 
                     // Brush buttons
@@ -241,14 +260,28 @@ fun MonochromeImageEditorDialog(
                     }
                 } else {
                     // PHOTO_CROP
+                    val previewBytes = remember(monoBitsPreview) {
+                        MonochromeImageCodec.encode(monoBitsPreview.map { it }.toBooleanArray(), selectedPresetIndex).size
+                    }
                     PhotoCropCanvas(
                         preset = preset,
                         monoBitsPreview = monoBitsPreview,
-                        onTransform = { pan, zoom, size ->
+                        packetSize = previewBytes,
+                        onTransform = { pan, zoom, rotation, size ->
                             val zf = 1f + (zoom - 1f) * 0.4f
                             photoScale = (photoScale * zf).coerceIn(0.5f, 10f)
-                            val cellW = size.width.toFloat() / preset.width
-                            photoOffset += Offset(pan.x / cellW, pan.y / cellW) / photoScale
+                            photoRotation += rotation
+                            // Screen pixels per preset cell
+                            val screenCellW = size.width.toFloat() / preset.width
+                            // Source pixels per preset cell (at current zoom)
+                            val fitScaleX = importedWidth.toFloat() / preset.width
+                            val fitScaleY = importedHeight.toFloat() / preset.height
+                            val fitScale = kotlin.math.min(fitScaleX, fitScaleY)
+                            val cellSize = fitScale / photoScale
+                            // Convert: screen pan → source pan. Negate because dragging right moves offset right.
+                            val srcPanX = -pan.x * (cellSize / screenCellW)
+                            val srcPanY = -pan.y * (cellSize / screenCellW)
+                            photoOffset += Offset(srcPanX, srcPanY)
                         },
                     )
                     Spacer(Modifier.height(8.dp))
@@ -307,6 +340,7 @@ private fun DrawCanvas(
     invert: Boolean,
     brushColorBlack: Boolean,
     trigger: androidx.compose.runtime.State<Int>,
+    packetSize: Int,
     onPixelChanged: () -> Unit,
 ) {
     val currentBrushColor by androidx.compose.runtime.rememberUpdatedState(brushColorBlack)
@@ -322,46 +356,68 @@ private fun DrawCanvas(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(preset.width.toFloat() / preset.height.toFloat())
-            .clip(RoundedCornerShape(8.dp))
-            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
-            .background(Color.White)
-            .pointerInput(preset) {
-                awaitEachGesture {
-                    val down = awaitFirstDown(requireUnconsumed = false)
-                    var isDrawing = true
-                    updatePixel(down.position, size)
-                    down.consume()
-                    
-                    do {
-                        val event = awaitPointerEvent()
-                        if (event.changes.size > 1) {
-                            isDrawing = false
-                        }
-                        if (isDrawing && event.changes.size == 1) {
-                            val change = event.changes.first()
-                            if (change.pressed) {
-                                updatePixel(change.position, size)
-                                change.consume()
-                            }
-                        }
-                    } while (event.changes.any { it.pressed })
-                }
-            },
-        contentAlignment = Alignment.Center,
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-            @Suppress("UNUSED_EXPRESSION") trigger.value
-            val inkColor = if (invert) Color.White else Color.Black
-            val cellW = size.width / preset.width
-            val cellH = size.height / preset.height
-            for (y in 0 until preset.height) for (x in 0 until preset.width) {
-                if (pixels[y * preset.width + x]) {
-                    drawRect(color = inkColor, topLeft = Offset(x * cellW, y * cellH), size = Size(cellW, cellH))
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .aspectRatio(preset.width.toFloat() / preset.height.toFloat())
+                .clip(RoundedCornerShape(8.dp))
+                .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+                .background(if (invert) Color.Black else Color.White)
+                .pointerInput(preset) {
+                    detectDragGestures(
+                        onDragStart = { offset -> updatePixel(offset, this.size) },
+                        onDrag = { change, _ -> updatePixel(change.position, this.size) },
+                    )
                 }
+                .pointerInput(preset) {
+                    detectTapGestures { offset ->
+                        updatePixel(offset, this.size)
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                @Suppress("UNUSED_EXPRESSION") trigger.value
+                val inkColor = if (invert) Color.White else Color.Black
+                val cellW = size.width / preset.width
+                val cellH = size.height / preset.height
+                for (y in 0 until preset.height) for (x in 0 until preset.width) {
+                    if (pixels[y * preset.width + x]) {
+                        drawRect(color = inkColor, topLeft = Offset(x * cellW, y * cellH), size = Size(cellW, cellH))
+                    }
+                }
+            }
+        }
+        
+        Box(
+            modifier = Modifier
+                .width(48.dp)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.Center
+        ) {
+            androidx.compose.foundation.layout.Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = "~",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                )
+                Text(
+                    text = "$packetSize",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "байт",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                )
             }
         }
     }
@@ -371,59 +427,64 @@ private fun DrawCanvas(
 private fun PhotoCropCanvas(
     preset: MonochromeResolutionPreset,
     monoBitsPreview: BooleanArray,
-    onTransform: (pan: Offset, zoom: Float, size: IntSize) -> Unit,
+    packetSize: Int,
+    onTransform: (pan: Offset, zoom: Float, rotation: Float, size: IntSize) -> Unit,
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth(0.85f)
-            .aspectRatio(preset.width.toFloat() / preset.height.toFloat())
-            .clip(RoundedCornerShape(8.dp))
-            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
-            .background(Color.Black)
-            .pointerInput(Unit) {
-                awaitEachGesture {
-                    awaitFirstDown(requireUnconsumed = false)
-                    var previousDistance = 0f
-                    var previousCentroid = Offset.Zero
-                    do {
-                        val event = awaitPointerEvent()
-                        val changes = event.changes
-                        if (changes.size == 1) {
-                            val change = changes.first()
-                            if (change.pressed) {
-                                val pan = change.position - change.previousPosition
-                                onTransform(pan, 1f, size)
-                                change.consume()
-                            }
-                            previousDistance = 0f
-                        } else if (changes.size == 2) {
-                            val pos0 = changes[0].position
-                            val pos1 = changes[1].position
-                            val distance = (pos0 - pos1).getDistance()
-                            val centroid = (pos0 + pos1) / 2f
-                            if (previousDistance > 0f) {
-                                val zoom = distance / previousDistance
-                                val pan = centroid - previousCentroid
-                                onTransform(pan, zoom, size)
-                            }
-                            previousDistance = distance
-                            previousCentroid = centroid
-                        } else {
-                            previousDistance = 0f
-                        }
-                    } while (event.changes.any { it.pressed })
-                }
-            },
-        contentAlignment = Alignment.Center,
+    androidx.compose.foundation.layout.Row(
+        modifier = Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Canvas(modifier = Modifier.matchParentSize()) {
-            val cellW = size.width / preset.width
-            val cellH = size.height / preset.height
-            for (y in 0 until preset.height) for (x in 0 until preset.width) {
-                val idx = y * preset.width + x
-                if (idx < monoBitsPreview.size && monoBitsPreview[idx]) {
-                    drawRect(color = Color.White, topLeft = Offset(x * cellW, y * cellH), size = Size(cellW + 0.5f, cellH + 0.5f))
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .aspectRatio(preset.width.toFloat() / preset.height.toFloat())
+                .clip(RoundedCornerShape(8.dp))
+                .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+                .background(Color.Black)
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, pan, zoom, rotation ->
+                        onTransform(pan, zoom, rotation, this.size)
+                    }
+                },
+            contentAlignment = Alignment.Center,
+        ) {
+            Canvas(modifier = Modifier.matchParentSize()) {
+                val cellW = size.width / preset.width
+                val cellH = size.height / preset.height
+                for (y in 0 until preset.height) for (x in 0 until preset.width) {
+                    val idx = y * preset.width + x
+                    if (idx < monoBitsPreview.size && monoBitsPreview[idx]) {
+                        drawRect(color = Color.White, topLeft = Offset(x * cellW, y * cellH), size = Size(cellW + 0.5f, cellH + 0.5f))
+                    }
                 }
+            }
+        }
+        
+        Box(
+            modifier = Modifier
+                .width(48.dp)
+                .fillMaxHeight(),
+            contentAlignment = Alignment.Center
+        ) {
+            androidx.compose.foundation.layout.Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = "~",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                )
+                Text(
+                    text = "$packetSize",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "байт",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                )
             }
         }
     }
