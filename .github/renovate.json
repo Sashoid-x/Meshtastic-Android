@@ -65,13 +65,14 @@
       "allowedVersions": "/^\\d+\\.\\d+\\.\\d+(\\.\\d+-g[0-9a-f]+-SNAPSHOT)?$/"
     },
     {
-      "description": "Group CMP and the androidx.compose artifacts that track it so Renovate bumps them together (see PR #5180)",
+      "description": "Group CMP and the androidx.compose artifacts that track it so Renovate bumps them together (see PR #5180). Every artifact pinned to the `androidx-compose-bom-aligned` catalog ref must be listed here: bumping any one of them rewrites that shared ref, which AndroidCompose.kt's resolutionStrategy force-aligns across the whole androidx.compose group, so an ungrouped artifact silently drags the entire Android Compose stack out of step with CMP (see PR #6651, where a solo ui-text-google-fonts bump broke screenshot preview discovery).",
       "groupName": "compose-multiplatform",
       "matchPackageNames": [
         "/^org\\.jetbrains\\.compose/",
         "androidx.compose.runtime:runtime-tracing",
         "androidx.compose.ui:ui-test-manifest",
-        "androidx.compose.material:material"
+        "androidx.compose.material:material",
+        "androidx.compose.ui:ui-text-google-fonts"
       ]
     },
     {
@@ -95,6 +96,17 @@
       "automerge": false
     },
     {
+      "description": "Block the Gradle 9.7 line. 9.7.0 crashed CMP's proguardReleaseJars (ExecSpec stdout null); 9.7.1 fixed that but broke main CI twice over (bumped in #6777, reverted next day): the configuration-cache fingerprint crashes reloading its own same-key entries (IsInIdeaSyncValueSource CNFE), and CMP's Windows packaging trips an Isolated Projects violation (':desktopApp' cannot access Project.layout on ':'). Lift only after a 9.7.x/9.8 patch proves out on both counts. Matches by depName so the flatpak-manifest custom manager (customManagers below) is pinned identically and can never propose the blocked version on its own.",
+      "matchDepNames": [
+        "gradle"
+      ],
+      "matchManagers": [
+        "gradle-wrapper",
+        "custom.regex"
+      ],
+      "allowedVersions": "!/^9\\.7\\./"
+    },
+    {
       "description": "Disable automerge for major updates (safety net)",
       "matchUpdateTypes": [
         "major"
@@ -114,6 +126,21 @@
         "/^io\\.insert-koin\\.compiler\\.plugin/"
       ],
       "automerge": false
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Mirror gradle-wrapper.properties bumps into the vendored Gradle distribution URL in the verify-flatpak offline manifest (see PRs #6777/#6782, where a wrapper bump without this file broke both build-flatpak arches). Shares depName 'gradle' with the gradle-wrapper manager so both files update in the same Renovate branch/PR. The sha256 line below the URL cannot be auto-updated (the gradle-version datasource has no digest support and the hosted app disallows postUpgradeTasks); the fail-fast guard in verify-flatpak.yml's generate-sources job holds that PR red until the sha256 is copied from distributionSha256Sum.",
+      "managerFilePatterns": [
+        "/^scripts/verify-flatpak/desktop-offline\\.yaml$/"
+      ],
+      "matchStrings": [
+        "services\\.gradle\\.org/distributions/gradle-(?<currentValue>\\d+(?:\\.\\d+)*)-bin\\.zip"
+      ],
+      "depNameTemplate": "gradle",
+      "datasourceTemplate": "gradle-version",
+      "versioningTemplate": "gradle"
     }
   ]
 }

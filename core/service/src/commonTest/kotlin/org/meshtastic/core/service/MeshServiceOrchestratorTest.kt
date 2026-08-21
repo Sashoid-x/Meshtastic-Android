@@ -32,8 +32,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import okio.ByteString.Companion.toByteString
 import org.meshtastic.core.common.database.DatabaseManager
+import org.meshtastic.core.common.util.safeCatchingAll
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.repository.CommandSender
@@ -48,6 +50,10 @@ import org.meshtastic.core.repository.RadioSessionContext
 import org.meshtastic.core.repository.ReceivedRadioFrame
 import org.meshtastic.core.repository.ServiceRepository
 import org.meshtastic.core.repository.TakPrefs
+import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.getStringSuspend
+import org.meshtastic.core.resources.local_network_permission_denied_hint
+import org.meshtastic.core.takserver.MeshToCotBroadcaster
 import org.meshtastic.core.takserver.TAKMeshIntegration
 import org.meshtastic.core.takserver.TAKServerManager
 import org.meshtastic.proto.FromRadio
@@ -85,6 +91,7 @@ class MeshServiceOrchestratorTest {
     private val dispatchers = CoroutineDispatchers(io = testDispatcher, main = testDispatcher, default = testDispatcher)
 
     /** Stubs the shared flow dependencies used by every test and returns an orchestrator. */
+    @OptIn(ExperimentalCoroutinesApi::class)
     private fun createOrchestrator(
         receivedData: MutableSharedFlow<ReceivedRadioFrame> = MutableSharedFlow(),
         connectionError: MutableSharedFlow<String> = MutableSharedFlow(),
@@ -99,6 +106,9 @@ class MeshServiceOrchestratorTest {
         isSessionActive: (RadioSessionContext) -> Boolean = { activeSession.value == it },
         takEnabledFlow: MutableStateFlow<Boolean> = MutableStateFlow(false),
         takRunningFlow: MutableStateFlow<Boolean> = MutableStateFlow(false),
+        // Granted by default so every pre-existing test keeps reaching connect(); DEFAULT_ADDRESS is BLE
+        // anyway, but the cold-start ordering test deliberately uses a TCP address.
+        localNetworkAccess: LocalNetworkAccess = LocalNetworkAccess { true },
     ): MeshServiceOrchestrator {
         every { radioInterfaceService.receivedData } returns receivedData
         every { radioInterfaceService.connectionError } returns connectionError
@@ -113,10 +123,16 @@ class MeshServiceOrchestratorTest {
         every { serviceRepository.meshPacketFlow } returns MutableSharedFlow()
         every { meshConfigHandler.moduleConfig } returns MutableStateFlow(LocalModuleConfig())
         every { takPrefs.isTakServerEnabled } returns takEnabledFlow
+        every { takPrefs.isMeshToCotEnabled } returns MutableStateFlow(false)
+        every { takPrefs.takServerChannel } returns MutableStateFlow(0)
         every { takServerManager.isRunning } returns takRunningFlow
         every { takServerManager.inboundMessages } returns MutableSharedFlow()
         every { nodeRepository.myNodeInfo } returns MutableStateFlow(null)
 
+        // Deliberately its own dispatcher, not the class-level testDispatcher: the broadcaster's
+        // scheduler doesn't need to be the same one driving this test, and a distinct name keeps
+        // that from reading as though the two are linked.
+        val broadcasterTestDispatcher = UnconfinedTestDispatcher()
         val takMeshIntegration =
             TAKMeshIntegration(
                 takServerManager = takServerManager,
@@ -124,6 +140,19 @@ class MeshServiceOrchestratorTest {
                 serviceRepository = serviceRepository,
                 meshConfigHandler = meshConfigHandler,
                 nodeRepository = nodeRepository,
+                takPrefs = takPrefs,
+                meshToCotBroadcaster =
+                MeshToCotBroadcaster(
+                    takServerManager = takServerManager,
+                    nodeRepository = nodeRepository,
+                    takPrefs = takPrefs,
+                    dispatchers =
+                    CoroutineDispatchers(
+                        io = broadcasterTestDispatcher,
+                        main = broadcasterTestDispatcher,
+                        default = broadcasterTestDispatcher,
+                    ),
+                ),
             )
 
         return MeshServiceOrchestrator(
@@ -138,6 +167,7 @@ class MeshServiceOrchestratorTest {
             databaseManager = databaseManager,
             connectionManager = connectionManager,
             dispatchers = dispatchers,
+            localNetworkAccess = localNetworkAccess,
         )
     }
 
@@ -182,6 +212,63 @@ class MeshServiceOrchestratorTest {
         verify { takServerManager.stop() }
 
         orchestrator.stop()
+    }
+
+    @Test
+    fun testTakServerCanRetryAfterFailedStart() {
+        val takEnabledFlow = MutableStateFlow(false)
+        val takRunningFlow = MutableStateFlow(false)
+        val lifecycleEvents = mutableListOf<String>()
+        every { takServerManager.start(any()) } calls
+            {
+                lifecycleEvents += "start"
+                Unit
+            }
+        every { takServerManager.stop() } calls
+            {
+                lifecycleEvents += "stop"
+                Unit
+            }
+        val orchestrator = createOrchestrator(takEnabledFlow = takEnabledFlow, takRunningFlow = takRunningFlow)
+
+        orchestrator.start()
+        // The mock never changes takRunningFlow, modeling a start attempt that failed before listening.
+        takEnabledFlow.value = true
+        takEnabledFlow.value = false
+        takEnabledFlow.value = true
+
+        assertEquals(listOf("start", "stop", "start"), lifecycleEvents)
+
+        orchestrator.stop()
+        assertEquals(listOf("start", "stop", "start", "stop"), lifecycleEvents)
+    }
+
+    @Test
+    fun testStopStopsTakServerWhileStarting() {
+        val takEnabledFlow = MutableStateFlow(true)
+        val takRunningFlow = MutableStateFlow(false)
+        val lifecycleEvents = mutableListOf<String>()
+        every { takServerManager.start(any()) } calls
+            {
+                lifecycleEvents += "start"
+                Unit
+            }
+        every { takServerManager.stop() } calls
+            {
+                lifecycleEvents += "stop"
+                Unit
+            }
+        val orchestrator = createOrchestrator(takEnabledFlow = takEnabledFlow, takRunningFlow = takRunningFlow)
+
+        orchestrator.start()
+        orchestrator.stop()
+
+        takEnabledFlow.value = false
+        orchestrator.start()
+        takEnabledFlow.value = true
+        orchestrator.stop()
+
+        assertEquals(listOf("start", "stop", "start", "stop"), lifecycleEvents)
     }
 
     @Test
@@ -450,5 +537,66 @@ class MeshServiceOrchestratorTest {
         connectionState.value = ConnectionState.Disconnected
         connectionState.value = ConnectionState.Connected
         assertFalse(orchestrator.isRunning)
+    }
+
+    @Test
+    fun tcpReconnectWarnsAndStillConnectsWhenLocalNetworkAccessIsMissing() = runTest {
+        // Android 17 gates the socket: without ACCESS_LOCAL_NETWORK a local TCP connect times out silently. The
+        // service has no Activity to request from, so the contract is warn-and-proceed — proceed because the address
+        // prefix says nothing about locality (public-IP/VPN radios need no permission) and because connect() is the
+        // sole installer of the transport-recovery listeners.
+        //
+        // Pre-warm the resource: the first read completes on compose-resources' own Dispatchers.Default scope, so an
+        // un-warmed lookup lands after the assertions (see ScannerViewModelTest's warmScanFailureStrings). The same
+        // safeCatchingAll-with-fallback shape as production keeps the expected text identical either way.
+        val expectedMessage =
+            safeCatchingAll { getStringSuspend(Res.string.local_network_permission_denied_hint) }
+                .getOrDefault(UNTRANSLATED_LOCAL_NETWORK_PERMISSION_DENIED_HINT)
+        val orchestrator =
+            createOrchestrator(
+                currentDeviceAddressFlow = MutableStateFlow<String?>("t192.168.1.100"),
+                localNetworkAccess = LocalNetworkAccess { false },
+            )
+
+        orchestrator.start()
+
+        verify { serviceRepository.setErrorMessage(expectedMessage, Severity.Warn) }
+        verify { radioInterfaceService.connect() }
+
+        orchestrator.stop()
+    }
+
+    @Test
+    fun tcpReconnectConnectsWithoutAWarningWhenLocalNetworkAccessIsHeld() {
+        val orchestrator =
+            createOrchestrator(
+                currentDeviceAddressFlow = MutableStateFlow<String?>("t192.168.1.100"),
+                localNetworkAccess = LocalNetworkAccess { true },
+            )
+
+        orchestrator.start()
+
+        verify { radioInterfaceService.connect() }
+        verify(exactly(0)) { serviceRepository.setErrorMessage(any(), any()) }
+
+        orchestrator.stop()
+    }
+
+    @Test
+    fun nonTcpReconnectIsUnaffectedByLocalNetworkAccess() {
+        // Guards against over-gating: ACCESS_LOCAL_NETWORK has nothing to do with a BLE radio, so a denied grant
+        // must neither warn nor keep a Bluetooth device from reconnecting.
+        val orchestrator =
+            createOrchestrator(
+                currentDeviceAddressFlow = MutableStateFlow<String?>(DEFAULT_ADDRESS),
+                localNetworkAccess = LocalNetworkAccess { false },
+            )
+
+        orchestrator.start()
+
+        verify { radioInterfaceService.connect() }
+        verify(exactly(0)) { serviceRepository.setErrorMessage(any(), any()) }
+
+        orchestrator.stop()
     }
 }

@@ -33,12 +33,15 @@ import org.meshtastic.core.model.ChannelOption
 import org.meshtastic.core.model.RegionInfo
 import org.meshtastic.core.model.RegionPresetConstraint
 import org.meshtastic.core.model.constraintFor
-import org.meshtastic.core.model.defaultPresetFor
 import org.meshtastic.core.model.numChannels
-import org.meshtastic.core.model.repairPresetFor
+import org.meshtastic.core.model.presetForRegionChange
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.advanced
 import org.meshtastic.core.resources.bandwidth
+import org.meshtastic.core.resources.bandwidth_default
+import org.meshtastic.core.resources.bandwidth_option_khz
+import org.meshtastic.core.resources.bandwidth_unsupported
+import org.meshtastic.core.resources.bandwidth_unsupported_summary
 import org.meshtastic.core.resources.coding_rate
 import org.meshtastic.core.resources.config_lora_frequency_slot_summary
 import org.meshtastic.core.resources.config_lora_hop_limit_summary
@@ -133,12 +136,21 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
 
     val primaryChannel = remember(formState.value) { Channel(primarySettings, formState.value) }
     val focusManager = LocalFocusManager.current
+    val bandwidthSelection =
+        loRaBandwidthSelection(
+            storedValue = formState.value.bandwidth,
+            region = formState.value.region,
+            hwModel = state.metadata?.hw_model,
+            pioEnv = state.pioEnv,
+        )
+    val customBandwidthIsValid = bandwidthSelection.allowsSave(formState.value.use_preset)
 
     RadioConfigScreenList(
         title = stringResource(Res.string.lora),
         onBack = onBack,
         configState = formState,
         enabled = state.connected,
+        saveEnabled = customBandwidthIsValid,
         responseState = state.responseState,
         onDismissPacketResponse = viewModel::clearPacketResponse,
         onSave = {
@@ -157,7 +169,11 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
                 val regionPresetMap = if (capabilities.supportsLoraRegionPresetMap) state.loraRegionPresetMap else null
                 val presetConstraint =
                     remember(regionPresetMap, formState.value.region) {
-                        regionPresetMap.constraintFor(formState.value.region)
+                        // UNSET's map entry states pin intent (firmware #11507), not a constraint: never let it
+                        // narrow the picker while the region is still unset.
+                        formState.value.region
+                            .takeIf { it != RegionCode.UNSET }
+                            ?.let { regionPresetMap.constraintFor(it) }
                     }
                 val presetsGated = presetConstraint?.isGated(state.localIsLicensed) == true
                 DropDownPreference(
@@ -170,21 +186,14 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
                     },
                     selectedItem = formState.value.region,
                     onItemSelected = { region ->
-                        val freshSetup = formState.value.region == RegionCode.UNSET
-                        // When the region changes, snap the preset to the region's default if the current one is
-                        // no longer legal there (R7); a no-op when the region is unconstrained.
-                        val repaired = regionPresetMap.repairPresetFor(region, formState.value.modem_preset)
-                        // At fresh setup (region was UNSET) adopt the region's advertised default rather than keeping
-                        // a merely-legal preset: the firmware map's default when present, else the app's built-in
-                        // default (e.g. US -> LongTurbo on pre-2.8 firmware that sends no map).
+                        // Keeps the current preset (legality-repaired, R7); at fresh setup a placeholder LongFast
+                        // adopts the region's advertised/built-in default instead (#6704).
                         val preset =
-                            if (freshSetup) {
-                                regionPresetMap.constraintFor(region)?.defaultPreset
-                                    ?: defaultPresetFor(region)
-                                    ?: repaired
-                            } else {
-                                repaired
-                            }
+                            regionPresetMap.presetForRegionChange(
+                                previousRegion = formState.value.region,
+                                newRegion = region,
+                                current = formState.value.modem_preset,
+                            )
                         formState.value = formState.value.copy(region = region, modem_preset = preset)
                     },
                 )
@@ -222,6 +231,7 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
                 } else {
                     ManualModemSettings(
                         config = formState.value,
+                        bandwidthSelection = bandwidthSelection,
                         enabled = state.connected,
                         focusManager = focusManager,
                         onConfigChange = { formState.value = it },
@@ -342,17 +352,18 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
 @Composable
 private fun ManualModemSettings(
     config: Config.LoRaConfig,
+    bandwidthSelection: LoRaBandwidthSelection,
     enabled: Boolean,
     focusManager: androidx.compose.ui.focus.FocusManager,
     onConfigChange: (Config.LoRaConfig) -> Unit,
 ) {
     androidx.compose.foundation.layout.Column {
-        EditTextPreference(
-            title = stringResource(Res.string.bandwidth),
-            value = config.bandwidth,
+        LoRaBandwidthPreference(
+            config = config,
+            selection = bandwidthSelection,
             enabled = enabled,
-            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-            onValueChanged = { onConfigChange(config.copy(bandwidth = it)) },
+            focusManager = focusManager,
+            onConfigChange = onConfigChange,
         )
         HorizontalDivider()
         EditTextPreference(
@@ -381,4 +392,59 @@ private fun ManualModemSettings(
             },
         )
     }
+}
+
+@Composable
+internal fun LoRaBandwidthPreference(
+    config: Config.LoRaConfig,
+    selection: LoRaBandwidthSelection,
+    enabled: Boolean,
+    focusManager: androidx.compose.ui.focus.FocusManager,
+    onConfigChange: (Config.LoRaConfig) -> Unit,
+) {
+    val options = selection.options
+    if (options == null) {
+        EditTextPreference(
+            title = stringResource(Res.string.bandwidth),
+            value = config.bandwidth,
+            enabled = enabled,
+            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+            onValueChanged = { onConfigChange(config.copy(bandwidth = it)) },
+        )
+        return
+    }
+
+    val items =
+        options
+            .map { option ->
+                DropDownItem(
+                    value = option.wireValue,
+                    label =
+                    if (option.wireValue == 0) {
+                        stringResource(Res.string.bandwidth_default, option.displayKilohertz)
+                    } else {
+                        stringResource(Res.string.bandwidth_option_khz, option.displayKilohertz)
+                    },
+                )
+            }
+            .toMutableList()
+    selection.invalidPersistedValue?.let { invalidValue ->
+        val value = stringResource(Res.string.bandwidth_option_khz, invalidValue.toString())
+        val invalidLabel = stringResource(Res.string.bandwidth_unsupported, value)
+        items += DropDownItem(value = invalidValue, label = invalidLabel, enabled = false)
+    }
+
+    DropDownPreference(
+        title = stringResource(Res.string.bandwidth),
+        summary =
+        if (selection.isValid) {
+            null
+        } else {
+            stringResource(Res.string.bandwidth_unsupported_summary)
+        },
+        enabled = enabled,
+        items = items,
+        selectedItem = config.bandwidth,
+        onItemSelected = { onConfigChange(config.copy(bandwidth = it)) },
+    )
 }

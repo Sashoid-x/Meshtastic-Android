@@ -28,8 +28,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.KoinViewModel
-import org.meshtastic.core.common.util.MeasurementSystem
-import org.meshtastic.core.common.util.getSystemMeasurementSystem
+import org.meshtastic.core.common.util.TemperatureUnit
+import org.meshtastic.core.common.util.getSystemTemperatureUnit
 import org.meshtastic.core.model.DeviceType
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
@@ -42,6 +42,7 @@ import org.meshtastic.core.repository.DeviceHardwareRepository
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.RadioConfigRepository
 import org.meshtastic.core.repository.RadioInterfaceService
+import org.meshtastic.core.ui.viewmodel.safeLaunch
 import org.meshtastic.core.ui.viewmodel.stateInWhileSubscribed
 import org.meshtastic.feature.node.detail.NodeManagementActions
 import org.meshtastic.feature.node.detail.NodeRequestActions
@@ -133,7 +134,7 @@ class NodeListViewModel(
 
     // OS locale rarely changes mid-session; snapshot once instead of per filter/sort emission.
     private val distanceUnits = DistanceUnit.getFromLocale().value
-    private val tempInFahrenheit = getSystemMeasurementSystem() == MeasurementSystem.IMPERIAL
+    private val tempInFahrenheit = getSystemTemperatureUnit() == TemperatureUnit.FAHRENHEIT
     val nodesUiState: StateFlow<NodesUiState> =
         combine(nodeSortOption, nodeFilter) { sort, nodeFilter ->
             NodesUiState(
@@ -187,7 +188,7 @@ class NodeListViewModel(
         nodeFilterPreferences.setNodeSort(sort)
     }
 
-    fun setChannels(channelSet: ChannelSet) = viewModelScope.launch {
+    fun setChannels(channelSet: ChannelSet) = safeLaunch(tag = "setChannels") {
         radioConfigRepository.replaceAllSettings(channelSet.settings)
         val newLoraConfig = channelSet.lora_config
         if (newLoraConfig != null) {
@@ -213,7 +214,7 @@ class NodeListViewModel(
 
     /** Initiates a trace route request to the specified node. */
     fun traceRoute(node: Node) {
-        viewModelScope.launch { nodeRequestActions.requestTraceroute(node.num, node.user.long_name) }
+        safeLaunch(tag = "requestTraceroute") { nodeRequestActions.requestTraceroute(node.num, node.user.long_name) }
     }
 
     companion object {
@@ -231,20 +232,26 @@ data class NodesUiState(
 
 data class NodeFilterState(
     val filterText: String = "",
-    val includeUnknown: Boolean = false,
+    val includeUnknown: Boolean = true,
     val excludeInfrastructure: Boolean = false,
     val onlyOnline: Boolean = false,
     val onlyDirect: Boolean = false,
     val showIgnored: Boolean = false,
     val excludeMqtt: Boolean = false,
 ) {
-    /** True if any user-applied filter is narrowing the visible node set. */
+    /** True if any user-applied filter is narrowing the visible node set. Unknown nodes are shown unless opted out. */
     val isActive: Boolean
-        get() = filterText.isNotEmpty() || excludeInfrastructure || onlyOnline || onlyDirect || excludeMqtt
+        get() =
+            !includeUnknown ||
+                filterText.isNotEmpty() ||
+                excludeInfrastructure ||
+                onlyOnline ||
+                onlyDirect ||
+                excludeMqtt
 }
 
 data class NodeFilterToggles(
-    val includeUnknown: Boolean = false,
+    val includeUnknown: Boolean = true,
     val excludeInfrastructure: Boolean = false,
     val onlyOnline: Boolean = false,
     val onlyDirect: Boolean = false,

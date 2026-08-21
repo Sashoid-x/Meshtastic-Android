@@ -33,6 +33,8 @@ import org.meshtastic.core.repository.CommandSender
 import org.meshtastic.core.repository.MeshConfigHandler
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.ServiceRepository
+import org.meshtastic.core.repository.TakPrefs
+import org.meshtastic.core.takserver.TAKPacketConversion.toCoTMessage
 import org.meshtastic.core.takserver.TAKPacketConversion.toTAKPacket
 import org.meshtastic.core.takserver.TAKPacketV2Conversion.toTAKPacketV2
 import org.meshtastic.proto.MemberRole
@@ -43,9 +45,32 @@ import org.meshtastic.proto.Team
 import kotlin.concurrent.Volatile
 import kotlin.concurrent.atomics.AtomicBoolean
 import kotlin.concurrent.atomics.ExperimentalAtomicApi
-import kotlin.random.Random
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
+
+/**
+ * Outcome of a single outbound CoT dispatch attempt via [TAKMeshIntegration.sendCoTToMeshV1] /
+ * [TAKMeshIntegration.sendCoTToMeshV2]. Exposed (internal) so [TakMeshTestRunner] can distinguish an intentional,
+ * schema-driven drop (e.g. v1's TAKPacket only representing PLI/GeoChat) from a genuine send failure, rather than
+ * reporting both as the same opaque "failed".
+ */
+internal sealed interface TakSendOutcome {
+    /** The CoT was successfully handed to [CommandSender.sendData] as [wireBytes] bytes. */
+    data class Sent(val wireBytes: Int) : TakSendOutcome
+
+    /**
+     * The CoT was never sent because the active protocol's schema/size limits can't represent it.
+     *
+     * @param schemaLimited true only when the drop is because the protocol's CoT type coverage doesn't include this
+     *   fixture's type (e.g. v1's TAKPacket only representing PLI/GeoChat) — a known, permanent limitation of that
+     *   protocol version. False for an oversize drop or any other reason: those are real MTU/size problems that happen
+     *   to hit a payload that *is* representable, and must not be reported as an expected/intentional limitation.
+     */
+    data class Dropped(val reason: String, val schemaLimited: Boolean) : TakSendOutcome
+
+    /** The CoT should have been sent but the attempt threw (radio disconnected, queue full, etc). */
+    data class Failed(val reason: String) : TakSendOutcome
+}
 
 /**
  * Bidirectional bridge between the local TAK server and the Meshtastic mesh network.
@@ -64,12 +89,15 @@ import kotlin.time.Duration.Companion.minutes
  * from older nodes in mixed-firmware mesh deployments.
  */
 @OptIn(ExperimentalAtomicApi::class)
+@Suppress("TooManyFunctions")
 class TAKMeshIntegration(
     private val takServerManager: TAKServerManager,
     private val commandSender: CommandSender,
     private val serviceRepository: ServiceRepository,
     private val meshConfigHandler: MeshConfigHandler,
     private val nodeRepository: NodeRepository,
+    private val meshToCotBroadcaster: MeshToCotBroadcaster,
+    private val takPrefs: TakPrefs,
 ) {
     private val isRunning = AtomicBoolean(false)
 
@@ -142,6 +170,9 @@ class TAKMeshIntegration(
             )
 
         jobs = newJobs
+        // Node -> CoT contacts. Self-gates on its own opt-in pref; starting it here means it can
+        // only ever run while the TAK server is enabled.
+        meshToCotBroadcaster.start(scope)
         val fw = nodeRepository.myNodeInfo.value?.firmwareVersion
         val proto = if (Capabilities(fw).supportsTakV2) "v2 (port 78, zstd)" else "v1 (port 72, legacy)"
         Logger.i { "TAK Mesh Integration started — firmware=$fw, outbound=$proto" }
@@ -152,6 +183,7 @@ class TAKMeshIntegration(
         val toCancel = jobs
         jobs = emptyList()
         toCancel.forEach(Job::cancel)
+        meshToCotBroadcaster.stop()
         takServerManager.stop()
         Logger.i { "TAK Mesh Integration stopped" }
     }
@@ -160,29 +192,37 @@ class TAKMeshIntegration(
 
     /**
      * Determine the outbound TAK protocol version based on the connected radio's firmware version. Evaluated per-send
-     * (not cached) so the bridge picks up firmware upgrades during a session without restart. If the firmware version
-     * is unavailable (radio not yet handshook), default to V2 — the v2 firmware was released widely enough that
-     * defaulting to legacy would be a regression for the common case.
+     * (not cached) so the bridge picks up firmware upgrades during a session without restart. Until the version is
+     * known, use the legacy format which every TAK-capable firmware version supports.
      */
     private fun useTakV2(): Boolean {
-        val fw = nodeRepository.myNodeInfo.value?.firmwareVersion ?: return true
+        val fw = nodeRepository.myNodeInfo.value?.firmwareVersion ?: return false
         return Capabilities(fw).supportsTakV2
     }
 
-    private suspend fun sendCoTToMesh(cotMessage: CoTMessage) {
-        if (useTakV2()) {
-            sendCoTToMeshV2(cotMessage)
-        } else {
-            sendCoTToMeshV1(cotMessage)
-        }
+    private suspend fun sendCoTToMesh(cotMessage: CoTMessage): TakSendOutcome = if (useTakV2()) {
+        sendCoTToMeshV2(cotMessage)
+    } else {
+        sendCoTToMeshV1(cotMessage)
     }
+
+    /**
+     * Test-only entry point for [TakMeshTestRunner]'s debug self-test: dispatch [cotMessage] through the real
+     * production v1/v2 pipeline, but with the protocol explicitly forced via [forceV2] instead of read from the
+     * connected radio's firmware (as [useTakV2] does). This lets the self-test exercise BOTH real dispatch paths
+     * deterministically in a single run regardless of which firmware happens to be connected — closing the blind spot
+     * where the self-test always exercised the v2 pipeline even when a real connected radio on firmware < 2.8.0 would
+     * silently fall back to the much more limited v1 path.
+     */
+    internal suspend fun sendCoTToMeshForTest(cotMessage: CoTMessage, forceV2: Boolean): TakSendOutcome =
+        if (forceV2) sendCoTToMeshV2(cotMessage) else sendCoTToMeshV1(cotMessage)
 
     /**
      * v2 send path (firmware >= 2.8.0): SDK parser + zstd dictionary compression, full typed payload support
      * (DrawnShape, Marker, Route, Aircraft, Casevac, Emergency, Task, plus PLI / GeoChat). Wire format: `[flags
      * byte][zstd-compressed TAKPacketV2 protobuf]` on port 78 (ATAK_PLUGIN_V2).
      */
-    private suspend fun sendCoTToMeshV2(cotMessage: CoTMessage) {
+    private suspend fun sendCoTToMeshV2(cotMessage: CoTMessage): TakSendOutcome {
         // Prefer the sourceEventXml for shape/marker/route types — the SDK's
         // CotXmlParser extracts compact typed payloads (DrawnShape, Marker,
         // Route, etc.) that compress far better than raw_detail encoding.
@@ -207,7 +247,11 @@ class TAKMeshIntegration(
         // remarks the packet exceeds the limit.
         val wirePayload: ByteArray =
             try {
-                TakSdkCompressor.compressCoT(xml, MAX_TAK_WIRE_PAYLOAD_BYTES)
+                val result = TakSdkCompressor.compressCoT(xml, MAX_TAK_WIRE_PAYLOAD_BYTES)
+                if (result.remarksStripped && result.wirePayload != null) {
+                    Logger.i { "Stripped <remarks> to fit TAK packet under MTU: type=${cotMessage.type}" }
+                }
+                result.wirePayload
                     ?: run {
                         Logger.w {
                             buildString {
@@ -228,14 +272,20 @@ class TAKMeshIntegration(
                                 }
                             }
                         }
-                        return
+                        return TakSendOutcome.Dropped(
+                            "Oversized (>${MAX_TAK_WIRE_PAYLOAD_BYTES}B)",
+                            schemaLimited = false,
+                        )
                     }
             } catch (e: Exception) {
                 Logger.w(e) { "SDK parser/compressor failed for ${cotMessage.type}, trying app conversion" }
                 val takPacketV2 = cotMessage.toTAKPacketV2()
                 if (takPacketV2 == null) {
                     Logger.w { "Cannot convert CoT type ${cotMessage.type} to TAKPacketV2, dropping" }
-                    return
+                    return TakSendOutcome.Dropped(
+                        "Cannot convert CoT type ${cotMessage.type} to TAKPacketV2",
+                        schemaLimited = false,
+                    )
                 }
                 try {
                     TakV2Compressor.compress(takPacketV2)
@@ -245,15 +295,17 @@ class TAKMeshIntegration(
                 }
             }
 
-        try {
+        return try {
             val dataPacket =
                 DataPacket(
                     to = NodeAddress.ID_BROADCAST,
                     bytes = wirePayload.toByteString(),
                     dataType = PortNum.ATAK_PLUGIN_V2.value,
+                    channel = takPrefs.takServerChannel.value,
                 )
             commandSender.sendData(dataPacket)
             Logger.d { "Sent V2 to mesh: ${cotMessage.type} (${wirePayload.size} bytes)" }
+            TakSendOutcome.Sent(wirePayload.size)
         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -261,6 +313,7 @@ class TAKMeshIntegration(
             Logger.e(e) {
                 "Failed to send TAKPacketV2 to mesh (${cotMessage.type}, ${wirePayload.size} bytes): ${e.message}"
             }
+            TakSendOutcome.Failed(e.message ?: "Send failed")
         }
     }
 
@@ -269,7 +322,7 @@ class TAKMeshIntegration(
      * compression. Only PLI and GeoChat payloads are supported by the v1 schema — shapes, markers, routes, casevac,
      * emergency, and task CoT events are dropped with a warning.
      */
-    private suspend fun sendCoTToMeshV1(cotMessage: CoTMessage) {
+    private suspend fun sendCoTToMeshV1(cotMessage: CoTMessage): TakSendOutcome {
         val takPacket =
             cotMessage.toTAKPacket()
                 ?: run {
@@ -278,7 +331,10 @@ class TAKMeshIntegration(
                             "in v1 TAKPacket schema (only PLI and GeoChat are supported). " +
                             "Upgrade radio firmware to >= 2.8.0 for full payload support."
                     }
-                    return
+                    return TakSendOutcome.Dropped(
+                        "Not representable in v1 TAKPacket schema (only PLI and GeoChat are supported)",
+                        schemaLimited = true,
+                    )
                 }
 
         val wirePayload = TAKPacket.ADAPTER.encode(takPacket)
@@ -287,24 +343,27 @@ class TAKMeshIntegration(
                 "Dropping oversized v1 TAK packet: type=${cotMessage.type} " +
                     "size=${wirePayload.size}B max=$MAX_TAK_WIRE_PAYLOAD_BYTES"
             }
-            return
+            return TakSendOutcome.Dropped("Oversized (>${MAX_TAK_WIRE_PAYLOAD_BYTES}B)", schemaLimited = false)
         }
 
-        try {
+        return try {
             val dataPacket =
                 DataPacket(
                     to = NodeAddress.ID_BROADCAST,
                     bytes = wirePayload.toByteString(),
                     dataType = PortNum.ATAK_PLUGIN.value,
+                    channel = takPrefs.takServerChannel.value,
                 )
             commandSender.sendData(dataPacket)
             Logger.d { "Sent V1 to mesh: ${cotMessage.type} (${wirePayload.size} bytes)" }
+            TakSendOutcome.Sent(wirePayload.size)
         } catch (e: kotlin.coroutines.cancellation.CancellationException) {
             throw e
         } catch (e: Exception) {
             Logger.e(e) {
                 "Failed to send v1 TAKPacket to mesh (${cotMessage.type}, ${wirePayload.size} bytes): ${e.message}"
             }
+            TakSendOutcome.Failed(e.message ?: "Send failed")
         }
     }
 
@@ -383,63 +442,12 @@ class TAKMeshIntegration(
     private suspend fun handleV1Packet(payload: okio.ByteString) {
         try {
             val takPacket = TAKPacket.ADAPTER.decode(payload)
-            val cotMessage = convertV1ToCoT(takPacket) ?: return
+            val cotMessage = takPacket.toCoTMessage() ?: return
             takServerManager.broadcast(cotMessage)
             Logger.d { "V1 → TAK clients: ${cotMessage.type}" }
         } catch (e: Exception) {
             Logger.w(e) { "Failed to handle V1 packet: ${e.message}" }
         }
-    }
-
-    private fun convertV1ToCoT(takPacket: TAKPacket): CoTMessage? {
-        val callsign = takPacket.contact?.callsign ?: "UNKNOWN"
-        val senderUid = takPacket.contact?.device_callsign ?: "unknown"
-        val teamName = takPacket.group?.team?.toTakTeamName() ?: DEFAULT_TAK_TEAM_NAME
-        val roleName = takPacket.group?.role?.toTakRoleName() ?: DEFAULT_TAK_ROLE_NAME
-        val battery = takPacket.status?.battery ?: DEFAULT_TAK_BATTERY
-
-        val pli = takPacket.pli
-        if (pli != null) {
-            return CoTMessage.pli(
-                uid = senderUid,
-                callsign = callsign,
-                latitude = pli.latitude_i.toDouble() / TAK_COORDINATE_SCALE,
-                longitude = pli.longitude_i.toDouble() / TAK_COORDINATE_SCALE,
-                altitude = pli.altitude.toDouble(),
-                speed = pli.speed.toDouble(),
-                course = pli.course.toDouble(),
-                team = teamName,
-                role = roleName,
-                battery = battery,
-                staleMinutes = DEFAULT_TAK_STALE_MINUTES,
-            )
-        }
-
-        val chat = takPacket.chat
-        if (chat != null) {
-            val timeNow = Clock.System.now()
-            // Include chatroom in UID so ATAK routes DMs correctly — the UID format
-            // "GeoChat.<senderUid>.<chatroom>.<msgId>" is what ATAK uses to determine routing.
-            // Hardcoding "All Chat Rooms" here loses DM routing from legacy v1 nodes.
-            val chatroom = chat.to ?: "All Chat Rooms"
-            val msgId = Random.Default.nextInt().toString(TAK_HEX_RADIX)
-            return CoTMessage(
-                uid = "GeoChat.$senderUid.$chatroom.$msgId",
-                type = "b-t-f",
-                how = "h-g-i-g-o",
-                time = timeNow,
-                start = timeNow,
-                stale = timeNow + DEFAULT_TAK_STALE_MINUTES.minutes,
-                latitude = 0.0,
-                longitude = 0.0,
-                contact = CoTContact(callsign = callsign, endpoint = DEFAULT_TAK_ENDPOINT),
-                group = CoTGroup(name = teamName, role = roleName),
-                status = CoTStatus(battery = battery),
-                chat = CoTChat(chatroom = chatroom, senderCallsign = callsign, message = chat.message),
-            )
-        }
-
-        return null
     }
 
     companion object {

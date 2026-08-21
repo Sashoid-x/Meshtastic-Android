@@ -28,7 +28,7 @@ plugins {
     alias(libs.plugins.meshtastic.android.application.compose)
     alias(libs.plugins.meshtastic.kotlinx.serialization)
     alias(libs.plugins.meshtastic.koin)
-    alias(libs.plugins.secrets)
+    alias(libs.plugins.meshtastic.android.secrets)
     alias(libs.plugins.androidx.baselineprofile)
     alias(libs.plugins.meshtastic.aboutlibraries)
     // Version-less on purpose: mokkery is embedded in the convention-plugin jar (build-logic
@@ -45,23 +45,18 @@ if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
-// The templated Android Auto experience (CarAppService + HomeScreen) is a Google "templated
-// messaging" beta feature that is publishable only to Closed/Internal tracks — Open/Production
-// submissions are auto-rejected (https://developer.android.com/training/cars/communication/templated-messaging).
-// Default builds therefore ship *notification-only* car messaging, which is GA and production-safe.
-// Build a Closed-track templated AAB with: -PenableCarTemplates=true
-val enableCarTemplates = providers.gradleProperty("enableCarTemplates").map { it.toBoolean() }.getOrElse(false)
-
 configure<ApplicationExtension> {
     namespace = "org.meshtastic.app"
 
-    // When templates are enabled, this res dir overrides feature:car's notification-only
-    // automotive_app_desc.xml with one that also declares <uses name="template" />.
-    if (enableCarTemplates) {
-        sourceSets.getByName("google").res.srcDir("src/googleCarTemplates/res")
-    }
-
     signingConfigs {
+        // Shared debug key (checked in; debug keys are not secret) so local builds and CI snapshots
+        // stay update-compatible — AGP's default per-machine key makes every snapshot un-sideloadable.
+        getByName("debug") {
+            storeFile = isolated.rootProject.projectDirectory.file("config/debug.keystore").asFile
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
         create("release") {
             keyAlias = keystoreProperties["keyAlias"] as String?
             keyPassword = keystoreProperties["keyPassword"] as String?
@@ -177,10 +172,10 @@ configure<ApplicationExtension> {
 
     buildTypes {
         release {
+            // Unsigned when keystore.properties is absent — a release must never carry the public
+            // debug key. For an installable local release, point keystore.properties at config/debug.keystore.
             if (keystoreProperties["storeFile"] != null) {
                 signingConfig = signingConfigs.named("release").get()
-            } else {
-                signingConfig = signingConfigs.getByName("debug")
             }
             isDebuggable = false
         }
@@ -291,12 +286,16 @@ dependencies {
     // instead of manually polling `dumpsys meminfo`.
     debugImplementation(libs.leakcanary.android)
 
-    googleImplementation(projects.feature.car)
     googleImplementation(libs.location.services)
     googleImplementation(libs.play.services.maps)
     googleImplementation(libs.maps.compose)
     googleImplementation(libs.maps.compose.utils)
     googleImplementation(libs.maps.compose.widgets)
+    // Direct declaration raises the transitive android-maps-utils 5.0.0 (via maps-utils-ktx 6.2.0)
+    // to 5.1.1, whose KmlParser is built against the xmlutil 1.0.x compat API the app actually ships
+    // — 5.0.0's is compiled against 0.91.x's removed policyBuilder(), so every KML/KMZ map import
+    // crashed with NoSuchMethodError. Drop when maps-compose's chain requires >= 5.1.1 on its own.
+    googleImplementation(libs.android.maps.utils)
     // maps-compose-widgets requests androidx.compose.material:material version-less (expects a BOM
     // we exclude). Name it with a version so the version is published in the app's graph metadata.
     googleImplementation(libs.androidx.compose.material)
@@ -316,11 +315,15 @@ dependencies {
     add("kspGoogle", libs.androidx.appfunctions.compiler)
 
     fdroidImplementation(libs.osmdroid.android)
-    fdroidImplementation(libs.osmdroid.geopackage) { exclude(group = "com.j256.ormlite") }
+    fdroidImplementation(libs.geopackage.android) {
+        because("6.7.5 depends on 16 KB page-size compatible SQLite Android Bindings")
+        exclude(group = "com.j256.ormlite")
+    }
     fdroidImplementation(libs.osmbonuspack)
 
     testImplementation(kotlin("test-junit"))
     testImplementation(libs.androidx.work.testing)
+    testImplementation(projects.core.testing)
     testImplementation(libs.koin.test)
     testRuntimeOnly(libs.junit.vintage.engine)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -40,12 +40,13 @@ fun InlineMap(node: Node, modifier: Modifier = Modifier) {
             // Default osmdroid tile source.
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(false)
+            isTilesScaledToDpi = true
 
             controller.setZoom(15.0)
         }
     }
 
-    LaunchedEffect(node.num) {
+    LaunchedEffect(node.latitude, node.longitude) {
         val point = GeoPoint(node.latitude, node.longitude)
 
         map.overlays.clear()

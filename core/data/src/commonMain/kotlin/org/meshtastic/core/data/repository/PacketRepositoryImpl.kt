@@ -40,7 +40,12 @@ import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.Reaction
+import org.meshtastic.core.repository.PersistedPacket
+import org.meshtastic.core.repository.PersistedPacketId
+import org.meshtastic.core.repository.PersistedReaction
+import org.meshtastic.core.repository.PersistedReactionId
 import org.meshtastic.proto.ChannelSettings
+import org.meshtastic.proto.MeshPacket
 import org.meshtastic.proto.PortNum
 import org.meshtastic.core.database.entity.ContactSettings as ContactSettingsEntity
 import org.meshtastic.core.database.entity.Packet as RoomPacket
@@ -109,12 +114,54 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
         }
     }
 
-    override suspend fun getQueuedPackets(): List<DataPacket> = withContext(dispatchers.io) {
-        dbManager.currentDb.value.packetDao().getAllDataPackets().filter { it.status == MessageStatus.QUEUED }
+    override suspend fun getQueuedPackets(): List<PersistedPacket> = withContext(dispatchers.io) {
+        dbManager.currentDb.value
+            .packetDao()
+            .getAllPersistedPackets()
+            .filter { it.data.status == MessageStatus.QUEUED }
+            .map { PersistedPacket(id = PersistedPacketId(it.myNodeNum, it.uuid), packet = it.data) }
     }
 
-    suspend fun insertRoomPacket(packet: RoomPacket) {
-        withContext(dispatchers.io + NonCancellable) { dbManager.withDb { it.packetDao().insert(packet) } }
+    override suspend fun getEnroutePackets(): List<PersistedPacket> = withContext(dispatchers.io) {
+        dbManager.currentDb.value
+            .packetDao()
+            .getAllPersistedPackets()
+            .filter { it.data.status == MessageStatus.ENROUTE }
+            .map { PersistedPacket(id = PersistedPacketId(it.myNodeNum, it.uuid), packet = it.data) }
+    }
+
+    override suspend fun getEnrouteReactions(): List<PersistedReaction> = withContext(dispatchers.io) {
+        dbManager.currentDb.value.packetDao().getReactionsByStatus(MessageStatus.ENROUTE).map { entity ->
+            PersistedReaction(
+                id = PersistedReactionId(entity.myNodeNum, entity.replyId, entity.userId, entity.emoji),
+                reaction = entity.toReaction { null },
+            )
+        }
+    }
+
+    // A null from withDb means no database was available, so nothing was timed out.
+    override suspend fun timeOutEnroutePacket(id: PersistedPacketId, routingError: Int): Boolean =
+        withContext(dispatchers.io + NonCancellable) {
+            dbManager.withDb { it.packetDao().timeOutEnroutePacket(id.myNodeNum, id.uuid, routingError) } ?: false
+        }
+
+    // A null from withDb means no database was available, so nothing was timed out.
+    override suspend fun timeOutEnrouteReaction(id: PersistedReactionId, routingError: Int): Boolean =
+        withContext(dispatchers.io + NonCancellable) {
+            dbManager.withDb {
+                it.packetDao()
+                    .timeOutEnrouteReaction(
+                        myNodeNum = id.myNodeNum,
+                        replyId = id.replyId,
+                        userId = id.userId,
+                        emoji = id.emoji,
+                        routingError = routingError,
+                    )
+            } ?: false
+        }
+
+    suspend fun insertRoomPacket(packet: RoomPacket): Long = withContext(dispatchers.io + NonCancellable) {
+        checkNotNull(dbManager.withDb { it.packetDao().insertAndGetId(packet) })
     }
 
     override suspend fun savePacket(
@@ -124,7 +171,7 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
         receivedTime: Long,
         read: Boolean,
         filtered: Boolean,
-    ) {
+    ): PersistedPacketId {
         val packetToSave =
             RoomPacket(
                 uuid = 0L,
@@ -141,7 +188,8 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
                 filtered = filtered,
                 messageText = packet.text.orEmpty(),
             )
-        insertRoomPacket(packetToSave)
+        val uuid = insertRoomPacket(packetToSave)
+        return PersistedPacketId(myNodeNum = myNodeNum, uuid = uuid)
     }
 
     override suspend fun getMessagesFrom(
@@ -160,7 +208,7 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
         flow.mapLatest { packets ->
             val cachedGetNode = memoize(getNode)
             val replyIds = packets.mapNotNull { it.packet.data.replyId?.takeIf { id -> id != 0 } }.distinct()
-            val replyMap = batchGetPacketsByIds(replyIds)
+            val replyMap = batchGetReplyParents(replyIds, contact)
             packets.map { packet ->
                 val message = packet.toMessage(cachedGetNode)
                 val replyId = message.replyId?.takeIf { it != 0 }
@@ -189,7 +237,7 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
                     val replyId = message.replyId?.takeIf { it != 0 }
                     val originalMessage =
                         replyId
-                            ?.let { id -> replyCache.getOrPut(id) { getPacketByPacketIdInternal(id) } }
+                            ?.let { id -> replyCache.getOrPut(id) { getReplyParent(id, contact) } }
                             ?.toMessage(cachedGetNode)
                     if (originalMessage != null) message.copy(originalMessage = originalMessage) else message
                 }
@@ -219,7 +267,7 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
                 val replyId = message.replyId?.takeIf { it != 0 }
                 val originalMessage =
                     replyId
-                        ?.let { id -> replyCache.getOrPut(id) { getPacketByPacketIdInternal(id) } }
+                        ?.let { id -> replyCache.getOrPut(id) { getReplyParent(id, contactKey) } }
                         ?.toMessage(cachedGetNode)
                 if (originalMessage != null) message.copy(originalMessage = originalMessage) else message
             }
@@ -228,6 +276,63 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
     override suspend fun updateMessageStatus(d: DataPacket, m: MessageStatus) {
         withContext(dispatchers.io) { dbManager.withDb { it.packetDao().updateMessageStatus(d, m) } }
     }
+
+    override suspend fun updateMessageStatus(id: PersistedPacketId, status: MessageStatus) {
+        withContext(dispatchers.io) {
+            dbManager.withDb { it.packetDao().updateMessageStatusByPersistedId(id.myNodeNum, id.uuid, status) }
+        }
+    }
+
+    override suspend fun claimQueuedPacket(id: PersistedPacketId): PersistedPacket? =
+        withContext(dispatchers.io + NonCancellable) {
+            dbManager
+                .withDb { it.packetDao().claimQueuedPacket(id.myNodeNum, id.uuid) }
+                ?.let { packet -> PersistedPacket(PersistedPacketId(packet.myNodeNum, packet.uuid), packet.data) }
+        }
+
+    override suspend fun claimQueuedPacketByPacketIdIfUnique(packetId: Int): PersistedPacket? =
+        withContext(dispatchers.io + NonCancellable) {
+            dbManager
+                .withDb { it.packetDao().claimQueuedPacketByPacketIdIfUnique(packetId) }
+                ?.let { packet -> PersistedPacket(PersistedPacketId(packet.myNodeNum, packet.uuid), packet.data) }
+        }
+
+    override suspend fun rollbackEnroutePacket(id: PersistedPacketId): Boolean =
+        withContext(dispatchers.io + NonCancellable) {
+            dbManager.withDb { it.packetDao().rollbackEnroutePacket(id.myNodeNum, id.uuid) } ?: false
+        }
+
+    override suspend fun updateOutgoingMessageStatus(packet: MeshPacket, status: MessageStatus): PersistedPacketId? =
+        withContext(dispatchers.io) {
+            dbManager
+                .withDb { it.packetDao().updateOutgoingMessageStatus(packet, status) }
+                ?.let { PersistedPacketId(it.myNodeNum, it.uuid) }
+        }
+
+    override suspend fun resolveOutgoingPacket(packet: MeshPacket): PersistedPacket? = withContext(dispatchers.io) {
+        dbManager.currentDb.value.packetDao().resolveOutgoingPacket(packet)?.let { stored ->
+            PersistedPacket(PersistedPacketId(stored.myNodeNum, stored.uuid), stored.data)
+        }
+    }
+
+    override suspend fun applyOutgoingQueueStatus(packet: MeshPacket, status: MessageStatus): PersistedPacket? =
+        withContext(dispatchers.io + NonCancellable) {
+            dbManager
+                .withDb { it.packetDao().applyOutgoingQueueStatus(packet, status) }
+                ?.let { stored -> PersistedPacket(PersistedPacketId(stored.myNodeNum, stored.uuid), stored.data) }
+        }
+
+    override suspend fun applyOutgoingReactionQueueStatus(packetId: Int, status: MessageStatus): PersistedReaction? =
+        withContext(dispatchers.io + NonCancellable) {
+            dbManager
+                .withDb { it.packetDao().applyOutgoingReactionQueueStatus(packetId, status) }
+                ?.let { entity ->
+                    PersistedReaction(
+                        id = PersistedReactionId(entity.myNodeNum, entity.replyId, entity.userId, entity.emoji),
+                        reaction = entity.toReaction { null },
+                    )
+                }
+        }
 
     override suspend fun updateMessageId(d: DataPacket, id: Int) {
         withContext(dispatchers.io) { dbManager.withDb { it.packetDao().updateMessageId(d, id) } }
@@ -248,19 +353,31 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
         dbManager.currentDb.value.packetDao().getPacketByPacketId(packetId)?.packet?.data
     }
 
-    private suspend fun getPacketByPacketIdInternal(packetId: Int) =
-        withContext(dispatchers.io) { dbManager.currentDb.value.packetDao().getPacketByPacketId(packetId) }
-
-    private suspend fun batchGetPacketsByIds(ids: List<Int>): Map<Int, PacketEntity> = if (ids.isEmpty()) {
-        emptyMap()
-    } else {
-        withContext(dispatchers.io) {
-            val dao = dbManager.currentDb.value.packetDao()
-            ids.chunked(NodeInfoDao.MAX_BIND_PARAMS)
-                .flatMap { dao.getPacketsByPacketIds(it) }
-                .associateBy { it.packet.packetId }
-        }
+    override suspend fun getPacketByPacketIdIfUnique(packetId: Int): DataPacket? = withContext(dispatchers.io) {
+        dbManager.currentDb.value.packetDao().findPacketsWithId(packetId).singleOrNull()?.data
     }
+
+    override suspend fun getPacketByPersistedId(id: PersistedPacketId): DataPacket? = withContext(dispatchers.io) {
+        dbManager.currentDb.value.packetDao().getPacketByPersistedId(id.myNodeNum, id.uuid)?.data
+    }
+
+    private suspend fun getReplyParent(packetId: Int, contactKey: String) = withContext(dispatchers.io) {
+        dbManager.currentDb.value.packetDao().getPacketsByPacketIdAndContact(packetId, contactKey).singleOrNull()
+    }
+
+    private suspend fun batchGetReplyParents(ids: List<Int>, contactKey: String): Map<Int, PacketEntity> =
+        if (ids.isEmpty()) {
+            emptyMap()
+        } else {
+            withContext(dispatchers.io) {
+                val dao = dbManager.currentDb.value.packetDao()
+                ids.chunked(NodeInfoDao.MAX_BIND_PARAMS)
+                    .flatMap { dao.getPacketsByPacketIdsAndContact(it, contactKey) }
+                    .groupBy { it.packet.packetId }
+                    .mapNotNull { (packetId, candidates) -> candidates.singleOrNull()?.let { packetId to it } }
+                    .toMap()
+            }
+        }
 
     private fun memoize(getNode: suspend (String?) -> Node): suspend (String?) -> Node {
         val cache = mutableMapOf<String?, Node>()

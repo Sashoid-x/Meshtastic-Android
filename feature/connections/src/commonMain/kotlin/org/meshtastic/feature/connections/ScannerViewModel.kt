@@ -66,6 +66,7 @@ import org.meshtastic.core.resources.bluetooth_scan_start_failed
 import org.meshtastic.core.resources.bluetooth_scan_too_frequent
 import org.meshtastic.core.resources.getPluralStringSuspend
 import org.meshtastic.core.resources.getStringSuspend
+import org.meshtastic.core.resources.local_network_permission_denied_hint
 import org.meshtastic.core.ui.viewmodel.safeLaunch
 import org.meshtastic.core.ui.viewmodel.stateInWhileSubscribed
 import org.meshtastic.feature.connections.model.DeviceListEntry
@@ -77,6 +78,12 @@ import kotlin.time.Duration.Companion.seconds
 internal val BLE_SCAN_START_FAILURE_RETRY_COOLDOWN = 15.seconds
 private const val BLE_SCAN_START_FAILURE_MESSAGE_FALLBACK =
     "Bluetooth scan couldn't start. Try again, or toggle Bluetooth if the problem continues."
+
+// English fallback for local_network_permission_denied_hint when resource lookup is unavailable. Internal so tests
+// can assert the exact surfaced text.
+internal const val LOCAL_NETWORK_PERMISSION_DENIED_HINT_FALLBACK =
+    "Local network access is turned off for Meshtastic. If this radio is on your local network, " +
+        "the connection will fail until you allow local network access in system settings."
 
 /**
  * How long to block scan restarts after a scan-start failure.
@@ -150,10 +157,21 @@ open class ScannerViewModel(
 ) : ViewModel() {
 
     // ── Mock / demo transport ─────────────────────────────────────────────────────────────────
-    private val _showMockTransport = MutableStateFlow(false)
 
-    /** Whether the mock/demo transport is currently selected. */
-    val showMockTransport: StateFlow<Boolean> = _showMockTransport.asStateFlow()
+    /**
+     * Whether the Demo Mode entries belong in the device list. Observed rather than sampled once: in a release build
+     * the gate opens mid-session, when the user performs the hidden-features gesture in Settings.
+     */
+    val showMockTransport: StateFlow<Boolean> = radioInterfaceService.mockTransportEnabled
+
+    private val _showReplayTransport = MutableStateFlow(false)
+
+    /**
+     * Whether the replay demo entry should be offered alongside [showMockTransport]. The capture asset is a locally
+     * generated artifact that no clean-checkout build carries, and without it replay silently degrades to the plain
+     * mock — so the entry stays hidden rather than advertising behaviour it cannot deliver.
+     */
+    val showReplayTransport: StateFlow<Boolean> = _showReplayTransport.asStateFlow()
 
     // ── Connection-progress chatter (surfaced as the bottom status pill) ──────────────────────
     private val _connectionProgressText = MutableStateFlow<String?>(null)
@@ -209,12 +227,16 @@ open class ScannerViewModel(
         }
 
     private val discoveredDevicesFlow: StateFlow<DiscoveredDevices> =
-        showMockTransport
-            .flatMapLatest { showMock -> getDiscoveredDevicesUseCase.invoke(showMock, gatedResolvedList) }
+        combine(showMockTransport, showReplayTransport, ::Pair)
+            .flatMapLatest { (showMock, showReplay) ->
+                getDiscoveredDevicesUseCase.invoke(showMock, showReplay, gatedResolvedList)
+            }
             .stateInWhileSubscribed(initialValue = DiscoveredDevices())
 
     init {
-        _showMockTransport.value = radioInterfaceService.isMockTransport()
+        // Sampled once, unlike [showMockTransport]: whether the replay capture ships is fixed when the build is
+        // assembled, so there is nothing for it to react to.
+        _showReplayTransport.value = radioInterfaceService.isReplayTransportAvailable
         serviceRepository.connectionProgress.onEach { _connectionProgressText.value = it }.launchIn(viewModelScope)
         serviceRepository.connectionState
             .onEach { state ->
@@ -588,6 +610,21 @@ open class ScannerViewModel(
         uiPrefs.setSelectedConnectionTransport(DeviceType.TCP)
         addRecentAddress(fullAddress, displayAddress)
         changeDeviceAddress(fullAddress)
+    }
+
+    /**
+     * Surfaces the local-network warning for a TCP connect that proceeds without `ACCESS_LOCAL_NETWORK` — either the
+     * permission is permanently denied (no prompt possible) or an in-context request just resolved as a denial. The
+     * connect is attempted regardless (the target may be a public host or VPN peer, which the permission does not
+     * govern); this message names the fix for the case where it IS local and the connect is about to time out.
+     */
+    fun warnLocalNetworkPermissionDenied() {
+        safeLaunch(tag = "warnLocalNetworkPermissionDenied") {
+            val message =
+                safeCatchingAll { getStringSuspend(Res.string.local_network_permission_denied_hint) }
+                    .getOrDefault(LOCAL_NETWORK_PERMISSION_DENIED_HINT_FALLBACK)
+            serviceRepository.setErrorMessage(text = message, severity = Severity.Warn)
+        }
     }
 
     /**

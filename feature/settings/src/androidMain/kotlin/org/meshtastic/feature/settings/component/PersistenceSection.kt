@@ -22,7 +22,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity.RESULT_OK
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
@@ -30,19 +29,18 @@ import kotlinx.datetime.format
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
+import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.common.util.nowMillis
-import org.meshtastic.core.database.DatabaseConstants
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.app_settings
-import org.meshtastic.core.resources.device_db_cache_limit
-import org.meshtastic.core.resources.device_db_cache_limit_summary
 import org.meshtastic.core.resources.export_data_csv
+import org.meshtastic.core.resources.export_node_db
 import org.meshtastic.core.resources.save_rangetest
-import org.meshtastic.core.ui.component.DropDownPreference
 import org.meshtastic.core.ui.component.ListItem
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Output
 import org.meshtastic.core.ui.theme.AppTheme
+import org.meshtastic.core.ui.util.rememberSaveFileLauncher
 import kotlin.time.Instant.Companion.fromEpochMilliseconds
 
 private val EXPORT_TIMESTAMP_FORMAT =
@@ -60,9 +58,11 @@ private val EXPORT_TIMESTAMP_FORMAT =
 @Composable
 internal fun ColumnScope.PersistenceSettingsContent(
     cacheLimit: Int,
+    onCheckCacheLimitEvictionCount: suspend (Int) -> Int,
     onSetCacheLimit: (Int) -> Unit,
     nodeShortName: String,
     onExportData: (android.net.Uri) -> Unit,
+    onExportNodeDb: (CommonUri) -> Unit,
 ) {
     val timestamp =
         fromEpochMilliseconds(nowMillis)
@@ -83,16 +83,10 @@ internal fun ColumnScope.PersistenceSettingsContent(
             }
         }
 
-    val cacheItems = remember {
-        (DatabaseConstants.MIN_CACHE_LIMIT..DatabaseConstants.MAX_CACHE_LIMIT).map { it.toLong() to it.toString() }
-    }
-    DropDownPreference(
-        title = stringResource(Res.string.device_db_cache_limit),
-        enabled = true,
-        items = cacheItems,
-        selectedItem = cacheLimit.toLong(),
-        onItemSelected = { selected -> onSetCacheLimit(selected.toInt()) },
-        summary = stringResource(Res.string.device_db_cache_limit_summary),
+    CacheLimitPreference(
+        cacheLimit = cacheLimit,
+        onCheckEvictionCount = onCheckCacheLimitEvictionCount,
+        onSetCacheLimit = onSetCacheLimit,
     )
 
     ListItem(
@@ -122,6 +116,20 @@ internal fun ColumnScope.PersistenceSettingsContent(
             }
         exportDataLauncher.launch(intent)
     }
+
+    ExportNodeDbItem(nodeShortName = nodeShortName, timestamp = timestamp, onExportNodeDb = onExportNodeDb)
+}
+
+@Composable
+private fun ExportNodeDbItem(nodeShortName: String, timestamp: String, onExportNodeDb: (CommonUri) -> Unit) {
+    val exportNodeDbLauncher = rememberSaveFileLauncher { uri -> onExportNodeDb(uri) }
+    ListItem(
+        text = stringResource(Res.string.export_node_db),
+        leadingIcon = MeshtasticIcons.Output,
+        trailingIcon = null,
+    ) {
+        exportNodeDbLauncher("Meshtastic_nodedb_${nodeShortName}_$timestamp.json", "application/json")
+    }
 }
 
 @Preview(showBackground = true)
@@ -131,9 +139,11 @@ fun PersistenceSectionPreview() {
         ExpressiveSection(title = stringResource(Res.string.app_settings)) {
             PersistenceSettingsContent(
                 cacheLimit = 100,
+                onCheckCacheLimitEvictionCount = { 0 },
                 onSetCacheLimit = {},
                 nodeShortName = "TEST",
                 onExportData = {},
+                onExportNodeDb = {},
             )
         }
     }

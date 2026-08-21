@@ -43,7 +43,15 @@ Yleisin päivitystapa Android-käyttäjille:
 
 Kun radio on yhdistetty **USB:n tai sarjayhteyden** kautta (bluetoothin sijaan), **laiteohjelmiston päivitys** -näkymässä on käytettävissä **USB-tiedostonsiirto**. Sovellus käynnistää laitteen uudelleen DFU-tilaan ja pyytää sitten tallentamaan `.uf2`-tiedoston laitteen DFU-asemaan järjestelmän tiedostonvalitsimen avulla. Tämä vaihtoehto näkyy vain USB tai sarjayhteydellä — sitä ei voi käyttää bluetoothin kautta.
 
-> ℹ️ **nRF-käynnistyslatain:** Jotkin laitteet (esimerkiksi RAK WisBlock RAK4631) edellyttävät, että käynnistyslatain päivitetään valmistajan sarjamuotoisella DFU-työkalulla (kuten `adafruit-nrfutil`). Pelkän `.uf2`-tiedoston kopioiminen ei päivitä käynnistyslatainta. Sovellus näyttää tästä vihjeen, kun se on tarpeen.
+> ℹ️ \*\* nFR käynnistyslataimen huomautus:\*\* Valmistajan toimittama .zip-muotoinen käynnistyslatain (esimerkiksi RAK WisBlock RAK4631) on asennettava sarjaliitäntäisen DFU-työkalun, kuten adafruit-nrfutilin, avulla. Pelkkä .zip-tiedoston kopioiminen asemalle ei toimi. Päivitysmuotoinen .uf2-käynnistyslatain voidaan asentaa kopioimalla se asemalle. Näin myös tämän sovelluksen käynnistyslataimen päivitystoiminto toimii. Sovellus näyttää huomautuksen, kun käytettävissä on vain sarjaliitäntäinen menetelmä.
+
+### Tyhjennys tehdasasetuksiin ja käynnistyslataimen päivitys
+
+**USB-/sarjaliitäntäyhteydellä** NRF52- ja RP2040-laitteet tarjoavat myös vaihtoehdot **Tyhjennys tehdasasetuksiin ja uudelleenasennus** sekä, jos laitteelle on julkaistu päivitetty käynnistyslatain, **Päivitä käynnistyslatain**.
+
+Tyhjennys tehdasasetuksiin poistaa laitteesta kaiken – kanavat, avaimet ja kaikki asetukset – eikä varmuuskopiota ole, joten sovellus pyytää ensin vahvistuksen. Molemmat toiminnot kirjoittavat vuorollaan kaksi tiedostoa, joten sinua pyydetään valitsemaan laitteen päivitysasema kahdesti: ensin tyhjennystiedostoa tai käynnistyslatainkuvaa varten ja sen jälkeen laiteohjelmistoa varten.
+
+Sovellus lukee valitsemaltasi asemalta tiedoston `INFO_UF2.TXT` varmistaakseen, että kyseessä on todella laitteen päivitysasema, sekä tunnistaakseen laitteen ennen kuin mitään kirjoitetaan. Jos sovellus ei pysty varmistamaan, mitä Bluetooth-pinoa laitteesi käyttää, se kieltäytyy suorittamasta tyhjennystä ja ohjaa sinut sen sijaan **Web Flasheriin** (https://flasher.meshtastic.org). Väärän vaihtoehdon valitseminen siellä voi johtaa siihen, että laitteen palauttaminen edellyttää erillistä laiteohjelmointilaitetta.
 
 ### Muut päivitysvaihtoehdot
 

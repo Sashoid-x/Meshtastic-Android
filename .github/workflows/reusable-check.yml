@@ -131,7 +131,9 @@ jobs:
           cache_configuration_cache: 'true' # VERSION_CODE pinned -> entries actually reuse
 
       - name: Screenshot Test Validation
-        run: ./gradlew :screenshot-tests:validateDebugScreenshotTest -Pci=true
+        # -Dorg.gradle.isolated-projects=false: AGP's screenshot plugin iterates BuildServicesRegistry at
+        # execution time, which Isolated Projects forbids (fatal since Gradle 9.7).
+        run: ./gradlew :screenshot-tests:validateDebugScreenshotTest -Pci=true -Dorg.gradle.isolated-projects=false
 
       - name: Upload screenshot diff report
         if: failure()
@@ -187,7 +189,7 @@ jobs:
   #   shard-core:    remaining core:* KMP module tests (allTests)
   #   shard-feature: feature:* KMP module tests + :core:service
   #   shard-app:     Pure-Android/JVM tests (androidApp, desktopApp,
-  #                  core:barcode, feature:car, feature:widget)
+  #                  core:barcode, feature:widget)
   #                  + :core:database + :core:network
   test-shards:
     runs-on: ubuntu-24.04
@@ -265,8 +267,6 @@ jobs:
               :core:barcode:testGoogleDebugUnitTest
               :core:database:allTests
               :core:network:allTests
-              :feature:car:testFdroidDebugUnitTest
-              :feature:car:testGoogleDebugUnitTest
               :feature:widget:testDebugUnitTest
             kover: >-
               :androidApp:koverXmlReportFdroidDebug
@@ -276,8 +276,6 @@ jobs:
               :desktopApp:koverXmlReport
               :core:database:koverXmlReport
               :core:network:koverXmlReport
-              :feature:car:koverXmlReportFdroidDebug
-              :feature:car:koverXmlReportGoogleDebug
               :feature:widget:koverXmlReportDebug
 
     steps:
@@ -310,26 +308,101 @@ jobs:
           ./gradlew ${{ matrix.shard.tasks }} $kover_tasks -Pci=true --continue \
             "-Dscan.value.CI shard=${{ matrix.shard.name }}"
 
-      - name: Upload test results to Codecov
+      # Flags are tagged by logical module group (core/feature/app/desktop), matching
+      # codecov.yml's flags/component_management — NOT by shard name. Shards are a CI
+      # load-balancing detail; which shard happens to run a module must not change
+      # which Codecov flag its coverage lands under.
+      - name: Upload test results to Codecov (core)
         if: ${{ !cancelled() }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: meshtastic/Meshtastic-Android
-          flags: ${{ matrix.shard.name }}
+          flags: core
           fail_ci_if_error: false
+          disable_search: true
           report_type: test_results
-          files: "**/build/test-results/**/*.xml"
+          files: "core/**/build/test-results/**/*.xml"
 
-      - name: Upload coverage to Codecov
+      - name: Upload test results to Codecov (feature)
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: meshtastic/Meshtastic-Android
+          flags: feature
+          fail_ci_if_error: false
+          disable_search: true
+          report_type: test_results
+          files: "feature/**/build/test-results/**/*.xml"
+
+      - name: Upload test results to Codecov (app)
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: meshtastic/Meshtastic-Android
+          flags: app
+          fail_ci_if_error: false
+          disable_search: true
+          report_type: test_results
+          files: "androidApp/build/test-results/**/*.xml"
+
+      - name: Upload test results to Codecov (desktop)
+        if: ${{ !cancelled() }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: meshtastic/Meshtastic-Android
+          flags: desktop
+          fail_ci_if_error: false
+          disable_search: true
+          report_type: test_results
+          files: "desktopApp/build/test-results/**/*.xml"
+
+      - name: Upload coverage to Codecov (core)
         if: ${{ !cancelled() && inputs.run_coverage }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: meshtastic/Meshtastic-Android
-          flags: ${{ matrix.shard.name }}
+          flags: core
           fail_ci_if_error: false
-          files: "**/build/reports/kover/report*.xml"
+          disable_search: true
+          files: "core/**/build/reports/kover/report*.xml"
+
+      - name: Upload coverage to Codecov (feature)
+        if: ${{ !cancelled() && inputs.run_coverage }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: meshtastic/Meshtastic-Android
+          flags: feature
+          fail_ci_if_error: false
+          disable_search: true
+          files: "feature/**/build/reports/kover/report*.xml"
+
+      - name: Upload coverage to Codecov (app)
+        if: ${{ !cancelled() && inputs.run_coverage }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: meshtastic/Meshtastic-Android
+          flags: app
+          fail_ci_if_error: false
+          disable_search: true
+          files: "androidApp/build/reports/kover/report*.xml"
+
+      - name: Upload coverage to Codecov (desktop)
+        if: ${{ !cancelled() && inputs.run_coverage }}
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: meshtastic/Meshtastic-Android
+          flags: desktop
+          fail_ci_if_error: false
+          disable_search: true
+          files: "desktopApp/build/reports/kover/report*.xml"
 
       - name: Upload shard reports
         if: ${{ always() && inputs.upload_artifacts }}
@@ -375,7 +448,12 @@ jobs:
           echo "VERSION_NAME=${BASE}-SNAPSHOT" >> "$GITHUB_ENV"
 
       - name: Build Android APKs
-        run: ./gradlew androidApp:assembleFdroidDebug androidApp:assembleGoogleDebug -Pci=true --parallel --configuration-cache --continue
+        # -Dorg.gradle.isolated-projects=false: the dependency-graph plugin injected by setup-gradle force-resolves
+        # via allprojects{}, which Isolated Projects forbids (fatal since Gradle 9.7). The property form is
+        # used everywhere instead of --no-isolated-projects: that flag only exists on Gradle 9.7+, and the
+        # wrapper is pinned to 9.6.1 (9.7.1 broke the CC fingerprint and CMP Windows packaging — see
+        # gradle-wrapper.properties and the renovate.json block on the 9.7 line).
+        run: ./gradlew androidApp:assembleFdroidDebug androidApp:assembleGoogleDebug -Pci=true --parallel --configuration-cache -Dorg.gradle.isolated-projects=false --continue
 
       - name: Upload debug artifact
         if: ${{ inputs.upload_artifacts }}
@@ -426,19 +504,42 @@ jobs:
           cache_read_only: ${{ env.GRADLE_CACHE_READ_ONLY }}
           install_jetbrains_jdk: 'true'
 
+      - name: Install dependencies for AppImage
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libfuse2t64
+
       - name: Build Desktop
         # proguardReleaseJars is included because it is otherwise only exercised by the
         # release workflow: jlink tolerates a jmods-less JDK (JEP 493) but ProGuard does
         # not, so a broken packaging JDK would surface at release time instead of here.
-        run: ./gradlew :desktopApp:createDistributable :desktopApp:proguardReleaseJars -Pci=true
+        # packageDistributionForCurrentOS (debug build type, no ProGuard) produces real
+        # installers (dmg/msi+exe/deb+rpm+AppImage-dir) so the snapshot release below can
+        # ship something testers can actually install, not just an unpacked app dir.
+        run: ./gradlew :desktopApp:packageDistributionForCurrentOS :desktopApp:proguardReleaseJars -Pci=true
+
+      # CMP's TargetFormat.AppImage is jpackage's "app-image" — an unpacked directory, not
+      # a Linux .AppImage. Wrap it into a real AppImage, same as the release workflow.
+      - name: Build AppImage from jpackage app-image
+        if: runner.os == 'Linux'
+        env:
+          APP_VERSION_NAME: snapshot
+          BINARIES_DIR: desktopApp/build/compose/binaries/main
+        run: scripts/build-appimage.sh
 
       - name: Upload Desktop artifact
         if: ${{ inputs.upload_artifacts }}
         uses: actions/upload-artifact@v7
         with:
           name: desktop-app-${{ runner.os }}-${{ runner.arch }}
-          path: desktopApp/build/compose/binaries/main/app/
+          path: |
+            desktopApp/build/compose/binaries/main/*/*.dmg
+            desktopApp/build/compose/binaries/main/*/*.msi
+            desktopApp/build/compose/binaries/main/*/*.exe
+            desktopApp/build/compose/binaries/main/*/*.deb
+            desktopApp/build/compose/binaries/main/*/*.rpm
+            desktopApp/build/compose/binaries/main/*/*.AppImage
           retention-days: 7
+          if-no-files-found: error
 
   # ── Flatpak Sources ───────────────────────────────────────────────────
   build-flatpak-src:
@@ -476,7 +577,7 @@ jobs:
       # runtime classpath. :assemble alone would miss runtime-only deps (skiko, ktor-cio, …).
       - name: Generate Flatpak Sources
         run: >
-          ./gradlew --no-build-cache --no-configuration-cache
+          ./gradlew --no-build-cache
           -Dgradle.user.home=${{ runner.temp }}/flatpak-gradle-home
           :desktopApp:packageUberJarForCurrentOS :captureFlatpakSources
 

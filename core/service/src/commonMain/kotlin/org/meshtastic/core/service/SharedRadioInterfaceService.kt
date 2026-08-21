@@ -27,10 +27,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -50,14 +53,17 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import okio.ByteString.Companion.toByteString
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import org.meshtastic.core.ble.BluetoothRepository
 import org.meshtastic.core.common.di.PROCESS_LIFECYCLE
-import org.meshtastic.core.common.util.handledLaunch
+import org.meshtastic.core.common.state.FirmwareMaintenanceLock
 import org.meshtastic.core.common.util.ignoreExceptionSuspend
 import org.meshtastic.core.common.util.nowMillis
+import org.meshtastic.core.common.util.safeCatching
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.DeviceType
@@ -92,6 +98,8 @@ data class RadioTransportSession(val generation: Long, val address: String) {
     /** Prevent accidental disclosure of the raw transport address in diagnostic interpolation. */
     override fun toString(): String = "RadioTransportSession(generation=$generation, address=...)"
 }
+
+private class SessionOperationState(var admittedOperations: Int = 0, var drainWaiter: CompletableDeferred<Unit>? = null)
 
 private data class SelectedSerialPresence(val key: String?, val present: Boolean)
 
@@ -153,7 +161,7 @@ private fun TransportDisconnectReason.toConnectionErrorMessage(): String = when 
  * hardware state observability (BLE/Network toggles). Delegates the actual raw byte transport mapping to a
  * platform-specific [RadioTransportFactory].
  */
-@Suppress("LongParameterList", "TooManyFunctions")
+@Suppress("LargeClass", "LongParameterList", "TooManyFunctions")
 @Single
 class SharedRadioInterfaceService(
     private val dispatchers: CoroutineDispatchers,
@@ -164,6 +172,7 @@ class SharedRadioInterfaceService(
     private val radioPrefs: RadioPrefs,
     private val transportFactory: RadioTransportFactory,
     private val analytics: PlatformAnalytics,
+    private val firmwareMaintenanceLock: FirmwareMaintenanceLock,
 ) : RadioInterfaceService {
 
     override val supportedDeviceTypes: List<DeviceType>
@@ -207,11 +216,8 @@ class SharedRadioInterfaceService(
     /** Guarded by [sessionCallbackLock]. New work is rejected immediately when teardown closes this gate. */
     private var sessionAdmissionOpen = false
 
-    /** Number of suspend operations admitted for [activeTransportSession], guarded by [sessionCallbackLock]. */
-    private var admittedSessionOperations = 0
-
-    /** Completed by the last admitted operation after teardown closes admission. Guarded by [sessionCallbackLock]. */
-    private var sessionDrainWaiter: CompletableDeferred<Unit>? = null
+    /** Per-generation operation ownership, guarded by [sessionCallbackLock]. */
+    private val sessionOperationStates = mutableMapOf<Long, SessionOperationState>()
 
     /** Preserves FIFO ordering for handshake work without blocking independently leased packet side effects. */
     private val sessionOperationMutex = Mutex()
@@ -236,7 +242,7 @@ class SharedRadioInterfaceService(
                 if (!sessionAdmissionOpen || active?.context != session) {
                     null
                 } else {
-                    admittedSessionOperations++
+                    checkNotNull(sessionOperationStates[active.generation]).admittedOperations++
                     active
                 }
             } ?: return false
@@ -253,25 +259,103 @@ class SharedRadioInterfaceService(
             block(lease)
             return true
         } finally {
-            val drainWaiter =
-                synchronized(sessionCallbackLock) {
-                    check(activeTransportSession === admittedSession) {
-                        "Session changed before an admitted operation released its lease"
-                    }
-                    check(admittedSessionOperations > 0) { "Session operation count underflow" }
-                    admittedSessionOperations--
-                    if (admittedSessionOperations == 0) {
-                        sessionDrainWaiter.also { sessionDrainWaiter = null }
-                    } else {
-                        null
-                    }
-                }
-            drainWaiter?.complete(Unit)
+            releaseSessionOperation(admittedSession)
         }
     }
 
     override suspend fun runWhileSessionActive(session: RadioSessionContext, block: suspend () -> Unit): Boolean =
-        sessionOperationMutex.withLock { runWithSessionLease(session) { block() } }
+        sessionOperationMutex.withLock {
+            runWithSessionLease(session) {
+                // Bound the handler: it holds sessionOperationMutex (the whole inbound pipeline) and an admitted
+                // lease (which teardown's drain awaits), so an indefinite suspension here is a total wedge, not a
+                // slow packet. Cancelling the block releases both. Only OUR timeout is swallowed — ensureActive()
+                // rethrows if the surrounding scope was cancelled concurrently.
+                try {
+                    withTimeout(SESSION_HANDLER_TIMEOUT_MILLIS) { block() }
+                } catch (timeout: TimeoutCancellationException) {
+                    currentCoroutineContext().ensureActive()
+                    Logger.e(timeout) {
+                        "Session handler exceeded ${SESSION_HANDLER_TIMEOUT_MILLIS}ms and was cancelled; " +
+                            "dropping its packet to keep the receive pipeline alive"
+                    }
+                }
+            }
+        }
+
+    private fun releaseSessionOperation(admittedSession: RadioTransportSession) {
+        val drainWaiter =
+            synchronized(sessionCallbackLock) {
+                val state = sessionOperationStates[admittedSession.generation]
+                if (state == null) {
+                    Logger.e { "Session operation released after generation ${admittedSession.generation} was revoked" }
+                    return@synchronized null
+                }
+                if (state.admittedOperations <= 0) {
+                    Logger.e { "Session operation count underflow for generation ${admittedSession.generation}" }
+                    return@synchronized state.drainWaiter.also { state.drainWaiter = null }
+                }
+                state.admittedOperations--
+                if (state.admittedOperations == 0) {
+                    state.drainWaiter.also { state.drainWaiter = null }
+                } else {
+                    null
+                }
+            }
+        drainWaiter?.complete(Unit)
+    }
+
+    /** Removes a drained session's operation state without letting a diagnostic invariant failure block teardown. */
+    private fun removeDrainedSessionStateLocked(session: RadioTransportSession): CompletableDeferred<Unit>? {
+        val state = sessionOperationStates.remove(session.generation)
+        if (state == null) {
+            Logger.e { "Session generation ${session.generation} lost its operation state during drain" }
+            return null
+        }
+        if (state.admittedOperations != 0) {
+            Logger.e {
+                "Session generation ${session.generation} revoked with " +
+                    "${state.admittedOperations} admitted operation(s) still outstanding"
+            }
+        }
+        return state.drainWaiter?.also {
+            Logger.e { "Session generation ${session.generation} retained a drain waiter" }
+            state.drainWaiter = null
+        }
+    }
+
+    private sealed interface TransportSendAdmission {
+        data class Admitted(val session: RadioTransportSession, val transport: RadioTransport) : TransportSendAdmission
+
+        data object AdmissionClosed : TransportSendAdmission
+
+        data object NoActiveSession : TransportSendAdmission
+
+        data object NoTransport : TransportSendAdmission
+    }
+
+    /** Admits one synchronous transport handoff under the same gate drained by [revokeTransportSession]. */
+    private fun admitTransportSend(): TransportSendAdmission = synchronized(sessionCallbackLock) {
+        val session = activeTransportSession
+        val transport = radioTransport
+        when {
+            !sessionAdmissionOpen -> TransportSendAdmission.AdmissionClosed
+
+            session == null -> TransportSendAdmission.NoActiveSession
+
+            transport == null -> TransportSendAdmission.NoTransport
+
+            else -> {
+                val state = sessionOperationStates[session.generation]
+                if (state == null) {
+                    Logger.e { "Session generation ${session.generation} has no operation state at send admission" }
+                    TransportSendAdmission.NoActiveSession
+                } else {
+                    state.admittedOperations++
+                    TransportSendAdmission.Admitted(session = session, transport = transport)
+                }
+            }
+        }
+    }
 
     /** Runs a callback only while [session] still owns admission, atomically with session teardown. */
     private inline fun runIfTransportSessionActive(session: RadioTransportSession, block: () -> Unit): Boolean =
@@ -293,21 +377,46 @@ class SharedRadioInterfaceService(
                 synchronized(sessionCallbackLock) {
                     if (activeTransportSession !== session) return@synchronized null
                     sessionAdmissionOpen = false
-                    if (admittedSessionOperations == 0) {
+                    val state = sessionOperationStates[session.generation]
+                    if (state == null) {
+                        Logger.e { "Session generation ${session.generation} has no operation state at revocation" }
+                        null
+                    } else if (state.admittedOperations == 0) {
                         null
                     } else {
-                        sessionDrainWaiter ?: CompletableDeferred<Unit>().also { sessionDrainWaiter = it }
+                        state.drainWaiter ?: CompletableDeferred<Unit>().also { state.drainWaiter = it }
                     }
                 }
-            drainWaiter?.await()
-            synchronized(sessionCallbackLock) {
-                if (activeTransportSession === session) {
-                    check(admittedSessionOperations == 0) { "Session revoked before admitted operations drained" }
-                    activeTransportSession = null
-                    _activeSession.value = null
-                    sessionDrainWaiter = null
+            if (drainWaiter != null) {
+                // The drain must complete before a replacement generation is admitted (DB-atomicity contract), so we
+                // keep waiting — but never silently. A lease stuck past the handler timeout means a handler ignored
+                // cancellation; these error-level reports are the observability surface for that wedge (this wait
+                // previously blocked disconnect()/restart forever with no telemetry at all).
+                var waitedMillis = 0L
+                while (withTimeoutOrNull(DRAIN_WAIT_LOG_INTERVAL_MILLIS) { drainWaiter.await() } == null) {
+                    waitedMillis += DRAIN_WAIT_LOG_INTERVAL_MILLIS
+                    val outstanding =
+                        synchronized(sessionCallbackLock) {
+                            sessionOperationStates[session.generation]?.admittedOperations ?: 0
+                        }
+                    Logger.e {
+                        "Transport teardown blocked ${waitedMillis}ms waiting for $outstanding admitted session " +
+                            "operation(s) to release (generation=${session.generation})"
+                    }
                 }
             }
+            val retainedDrainWaiter =
+                synchronized(sessionCallbackLock) {
+                    if (activeTransportSession === session) {
+                        val waiter = removeDrainedSessionStateLocked(session)
+                        activeTransportSession = null
+                        _activeSession.value = null
+                        waiter
+                    } else {
+                        null
+                    }
+                }
+            retainedDrainWaiter?.complete(Unit)
         }
     }
 
@@ -337,16 +446,10 @@ class SharedRadioInterfaceService(
         get() = _serviceScope
 
     private var _serviceScope = CoroutineScope(dispatchers.io + SupervisorJob())
-    private var radioTransport: RadioTransport? = null
+
+    @Volatile private var radioTransport: RadioTransport? = null
     private var runningTransportId: InterfaceId? = null
     private var isStarted = false
-
-    /**
-     * Set while [stopTransportLocked] is draining the polite disconnect frame. [sendToRadio] checks this so any late
-     * traffic submitted after we've announced disconnection is dropped rather than racing in front of the firmware-side
-     * link teardown.
-     */
-    @Volatile private var isStopping = false
 
     /**
      * True while an explicit connection lifecycle is active (set by [connect]/[setDeviceAddress], cleared by
@@ -432,6 +535,18 @@ class SharedRadioInterfaceService(
          * flaky GATT connection. Serial and TCP typically flush well under this window.
          */
         private const val POLITE_DISCONNECT_DRAIN_MS = 500L
+
+        /**
+         * Ceiling on a single [runWhileSessionActive] handler. The block holds [sessionOperationMutex] — the whole
+         * inbound pipeline — so a handler that suspends indefinitely wedges packet processing, fills [_receivedData],
+         * and deadlocks teardown's lease drain (a Connected-looking zombie only a force-stop clears; observed in the
+         * field as multi-hour "receive queue at capacity" sessions). 2 minutes is far above any legitimate handler
+         * (large-mesh config DB installs run seconds) while still bounding the wedge.
+         */
+        private const val SESSION_HANDLER_TIMEOUT_MILLIS = 2 * 60 * 1000L
+
+        /** How often [revokeTransportSession] reports a lease drain that has not completed. */
+        private const val DRAIN_WAIT_LOG_INTERVAL_MILLIS = 15 * 1000L
     }
 
     private val initLock = Mutex()
@@ -475,7 +590,7 @@ class SharedRadioInterfaceService(
                                 // explicitly disconnected from. stopTransportLocked() below still fires on
                                 // BLE-disabled to tear down a running BLE link, but we deliberately do NOT
                                 // clear connectionRequested here — that is disconnect()'s job.
-                                if (connectionRequested) {
+                                if (connectionRequested && !firmwareMaintenanceLock.isActive) {
                                     startTransportLocked()
                                 }
                             } else if (runningTransportId == InterfaceId.BLUETOOTH) {
@@ -491,7 +606,7 @@ class SharedRadioInterfaceService(
                         transportMutex.withLock {
                             if (state) {
                                 // Environmental recovery only — see the BLE listener above for rationale.
-                                if (connectionRequested) {
+                                if (connectionRequested && !firmwareMaintenanceLock.isActive) {
                                     startTransportLocked()
                                 }
                             } else if (runningTransportId == InterfaceId.TCP) {
@@ -531,6 +646,9 @@ class SharedRadioInterfaceService(
             .onEach {
                 transportMutex.withLock {
                     if (!connectionRequested) return@withLock
+                    // A USB firmware-maintenance sequence owns the port: the device is enumerating as bare erase or
+                    // bootloader firmware, and binding a mesh transport to it would claim the port the flow needs.
+                    if (firmwareMaintenanceLock.isActive) return@withLock
                     if (runningTransportId != InterfaceId.SERIAL) return@withLock
                     // Race-defense: the combine snapshot may be stale by the time we acquire
                     // transportMutex — another path (setDeviceAddress, BLE liveness restart) may
@@ -677,7 +795,11 @@ class SharedRadioInterfaceService(
 
     override fun consumeGattCacheInvalidationRequest(): Boolean = gattCacheInvalidationRequested.getAndSet(false)
 
-    override fun isMockTransport(): Boolean = transportFactory.isMockTransport()
+    override val mockTransportEnabled: StateFlow<Boolean>
+        get() = transportFactory.mockTransportEnabled
+
+    override val isReplayTransportAvailable: Boolean
+        get() = transportFactory.isReplayTransportAvailable
 
     override fun toInterfaceAddress(interfaceId: InterfaceId, rest: String): String =
         transportFactory.toInterfaceAddress(interfaceId, rest)
@@ -755,9 +877,10 @@ class SharedRadioInterfaceService(
         val generation = sessionGenerationCounter.incrementAndGet()
         val session = RadioTransportSession(generation = generation, address = address)
         synchronized(sessionCallbackLock) {
-            check(activeTransportSession == null && admittedSessionOperations == 0) {
+            check(activeTransportSession == null && sessionOperationStates.isEmpty()) {
                 "Cannot admit a transport while the previous session is still draining"
             }
+            sessionOperationStates[generation] = SessionOperationState()
             activeTransportSession = session
             sessionAdmissionOpen = true
             _activeSession.value = session.context
@@ -781,7 +904,31 @@ class SharedRadioInterfaceService(
                 _connectionState.value = connectionStateBeforeStart
                 throw failure
             }
-        radioTransport = newTransport
+        val published =
+            synchronized(sessionCallbackLock) {
+                if (activeTransportSession !== session || !sessionAdmissionOpen) {
+                    // A replaced or cleared token has no revoker left to reclaim this generation's operation state.
+                    // A closed gate with a matching token means revokeTransportSession is mid-flight; it owns removal
+                    // inside its NonCancellable block, so do not remove the entry here.
+                    if (activeTransportSession !== session) sessionOperationStates.remove(generation)
+                    false
+                } else {
+                    radioTransport = newTransport
+                    true
+                }
+            }
+        if (!published) {
+            // Revocation already closed this session's admission and owns the canonical lifecycle rollback. Do not
+            // restore connectionStateBeforeStart here; that would overwrite the newer teardown state.
+            val publicationFailure =
+                IllegalStateException("Transport session was revoked before its transport could be published")
+            try {
+                withContext(NonCancellable) { newTransport.close() }
+            } catch (closeFailure: Exception) {
+                publicationFailure.addSuppressed(closeFailure)
+            }
+            throw publicationFailure
+        }
         runningTransportId = address.firstOrNull()?.let { InterfaceId.forIdChar(it) }
         isStarted = true
         startHeartbeat()
@@ -806,13 +953,14 @@ class SharedRadioInterfaceService(
         // Reject queued callbacks and new suspend work immediately, then drain existing leases before admitting a
         // replacement generation or closing the old transport.
         revokeTransportSession(currentSession)
+        heartbeatJob?.cancel()
+        heartbeatJob = null
         Logger.i { "Stopping transport $currentTransport" }
         // Best-effort polite goodbye: tell the firmware we're disconnecting on purpose so it can
         // tear down its side of the link cleanly instead of relying on timeouts / hardware events.
-        // Flip isStopping before sending so any concurrent sendToRadio() drops incoming traffic —
-        // we don't want normal packets racing behind the disconnect frame. Skip only when already
-        // Disconnected; firmware can still consume the goodbye while handshaking or sleeping, so
-        // it's worth sending in every other state. The send is fire-and-forget through the
+        // Session admission is already revoked, so normal packets cannot race behind this direct transport write.
+        // Skip only when already Disconnected; firmware can still consume the goodbye while handshaking or sleeping,
+        // so it's worth sending in every other state. The send is fire-and-forget through the
         // transport's own scope; the drain delay gives async transports a window to flush before
         // close() cancels their write scope. BLE's retry path backs off 500ms, so this window
         // also covers one retry on flaky GATT links.
@@ -822,7 +970,6 @@ class SharedRadioInterfaceService(
                 currentTransport != null &&
                 _connectionState.value != ConnectionState.Disconnected
             ) {
-                isStopping = true
                 ignoreExceptionSuspend {
                     currentTransport.handleSendToRadio(ToRadio(disconnect = true).encode())
                     delay(POLITE_DISCONNECT_DRAIN_MS)
@@ -832,7 +979,6 @@ class SharedRadioInterfaceService(
             isStarted = false
             radioTransport = null
             runningTransportId = null
-            isStopping = false
             try {
                 currentTransport?.close()
             } finally {
@@ -935,33 +1081,64 @@ class SharedRadioInterfaceService(
     }
 
     fun keepAlive(now: Long = now()) {
-        if (now - lastHeartbeatMillis > HEARTBEAT_INTERVAL_MILLIS) {
-            radioTransport?.keepAlive()
-            lastHeartbeatMillis = now
+        if (now - lastHeartbeatMillis < HEARTBEAT_INTERVAL_MILLIS) return
+
+        when (val admission = admitTransportSend()) {
+            is TransportSendAdmission.Admitted -> {
+                if (keepAliveThroughAdmittedTransport(admission)) lastHeartbeatMillis = now
+            }
+
+            TransportSendAdmission.AdmissionClosed,
+            TransportSendAdmission.NoActiveSession,
+            ->
+                Logger.d { "keepAlive: no admitted transport session, dropping heartbeat" }
+
+            TransportSendAdmission.NoTransport ->
+                Logger.d { "keepAlive: admitted session has no radio transport, dropping heartbeat" }
         }
     }
 
-    override fun sendToRadio(bytes: ByteArray) {
-        if (isStopping) {
-            Logger.d { "sendToRadio: transport stopping, dropping ${bytes.size} bytes" }
-            return
-        }
-        // Snapshot the transport to avoid calling handleSendToRadio on a null reference.
-        // There is still a benign race: stopTransportLocked() may cancel _serviceScope
-        // between the null-check and the launch, causing the coroutine to be silently
-        // dropped. This is acceptable — if the transport is shutting down, dropping the
-        // send is the correct behavior.
-        val currentTransport =
-            radioTransport
-                ?: run {
-                    Logger.w { "sendToRadio: no active radio transport, dropping ${bytes.size} bytes" }
-                    return
-                }
-        _serviceScope.handledLaunch {
-            currentTransport.handleSendToRadio(bytes)
-            _meshActivity.tryEmit(MeshActivity.Send)
-        }
+    private fun keepAliveThroughAdmittedTransport(admission: TransportSendAdmission.Admitted): Boolean = try {
+        safeCatching { admission.transport.keepAlive() }
+            .onFailure { Logger.w(it) { "keepAlive: active transport rejected heartbeat" } }
+            .isSuccess
+    } finally {
+        releaseSessionOperation(admission.session)
     }
+
+    override fun trySendToRadio(bytes: ByteArray): Boolean =
+        // Admission and teardown share one session gate. Once accepted, teardown drains the synchronous handoff before
+        // revoking the session; transport implementations still own their asynchronous delivery outcome.
+        when (val admission = admitTransportSend()) {
+            is TransportSendAdmission.Admitted -> sendThroughAdmittedTransport(admission, bytes)
+
+            TransportSendAdmission.AdmissionClosed,
+            TransportSendAdmission.NoActiveSession,
+            -> {
+                Logger.d { "trySendToRadio: no admitted transport session, dropping ${bytes.size} bytes" }
+                false
+            }
+
+            TransportSendAdmission.NoTransport -> {
+                Logger.w { "trySendToRadio: admitted session has no radio transport, dropping ${bytes.size} bytes" }
+                false
+            }
+        }
+
+    private fun sendThroughAdmittedTransport(admission: TransportSendAdmission.Admitted, bytes: ByteArray): Boolean =
+        try {
+            val sent =
+                safeCatching { admission.transport.handleSendToRadio(bytes) }
+                    .onFailure { Logger.w(it) { "trySendToRadio: active transport rejected ${bytes.size} bytes" } }
+                    .getOrDefault(false)
+            if (sent) {
+                safeCatching { _meshActivity.tryEmit(MeshActivity.Send) }
+                    .onFailure { Logger.w(it) { "trySendToRadio: failed to publish mesh activity" } }
+            }
+            sent
+        } finally {
+            releaseSessionOperation(admission.session)
+        }
 
     @Suppress("TooGenericExceptionCaught")
     override fun handleFromRadio(bytes: ByteArray) {
@@ -979,7 +1156,6 @@ class SharedRadioInterfaceService(
     @Suppress("TooGenericExceptionCaught")
     private fun enqueueReceivedData(bytes: ByteArray, session: RadioTransportSession) {
         try {
-            lastDataReceivedMillis = now()
             // trySend synchronously onto the Channel so packet order matches arrival order. The
             // previous `launch { emit() }` pattern dispatched each packet onto a fresh coroutine,
             // letting the scheduler reorder them — which broke the firmware config handshake
@@ -993,6 +1169,12 @@ class SharedRadioInterfaceService(
             }
             val frame = ReceivedRadioFrame(payload = bytes.toByteString(), session = session.context)
             val result = _receivedData.trySend(frame)
+            if (result.isSuccess) {
+                // Stamp liveness only for frames actually admitted to the queue. Stamping on arrival kept
+                // checkLiveness() satisfied while a wedged consumer dropped every frame — a Connected-looking zombie
+                // the watchdog existed to catch. A full queue now reads as silence and trips liveness recovery.
+                lastDataReceivedMillis = now()
+            }
             if (result.isFailure) {
                 // Rate-limited on purpose: drops only happen under sustained inbound traffic, and Kermit forwards to
                 // Datadog/Crashlytics, so logging every drop would turn a bounded memory problem into unbounded

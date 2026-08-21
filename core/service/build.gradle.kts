@@ -35,6 +35,7 @@ kotlin {
             implementation(projects.core.network)
             implementation(projects.core.ble)
             implementation(projects.core.prefs)
+            implementation(projects.core.resources)
             implementation(libs.meshtastic.protobufs)
             implementation(projects.core.takserver)
 
@@ -52,7 +53,12 @@ kotlin {
             implementation(libs.koin.androidx.workmanager)
         }
 
-        getByName("androidHostTest") { dependencies { implementation(libs.androidx.work.testing) } }
+        getByName("androidHostTest") {
+            dependencies {
+                implementation(libs.androidx.datastore.preferences)
+                implementation(libs.androidx.work.testing)
+            }
+        }
 
         commonTest.dependencies { implementation(projects.core.testing) }
     }

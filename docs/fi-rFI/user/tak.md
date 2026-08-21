@@ -2,7 +2,7 @@
 title: TAK-integraatio
 parent: Käyttöopas
 nav_order: 10
-last_updated: 2026-07-08
+last_updated: 2026-08-19
 description: ATAK:n ja WinTAK:n yhteentoimivuus — CoT-sijaintijako, TAK-roolit ja lisäosien käyttöönotto.
 aliases:
   - tak
@@ -56,6 +56,7 @@ Sovellus voi käyttää myös **paikallista TAK-palvelinta**, jolloin samalla la
 ![Paikallisen TAK-palvelimen asetukset, joissa näkyvät käyttöönotto ja vientitoiminto](../../assets/screenshots/tak_server_enabled.png)
 
 - **Ota paikallinen TAK-palvelin käyttöön** – käynnistää vain paikallisia yhteyksiä kuuntelevan mTLS-palvelimen portissa **8089** samalla laitteella toimivaa ATAK-/iTAK-yhteyttä varten.
+- **TAK-mesh-kanava** – valitsee, mitä Meshtastic-kanavaa käytetään lähtevään TAK-liikenteeseen (oletuksena ensisijainen kanava, indeksi 0) Saapuva TAK-liikenne hyväksytään miltä tahansa kanavalta. Vastaa iOS:n ja vanhan ATAK-liitännäisen vastaavaa asetusta.
 - **Vie TAK-tietopaketti** — luo `.zip`-tietopaketin, jonka ATAK/iTAK voi tuoda muodostaakseen yhteyden tähän palvelimeen.
 
 ## TAK-roolit

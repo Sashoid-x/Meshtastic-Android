@@ -37,6 +37,7 @@ import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.proto.ChannelSettings
+import org.meshtastic.proto.MeshPacket
 
 @Suppress("TooManyFunctions", "LargeClass")
 @Dao
@@ -172,6 +173,9 @@ interface PacketDao {
 
     @Upsert suspend fun insert(packet: Packet)
 
+    /** Inserts a new packet row and returns its auto-generated stable database UUID. */
+    @Insert suspend fun insertAndGetId(packet: Packet): Long
+
     @Transaction
     @Query(
         """
@@ -280,6 +284,101 @@ interface PacketDao {
     }
 
     @Transaction
+    suspend fun updateMessageStatusByPersistedId(myNodeNum: Int, uuid: Long, status: MessageStatus) {
+        getPacketByPersistedId(myNodeNum, uuid)?.let { update(it.copy(data = it.data.copy(status = status))) }
+    }
+
+    /**
+     * Atomically claims one stable packet row for sending. A returned QUEUED packet means this call performed the
+     * QUEUED -> ENROUTE transition and owns the send; any other returned status means another path already handled it.
+     */
+    @Transaction
+    suspend fun claimQueuedPacket(myNodeNum: Int, uuid: Long): Packet? {
+        val packet = getPacketByPersistedId(myNodeNum, uuid) ?: return null
+        if (packet.data.status == MessageStatus.QUEUED) {
+            update(packet.copy(data = packet.data.copy(status = MessageStatus.ENROUTE)))
+        }
+        return packet
+    }
+
+    /** Legacy claim used only by pre-upgrade WorkManager jobs whose mesh packet ID still resolves to one row. */
+    @Transaction
+    suspend fun claimQueuedPacketByPacketIdIfUnique(packetId: Int): Packet? {
+        val packet = findPacketsWithId(packetId).singleOrNull() ?: return null
+        if (packet.data.status == MessageStatus.QUEUED) {
+            update(packet.copy(data = packet.data.copy(status = MessageStatus.ENROUTE)))
+        }
+        return packet
+    }
+
+    /** Rolls back a failed send only while the exact claimed row is still ENROUTE, preserving any racing ACK update. */
+    @Transaction
+    suspend fun rollbackEnroutePacket(myNodeNum: Int, uuid: Long): Boolean {
+        val packet = getPacketByPersistedId(myNodeNum, uuid)
+        val canRollback = packet?.data?.status == MessageStatus.ENROUTE
+        if (canRollback) update(packet.copy(data = packet.data.copy(status = MessageStatus.QUEUED)))
+        return canRollback
+    }
+
+    /**
+     * Resolves only an unambiguous row matching the identity available on an outgoing protobuf packet. Mesh packet IDs
+     * are sender-scoped, so ID-only lookup can select an inbound packet or an unrelated command with the same ID.
+     */
+    @Transaction
+    suspend fun resolveOutgoingPacket(packet: MeshPacket): Packet? =
+        outgoingCandidates(packet, findPacketsWithId(packet.id)).singleOrNull()
+
+    /**
+     * Resolves and conditionally applies a queue-stage status without racing a terminal ACK/NAK update.
+     *
+     * @return the resolved row as read before the update, or null when no unambiguous outgoing row matches.
+     */
+    @Transaction
+    suspend fun applyOutgoingQueueStatus(packet: MeshPacket, status: MessageStatus): Packet? {
+        val match = resolveOutgoingPacket(packet) ?: return null
+        if (shouldApplyOutgoingQueueStatus(match.data.status, status)) {
+            update(match.copy(data = match.data.copy(status = status)))
+        }
+        return match
+    }
+
+    /**
+     * Reaction equivalent of [applyOutgoingQueueStatus], restricted to one unambiguous outgoing row.
+     *
+     * @return the resolved reaction as read before the update, or null when no unambiguous non-received row matches.
+     */
+    @Transaction
+    suspend fun applyOutgoingReactionQueueStatus(packetId: Int, status: MessageStatus): ReactionEntity? {
+        val match =
+            findReactionsWithId(packetId).filter { it.status != MessageStatus.RECEIVED }.singleOrNull() ?: return null
+        if (shouldApplyOutgoingQueueStatus(match.status, status)) update(match.copy(status = status))
+        return match
+    }
+
+    private fun outgoingCandidates(packet: MeshPacket, stored: List<Packet>): List<Packet> {
+        val portNum = packet.decoded?.portnum?.value
+        return stored.filter {
+            it.data.from.matchesNodeNum(packet.from, packet.from) &&
+                it.data.to.matchesNodeNum(packet.to, packet.from) &&
+                (portNum == null || it.data.dataType == portNum)
+        }
+    }
+
+    /** Updates the unique outgoing row, preferring the only candidate already at [status] when duplicates exist. */
+    @Transaction
+    suspend fun updateOutgoingMessageStatus(packet: MeshPacket, status: MessageStatus): Packet? {
+        val matches = outgoingCandidates(packet, findPacketsWithId(packet.id))
+        val alreadyAtStatus = matches.filter { it.data.status == status }
+        val match =
+            when {
+                alreadyAtStatus.size == 1 -> alreadyAtStatus.single()
+                alreadyAtStatus.isNotEmpty() -> null
+                else -> matches.singleOrNull()
+            }
+        return match?.also { if (it.data.status != status) update(it.copy(data = it.data.copy(status = status))) }
+    }
+
+    @Transaction
     suspend fun updateMessageId(data: DataPacket, id: Int) {
         val new = data.copy(id = id)
         // Match on key fields that identify the packet
@@ -323,11 +422,44 @@ interface PacketDao {
     @Query(
         """
         SELECT * FROM packet
+        WHERE packet_id = :packetId
+        AND contact_key = :contactKey
+        AND (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
+        """,
+    )
+    suspend fun getPacketsByPacketIdAndContact(packetId: Int, contactKey: String): List<PacketEntity>
+
+    @Query(
+        """
+        SELECT * FROM packet
+        WHERE uuid = :uuid
+        AND myNodeNum = :myNodeNum
+        AND (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
+        LIMIT 1
+        """,
+    )
+    suspend fun getPacketByPersistedId(myNodeNum: Int, uuid: Long): Packet?
+
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM packet
         WHERE packet_id IN (:packetIds)
         AND (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
         """,
     )
     suspend fun getPacketsByPacketIds(packetIds: List<Int>): List<PacketEntity>
+
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM packet
+        WHERE packet_id IN (:packetIds)
+        AND contact_key = :contactKey
+        AND (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
+        """,
+    )
+    suspend fun getPacketsByPacketIdsAndContact(packetIds: List<Int>, contactKey: String): List<PacketEntity>
 
     @Query(
         """
@@ -358,6 +490,15 @@ interface PacketDao {
     """,
     )
     suspend fun getAllDataPackets(): List<DataPacket>
+
+    @Query(
+        """
+        SELECT * FROM packet
+        WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
+        ORDER BY received_time ASC
+        """,
+    )
+    suspend fun getAllPersistedPackets(): List<Packet>
 
     @Query(
         """
@@ -431,6 +572,15 @@ interface PacketDao {
         """,
     )
     suspend fun getReactionByPacketId(packetId: Int): ReactionEntity?
+
+    @Query(
+        """
+        SELECT * FROM reactions
+        WHERE status = :status
+        AND (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
+        """,
+    )
+    suspend fun getReactionsByStatus(status: MessageStatus): List<ReactionEntity>
 
     @Transaction
     @Query(
@@ -640,6 +790,65 @@ interface PacketDao {
     }
 
     /**
+     * Stamps [routingError] on a sent packet only while it is still [MessageStatus.ENROUTE]. The read and the write
+     * share one transaction so an ACK/NAK that resolves the packet concurrently is never overwritten by a send-ack
+     * timeout that sampled the row before it landed.
+     *
+     * @return true if a row was timed out.
+     */
+    @Transaction
+    suspend fun timeOutEnroutePacket(myNodeNum: Int, uuid: Long, routingError: Int): Boolean {
+        val existing = getPacketByPersistedId(myNodeNum, uuid)
+        val canTimeOut = existing?.data?.status == MessageStatus.ENROUTE
+        if (canTimeOut) {
+            update(existing.copy(data = existing.data.copy(status = MessageStatus.ERROR), routingError = routingError))
+        }
+        return canTimeOut
+    }
+
+    @Query(
+        """
+        UPDATE reactions
+        SET status = :failedStatus, routing_error = :routingError
+        WHERE myNodeNum = :myNodeNum
+        AND reply_id = :replyId
+        AND user_id = :userId
+        AND emoji = :emoji
+        AND status = :enrouteStatus
+        """,
+    )
+    suspend fun updateEnrouteReactionStatus(
+        myNodeNum: Int,
+        replyId: Int,
+        userId: String,
+        emoji: String,
+        routingError: Int,
+        enrouteStatus: MessageStatus,
+        failedStatus: MessageStatus,
+    ): Int
+
+    /**
+     * Atomically stamps [routingError] on a sent reaction only while it is still [MessageStatus.ENROUTE].
+     *
+     * @return true if a row was timed out.
+     */
+    suspend fun timeOutEnrouteReaction(
+        myNodeNum: Int,
+        replyId: Int,
+        userId: String,
+        emoji: String,
+        routingError: Int,
+    ): Boolean = updateEnrouteReactionStatus(
+        myNodeNum = myNodeNum,
+        replyId = replyId,
+        userId = userId,
+        emoji = emoji,
+        routingError = routingError,
+        enrouteStatus = MessageStatus.ENROUTE,
+        failedStatus = MessageStatus.ERROR,
+    ) == 1
+
+    /**
      * Atomically finds reactions by [replacement]'s packetId + userId + emoji and updates every ownership-scoped copy,
      * borrowing [myNodeNum][ReactionEntity.myNodeNum] from each existing row. No-op if no match is found.
      */
@@ -796,4 +1005,30 @@ interface PacketDao {
     suspend fun rebuildFtsIndex()
 
     // endregion
+}
+
+private fun String?.matchesNodeNum(nodeNum: Int, localNodeNum: Int): Boolean =
+    when (val address = NodeAddress.fromString(this)) {
+        NodeAddress.Broadcast -> nodeNum == NodeAddress.NODENUM_BROADCAST
+        NodeAddress.Local -> nodeNum == localNodeNum
+        is NodeAddress.ByNum -> address.num == nodeNum
+        is NodeAddress.ById -> false
+    }
+
+/**
+ * Queue-stage status guard shared with callers that decide whether to arm follow-up work.
+ *
+ * Only [MessageStatus.ENROUTE] and [MessageStatus.ERROR] are owned by this transition. Terminal routing and SFPP
+ * statuses are applied by their dedicated state transitions.
+ */
+fun shouldApplyOutgoingQueueStatus(current: MessageStatus?, status: MessageStatus): Boolean = when (status) {
+    MessageStatus.ENROUTE -> current == null || current == MessageStatus.UNKNOWN || current == MessageStatus.QUEUED
+
+    MessageStatus.ERROR ->
+        current == null ||
+            current == MessageStatus.UNKNOWN ||
+            current == MessageStatus.QUEUED ||
+            current == MessageStatus.ENROUTE
+
+    else -> false
 }

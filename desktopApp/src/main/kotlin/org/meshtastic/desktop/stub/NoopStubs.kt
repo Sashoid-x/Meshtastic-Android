@@ -38,6 +38,7 @@ import org.meshtastic.core.repository.Location
 import org.meshtastic.core.repository.LocationRepository
 import org.meshtastic.core.repository.MeshLocationManager
 import org.meshtastic.core.repository.MeshWorkerManager
+import org.meshtastic.core.repository.PersistedPacketId
 import org.meshtastic.core.repository.PlatformAnalytics
 import org.meshtastic.core.repository.RadioInterfaceService
 import org.meshtastic.core.repository.RadioSessionContext
@@ -83,14 +84,17 @@ class NoopRadioInterfaceService : RadioInterfaceService {
         block: suspend (RadioSessionLease) -> Unit,
     ): Boolean = false
 
-    override fun isMockTransport(): Boolean = false
+    override val mockTransportEnabled: StateFlow<Boolean> = MutableStateFlow(false)
+
+    override val isReplayTransportAvailable: Boolean = false
 
     override val receivedData = MutableSharedFlow<ReceivedRadioFrame>()
     override val meshActivity: Flow<MeshActivity> = MutableSharedFlow<MeshActivity>()
     override val connectionError: Flow<String> = MutableSharedFlow<String>()
 
-    override fun sendToRadio(bytes: ByteArray) {
-        logWarn("NoopRadioInterfaceService.sendToRadio(${bytes.size} bytes)")
+    override fun trySendToRadio(bytes: ByteArray): Boolean {
+        logWarn("NoopRadioInterfaceService.trySendToRadio(${bytes.size} bytes)")
+        return false
     }
 
     override fun resetReceivedBuffer() {
@@ -150,7 +154,7 @@ class NoopAppWidgetUpdater : AppWidgetUpdater {
 // region WorkManager / Location Stubs (Android-only)
 
 class NoopMeshWorkerManager : MeshWorkerManager {
-    override fun enqueueSendMessage(packetId: Int) {}
+    override fun enqueueSendMessage(persistedId: PersistedPacketId) {}
 }
 
 class NoopMeshLocationManager : MeshLocationManager {

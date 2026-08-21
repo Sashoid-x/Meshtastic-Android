@@ -11,6 +11,7 @@ a11y_node_online
 a11y_node_role
 a11y_node_signal
 a11y_nodes_at_hop
+about
 accept
 acknowledgements
 ### ACTION ###
@@ -27,6 +28,7 @@ action_translate_message
 actions
 adc_multiplier_override
 adc_multiplier_override_ratio
+adc_voltage
 ### ADD ###
 add
 add_a_note
@@ -94,6 +96,7 @@ app_settings
 app_too_old
 app_version
 apply
+apps
 ### AQI ###
 aqi
 aqi_good
@@ -113,7 +116,12 @@ backup_keys
 backup_keys_confirmation
 backup_restore
 bad
+### BANDWIDTH ###
 bandwidth
+bandwidth_default
+bandwidth_option_khz
+bandwidth_unsupported
+bandwidth_unsupported_summary
 baro_pressure
 battery
 battery_ina_2xx_i2c_address
@@ -143,6 +151,7 @@ broadcast_interval
 busy_noise_floor
 button_gpio
 buzzer_gpio
+cache_limit_eviction_warning
 calculating
 call_sign
 call_sign_summary
@@ -202,7 +211,10 @@ clean_node_database_title
 clean_nodes_older_than
 clean_now
 clean_unknown_nodes
+### CLEAR ###
 clear
+clear_position_track_message
+clear_position_track_title
 clear_selection
 clear_time_zone
 client_notification
@@ -266,6 +278,7 @@ config_security_admin_key
 config_security_debug_log_api_enabled
 config_security_is_managed
 config_security_private_key
+config_security_private_key_remote
 config_security_public_key
 config_security_serial_enabled
 configuration
@@ -287,6 +300,7 @@ contrast_medium
 contrast_standard
 conversations
 copy
+copyright_notice
 create_your_own_networks
 critical_alert
 critical_alerts
@@ -528,6 +542,7 @@ doc_title_telemetry
 doc_title_translate
 doc_title_units
 doc_title_widget
+documentation
 done
 dont_show_again_for_device
 double_tap_as_button_press
@@ -542,6 +557,19 @@ edit
 edit_custom_tile_source
 eight_hours
 elevation_suffix
+### EMOJI ###
+emoji_category_activities
+emoji_category_animals_nature
+emoji_category_flags
+emoji_category_food_drink
+emoji_category_objects
+emoji_category_people_body
+emoji_category_smileys_emotion
+emoji_category_symbols
+emoji_category_travel_places
+emoji_load_error
+emoji_no_results
+emoji_recently_used
 enable_power_saving_mode
 enabled
 ### ENCRYPTION ###
@@ -567,14 +595,17 @@ establishing_session
 ethernet_config
 ethernet_enabled
 ethernet_ip
+event_firmware_running
 event_use_event_theme
 exchange_position
 expand_chart
 expanded
 expires
+### EXPORT ###
 export_configuration
 export_data_csv
 export_gpx
+export_node_db
 export_tak_data_package
 external_notification
 external_notification_config
@@ -609,6 +640,23 @@ firmware
 firmware_edition
 firmware_event_ended_banner
 firmware_event_ended_button
+firmware_maintenance_cdc_unblock_failed
+firmware_maintenance_copy_failed
+firmware_maintenance_erase_action
+firmware_maintenance_erase_confirm_button
+firmware_maintenance_erase_confirm_text
+firmware_maintenance_erase_confirm_title
+firmware_maintenance_no_release
+firmware_maintenance_not_a_bootloader_volume
+firmware_maintenance_select_drive
+firmware_maintenance_softdevice_conflict
+firmware_maintenance_unknown_board
+firmware_maintenance_unknown_softdevice
+firmware_maintenance_unsupported_device
+firmware_maintenance_upgrade_bootloader_action
+firmware_maintenance_upgrade_confirm_text
+firmware_maintenance_upgrade_confirm_title
+firmware_maintenance_wrong_destination
 firmware_old
 firmware_recovery_banner
 firmware_recovery_ble_failed
@@ -665,6 +713,7 @@ firmware_update_open
 firmware_update_open_flasher
 firmware_update_ota_failed
 firmware_update_ota_unsupported_reason
+firmware_update_preparing_flash
 firmware_update_rak4631_bootloader_hint
 firmware_update_rebooting
 firmware_update_release_notes
@@ -673,6 +722,7 @@ firmware_update_requires_ota_zip
 firmware_update_requires_uf2
 firmware_update_retrieval_failed
 firmware_update_retry
+firmware_update_retrying_upload
 firmware_update_save_dfu_file
 firmware_update_searching_device
 firmware_update_select_file
@@ -682,6 +732,7 @@ firmware_update_stable
 firmware_update_starting_dfu
 firmware_update_starting_ota
 firmware_update_success
+firmware_update_success_wiped
 firmware_update_taking_a_while
 firmware_update_target
 firmware_update_title
@@ -700,6 +751,10 @@ firmware_update_verification_failed
 firmware_update_verifying
 firmware_update_waiting_reboot
 firmware_update_waiting_reconnect
+firmware_update_wipe_ble_detail
+firmware_update_wipe_confirm_warning
+firmware_update_wipe_label
+firmware_update_wipe_usb_detail
 firmware_version
 fixed_pin
 fixed_position
@@ -744,6 +799,7 @@ geofence_radius
 geofence_remove_area
 geofence_set_area
 get_started
+github_repository
 good
 ### GPIO ###
 gpio
@@ -795,6 +851,8 @@ import_configuration
 import_export_label
 import_known_shared_contact_text
 import_label
+import_pending_channels_connect
+import_pending_contact_connect
 import_shared_contact
 incoming_messages
 indoor_air_quality_iaq
@@ -848,13 +906,24 @@ last_position_update
 latest_alpha_firmware
 latest_stable_firmware
 latitude
+### LAYER ###
+layer_subtitle
+layer_type_coverage
+layer_type_geojson
+layer_type_kml
+layer_type_network
 learn_more
 led_heartbeat
 led_state
 legacy_admin_channel
 library_count
+### LICENSED ###
 licensed_amateur_radio
 licensed_amateur_radio_text
+licensed_mode_enable_confirm
+licensed_mode_enable_title
+licensed_mode_enable_warning
+licensed_mode_enable_warning_signed
 ### LOAD ###
 load
 load_15_min
@@ -867,6 +936,7 @@ load_indexed
 loading
 ### LOCAL ###
 local_mbtiles_file
+local_network_permission_denied_hint
 local_stats_bad
 local_stats_battery
 local_stats_diagnostics_prefix
@@ -1025,12 +1095,37 @@ message
 message_delivery_status
 message_device_managed
 message_input_label
+message_routing_error_admin_bad_session_key
+message_routing_error_admin_bad_session_key_detail
+message_routing_error_admin_public_key_unauthorized
+message_routing_error_admin_public_key_unauthorized_detail
+message_routing_error_bad_request
+message_routing_error_bad_request_detail
+message_routing_error_duty_cycle_limit
+message_routing_error_duty_cycle_limit_detail
+message_routing_error_got_nak_detail
 message_routing_error_max_retransmit
+message_routing_error_max_retransmit_detail
 message_routing_error_no_channel
+message_routing_error_no_channel_detail
+message_routing_error_no_interface
+message_routing_error_no_interface_detail
+message_routing_error_no_response
+message_routing_error_no_response_detail
+message_routing_error_no_route_detail
+message_routing_error_not_authorized
+message_routing_error_not_authorized_detail
 message_routing_error_pki_failed
+message_routing_error_pki_failed_detail
 message_routing_error_pki_send_fail_public_key
+message_routing_error_pki_send_fail_public_key_detail
 message_routing_error_pki_unknown_pubkey
+message_routing_error_pki_unknown_pubkey_detail
+message_routing_error_rate_limit_exceeded
+message_routing_error_rate_limit_exceeded_detail
+message_routing_error_timeout_detail
 message_routing_error_too_large
+message_routing_error_too_large_detail
 message_status_delivered
 message_status_enroute
 message_status_queued
@@ -1041,6 +1136,7 @@ message_status_sfpp_routing
 message_status_unknown
 message_translated_label
 messages
+metric_channel_label
 micrograms_per_cubic_meter
 min
 minimum_broadcast_seconds
@@ -1099,6 +1195,8 @@ name
 name_cannot_be_empty
 navigate_back
 navigate_into_label
+need_hardware
+need_hardware_description
 neighbor_info
 neighbor_info_config
 neighbor_info_enabled
@@ -1141,6 +1239,8 @@ node_filter_placeholder
 node_filter_show_ignored
 node_filter_title
 node_id
+node_incomplete
+node_incomplete_description
 node_layout_channel
 node_layout_compact
 node_layout_compact_fields_header
@@ -1168,6 +1268,7 @@ node_list_help_node_details
 node_list_help_title
 node_list_long_click_label
 node_number
+node_request_send_failed
 node_restarting
 node_sort_alpha
 node_sort_button
@@ -1313,6 +1414,7 @@ primary
 primary_channel_feature
 privacy_url
 private_key
+project_information
 provide_location_to_mesh
 provider_name_exists
 proxy_to_client_enabled
@@ -1350,6 +1452,7 @@ rebroadcast_mode_none_desc
 recent_network_devices
 reconnecting
 red
+redacted
 refresh
 refresh_metadata
 regenerate_keys_confirmation
@@ -1525,6 +1628,8 @@ should_update
 should_update_firmware
 ### SHOW ###
 show_all_key_title
+show_full_message_timestamps
+show_full_message_timestamps_summary
 show_iaq_legend
 show_layer
 show_original
@@ -1605,18 +1710,35 @@ tak_role_teamlead
 tak_role_teammember
 tak_role_unspecified
 tak_server
+tak_server_channel
+tak_server_channel_desc
+tak_server_channel_option
 tak_server_enabled
 tak_server_enabled_desc
 tak_server_export_data_package_desc
 tak_server_loading
+tak_server_mesh_to_cot
+tak_server_mesh_to_cot_desc
 tak_server_section
+tak_server_status
+tak_server_status_connected
+tak_server_status_failed
+tak_server_status_not_running
+tak_server_status_off
+tak_server_status_starting
+tak_server_status_unavailable
+tak_server_status_waiting
 tak_server_test_card_title
 tak_server_test_idle
+tak_server_test_protocol_v1_label
+tak_server_test_protocol_v2_label
 tak_server_test_result_bytes
+tak_server_test_result_expected_drop
 tak_server_test_result_unknown_error
-tak_server_test_results
+tak_server_test_results_v2
 tak_server_test_run
 tak_server_test_running
+tak_server_v1_fallback_notice
 tak_team
 tak_team_blue
 tak_team_brown
@@ -1768,7 +1890,10 @@ waypoint_delete
 waypoint_edit
 waypoint_new
 waypoint_received
+website
 weight
+what_is_meshtastic
+what_is_meshtastic_description
 ### WIFI ###
 wifi_config
 wifi_devices

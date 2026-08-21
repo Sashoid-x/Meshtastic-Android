@@ -27,7 +27,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.isSensitiveData
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -123,7 +124,9 @@ private fun ContactHeader(
         AssistChip(
             onClick = onNodeChipClick,
             modifier =
-            Modifier.width(IntrinsicSize.Min).height(32.dp).semantics { contentDescription = contact.shortName },
+            Modifier.width(IntrinsicSize.Min).heightIn(min = 32.dp).semantics {
+                contentDescription = contact.shortName
+            },
             label = {
                 Text(
                     text = contact.shortName,
@@ -170,7 +173,7 @@ private fun ChatMetadata(contact: Contact, modifier: Modifier = Modifier) {
     ) {
         Text(
             text = contact.lastMessageText.orEmpty(),
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).semantics { isSensitiveData = true },
             style = MaterialTheme.typography.bodyMedium,
             overflow = TextOverflow.Ellipsis,
             maxLines = 2,

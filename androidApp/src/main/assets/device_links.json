@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-07-23T03:27:14.158Z",
+  "generatedAt": "2026-08-20T14:28:46.266Z",
   "source": "https://msh.to/api/urls",
   "links": [
     {
@@ -1918,7 +1918,7 @@
     {
       "shortCode": "aliexpress-wismesh-pocket-mini",
       "url": "https://msh.to/aliexpress-wismesh-pocket-mini",
-      "description": "WisMesh Pocket Mini (Rokland)",
+      "description": "WisMesh Pocket Mini (AliExpress)",
       "type": "marketplace",
       "targets": null,
       "hwModels": null,
@@ -3750,6 +3750,30 @@
       ],
       "hwModels": [
         116
+      ],
+      "marketplace": null,
+      "regions": null
+    },
+    {
+      "shortCode": "meshstick",
+      "url": "https://msh.to/meshstick",
+      "description": "Meshstick LoRa USB Adapter",
+      "type": "vendor",
+      "targets": [],
+      "hwModels": [],
+      "marketplace": null,
+      "regions": null
+    },
+    {
+      "shortCode": "thinknode_m9",
+      "url": "https://msh.to/thinknode_m9",
+      "description": "ThinkNode M9",
+      "type": "vendor",
+      "targets": [
+        "thinknode_m9"
+      ],
+      "hwModels": [
+        131
       ],
       "marketplace": null,
       "regions": null

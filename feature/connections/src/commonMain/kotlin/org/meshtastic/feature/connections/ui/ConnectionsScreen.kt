@@ -115,11 +115,8 @@ import org.meshtastic.feature.connections.ui.components.ConnectingDeviceInfo
 import org.meshtastic.feature.connections.ui.components.CurrentlyConnectedInfo
 import org.meshtastic.feature.connections.ui.components.CurrentlyConnectedText
 import org.meshtastic.feature.connections.ui.components.DeviceList
+import org.meshtastic.feature.connections.ui.components.EventFirmwareCard
 import org.meshtastic.feature.connections.ui.components.TransportSelector
-import org.meshtastic.feature.settings.navigation.ConfigRoute
-import org.meshtastic.feature.settings.navigation.getNavRouteFrom
-import org.meshtastic.feature.settings.radio.RadioConfigViewModel
-import org.meshtastic.feature.settings.radio.component.PacketResponseStateDialog
 
 /**
  * Fixed minimum height for the "connected device" card at the top of the Connections screen. Shared across the three UI
@@ -135,12 +132,10 @@ private val CardMinHeight = 100.dp
 fun ConnectionsScreen(
     connectionsViewModel: ConnectionsViewModel = koinViewModel(),
     scanModel: ScannerViewModel = koinViewModel(),
-    radioConfigViewModel: RadioConfigViewModel = koinViewModel(),
     onClickNodeChip: (Int) -> Unit,
     onNavigateToNodeDetails: (Int) -> Unit,
     onConfigNavigate: (Route) -> Unit,
 ) {
-    val radioConfigState by radioConfigViewModel.radioConfigState.collectAsStateWithLifecycle()
     val connectionProgress by scanModel.connectionProgressText.collectAsStateWithLifecycle()
     val connectionStatus by connectionsViewModel.connectionStatus.collectAsStateWithLifecycle()
     val connectionState by connectionsViewModel.connectionState.collectAsStateWithLifecycle()
@@ -168,6 +163,45 @@ fun ConnectionsScreen(
     // network-scan toggle request in-context and route a permanent denial to settings.
     val localNetworkPermission = rememberLocalNetworkPermissionState()
     val bluetoothPermission = rememberBluetoothPermissionState()
+
+    // ACCESS_LOCAL_NETWORK gates the socket, not just discovery — a blocked local TCP connect times out rather than
+    // failing fast — but a TCP address says nothing about locality: public-IP/port-forward/VPN radios need no
+    // permission at all. Policy (see LocalNetworkGateAction): prompt when possible, warn when not, never block.
+    // A connect issued while the prompt is up is stashed with the status it saw; the LaunchedEffect below resolves it
+    // on the status transition the request produces — grant runs it, a denial warns and runs it anyway.
+    var pendingTcpConnect by remember { mutableStateOf<Pair<PermissionStatus, () -> Unit>?>(null) }
+    val gateTcpConnect: (connect: () -> Unit) -> Unit = { connect ->
+        when (localNetworkGateAction(localNetworkPermission.status)) {
+            LocalNetworkGateAction.PROCEED -> connect()
+
+            LocalNetworkGateAction.REQUEST_PERMISSION -> {
+                pendingTcpConnect = localNetworkPermission.status to connect
+                localNetworkPermission.request()
+            }
+
+            LocalNetworkGateAction.PROCEED_WITH_WARNING -> {
+                scanModel.warnLocalNetworkPermissionDenied()
+                connect()
+            }
+        }
+    }
+    LaunchedEffect(localNetworkPermission.status) {
+        val pending = pendingTcpConnect ?: return@LaunchedEffect
+        when (resolvePendingTcpConnect(stashedStatus = pending.first, currentStatus = localNetworkPermission.status)) {
+            PendingTcpConnectResolution.CONNECT -> {
+                pendingTcpConnect = null
+                pending.second()
+            }
+
+            PendingTcpConnectResolution.CONNECT_WITH_WARNING -> {
+                pendingTcpConnect = null
+                scanModel.warnLocalNetworkPermissionDenied()
+                pending.second()
+            }
+
+            PendingTcpConnectResolution.KEEP_WAITING -> Unit
+        }
+    }
 
     // Adapter-state, distinct from permission state: a permission can be granted while Bluetooth is off or the device
     // is off Wi-Fi. Detected separately so the UI can route to the adapter's settings rather than re-prompting.
@@ -221,27 +255,6 @@ fun ConnectionsScreen(
         ) {
             scanModel.startNetworkAutoScan()
         }
-    }
-
-    /* Animate waiting for the configurations */
-    var isWaiting by remember { mutableStateOf(false) }
-    if (isWaiting) {
-        PacketResponseStateDialog(
-            state = radioConfigState.responseState,
-            onDismiss = {
-                isWaiting = false
-                radioConfigViewModel.clearPacketResponse()
-            },
-            onComplete = {
-                getNavRouteFrom(radioConfigState.route)?.let { route ->
-                    isWaiting = false
-                    radioConfigViewModel.clearPacketResponse()
-                    if (route == SettingsRoute.LoRa) {
-                        onConfigNavigate(SettingsRoute.LoRa)
-                    }
-                }
-            },
-        )
     }
 
     // Work around CMP-6615 in Compose Multiplatform 1.11.1: Android stringResource enters a blocking resource state.
@@ -340,6 +353,18 @@ fun ConnectionsScreen(
                             }
                         }
 
+                        // Event firmware is reported here rather than by swapping the app-bar logo: the Meshtastic
+                        // identity stays put, and the edition reads as one more fact about the connected device.
+                        // LocalEventBranding is only populated while connected to event firmware, so the card comes
+                        // and goes with the device. Hidden once the event is over — the ended-event card below takes
+                        // over from here, and celebrating an event that has passed would undercut its nudge.
+                        LocalEventBranding.current
+                            ?.takeIf { !it.hasEnded() }
+                            ?.let { edition ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                EventFirmwareCard(edition = edition)
+                            }
+
                         firmwareUpdateNotice?.let { notice ->
                             FirmwareUpdateNoticeCard(
                                 notice = notice,
@@ -409,10 +434,11 @@ fun ConnectionsScreen(
                                 ListItem(
                                     leadingIcon = MeshtasticIcons.Language,
                                     text = stringResource(Res.string.set_your_region),
-                                    onClick = {
-                                        isWaiting = true
-                                        radioConfigViewModel.setResponseStateLoading(ConfigRoute.LORA)
-                                    },
+                                    // Navigate straight to the LoRa screen: it re-reads the route on entry and
+                                    // renders from the connect-time snapshot meanwhile, so pre-fetching behind a
+                                    // progress dialog here bought nothing and could strand the user on an empty
+                                    // dialog when the read completed before the dialog observed it.
+                                    onClick = { onConfigNavigate(SettingsRoute.LoRa) },
                                 )
                             }
                         }
@@ -466,7 +492,16 @@ fun ConnectionsScreen(
                                 isBleScanning = isBleScanning,
                                 isNetworkScanning = isNetworkScanning,
                                 activeTransport = activeTransport,
-                                onSelectDevice = { scanModel.onSelected(it) },
+                                onSelectDevice = { entry ->
+                                    // Recent TCP addresses are persisted, so this list renders without a scan — and
+                                    // therefore without the scan toggle's permission request ever having run. BLE and
+                                    // USB are unaffected by ACCESS_LOCAL_NETWORK, so only gate Tcp.
+                                    if (entry is DeviceListEntry.Tcp) {
+                                        gateTcpConnect { scanModel.onSelected(entry) }
+                                    } else {
+                                        scanModel.onSelected(entry)
+                                    }
+                                },
                                 onToggleBleScan = {
                                     when {
                                         // Always allow stopping an in-progress scan.
@@ -504,7 +539,9 @@ fun ConnectionsScreen(
                                     }
                                 },
                                 onAddManualAddress = { _, fullAddress ->
-                                    scanModel.connectToManualAddress(fullAddress)
+                                    // Typing an address is always allowed — the target may be a public host or VPN
+                                    // peer. The gate runs at connect, where the permission can actually matter.
+                                    gateTcpConnect { scanModel.connectToManualAddress(fullAddress) }
                                 },
                                 onRemoveRecentAddress = { scanModel.removeRecentAddress(it.fullAddress) },
                             )

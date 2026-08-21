@@ -29,6 +29,7 @@
     <string name="a11y_node_role">role %1$s</string>
     <string name="a11y_node_signal">signal %1$s</string>
     <string name="a11y_nodes_at_hop">Hop %1$d: %2$d nodes</string>
+    <string name="about">About</string>
     <string name="accept">Accept</string>
     <string name="acknowledgements">Acknowledgements</string>
     <!-- ACTION -->
@@ -45,6 +46,7 @@
     <string name="actions">Actions</string>
     <string name="adc_multiplier_override">ADC multiplier override</string>
     <string name="adc_multiplier_override_ratio">ADC multiplier override ratio</string>
+    <string name="adc_voltage">ADC Voltage</string>
     <!-- ADD -->
     <string name="add">Add</string>
     <string name="add_a_note">Add a private note…</string>
@@ -112,6 +114,7 @@
     <string name="app_too_old">Application update required</string>
     <string name="app_version">Version</string>
     <string name="apply">Apply</string>
+    <string name="apps">Apps</string>
     <!-- AQI -->
     <string name="aqi">AQI</string>
     <string name="aqi_good">Good</string>
@@ -131,7 +134,12 @@
     <string name="backup_keys_confirmation">Saves the public and private keys to secure, encrypted storage on this device.</string>
     <string name="backup_restore">Backup &amp; Restore</string>
     <string name="bad">Bad</string>
+    <!-- BANDWIDTH -->
     <string name="bandwidth">Bandwidth</string>
+    <string name="bandwidth_default">Default (%1$s kHz)</string>
+    <string name="bandwidth_option_khz">%1$s kHz</string>
+    <string name="bandwidth_unsupported">Unsupported (%1$s)</string>
+    <string name="bandwidth_unsupported_summary">This bandwidth is not supported by the connected radio in the selected region. Choose a supported value before saving.</string>
     <string name="baro_pressure">Baro</string>
     <string name="battery">Battery</string>
     <string name="battery_ina_2xx_i2c_address">Battery INA_2XX I2C address</string>
@@ -164,6 +172,10 @@
     <string name="busy_noise_floor">Busy floor</string>
     <string name="button_gpio">Button GPIO</string>
     <string name="buzzer_gpio">Buzzer GPIO</string>
+    <plurals name="cache_limit_eviction_warning">
+        <item quantity="one">Lowering this will permanently delete the saved history for %1$d device.</item>
+        <item quantity="other">Lowering this will permanently delete the saved history for %1$d devices.</item>
+    </plurals>
     <string name="calculating">Calculating…</string>
     <string name="call_sign">Call sign</string>
     <string name="call_sign_summary">Your amateur radio call sign, up to 8 characters</string>
@@ -223,7 +235,10 @@
     <string name="clean_nodes_older_than">Clean up nodes last seen older than %1$d days</string>
     <string name="clean_now">Clean Now</string>
     <string name="clean_unknown_nodes">Clean up only unknown nodes</string>
+    <!-- CLEAR -->
     <string name="clear">Clear</string>
+    <string name="clear_position_track_message">This permanently deletes this node's recorded GPS track. This cannot be undone.</string>
+    <string name="clear_position_track_title">Clear position track?</string>
     <string name="clear_selection">Clear selection</string>
     <string name="clear_time_zone">Clear time zone</string>
     <string name="client_notification">Client Notification</string>
@@ -287,6 +302,7 @@
     <string name="config_security_debug_log_api_enabled">Output live debug logging over serial, view and export position-redacted device logs over Bluetooth.</string>
     <string name="config_security_is_managed">Device is managed by a mesh administrator, the user is unable to access any of the device settings.</string>
     <string name="config_security_private_key">Used to create a shared key with a remote device.</string>
+    <string name="config_security_private_key_remote">The device does not share its private key over remote administration. You can set a new key, but it can never be read back.</string>
     <string name="config_security_public_key">Generated from your private key and sent out to other nodes on the mesh to allow them to compute a shared secret key.</string>
     <string name="config_security_serial_enabled">Serial Console over the Stream API.</string>
     <string name="configuration">Configuration</string>
@@ -308,6 +324,7 @@
     <string name="contrast_standard">Standard</string>
     <string name="conversations">Conversations</string>
     <string name="copy">Copy</string>
+    <string name="copyright_notice">Meshtastic® Copyright Meshtastic LLC</string>
     <string name="create_your_own_networks">Create Your Own Networks</string>
     <string name="critical_alert">Critical Alert!</string>
     <string name="critical_alerts">Critical Alerts</string>
@@ -555,10 +572,11 @@
     <string name="doc_title_translate">Translate the App</string>
     <string name="doc_title_units">Units &amp; Locale</string>
     <string name="doc_title_widget">Home Screen Widget</string>
+    <string name="documentation">Documentation</string>
     <string name="done">Done</string>
     <string name="dont_show_again_for_device">Don't show again for this device</string>
     <string name="double_tap_as_button_press">Double Tap as Button</string>
-    <string name="downlink_enabled">Downlink enabled</string>
+    <string name="downlink_enabled">MQTT Downlink Enabled</string>
     <string name="downlink_feature_description">Messages from a public internet gateway are forwarded to the local mesh. Due to the zero-hop policy, traffic from the default MQTT server will not propagate further than this device.</string>
     <string name="download">Download</string>
     <string name="duplicated_public_key_title">Duplicate Public Key Detected</string>
@@ -569,6 +587,19 @@
     <string name="edit_custom_tile_source">Edit Network Tile Source</string>
     <string name="eight_hours">8 Hours</string>
     <string name="elevation_suffix" translatable="false">MSL</string>
+    <!-- EMOJI -->
+    <string name="emoji_category_activities">Activities</string>
+    <string name="emoji_category_animals_nature">Animals &amp; Nature</string>
+    <string name="emoji_category_flags">Flags</string>
+    <string name="emoji_category_food_drink">Food &amp; Drink</string>
+    <string name="emoji_category_objects">Objects</string>
+    <string name="emoji_category_people_body">People &amp; Body</string>
+    <string name="emoji_category_smileys_emotion">Smileys &amp; Emotion</string>
+    <string name="emoji_category_symbols">Symbols</string>
+    <string name="emoji_category_travel_places">Travel &amp; Places</string>
+    <string name="emoji_load_error">Unable to load emoji</string>
+    <string name="emoji_no_results">No emoji found</string>
+    <string name="emoji_recently_used">Recently Used</string>
     <string name="enable_power_saving_mode">Enable power saving mode</string>
     <string name="enabled">Enabled</string>
     <!-- ENCRYPTION -->
@@ -594,14 +625,17 @@
     <string name="ethernet_config">Ethernet Options</string>
     <string name="ethernet_enabled">Ethernet enabled</string>
     <string name="ethernet_ip">Ethernet IP:</string>
+    <string name="event_firmware_running">Running event firmware</string>
     <string name="event_use_event_theme">Use event theme</string>
     <string name="exchange_position">Exchange position</string>
     <string name="expand_chart">Expand chart</string>
     <string name="expanded">Expanded</string>
     <string name="expires">Expires</string>
+    <!-- EXPORT -->
     <string name="export_configuration">Export configuration</string>
     <string name="export_data_csv">Export all packets</string>
     <string name="export_gpx">Export GPX</string>
+    <string name="export_node_db">Export node database</string>
     <string name="export_tak_data_package">Export TAK Data Package</string>
     <string name="external_notification">External Notification</string>
     <string name="external_notification_config">External Notification Config</string>
@@ -636,6 +670,23 @@
     <string name="firmware_edition">Firmware Edition</string>
     <string name="firmware_event_ended_banner">%1$s has ended. Return to standard Meshtastic firmware to restore normal features.</string>
     <string name="firmware_event_ended_button">Update firmware</string>
+    <string name="firmware_maintenance_cdc_unblock_failed">The erase file was copied but the device didn't start erasing. Nothing has been changed yet. Unplug the device, double-press its reset button, and try again.</string>
+    <string name="firmware_maintenance_copy_failed">Couldn't copy the file to the device's drive. Make sure the drive is still connected and try again.</string>
+    <string name="firmware_maintenance_erase_action">Erase and reinstall</string>
+    <string name="firmware_maintenance_erase_confirm_button">Erase device</string>
+    <string name="firmware_maintenance_erase_confirm_text">This erases everything on %1$s, including its channels, keys and all settings, then reinstalls the firmware. It cannot be undone and there is no backup.\n\nYou will be asked to select the device's drive twice: once for the erase file, then again for the firmware.</string>
+    <string name="firmware_maintenance_erase_confirm_title">Erase this device?</string>
+    <string name="firmware_maintenance_no_release">Select a firmware version first, so the device can be reinstalled after erasing.</string>
+    <string name="firmware_maintenance_not_a_bootloader_volume">That drive isn't the device's update drive. Select the drive that appears when the device is in update mode (it contains a file named INFO_UF2.TXT).</string>
+    <string name="firmware_maintenance_select_drive">Select the device's update drive</string>
+    <string name="firmware_maintenance_softdevice_conflict">The device reports a different Bluetooth stack than expected, so erasing it isn't safe. Please report this along with your device model.</string>
+    <string name="firmware_maintenance_unknown_board">This device's bootloader isn't one this app has an upgrade for.</string>
+    <string name="firmware_maintenance_unknown_softdevice">This app can't confirm which Bluetooth stack this device uses, so erasing it isn't safe. Use the web flasher at flasher.meshtastic.org instead.</string>
+    <string name="firmware_maintenance_unsupported_device">This device doesn't support erasing from the app.</string>
+    <string name="firmware_maintenance_upgrade_bootloader_action">Upgrade bootloader</string>
+    <string name="firmware_maintenance_upgrade_confirm_text">This installs an upgraded bootloader on %1$s, which makes future Bluetooth updates much faster. The firmware is reinstalled afterwards.\n\nDon't disconnect the device while this runs.</string>
+    <string name="firmware_maintenance_upgrade_confirm_title">Upgrade bootloader?</string>
+    <string name="firmware_maintenance_wrong_destination">That location isn't the device's update drive, so nothing was written to the device. Select the removable drive that appears when the device is in update mode.</string>
     <string name="firmware_old">The radio firmware is too old to talk to this application. For more information on this see <a href="https://meshtastic.org/docs/getting-started/flashing-firmware">our Firmware Installation guide</a>.</string>
     <string name="firmware_recovery_banner">Finish updating %1$s</string>
     <string name="firmware_recovery_ble_failed">Couldn't finish the update over Bluetooth. This device's stock bootloader can't reliably complete an interrupted update over the air. Connect it to a computer with USB and re-flash it using the vendor's serial DFU tool (for example adafruit-nrfutil) to recover the device.</string>
@@ -692,7 +743,8 @@
     <string name="firmware_update_open_flasher">Open Meshtastic Flasher</string>
     <string name="firmware_update_ota_failed">OTA update failed: %1$s</string>
     <string name="firmware_update_ota_unsupported_reason">This device's OTA loader rejected the requested update method: %1$s</string>
-    <string name="firmware_update_rak4631_bootloader_hint">For RAK WisBlock RAK4631, use the vendor's serial DFU tool (for example, adafruit-nrfutil dfu serial with the provided bootloader .zip file). Copying the .uf2 file alone will not update the bootloader.</string>
+    <string name="firmware_update_preparing_flash">Preparing device: erasing flash. This can take up to a minute...</string>
+    <string name="firmware_update_rak4631_bootloader_hint">For RAK WisBlock RAK4631, the vendor's bootloader .zip has to be flashed with a serial DFU tool such as adafruit-nrfutil — copying that .zip to the device's drive won't work. Alternatively, connect this device over USB and use the bootloader upgrade in this app.</string>
     <string name="firmware_update_rebooting">Rebooting to DFU...</string>
     <string name="firmware_update_release_notes">Release Notes</string>
     <string name="firmware_update_requires_bin">%1$s requires a target-matching .bin file.</string>
@@ -700,6 +752,7 @@
     <string name="firmware_update_requires_uf2">%1$s requires a target-matching .uf2 file.</string>
     <string name="firmware_update_retrieval_failed">Could not retrieve firmware file.</string>
     <string name="firmware_update_retry">Retry</string>
+    <string name="firmware_update_retrying_upload">Device did not respond. Retrying upload (attempt %1$d/%2$d)...</string>
     <string name="firmware_update_save_dfu_file">Please save the .uf2 file to your device's DFU drive.</string>
     <string name="firmware_update_searching_device">Searching for OTA device on the network...</string>
     <string name="firmware_update_select_file">Select Local File</string>
@@ -709,6 +762,7 @@
     <string name="firmware_update_starting_dfu">Starting DFU...</string>
     <string name="firmware_update_starting_ota">Starting OTA update...</string>
     <string name="firmware_update_success">Update Successful!</string>
+    <string name="firmware_update_success_wiped">The device was reset to factory defaults and needs to be set up (and paired) again.</string>
     <string name="firmware_update_taking_a_while">This might take a minute...</string>
     <string name="firmware_update_target">Target: %1$s</string>
     <string name="firmware_update_title">Firmware Update</string>
@@ -727,6 +781,10 @@
     <string name="firmware_update_verifying">Verifying update...</string>
     <string name="firmware_update_waiting_reboot">Waiting for device to reboot into OTA mode...</string>
     <string name="firmware_update_waiting_reconnect">Waiting for device to reconnect...</string>
+    <string name="firmware_update_wipe_ble_detail">Factory-resets the device once the update is verified. All settings and Bluetooth pairing are removed.</string>
+    <string name="firmware_update_wipe_confirm_warning">The device will also be erased — all settings, channels, and keys will be lost.</string>
+    <string name="firmware_update_wipe_label">Erase device during update</string>
+    <string name="firmware_update_wipe_usb_detail">Wipes the device's flash completely, then installs the selected firmware from scratch.</string>
     <string name="firmware_version">Firmware version: %1$s</string>
     <string name="fixed_pin">Fixed PIN</string>
     <string name="fixed_position">Fixed Position</string>
@@ -771,6 +829,7 @@
     <string name="geofence_remove_area">Remove area</string>
     <string name="geofence_set_area">Set area on map</string>
     <string name="get_started">Get started</string>
+    <string name="github_repository">GitHub Repository</string>
     <string name="good">Good</string>
     <!-- GPIO -->
     <string name="gpio">GPIO</string>
@@ -822,6 +881,8 @@
     <string name="import_export_label">Import/Export</string>
     <string name="import_known_shared_contact_text">Warning: This contact is known, importing will overwrite the previous contact information.</string>
     <string name="import_label">Import</string>
+    <string name="import_pending_channels_connect">Channel settings received. Connect to a device to import them.</string>
+    <string name="import_pending_contact_connect">Contact received. Connect to a device to import it.</string>
     <string name="import_shared_contact">Import Shared Contact?</string>
     <string name="incoming_messages">Incoming Messages</string>
     <string name="indoor_air_quality_iaq">Indoor Air Quality (IAQ)</string>
@@ -875,13 +936,24 @@
     <string name="latest_alpha_firmware">Latest alpha</string>
     <string name="latest_stable_firmware">Latest stable</string>
     <string name="latitude">Latitude</string>
+    <!-- LAYER -->
+    <string name="layer_subtitle">%1$s • %2$s</string>
+    <string name="layer_type_coverage">Coverage estimate</string>
+    <string name="layer_type_geojson" translatable="false">GeoJSON</string>
+    <string name="layer_type_kml" translatable="false">KML</string>
+    <string name="layer_type_network">Network layer</string>
     <string name="learn_more">Learn more</string>
     <string name="led_heartbeat">LED Heartbeat</string>
     <string name="led_state">LED state</string>
     <string name="legacy_admin_channel">Legacy Admin channel</string>
     <string name="library_count">%1$d libraries</string>
+    <!-- LICENSED -->
     <string name="licensed_amateur_radio">Licensed amateur radio (Ham)</string>
     <string name="licensed_amateur_radio_text">Enabling this option disables encryption and is not compatible with the default Meshtastic network.</string>
+    <string name="licensed_mode_enable_confirm">Enable licensed mode</string>
+    <string name="licensed_mode_enable_title">Enable licensed (Ham) mode?</string>
+    <string name="licensed_mode_enable_warning">Licensed mode removes channel encryption keys and disables the admin channel, so all traffic is sent as plaintext that anyone can read — and this firmware cannot sign it, so other nodes cannot verify it came from you. This is not compatible with the default Meshtastic network, and you remain responsible for meeting your amateur radio license requirements and local regulations.</string>
+    <string name="licensed_mode_enable_warning_signed">Licensed mode removes channel encryption keys and disables the admin channel, so all traffic is sent as plaintext that anyone can read — but it is digitally signed, letting other nodes verify it came from you. Your node number may change once to match your identity key, so favorites, message history, remote admin, and other nodes may initially treat it as new; you remain responsible for meeting your amateur radio license requirements and local regulations.</string>
     <!-- LOAD -->
     <string name="load">Load</string>
     <string name="load_15_min">Load 15m</string>
@@ -894,6 +966,7 @@
     <string name="loading">Loading</string>
     <!-- LOCAL -->
     <string name="local_mbtiles_file">Local MBTiles File</string>
+    <string name="local_network_permission_denied_hint">Local network access is turned off for Meshtastic. If this radio is on your local network, the connection will fail until you allow local network access in system settings.</string>
     <string name="local_stats_bad">Bad %1$d</string>
     <string name="local_stats_battery">Battery: %1$d%</string>
     <string name="local_stats_diagnostics_prefix">Diagnostics: %1$s</string>
@@ -1058,12 +1131,37 @@
     <string name="message_delivery_status">Message delivery status</string>
     <string name="message_device_managed">This radio is managed and can only be changed by a remote admin.</string>
     <string name="message_input_label">Message</string>
+    <string name="message_routing_error_admin_bad_session_key">Admin session expired</string>
+    <string name="message_routing_error_admin_bad_session_key_detail">The admin session key is missing, expired, or invalid. Request a new session before trying again.</string>
+    <string name="message_routing_error_admin_public_key_unauthorized">Admin key not authorized</string>
+    <string name="message_routing_error_admin_public_key_unauthorized_detail">The remote node does not authorize your admin key.</string>
+    <string name="message_routing_error_bad_request">Invalid request</string>
+    <string name="message_routing_error_bad_request_detail">The destination rejected this request as invalid.</string>
+    <string name="message_routing_error_duty_cycle_limit">Duty cycle limit</string>
+    <string name="message_routing_error_duty_cycle_limit_detail">Local airtime limits are temporarily blocking sends. Wait before trying again.</string>
+    <string name="message_routing_error_got_nak_detail">A node rejected this message. Try again when the route changes.</string>
     <string name="message_routing_error_max_retransmit">Failed to deliver to mesh</string>
-    <string name="message_routing_error_no_channel">No channel selected</string>
+    <string name="message_routing_error_max_retransmit_detail">No node confirmed this message. Try again when you have better signal or more mesh coverage.</string>
+    <string name="message_routing_error_no_channel">Channel/key mismatch</string>
+    <string name="message_routing_error_no_channel_detail">The sender or recipient could not use a matching channel/key for this message.</string>
+    <string name="message_routing_error_no_interface">No radio interface</string>
+    <string name="message_routing_error_no_interface_detail">The sender has no usable radio interface for this message.</string>
+    <string name="message_routing_error_no_response">No app response</string>
+    <string name="message_routing_error_no_response_detail">The destination received the request, but no app or module responded. Try again when the recipient is reachable.</string>
+    <string name="message_routing_error_no_route_detail">No route to the destination node was found in the mesh. Try again when more nodes are reachable.</string>
+    <string name="message_routing_error_not_authorized">Not authorized</string>
+    <string name="message_routing_error_not_authorized_detail">The destination refused this request because it is not authorized.</string>
     <string name="message_routing_error_pki_failed">Could not send encrypted message</string>
+    <string name="message_routing_error_pki_failed_detail">The encrypted send path could not be used. Wait for node info or keys to sync, then try again.</string>
     <string name="message_routing_error_pki_send_fail_public_key">Recipient key unavailable</string>
+    <string name="message_routing_error_pki_send_fail_public_key_detail">Your node does not have the recipient's public key yet. Wait for node info to sync, then try again.</string>
     <string name="message_routing_error_pki_unknown_pubkey">Recipient needs your key</string>
+    <string name="message_routing_error_pki_unknown_pubkey_detail">The recipient does not know your public key yet. Your node may share its info automatically; try again after it syncs.</string>
+    <string name="message_routing_error_rate_limit_exceeded">Rate limited</string>
+    <string name="message_routing_error_rate_limit_exceeded_detail">Messages are being sent too quickly. Wait before trying again.</string>
+    <string name="message_routing_error_timeout_detail">No acknowledgment was received in time. Try again when you have better signal or more mesh coverage.</string>
     <string name="message_routing_error_too_large">Message is too large to send</string>
+    <string name="message_routing_error_too_large_detail">Shorten the message and send it again.</string>
     <string name="message_status_delivered">Delivered to mesh</string>
     <string name="message_status_enroute">Sending...</string>
     <string name="message_status_queued">Queued for sending</string>
@@ -1074,6 +1172,7 @@
     <string name="message_status_unknown">Unknown</string>
     <string name="message_translated_label">Translated</string>
     <string name="messages">Messages</string>
+    <string name="metric_channel_label">%1$s %2$d</string>
     <string name="micrograms_per_cubic_meter">µg/m³</string>
     <string name="min">Min</string>
     <string name="minimum_broadcast_seconds">Minimum broadcast (seconds)</string>
@@ -1132,6 +1231,8 @@
     <string name="name_cannot_be_empty">Name cannot be empty.</string>
     <string name="navigate_back">Navigate Back</string>
     <string name="navigate_into_label">Navigate Into</string>
+    <string name="need_hardware">Need Hardware?</string>
+    <string name="need_hardware_description">Meshtastic requires a compatible device. Our backers and partners offer ready-to-use hardware. Here are some of the most popular options.</string>
     <string name="neighbor_info">Neighbor Info</string>
     <string name="neighbor_info_config">Neighbor Info Config</string>
     <string name="neighbor_info_enabled">Neighbor Info enabled</string>
@@ -1174,6 +1275,8 @@
     <string name="node_filter_show_ignored">Only show ignored Nodes</string>
     <string name="node_filter_title">Filter by</string>
     <string name="node_id">Node ID</string>
+    <string name="node_incomplete">Incomplete</string>
+    <string name="node_incomplete_description">Node info has not been received yet</string>
     <string name="node_layout_channel">Channel</string>
     <string name="node_layout_compact">Compact</string>
     <string name="node_layout_compact_fields_header">Compact Fields</string>
@@ -1201,6 +1304,7 @@
     <string name="node_list_help_title">Node List Help</string>
     <string name="node_list_long_click_label">Node options</string>
     <string name="node_number">Node Number</string>
+    <string name="node_request_send_failed">Couldn't send request. Try again.</string>
     <string name="node_restarting">Restarting…</string>
     <string name="node_sort_alpha">A-Z</string>
     <string name="node_sort_button">Node sorting options</string>
@@ -1355,6 +1459,7 @@
     <string name="primary_channel_feature">Periodic position and telemetry broadcast</string>
     <string name="privacy_url" translatable="false">https://meshtastic.org/docs/legal/privacy/</string>
     <string name="private_key">Private Key</string>
+    <string name="project_information">Project information</string>
     <string name="provide_location_to_mesh">Provide phone location to mesh</string>
     <string name="provider_name_exists">Provider name exists.</string>
     <string name="proxy_to_client_enabled">Proxy to client enabled</string>
@@ -1392,6 +1497,7 @@
     <string name="recent_network_devices">Recent Network Devices</string>
     <string name="reconnecting">Reconnecting…</string>
     <string name="red">Red</string>
+    <string name="redacted" translatable="false">***[REDACTED]***</string>
     <string name="refresh">Refresh</string>
     <string name="refresh_metadata">Refresh metadata</string>
     <string name="regenerate_keys_confirmation">Are you sure you want to regenerate your Private Key?\n\nNodes that may have previously exchanged keys with this node will need to Remove that node and re-exchange keys in order to resume secure communication.</string>
@@ -1462,24 +1568,24 @@
     <string name="rotary_encoder_1_enabled">Rotary encoder #1 enabled</string>
     <string name="router_role_confirmation_text">I have read the &lt;a href="https://meshtastic.org/docs/configuration/radio/device/#roles"&gt;Device Role Documentation&lt;/a&gt; and the blog post about &lt;a href="http://meshtastic.org/blog/choosing-the-right-device-role"&gt;Choosing The Right Device Role&lt;/a&gt;.</string>
     <!-- ROUTING -->
-    <string name="routing_error_admin_bad_session_key">Bad session key</string>
-    <string name="routing_error_admin_public_key_unauthorized">Public Key unauthorized</string>
-    <string name="routing_error_bad_request">Bad Request</string>
-    <string name="routing_error_duty_cycle_limit">Regional Duty Cycle Limit Reached</string>
+    <string name="routing_error_admin_bad_session_key">Admin session expired</string>
+    <string name="routing_error_admin_public_key_unauthorized">Admin key not authorized</string>
+    <string name="routing_error_bad_request">Invalid request</string>
+    <string name="routing_error_duty_cycle_limit">Duty cycle limit</string>
     <string name="routing_error_got_nak">Received a negative acknowledgment</string>
-    <string name="routing_error_max_retransmit">Max Retransmission Reached</string>
-    <string name="routing_error_no_channel">No Channel</string>
-    <string name="routing_error_no_interface">No Interface</string>
-    <string name="routing_error_no_response">No response</string>
+    <string name="routing_error_max_retransmit">Failed to deliver to mesh</string>
+    <string name="routing_error_no_channel">Channel/key mismatch</string>
+    <string name="routing_error_no_interface">No radio interface</string>
+    <string name="routing_error_no_response">No app response</string>
     <string name="routing_error_no_route">No route</string>
     <string name="routing_error_none">Acknowledged</string>
-    <string name="routing_error_not_authorized">Not Authorized</string>
-    <string name="routing_error_pki_failed">Encrypted Send Failed</string>
-    <string name="routing_error_pki_send_fail_public_key">PKI send failed, no public key</string>
-    <string name="routing_error_pki_unknown_pubkey">Unknown Public Key</string>
-    <string name="routing_error_rate_limit_exceeded">Rate Limit Exceeded. Please try again later.</string>
+    <string name="routing_error_not_authorized">Not authorized</string>
+    <string name="routing_error_pki_failed">Could not send encrypted message</string>
+    <string name="routing_error_pki_send_fail_public_key">Recipient key unavailable</string>
+    <string name="routing_error_pki_unknown_pubkey">Recipient needs your key</string>
+    <string name="routing_error_rate_limit_exceeded">Rate limited</string>
     <string name="routing_error_timeout">Timeout</string>
-    <string name="routing_error_too_large">Packet too large</string>
+    <string name="routing_error_too_large">Message is too large to send</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">Received Signal Strength Indicator, a measurement used to determine the power level being received by the antenna. A higher RSSI value generally indicates a stronger and more stable connection.</string>
     <string name="rsyslog_server">rsyslog server</string>
@@ -1570,6 +1676,8 @@
     <string name="should_update_firmware">Firmware Update Recommended.</string>
     <!-- SHOW -->
     <string name="show_all_key_title">Encryption Key Meanings</string>
+    <string name="show_full_message_timestamps">Show full message timestamps</string>
+    <string name="show_full_message_timestamps_summary">Always show the date and time in conversation headers and message actions</string>
     <string name="show_iaq_legend">Show air quality legend</string>
     <string name="show_layer">Show Layer</string>
     <string name="show_original">Show original</string>
@@ -1650,18 +1758,38 @@
     <string name="tak_role_teammember">Team Member</string>
     <string name="tak_role_unspecified">Unspecified</string>
     <string name="tak_server">TAK Server</string>
+    <string name="tak_server_channel">TAK Mesh Channel</string>
+    <string name="tak_server_channel_desc">Meshtastic channel used for outgoing TAK traffic</string>
+    <string name="tak_server_channel_option">%1$d: %2$s</string>
     <string name="tak_server_enabled">Enable Local TAK Server</string>
-    <string name="tak_server_enabled_desc">Starts a local TLS server on port 8089 for ATAK/iTAK connections</string>
-    <string name="tak_server_export_data_package_desc">Generate .zip for ATAK/iTAK to connect to this server</string>
+    <string name="tak_server_enabled_desc">Starts a local TLS server on port 8089 for ATAK connections</string>
+    <string name="tak_server_export_data_package_desc">Generate .zip for ATAK to connect to this server</string>
     <string name="tak_server_loading">…</string>
+    <string name="tak_server_mesh_to_cot">Mesh to CoT Converter</string>
+    <string name="tak_server_mesh_to_cot_desc">Show Meshtastic nodes on the ATAK map as contacts</string>
     <string name="tak_server_section">Server</string>
+    <string name="tak_server_status">Status</string>
+    <plurals name="tak_server_status_connected">
+        <item quantity="one">%1$d local client connection</item>
+        <item quantity="other">%1$d local client connections</item>
+    </plurals>
+    <string name="tak_server_status_failed">Unable to start TAK Server. Turn it off and on to retry.</string>
+    <string name="tak_server_status_not_running">TAK Server is not running</string>
+    <string name="tak_server_status_off">Off</string>
+    <string name="tak_server_status_starting">Starting TAK Server</string>
+    <string name="tak_server_status_unavailable">Local TAK Server is available in Meshtastic for Android</string>
+    <string name="tak_server_status_waiting">Listening on 127.0.0.1:8089 — waiting for ATAK</string>
     <string name="tak_server_test_card_title">TAK Mesh Test (Debug)</string>
     <string name="tak_server_test_idle">Send all %1$d test fixtures to mesh</string>
+    <string name="tak_server_test_protocol_v1_label">V1 (legacy firmware &lt; 2.8.0 — PLI + chat only)</string>
+    <string name="tak_server_test_protocol_v2_label">V2 (firmware ≥ 2.8.0)</string>
     <string name="tak_server_test_result_bytes">%1$dB ✓</string>
+    <string name="tak_server_test_result_expected_drop">Not in v1 schema (expected)</string>
     <string name="tak_server_test_result_unknown_error">✗</string>
-    <string name="tak_server_test_results">%1$d passed, %2$d failed of %3$d/%4$d</string>
+    <string name="tak_server_test_results_v2">%1$d passed, %2$d expected drop, %3$d failed of %4$d/%5$d</string>
     <string name="tak_server_test_run">Run</string>
     <string name="tak_server_test_running">Running: %1$s</string>
+    <string name="tak_server_v1_fallback_notice">Connected node firmware doesn't support full TAK integration — only location and chat messages will bridge to ATAK. Markers and other event types need firmware 2.8.0 or newer.</string>
     <string name="tak_team">Team Color</string>
     <string name="tak_team_blue">Blue</string>
     <string name="tak_team_brown">Brown</string>
@@ -1776,7 +1904,7 @@
     <string name="update_interval">GPS Polling Interval</string>
     <string name="update_interval_seconds">Update interval (seconds)</string>
     <string name="updated">Updated</string>
-    <string name="uplink_enabled">Uplink enabled</string>
+    <string name="uplink_enabled">MQTT Uplink Enabled</string>
     <string name="uplink_feature_description">Messages from the mesh will be sent to the public internet through any node's configured gateway.</string>
     <string name="uptime">Uptime</string>
     <!-- URL -->
@@ -1816,7 +1944,10 @@
     <string name="waypoint_edit">Edit waypoint</string>
     <string name="waypoint_new">New waypoint</string>
     <string name="waypoint_received">Received waypoint: %1$s</string>
+    <string name="website">Website</string>
     <string name="weight">Weight</string>
+    <string name="what_is_meshtastic">What is Meshtastic?</string>
+    <string name="what_is_meshtastic_description">An open source, off-grid, decentralized, mesh network that runs on affordable, low-power radios.</string>
     <!-- WIFI -->
     <string name="wifi_config">WiFi Options</string>
     <string name="wifi_devices">Wi-Fi Provisioning for mPWRD-OS</string>

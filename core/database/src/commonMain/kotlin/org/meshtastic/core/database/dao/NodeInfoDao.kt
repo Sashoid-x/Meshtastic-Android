@@ -279,6 +279,8 @@ interface NodeInfoDao {
         NodeWithRelations,
         >
 
+    // Text search (name/id) is applied in Kotlin (NodeRepositoryImpl), not here: SQLite's LIKE/UPPER/LOWER only
+    // case-fold ASCII a-z/A-Z, so a WHERE-clause LIKE can't match e.g. "kolså" against "KOLSÅS" (#6750).
     @Query(
         """
     WITH OurNode AS (
@@ -288,11 +290,6 @@ interface NodeInfoDao {
     )
     SELECT * FROM nodes
     WHERE (:includeUnknown = 1 OR short_name IS NOT NULL)
-        AND (:filter = ''
-            OR (long_name LIKE '%' || :filter || '%'
-            OR short_name LIKE '%' || :filter || '%'
-            OR printf('!%08x', CASE WHEN num < 0 THEN num + 4294967296 ELSE num END) LIKE '%' || :filter || '%'
-            OR CAST(CASE WHEN num < 0 THEN num + 4294967296 ELSE num END AS TEXT) LIKE '%' || :filter || '%'))
         AND (:lastHeardMin = -1 OR last_heard >= :lastHeardMin)
         AND (:hopsAwayMax = -1 OR (hops_away <= :hopsAwayMax AND hops_away >= 0) OR num = (SELECT myNodeNum FROM my_node LIMIT 1))
     ORDER BY CASE
@@ -328,7 +325,6 @@ interface NodeInfoDao {
     @Transaction
     fun getNodes(
         sort: String,
-        filter: String,
         includeUnknown: Boolean,
         hopsAwayMax: Int,
         lastHeardMin: Int,
@@ -365,6 +361,28 @@ interface NodeInfoDao {
 
     @Query("DELETE FROM metadata WHERE num=:num")
     suspend fun deleteMetadata(num: Int)
+
+    @Query("DELETE FROM metadata WHERE num IN (:nodeNums)")
+    suspend fun deleteMetadataForNodes(nodeNums: List<Int>)
+
+    /** Atomically deletes one node and its separately stored device metadata. */
+    @Transaction
+    suspend fun deleteNodeAndMetadata(num: Int) {
+        deleteNode(num)
+        deleteMetadata(num)
+    }
+
+    /**
+     * Atomically deletes nodes and their metadata, chunking both `IN` queries below SQLite's bind-parameter limit.
+     * Every chunk participates in the same transaction, so cancellation or a query failure rolls back the whole batch.
+     */
+    @Transaction
+    suspend fun deleteNodesAndMetadata(nodeNums: List<Int>) {
+        for (chunk in nodeNums.chunked(MAX_BIND_PARAMS)) {
+            deleteNodes(chunk)
+            deleteMetadataForNodes(chunk)
+        }
+    }
 
     /** Snapshot used by DatabaseMerger to carry per-node DeviceMetadata across transports (newest timestamp wins). */
     @Query("SELECT * FROM metadata")

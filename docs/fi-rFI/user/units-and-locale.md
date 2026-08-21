@@ -2,7 +2,7 @@
 title: Yksiköt, mittaus ja kieli- ja alueasetukset
 parent: Käyttöopas
 nav_order: 16
-last_updated: 2026-07-08
+last_updated: 2026-08-19
 description: Miten sovellus muotoilee lämpötilan, etäisyyden, nopeuden ja muut mittayksiköt laitteesi alueasetusten perusteella.
 ---
 
@@ -34,6 +34,8 @@ Lämpötila-arvot ympäristösensoreista lähetetään muodossa **°C** ja näyt
 | Fahrenheit | 72 °F |
 
 Tämä vaikuttaa kaikkiin lämpötilanäyttöihin sovelluksessa: radion ympäristötelemetria, maaperän lämpötila, kastepiste ja telemetriakäyrien akselit.
+
+Lämpötila noudattaa alueesi **lämpötila-asetusta** riippumatta etäisyysjärjestelmästä. Alueet, joissa käytetään sekä metri- että brittiläisiä yksiköitä, toimivat oikein – esimerkiksi Isossa-Britanniassa etäisyydet näytetään maileina, mutta lämpötila **°C**-asteina. Android 14:ssä **Lämpötila** -alueasetus (Asetukset → Järjestelmä → Kielet → Alueasetukset) ohittaa alueen oletusasetuksen.
 
 ## Etäisyys ja korkeus
 
@@ -113,7 +115,8 @@ Androidissa mittausjärjestelmäsi (metrinen vs imperial) on sidottu alueasetuks
 
 1. Avaa **Asetukset → Järjestelmä → Kieli ja alue**
 2. Vaihda **Alue**- tai **Mittausyksiköt**-asetusta
-3. Palaa Meshtasticiin — arvot päivittyvät välittömästi
+3. Android 14:ssä lämpötila-asetus voidaan määrittää erikseen kohdassa **Alueasetukset → Lämpötila**
+4. Palaa Meshtasticiin — arvot päivittyvät välittömästi
 
 > 💡 **Vinkki:** Kaikki mittausten muotoilut tehdään keskitetysti ja ne noudattavat käyttöympäristösi alueasetuksia, joten yksiköt pysyvät yhtenäisinä kaikkialla sovelluksessa.
 
