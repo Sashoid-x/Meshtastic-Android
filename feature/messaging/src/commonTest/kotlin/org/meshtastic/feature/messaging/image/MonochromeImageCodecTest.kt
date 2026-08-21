@@ -39,31 +39,51 @@ class MonochromeImageCodecTest {
 
     @Test
     fun testEncodeAndDecodeRoundtrip() {
-        val presetIndex = 2 // 48x32
-        val preset = MonochromeImageCodec.getPreset(presetIndex)
-        val testBits = BooleanArray(preset.totalPixels) { index -> index % 2 == 0 }
+        for (presetIndex in 0 until MonochromeImageCodec.PRESETS.size) {
+            val preset = MonochromeImageCodec.getPreset(presetIndex)
 
-        val encoded = MonochromeImageCodec.encode(testBits, presetIndex)
-        // Multi-strategy encoder picks smallest — raw size is the upper bound
-        assertTrue(
-            encoded.size <= 1 + preset.byteSize,
-            "Encoded size ${encoded.size} exceeds raw size ${1 + preset.byteSize}",
-        )
-        // Header byte: top 2 bits = strategy, bottom 6 bits = preset index
-        val headerPreset = encoded[0].toInt() and 0x3F
-        assertEquals(presetIndex, headerPreset)
+            val patterns =
+                listOf(
+                    BooleanArray(preset.totalPixels) { false }, // All white
+                    BooleanArray(preset.totalPixels) { true }, // All black
+                    BooleanArray(preset.totalPixels) { i -> i % 2 == 0 }, // Checkerboard
+                    BooleanArray(preset.totalPixels) { i -> i == 42 || i == 100 }, // Sparse dots
+                    BooleanArray(preset.totalPixels) { i -> (i / preset.width) == 5 }, // Horizontal line
+                    BooleanArray(preset.totalPixels) { i -> (i % preset.width) == 5 }, // Vertical line
+                    BooleanArray(preset.totalPixels) { i -> (i / preset.width) == (i % preset.width) }, // Diagonal
+                )
 
-        val decoded = MonochromeImageCodec.decode(encoded)
-        assertNotNull(decoded)
-        assertEquals(presetIndex, decoded.presetIndex)
-        assertEquals(preset.width, decoded.width)
-        assertEquals(preset.height, decoded.height)
-        assertEquals(preset.totalPixels, decoded.pixels.size)
+            for (testBits in patterns) {
+                val encoded = MonochromeImageCodec.encode(testBits, presetIndex)
+                assertTrue(
+                    encoded.size <= 1 + preset.byteSize,
+                    "Encoded size ${encoded.size} exceeds raw size ${1 + preset.byteSize}",
+                )
+                val headerPreset = encoded[0].toInt() and 0x0F
+                assertEquals(presetIndex, headerPreset)
 
-        for (i in testBits.indices) {
-            val expectedColor = if (testBits[i]) 0xFFFFFFFF.toInt() else 0xFF000000.toInt()
-            assertEquals(expectedColor, decoded.pixels[i], "Mismatch at pixel $i")
+                val decoded = MonochromeImageCodec.decode(encoded)
+                assertNotNull(decoded)
+                assertEquals(presetIndex, decoded.presetIndex)
+                assertEquals(preset.width, decoded.width)
+                assertEquals(preset.height, decoded.height)
+                assertEquals(preset.totalPixels, decoded.pixels.size)
+
+                for (i in testBits.indices) {
+                    val expectedColor = if (testBits[i]) 0xFFFFFFFF.toInt() else 0xFF000000.toInt()
+                    assertEquals(expectedColor, decoded.pixels[i], "Mismatch at pixel $i in preset $presetIndex")
+                }
+            }
         }
+    }
+
+    @Test
+    fun testSparseImageCompressionEfficiency() {
+        val preset = MonochromeImageCodec.getPreset(0) // 39x40, total 1560 pixels (195 bytes raw)
+        val sparseBits = BooleanArray(preset.totalPixels) { i -> i in 100..105 || i in 500..505 }
+        val encoded = MonochromeImageCodec.encode(sparseBits, 0)
+        // With 4x4 / 8x8 / var-RLE, sparse drawing should be significantly smaller than raw 196 bytes (under 50 bytes)
+        assertTrue(encoded.size < 50, "Expected sparse image to compress under 50 bytes, but was ${encoded.size}")
     }
 
     @Test

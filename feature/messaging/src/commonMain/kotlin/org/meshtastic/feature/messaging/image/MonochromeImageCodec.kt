@@ -62,10 +62,14 @@ data class DecodedMonochromeImage(val presetIndex: Int, val width: Int, val heig
 @Suppress("TooManyFunctions")
 object MonochromeImageCodec {
     const val PORT_NUM = 264
-    private const val ENC_RAW = 0
-    private const val ENC_HRLE = 1
-    private const val ENC_VRLE = 2
-    private const val ENC_DELTA = 3
+
+    const val ENC_RAW = 0
+    const val ENC_BLOCK_4X4 = 1
+    const val ENC_BLOCK_8X8 = 2
+    const val ENC_VAR_RLE_H = 3
+    const val ENC_VAR_RLE_V = 4
+    const val ENC_DELTA_2D = 5
+    const val ENC_LZSS = 6
 
     val PRESETS =
         listOf(
@@ -83,40 +87,66 @@ object MonochromeImageCodec {
 
     fun getPreset(index: Int): MonochromeResolutionPreset = PRESETS.getOrElse(index) { PRESETS[0] }
 
-    private fun rleEncode(bits: BooleanArray): ByteArray {
-        val out = mutableListOf<Byte>()
-        var color = false
-        var run = 0
-        for (bit in bits) {
-            if (bit == color) {
-                run++
-                if (run == 255) {
-                    out.add(255.toByte())
-                    color = !color
-                    out.add(0.toByte())
-                    color = !color
-                    run = 0
-                }
-            } else {
-                out.add(run.toByte())
-                color = bit
-                run = 1
+    private class BitWriter(initialCapacity: Int = 64) {
+        private var buffer = ByteArray(initialCapacity)
+        var bitCount = 0
+            private set
+
+        private fun ensureCapacity(additionalBits: Int) {
+            val requiredBytes = (bitCount + additionalBits + 7) / 8
+            if (requiredBytes > buffer.size) {
+                var newSize = buffer.size * 2
+                while (newSize < requiredBytes) newSize *= 2
+                buffer = buffer.copyOf(newSize)
             }
         }
-        out.add(run.toByte())
-        return out.toByteArray()
+
+        fun writeBit(bit: Boolean) {
+            ensureCapacity(1)
+            if (bit) {
+                val byteIdx = bitCount / 8
+                val bitOffset = 7 - (bitCount % 8)
+                buffer[byteIdx] = (buffer[byteIdx].toInt() or (1 shl bitOffset)).toByte()
+            }
+            bitCount++
+        }
+
+        fun writeBits(value: Int, count: Int) {
+            ensureCapacity(count)
+            for (i in count - 1 downTo 0) {
+                val bit = ((value shr i) and 1) == 1
+                writeBit(bit)
+            }
+        }
+
+        fun toByteArray(): ByteArray {
+            val byteLen = (bitCount + 7) / 8
+            return buffer.copyOf(byteLen)
+        }
     }
 
-    private fun rleDecode(rleBytes: ByteArray, pixelCount: Int): BooleanArray {
-        val bits = BooleanArray(pixelCount)
-        var idx = 0
-        var color = false
-        for (b in rleBytes) {
-            val run = b.toInt() and 0xFF
-            repeat(run) { if (idx < pixelCount) bits[idx++] = color }
-            color = !color
+    private class BitReader(private val bytes: ByteArray) {
+        var bitPos = 0
+            private set
+
+        val hasBits: Boolean
+            get() = bitPos < bytes.size * 8
+
+        fun readBit(): Boolean {
+            if (bitPos >= bytes.size * 8) return false
+            val byteIdx = bitPos / 8
+            val bitOffset = 7 - (bitPos % 8)
+            bitPos++
+            return ((bytes[byteIdx].toInt() shr bitOffset) and 1) == 1
         }
-        return bits
+
+        fun readBits(count: Int): Int {
+            var value = 0
+            for (i in 0 until count) {
+                value = (value shl 1) or (if (readBit()) 1 else 0)
+            }
+            return value
+        }
     }
 
     private fun bitPack(bits: BooleanArray, count: Int): ByteArray {
@@ -141,29 +171,437 @@ object MonochromeImageCodec {
 
     private fun transpose(bits: BooleanArray, width: Int, height: Int): BooleanArray {
         val out = BooleanArray(width * height)
-        for (y in 0 until height) for (x in 0 until width) out[x * height + y] = bits[y * width + x]
-        return out
-    }
-
-    private fun deltaEncode(bits: BooleanArray, width: Int, height: Int): BooleanArray {
-        val out = BooleanArray(width * height)
-        for (x in 0 until width) out[x] = bits[x]
-        for (y in 1 until height) {
+        for (y in 0 until height) {
             for (x in 0 until width) {
-                val i = y * width + x
-                out[i] = bits[i] xor bits[i - width]
+                out[x * height + y] = bits[y * width + x]
             }
         }
         return out
     }
 
-    private fun deltaDecode(delta: BooleanArray, width: Int, height: Int): BooleanArray {
-        val out = BooleanArray(width * height)
-        for (x in 0 until width) out[x] = delta[x]
-        for (y in 1 until height) {
+    private fun writeVarRleRun(writer: BitWriter, run: Int) {
+        when {
+            run == 1 -> writer.writeBits(0b00, 2)
+
+            run in 2..3 -> {
+                writer.writeBits(0b01, 2)
+                writer.writeBits(run - 2, 1)
+            }
+
+            run in 4..7 -> {
+                writer.writeBits(0b100, 3)
+                writer.writeBits(run - 4, 2)
+            }
+
+            run in 8..15 -> {
+                writer.writeBits(0b101, 3)
+                writer.writeBits(run - 8, 3)
+            }
+
+            run in 16..31 -> {
+                writer.writeBits(0b1100, 4)
+                writer.writeBits(run - 16, 4)
+            }
+
+            run in 32..63 -> {
+                writer.writeBits(0b1101, 4)
+                writer.writeBits(run - 32, 5)
+            }
+
+            run in 64..255 -> {
+                writer.writeBits(0b1110, 4)
+                writer.writeBits(run - 64, 8)
+            }
+
+            else -> {
+                writer.writeBits(0b1111, 4)
+                writer.writeBits(run - 256, 12)
+            }
+        }
+    }
+
+    private fun readVarRleRun(reader: BitReader): Int {
+        val tag2 = reader.readBits(2)
+        return when (tag2) {
+            0b00 -> 1
+
+            0b01 -> 2 + reader.readBits(1)
+
+            0b10 -> {
+                val b = reader.readBit()
+                if (!b) 4 + reader.readBits(2) else 8 + reader.readBits(3)
+            }
+
+            else -> {
+                val tag4 = reader.readBits(2)
+                when (tag4) {
+                    0b00 -> 16 + reader.readBits(4)
+                    0b01 -> 32 + reader.readBits(5)
+                    0b10 -> 64 + reader.readBits(8)
+                    else -> 256 + reader.readBits(12)
+                }
+            }
+        }
+    }
+
+    private fun encodeVarRle(bits: BooleanArray): ByteArray {
+        if (bits.isEmpty()) return ByteArray(0)
+        val writer = BitWriter()
+        var currentColor = bits[0]
+        writer.writeBit(currentColor)
+
+        var run = 0
+        for (b in bits) {
+            if (b == currentColor) {
+                run++
+            } else {
+                writeVarRleRun(writer, run)
+                currentColor = b
+                run = 1
+            }
+        }
+        writeVarRleRun(writer, run)
+        return writer.toByteArray()
+    }
+
+    private fun decodeVarRle(bytes: ByteArray, count: Int): BooleanArray {
+        val bits = BooleanArray(count)
+        if (bytes.isEmpty()) return bits
+        val reader = BitReader(bytes)
+        var currentColor = reader.readBit()
+        var written = 0
+        while (written < count && reader.hasBits) {
+            val run = readVarRleRun(reader)
+            val toWrite = min(run, count - written)
+            for (i in 0 until toWrite) {
+                bits[written++] = currentColor
+            }
+            currentColor = !currentColor
+        }
+        return bits
+    }
+
+    private fun encodeBlock4x4(bits: BooleanArray, width: Int, height: Int): ByteArray {
+        val writer = BitWriter()
+        val bxCount = (width + 3) / 4
+        val byCount = (height + 3) / 4
+
+        for (by in 0 until byCount) {
+            for (bx in 0 until bxCount) {
+                var allZero = true
+                var allOne = true
+                val startX = bx * 4
+                val startY = by * 4
+
+                for (py in 0 until 4) {
+                    val y = startY + py
+                    for (px in 0 until 4) {
+                        val x = startX + px
+                        val bit = if (x < width && y < height) bits[y * width + x] else false
+                        if (bit) allZero = false else allOne = false
+                    }
+                }
+
+                if (allZero) {
+                    writer.writeBit(false) // 0 -> all 0
+                } else if (allOne) {
+                    writer.writeBits(0b10, 2) // 10 -> all 1
+                } else {
+                    writer.writeBits(0b11, 2) // 11 -> mixed
+                    for (py in 0 until 4) {
+                        val y = startY + py
+                        for (px in 0 until 4) {
+                            val x = startX + px
+                            if (x < width && y < height) {
+                                writer.writeBit(bits[y * width + x])
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return writer.toByteArray()
+    }
+
+    private fun decodeBlock4x4(bytes: ByteArray, width: Int, height: Int): BooleanArray {
+        val bits = BooleanArray(width * height)
+        val reader = BitReader(bytes)
+        val bxCount = (width + 3) / 4
+        val byCount = (height + 3) / 4
+
+        for (by in 0 until byCount) {
+            for (bx in 0 until bxCount) {
+                val startX = bx * 4
+                val startY = by * 4
+                val isMixed = reader.readBit()
+                if (!isMixed) {
+                    // All 0s: nothing to set (already false)
+                } else {
+                    val isAllOne = !reader.readBit()
+                    if (isAllOne) {
+                        for (py in 0 until 4) {
+                            val y = startY + py
+                            for (px in 0 until 4) {
+                                val x = startX + px
+                                if (x < width && y < height) {
+                                    bits[y * width + x] = true
+                                }
+                            }
+                        }
+                    } else {
+                        // Mixed: read in-bounds bits
+                        for (py in 0 until 4) {
+                            val y = startY + py
+                            for (px in 0 until 4) {
+                                val x = startX + px
+                                if (x < width && y < height) {
+                                    bits[y * width + x] = reader.readBit()
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return bits
+    }
+
+    private fun encodeBlock8x8(bits: BooleanArray, width: Int, height: Int): ByteArray {
+        val writer = BitWriter()
+        val bx8Count = (width + 7) / 8
+        val by8Count = (height + 7) / 8
+
+        for (by8 in 0 until by8Count) {
+            for (bx8 in 0 until bx8Count) {
+                var allZero8 = true
+                var allOne8 = true
+                val startX8 = bx8 * 8
+                val startY8 = by8 * 8
+
+                for (py in 0 until 8) {
+                    val y = startY8 + py
+                    for (px in 0 until 8) {
+                        val x = startX8 + px
+                        val bit = if (x < width && y < height) bits[y * width + x] else false
+                        if (bit) allZero8 = false else allOne8 = false
+                    }
+                }
+
+                if (allZero8) {
+                    writer.writeBit(false) // 0
+                } else if (allOne8) {
+                    writer.writeBits(0b10, 2) // 10
+                } else {
+                    writer.writeBits(0b11, 2) // 11
+                    // 4 sub-blocks of 4x4
+                    for (subY in 0 until 2) {
+                        for (subX in 0 until 2) {
+                            val startX4 = startX8 + subX * 4
+                            val startY4 = startY8 + subY * 4
+                            var allZero4 = true
+                            var allOne4 = true
+                            for (py in 0 until 4) {
+                                val y = startY4 + py
+                                for (px in 0 until 4) {
+                                    val x = startX4 + px
+                                    val bit = if (x < width && y < height) bits[y * width + x] else false
+                                    if (bit) allZero4 = false else allOne4 = false
+                                }
+                            }
+
+                            if (allZero4) {
+                                writer.writeBit(false)
+                            } else if (allOne4) {
+                                writer.writeBits(0b10, 2)
+                            } else {
+                                writer.writeBits(0b11, 2)
+                                for (py in 0 until 4) {
+                                    val y = startY4 + py
+                                    for (px in 0 until 4) {
+                                        val x = startX4 + px
+                                        if (x < width && y < height) {
+                                            writer.writeBit(bits[y * width + x])
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return writer.toByteArray()
+    }
+
+    private fun decodeBlock8x8(bytes: ByteArray, width: Int, height: Int): BooleanArray {
+        val bits = BooleanArray(width * height)
+        val reader = BitReader(bytes)
+        val bx8Count = (width + 7) / 8
+        val by8Count = (height + 7) / 8
+
+        for (by8 in 0 until by8Count) {
+            for (bx8 in 0 until bx8Count) {
+                val startX8 = bx8 * 8
+                val startY8 = by8 * 8
+                val isMixed8 = reader.readBit()
+                if (!isMixed8) {
+                    // All 0s
+                } else {
+                    val isAllOne8 = !reader.readBit()
+                    if (isAllOne8) {
+                        for (py in 0 until 8) {
+                            val y = startY8 + py
+                            for (px in 0 until 8) {
+                                val x = startX8 + px
+                                if (x < width && y < height) bits[y * width + x] = true
+                            }
+                        }
+                    } else {
+                        // 4 sub-blocks of 4x4
+                        for (subY in 0 until 2) {
+                            for (subX in 0 until 2) {
+                                val startX4 = startX8 + subX * 4
+                                val startY4 = startY8 + subY * 4
+                                val isMixed4 = reader.readBit()
+                                if (!isMixed4) {
+                                    // Sub-block all 0s
+                                } else {
+                                    val isAllOne4 = !reader.readBit()
+                                    if (isAllOne4) {
+                                        for (py in 0 until 4) {
+                                            val y = startY4 + py
+                                            for (px in 0 until 4) {
+                                                val x = startX4 + px
+                                                if (x < width && y < height) bits[y * width + x] = true
+                                            }
+                                        }
+                                    } else {
+                                        for (py in 0 until 4) {
+                                            val y = startY4 + py
+                                            for (px in 0 until 4) {
+                                                val x = startX4 + px
+                                                if (x < width && y < height) {
+                                                    bits[y * width + x] = reader.readBit()
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return bits
+    }
+
+    private fun encodeDelta2D(bits: BooleanArray, width: Int, height: Int): ByteArray {
+        val residuals = BooleanArray(width * height)
+        for (y in 0 until height) {
             for (x in 0 until width) {
                 val i = y * width + x
-                out[i] = delta[i] xor out[i - width]
+                val pred =
+                    when {
+                        x == 0 && y == 0 -> false
+
+                        y == 0 -> bits[x - 1]
+
+                        x == 0 -> bits[(y - 1) * width]
+
+                        else -> {
+                            val left = bits[y * width + (x - 1)]
+                            val top = bits[(y - 1) * width + x]
+                            val diag = bits[(y - 1) * width + (x - 1)]
+                            if (left == top) left else diag xor left xor top
+                        }
+                    }
+                residuals[i] = bits[i] xor pred
+            }
+        }
+        return encodeVarRle(residuals)
+    }
+
+    private fun decodeDelta2D(bytes: ByteArray, width: Int, height: Int): BooleanArray {
+        val residuals = decodeVarRle(bytes, width * height)
+        val bits = BooleanArray(width * height)
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                val i = y * width + x
+                val pred =
+                    when {
+                        x == 0 && y == 0 -> false
+
+                        y == 0 -> bits[x - 1]
+
+                        x == 0 -> bits[(y - 1) * width]
+
+                        else -> {
+                            val left = bits[y * width + (x - 1)]
+                            val top = bits[(y - 1) * width + x]
+                            val diag = bits[(y - 1) * width + (x - 1)]
+                            if (left == top) left else diag xor left xor top
+                        }
+                    }
+                bits[i] = residuals[i] xor pred
+            }
+        }
+        return bits
+    }
+
+    private fun encodeLzss(input: ByteArray): ByteArray {
+        val writer = BitWriter()
+        var inPos = 0
+        while (inPos < input.size) {
+            var bestOffset = 0
+            var bestLen = 0
+            val maxLookback = min(inPos, 64)
+            for (lookback in 1..maxLookback) {
+                val start = inPos - lookback
+                var len = 0
+                while (
+                    len < 17 && (inPos + len) < input.size && input[start + (len % lookback)] == input[inPos + len]
+                ) {
+                    len++
+                }
+                if (len > bestLen) {
+                    bestLen = len
+                    bestOffset = lookback - 1
+                }
+            }
+
+            if (bestLen >= 2) {
+                writer.writeBit(true) // 1 -> Match
+                writer.writeBits(bestOffset, 6) // offset: 0..63
+                writer.writeBits(bestLen - 2, 4) // len: 0..15 (lengths 2..17)
+                inPos += bestLen
+            } else {
+                writer.writeBit(false) // 0 -> Literal
+                writer.writeBits(input[inPos].toInt() and 0xFF, 8)
+                inPos++
+            }
+        }
+        return writer.toByteArray()
+    }
+
+    private fun decodeLzss(bytes: ByteArray, expectedByteCount: Int): ByteArray {
+        val reader = BitReader(bytes)
+        val out = ByteArray(expectedByteCount)
+        var outPos = 0
+        while (outPos < expectedByteCount && reader.hasBits) {
+            val isMatch = reader.readBit()
+            if (isMatch) {
+                val offset = reader.readBits(6) + 1
+                val length = reader.readBits(4) + 2
+                val start = outPos - offset
+                for (i in 0 until length) {
+                    if (outPos < expectedByteCount && start + i >= 0) {
+                        out[outPos] = out[start + i]
+                        outPos++
+                    }
+                }
+            } else {
+                out[outPos++] = reader.readBits(8).toByte()
             }
         }
         return out
@@ -171,7 +609,7 @@ object MonochromeImageCodec {
 
     private fun makePacket(enc: Int, presetIndex: Int, payload: ByteArray): ByteArray {
         val result = ByteArray(1 + payload.size)
-        result[0] = ((enc shl 6) or (presetIndex and 0x3F)).toByte()
+        result[0] = ((enc shl 4) or (presetIndex and 0x0F)).toByte()
         payload.copyInto(result, 1)
         return result
     }
@@ -180,33 +618,53 @@ object MonochromeImageCodec {
         val preset = getPreset(presetIndex)
         val pixelCount = min(monoBits.size, preset.totalPixels)
         val bits = if (monoBits.size == pixelCount) monoBits else monoBits.copyOf(pixelCount)
-        val raw = makePacket(ENC_RAW, presetIndex, bitPack(bits, pixelCount))
+
+        val rawPacked = bitPack(bits, pixelCount)
+        val raw = makePacket(ENC_RAW, presetIndex, rawPacked)
         var best = raw
-        val hRle = makePacket(ENC_HRLE, presetIndex, rleEncode(bits))
-        if (hRle.size < best.size) best = hRle
-        val vRle = makePacket(ENC_VRLE, presetIndex, rleEncode(transpose(bits, preset.width, preset.height)))
-        if (vRle.size < best.size) best = vRle
-        val dRle = makePacket(ENC_DELTA, presetIndex, rleEncode(deltaEncode(bits, preset.width, preset.height)))
-        if (dRle.size < best.size) best = dRle
+
+        val b4 = makePacket(ENC_BLOCK_4X4, presetIndex, encodeBlock4x4(bits, preset.width, preset.height))
+        if (b4.size < best.size) best = b4
+
+        val b8 = makePacket(ENC_BLOCK_8X8, presetIndex, encodeBlock8x8(bits, preset.width, preset.height))
+        if (b8.size < best.size) best = b8
+
+        val varH = makePacket(ENC_VAR_RLE_H, presetIndex, encodeVarRle(bits))
+        if (varH.size < best.size) best = varH
+
+        val varV = makePacket(ENC_VAR_RLE_V, presetIndex, encodeVarRle(transpose(bits, preset.width, preset.height)))
+        if (varV.size < best.size) best = varV
+
+        val delta2d = makePacket(ENC_DELTA_2D, presetIndex, encodeDelta2D(bits, preset.width, preset.height))
+        if (delta2d.size < best.size) best = delta2d
+
+        val lzss = makePacket(ENC_LZSS, presetIndex, encodeLzss(rawPacked))
+        if (lzss.size < best.size) best = lzss
+
         return best
     }
 
     fun decode(bytes: ByteArray): DecodedMonochromeImage? {
         if (bytes.isEmpty()) return null
         val header = bytes[0].toInt() and 0xFF
-        val enc = (header shr 6) and 0x3
-        val presetIndex = header and 0x3F
+        val enc = (header shr 4) and 0x0F
+        val presetIndex = header and 0x0F
         val preset = PRESETS.getOrNull(presetIndex) ?: return null
         val pixelCount = preset.totalPixels
         val payload = bytes.copyOfRange(1, bytes.size)
+
         val bits: BooleanArray =
             when (enc) {
                 ENC_RAW -> bitUnpack(payload, pixelCount)
-                ENC_HRLE -> rleDecode(payload, pixelCount)
-                ENC_VRLE -> transpose(rleDecode(payload, pixelCount), preset.height, preset.width)
-                ENC_DELTA -> deltaDecode(rleDecode(payload, pixelCount), preset.width, preset.height)
+                ENC_BLOCK_4X4 -> decodeBlock4x4(payload, preset.width, preset.height)
+                ENC_BLOCK_8X8 -> decodeBlock8x8(payload, preset.width, preset.height)
+                ENC_VAR_RLE_H -> decodeVarRle(payload, pixelCount)
+                ENC_VAR_RLE_V -> transpose(decodeVarRle(payload, pixelCount), preset.height, preset.width)
+                ENC_DELTA_2D -> decodeDelta2D(payload, preset.width, preset.height)
+                ENC_LZSS -> bitUnpack(decodeLzss(payload, (pixelCount + 7) / 8), pixelCount)
                 else -> return null
             }
+
         val pixels =
             IntArray(pixelCount) { i ->
                 if (i < bits.size && bits[i]) {

@@ -365,8 +365,7 @@ class MessageViewModel(
         }
     }
 
-    private val _imageCooldownTimestamp = MutableStateFlow<Long?>(null)
-    val imageCooldownTimestamp: StateFlow<Long?> = _imageCooldownTimestamp.asStateFlow()
+    val imageCooldownTimestamp: StateFlow<Long?> = globalImageCooldownTimestamp.asStateFlow()
 
     fun sendImageMessage(
         imageBytes: ByteArray,
@@ -381,13 +380,12 @@ class MessageViewModel(
                 dataType = org.meshtastic.proto.PortNum.PRIVATE_APP.value,
                 bytes = okio.ByteString.of(*imageBytes),
             )
-            _imageCooldownTimestamp.value = nowMillis
+            updateGlobalImageCooldown(nowMillis)
         }
     }
 
-    /** Secret reset — called via triple-tap on cooldown indicator. */
     fun resetImageCooldown() {
-        _imageCooldownTimestamp.value = null
+        updateGlobalImageCooldown(null)
     }
 
     fun sendReaction(emoji: String, replyId: Int, contactKey: String) =
@@ -474,6 +472,12 @@ class MessageViewModel(
         }
 
     companion object {
+        private val globalImageCooldownTimestamp = MutableStateFlow<Long?>(null)
+
+        fun updateGlobalImageCooldown(timestamp: Long?) {
+            globalImageCooldownTimestamp.value = timestamp
+        }
+
         private const val SEARCH_DEBOUNCE_MS = 300L
         private const val MIN_SEARCH_LENGTH = 2
         private const val DRAFT_PERSISTENCE_DELAY_MS = 300L
