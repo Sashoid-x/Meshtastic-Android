@@ -448,7 +448,10 @@ fun MessageItem(
                     val monoImage =
                         remember(message.rawBytes, message.portNum) {
                             val rawBytes = message.rawBytes
-                            if (message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value && rawBytes != null) {
+                            if (
+                                message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value &&
+                                rawBytes != null
+                            ) {
                                 MonochromeImageCodec.decode(rawBytes)
                             } else {
                                 null
@@ -476,7 +479,8 @@ fun MessageItem(
                                     for (x in 0 until monoImage.width) {
                                         val idx = y * monoImage.width + x
                                         if (
-                                            idx < monoImage.pixels.size && monoImage.pixels[idx] == 0xFFFFFFFF.toInt()
+                                            idx < monoImage.pixels.size &&
+                                            monoImage.pixels[idx] == 0xFFFFFFFF.toInt()
                                         ) {
                                             drawRect(
                                                 color = Color.White,
