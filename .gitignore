@@ -64,7 +64,8 @@ firebase-debug.log
 # Firebase Studio / Antigravity auto-provisioned skills — not used by this project
 .agents/
 
-# JVM crash dumps (desktopApp test runs) — regenerable, and untracked paths leak into public Build Scans
+# JVM crash dumps & log files
+*.log
 hs_err_pid*.log
 replay_pid*.log
 .attach_pid*
@@ -78,8 +79,11 @@ feature/docs/src/commonMain/composeResources/files/docs/
 # Synced translated docs (generated from docs/{locale}/ by syncTranslatedDocsToComposeResources task)
 feature/docs/src/commonMain/composeResources/files/*/docs/
 
+**/bin/
+/desktopApp/bin/
 /desktop/bin/
 /build-logic/convention/bin/
+/build-logic/settings-plugin/bin/
 /.specify/extensions/.cache/
 # Jekyll local config (comments out remote_theme for local builds)
 docs/_config_local.yml
