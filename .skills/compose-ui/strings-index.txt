@@ -17,6 +17,7 @@ acknowledgements
 ### ACTION ###
 action_copy_message
 action_delete_message
+action_more_message_actions
 action_react_with_emoji
 action_select_device
 action_select_message
@@ -294,6 +295,7 @@ connected_sleeping
 connecting
 connection_status
 connections
+contact_draft_prefix
 contrast
 contrast_high
 contrast_medium
@@ -309,6 +311,8 @@ current
 currently
 datadog_link
 date
+date_separator_today
+date_separator_yesterday
 dbm_value
 ### DEBUG ###
 debug
@@ -642,6 +646,7 @@ firmware_event_ended_banner
 firmware_event_ended_button
 firmware_maintenance_cdc_unblock_failed
 firmware_maintenance_copy_failed
+firmware_maintenance_data_unavailable
 firmware_maintenance_erase_action
 firmware_maintenance_erase_confirm_button
 firmware_maintenance_erase_confirm_text
@@ -1669,6 +1674,7 @@ site_planner_tx_power_watts
 site_planner_use_current_location
 site_planner_use_map_center
 site_planner_use_node_location
+site_planner_webview_updating
 skip
 slot
 smart_position

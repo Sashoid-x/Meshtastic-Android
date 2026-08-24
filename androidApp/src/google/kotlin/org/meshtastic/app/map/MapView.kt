@@ -124,6 +124,7 @@ import org.meshtastic.app.map.component.NodeClusterMarkers
 import org.meshtastic.app.map.component.NodeMapFilterDropdown
 import org.meshtastic.app.map.component.WaypointMarkers
 import org.meshtastic.app.map.model.NodeClusterItem
+import org.meshtastic.core.common.util.MeasurementSystem
 import org.meshtastic.core.common.util.nowSeconds
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.TracerouteOverlay
@@ -178,7 +179,6 @@ import org.meshtastic.feature.map.component.MapControlsOverlay
 import org.meshtastic.feature.map.component.WaypointInfoDialog
 import org.meshtastic.feature.map.tracerouteNodeSelection
 import org.meshtastic.proto.BoundingBox
-import org.meshtastic.proto.Config.DisplayConfig.DisplayUnits
 import org.meshtastic.proto.Position
 import org.meshtastic.proto.Waypoint
 import java.io.BufferedInputStream
@@ -694,7 +694,7 @@ fun MapView(
                             displayUnits = displayUnits,
                             myNodeNum = myNodeNum,
                             selectedPositionTime = mode.selectedPositionTime,
-                            onPositionSelected = mode.onPositionSelected,
+                            onPositionSelect = mode.onPositionSelected,
                         )
                     }
                 }
@@ -880,7 +880,7 @@ fun MapView(
                         expanded = mapTypeMenuExpanded,
                         onDismissRequest = { mapTypeMenuExpanded = false },
                         mapViewModel = mapViewModel,
-                        onManageCustomTileProvidersClicked = {
+                        onManageCustomTileProvidersClick = {
                             mapTypeMenuExpanded = false
                             showCustomTileManagerSheet = true
                         },
@@ -1172,7 +1172,7 @@ private fun WaypointGeofenceOverlay(waypoint: Waypoint) {
  * [TripOrigin] dot with an info-window on tap.
  *
  * When [selectedPositionTime] matches a marker's `Position.time`, that marker is highlighted with the primary color and
- * elevated z-index. Tapping a marker invokes [onPositionSelected] for list synchronization.
+ * elevated z-index. Tapping a marker invokes [onPositionSelect] for list synchronization.
  */
 @OptIn(MapsComposeExperimentalApi::class)
 @Composable
@@ -1180,10 +1180,10 @@ private fun WaypointGeofenceOverlay(waypoint: Waypoint) {
 private fun NodeTrackOverlay(
     focusedNode: Node,
     sortedPositions: List<Position>,
-    displayUnits: DisplayUnits,
+    displayUnits: MeasurementSystem,
     myNodeNum: Int?,
     selectedPositionTime: Int? = null,
-    onPositionSelected: ((Int) -> Unit)? = null,
+    onPositionSelect: ((Int) -> Unit)? = null,
 ) {
     val isHighPriority = focusedNode.num == myNodeNum || focusedNode.isFavorite
     val activeNodeZIndex = if (isHighPriority) 5f else 4f
@@ -1212,7 +1212,7 @@ private fun NodeTrackOverlay(
                     zIndex = activeNodeZIndex,
                     alpha = if (isHighPriority) 1.0f else 0.9f,
                     onClick = {
-                        onPositionSelected?.invoke(position.time)
+                        onPositionSelect?.invoke(position.time)
                         false // Allow default info window behavior
                     },
                 ) {
@@ -1225,7 +1225,7 @@ private fun NodeTrackOverlay(
                     snippet = formatAgo(position.time),
                     zIndex = if (isSelected) activeNodeZIndex - 0.5f else 1f + alpha,
                     onClick = {
-                        onPositionSelected?.invoke(position.time)
+                        onPositionSelect?.invoke(position.time)
                         false // Allow default info window behavior
                     },
                     infoContent = { PositionInfoWindowContent(position = position, displayUnits = displayUnits) },
@@ -1259,7 +1259,7 @@ private fun NodeTrackOverlay(
 
 @Composable
 @Suppress("LongMethod")
-private fun PositionInfoWindowContent(position: Position, displayUnits: DisplayUnits = DisplayUnits.METRIC) {
+private fun PositionInfoWindowContent(position: Position, displayUnits: MeasurementSystem = MeasurementSystem.METRIC) {
     @Composable
     fun PositionRow(label: String, value: String) {
         Row(modifier = Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1295,9 +1295,9 @@ private fun PositionInfoWindowContent(position: Position, displayUnits: DisplayU
 }
 
 @Composable
-private fun speedFromPosition(position: Position, displayUnits: DisplayUnits): String {
+private fun speedFromPosition(position: Position, displayUnits: MeasurementSystem): String {
     // Position.ground_speed is km/h on the wire (proto canon), not m/s.
-    val speedRes = if (displayUnits == DisplayUnits.IMPERIAL) Res.string.speed_mph else Res.string.speed_kmh
+    val speedRes = if (displayUnits == MeasurementSystem.IMPERIAL) Res.string.speed_mph else Res.string.speed_kmh
     return stringResource(speedRes, (position.ground_speed ?: 0).kmhIn(displayUnits))
 }
 
@@ -1438,25 +1438,13 @@ private fun MapLayerOverlay(layerItem: MapLayerItem, mapViewModel: MapViewModel)
     }
 }
 
-/** Zip magic bytes; a [LayerType.KML] source starting with these is a KMZ archive rather than bare KML. */
-private val KMZ_MAGIC = byteArrayOf('P'.code.toByte(), 'K'.code.toByte())
-
 /**
  * Parse a custom overlay into the maps-utils platform-agnostic [DataLayer] model; null if the format is unrecognized.
  */
 private fun parseMapLayer(layerType: LayerType, stream: InputStream): DataLayer? = when (layerType) {
     LayerType.KML -> {
         val buffered = BufferedInputStream(stream)
-        buffered.mark(KMZ_MAGIC.size)
-        val magic = ByteArray(KMZ_MAGIC.size)
-        val read = buffered.read(magic)
-        buffered.reset()
-        val kml =
-            if (read == KMZ_MAGIC.size && magic.contentEquals(KMZ_MAGIC)) {
-                KmzParser().parse(buffered)
-            } else {
-                KmlParser().parse(buffered)
-            }
+        val kml = if (buffered.isKmzArchive()) KmzParser().parse(buffered) else KmlParser().parse(buffered)
         kml.toLayer()
     }
 

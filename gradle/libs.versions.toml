@@ -2,7 +2,7 @@
 xmlutil = "1.0.2"
 
 # Android
-agp = "9.3.1"
+agp = "9.3.2"
 appcompat = "1.8.0"
 appfunctions = "1.0.0-alpha10"
 
@@ -66,7 +66,7 @@ jetbrains-adaptive = "1.3.0-beta02"
 # with 5.0.0 every KML/KMZ map import dies with NoSuchMethodError (fatal in prod, 2.8.0–2.8.1).
 # 5.1.1 is built against xmlutil 1.0.x's compat builder. Guarded by KmlParserLinkageTest.
 android-maps-utils = "5.1.1"
-maps-compose = "8.4.0"
+maps-compose = "8.5.0"
 
 # ML Kit
 mlkit-barcode-scanning = "17.3.0"
@@ -81,7 +81,7 @@ camerax = "1.6.1"
 ktor = "3.5.2"
 
 # Other
-aboutlibraries = "15.1.0"
+aboutlibraries = "15.1.1"
 jserialcomm = "2.11.4"
 coil = "3.5.0"
 datadog-gradle = "1.30.0"
@@ -104,7 +104,7 @@ mqttastic = "0.8.1"
 jmdns = "3.6.3"
 qrcode-kotlin = "4.5.0"
 takpacket-sdk = "0.9.1"
-meshtastic-protobufs = "2.7.26.151-gef0ae57-SNAPSHOT"
+meshtastic-protobufs = "2.7.26.155-g1b4cb00-SNAPSHOT"
 
 # Gradle Plugins
 ccud = "2.8.0"
@@ -308,7 +308,7 @@ screenshot-validation-api = { group = "com.android.tools.screenshot", name = "sc
 
 # Build Logic
 android-gradleApiPlugin = { module = "com.android.tools.build:gradle-api", version.ref = "agp" }
-android-tools-common = { module = "com.android.tools:common", version = "32.3.1" }
+android-tools-common = { module = "com.android.tools:common", version = "32.3.2" }
 androidx-room-gradlePlugin = { module = "androidx.room3:room3-gradle-plugin", version.ref = "room" }
 compose-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 compose-multiplatform-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "compose-multiplatform" }

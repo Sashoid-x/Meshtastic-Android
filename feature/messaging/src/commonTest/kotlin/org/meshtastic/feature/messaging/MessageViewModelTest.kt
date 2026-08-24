@@ -25,6 +25,7 @@ import dev.mokkery.every
 import dev.mokkery.everySuspend
 import dev.mokkery.matcher.any
 import dev.mokkery.mock
+import dev.mokkery.verify.VerifyMode
 import dev.mokkery.verifySuspend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.ContactSettings
+import org.meshtastic.core.repository.ActiveConversationTracker
 import org.meshtastic.core.repository.ConnectionStateProvider
 import org.meshtastic.core.repository.CustomEmojiPrefs
 import org.meshtastic.core.repository.HomoglyphPrefs
@@ -73,7 +75,9 @@ class MessageViewModelTest {
     private val customEmojiPrefs: CustomEmojiPrefs = mock(MockMode.autofill)
     private val homoglyphPrefs: HomoglyphPrefs = mock(MockMode.autofill)
     private val uiPrefs: UiPrefs = mock(MockMode.autofill)
-    private val notificationManager: org.meshtastic.core.repository.NotificationManager = mock(MockMode.autofill)
+    private val meshNotificationManager: org.meshtastic.core.repository.MeshNotificationManager =
+        mock(MockMode.autofill)
+    private val activeConversationTracker = ActiveConversationTracker()
     private val messageTranslationService: MessageTranslationService = mock(MockMode.autofill)
     private val snackbarManager: SnackbarManager = SnackbarManager()
 
@@ -132,7 +136,8 @@ class MessageViewModelTest {
                 customEmojiPrefs = customEmojiPrefs,
                 homoglyphEncodingPrefs = homoglyphPrefs,
                 uiPrefs = uiPrefs,
-                notificationManager = notificationManager,
+                meshNotificationManager = meshNotificationManager,
+                activeConversationTracker = activeConversationTracker,
                 messageTranslationService = messageTranslationService,
                 snackbarManager = snackbarManager,
             )
@@ -145,8 +150,34 @@ class MessageViewModelTest {
 
     @Test fun testInitialization() = runTest { assertNotNull(viewModel) }
 
+    private val draftContact = "0!12345678"
+
+    /** Draft edits are ignored until the stored value has been read back, so every draft test loads first. */
+    private suspend fun loadDraftAndAwait(stored: String = "") {
+        everySuspend { packetRepository.getDraft(draftContact) } returns stored
+        viewModel.draftMessage.test {
+            assertNull(awaitItem())
+            viewModel.loadDraft(draftContact)
+            assertEquals(stored, awaitItem())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test fun testDraftIsRestoredFromTheRepository() = runTest { loadDraftAndAwait(stored = "half typed") }
+
+    @Test
+    fun testDraftEditsAreIgnoredBeforeTheStoredValueIsRead() = runTest {
+        // The composer reports its initial empty value as soon as it composes; that must not erase a stored draft.
+        viewModel.setDraftMessage("")
+        assertNull(viewModel.draftMessage.value)
+
+        loadDraftAndAwait(stored = "survived")
+        assertEquals("survived", viewModel.draftMessage.value)
+    }
+
     @Test
     fun testDraftPersistenceDebouncesRapidEdits() = runTest {
+        loadDraftAndAwait()
         viewModel.setDraftMessage("a")
         testDispatcher.scheduler.runCurrent()
         testDispatcher.scheduler.advanceTimeBy(100L)
@@ -159,29 +190,32 @@ class MessageViewModelTest {
         testDispatcher.scheduler.runCurrent()
 
         assertEquals("abc", viewModel.draftMessage.value)
-        assertNull(savedStateHandle.get<String>("draftMessage"))
+        assertNull(savedStateHandle.get<String>("draftMessage:$draftContact"))
 
         testDispatcher.scheduler.advanceTimeBy(299L)
         testDispatcher.scheduler.runCurrent()
-        assertNull(savedStateHandle.get<String>("draftMessage"))
+        assertNull(savedStateHandle.get<String>("draftMessage:$draftContact"))
 
         testDispatcher.scheduler.advanceTimeBy(1L)
         testDispatcher.scheduler.runCurrent()
-        assertEquals("abc", savedStateHandle.get<String>("draftMessage"))
+        assertEquals("abc", savedStateHandle.get<String>("draftMessage:$draftContact"))
+        advanceUntilIdle()
+        verifySuspend { packetRepository.setDraft(draftContact, "abc") }
     }
 
     @Test
     fun testClearDraftCancelsPendingPersistenceAndClearsImmediately() = runTest {
+        loadDraftAndAwait()
         viewModel.setDraftMessage("pending")
         testDispatcher.scheduler.runCurrent()
 
         viewModel.clearDraftMessage()
         assertEquals("", viewModel.draftMessage.value)
-        assertEquals("", savedStateHandle.get<String>("draftMessage"))
+        assertEquals("", savedStateHandle.get<String>("draftMessage:$draftContact"))
 
         testDispatcher.scheduler.advanceTimeBy(300L)
         testDispatcher.scheduler.runCurrent()
-        assertEquals("", savedStateHandle.get<String>("draftMessage"))
+        assertEquals("", savedStateHandle.get<String>("draftMessage:$draftContact"))
     }
 
     @Test
@@ -315,7 +349,8 @@ class MessageViewModelTest {
         everySuspend { packetRepository.clearUnreadCount(contact, 1000L) } returns Unit
         everySuspend { packetRepository.updateLastReadMessage(contact, 1L, 1000L) } returns Unit
         everySuspend { packetRepository.getUnreadCount(contact) } returns 0
-        every { notificationManager.cancel(contact.hashCode()) } returns Unit
+        everySuspend { meshNotificationManager.cancelMessageNotification(contact) } returns Unit
+        activeConversationTracker.setActive(contact)
 
         viewModel.clearUnreadCount(contact, 1L, 1000L)
 
@@ -323,7 +358,24 @@ class MessageViewModelTest {
 
         verifySuspend { packetRepository.clearUnreadCount(contact, 1000L) }
         verifySuspend { packetRepository.updateLastReadMessage(contact, 1L, 1000L) }
-        verifySuspend { notificationManager.cancel(contact.hashCode()) }
+        verifySuspend { meshNotificationManager.cancelMessageNotification(contact) }
+    }
+
+    @Test
+    fun testClearUnreadCountLeavesNotificationAloneOnceTheUserHasLeft() = runTest {
+        // The count was read before this coroutine suspended. If the user left in the meantime, a message that
+        // arrived since posted a notification that is legitimately theirs to see — cancelling would erase it.
+        val contact = "0!12345678"
+        everySuspend { packetRepository.clearUnreadCount(contact, 1000L) } returns Unit
+        everySuspend { packetRepository.updateLastReadMessage(contact, 1L, 1000L) } returns Unit
+        everySuspend { packetRepository.getUnreadCount(contact) } returns 0
+        activeConversationTracker.clearActive(contact)
+
+        viewModel.clearUnreadCount(contact, 1L, 1000L)
+
+        advanceUntilIdle()
+
+        verifySuspend(mode = VerifyMode.not) { meshNotificationManager.cancelMessageNotification(contact) }
     }
 
     @Test

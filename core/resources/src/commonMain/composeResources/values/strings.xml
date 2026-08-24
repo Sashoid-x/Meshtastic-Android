@@ -35,6 +35,7 @@
     <!-- ACTION -->
     <string name="action_copy_message">Copy message</string>
     <string name="action_delete_message">Delete message</string>
+    <string name="action_more_message_actions">More message actions</string>
     <string name="action_react_with_emoji">React with emoji</string>
     <string name="action_select_device">Select device</string>
     <string name="action_select_message">Select message</string>
@@ -318,6 +319,7 @@
     <string name="connecting">Connecting</string>
     <string name="connection_status">Current connections:</string>
     <string name="connections">Connection</string>
+    <string name="contact_draft_prefix">Draft: %1$s</string>
     <string name="contrast">Contrast</string>
     <string name="contrast_high">High</string>
     <string name="contrast_medium">Medium</string>
@@ -336,6 +338,8 @@
     <string name="currently">Currently:</string>
     <string name="datadog_link" translatable="false">Datadog: https://www.datadoghq.com/</string>
     <string name="date">Date</string>
+    <string name="date_separator_today">Today</string>
+    <string name="date_separator_yesterday">Yesterday</string>
     <string name="dbm_value">%1$d dBm</string>
     <!-- DEBUG -->
     <string name="debug">Debug</string>
@@ -672,6 +676,7 @@
     <string name="firmware_event_ended_button">Update firmware</string>
     <string name="firmware_maintenance_cdc_unblock_failed">The erase file was copied but the device didn't start erasing. Nothing has been changed yet. Unplug the device, double-press its reset button, and try again.</string>
     <string name="firmware_maintenance_copy_failed">Couldn't copy the file to the device's drive. Make sure the drive is still connected and try again.</string>
+    <string name="firmware_maintenance_data_unavailable">The erase image list isn't available right now. Check your connection and try again, or use the web flasher at flasher.meshtastic.org.</string>
     <string name="firmware_maintenance_erase_action">Erase and reinstall</string>
     <string name="firmware_maintenance_erase_confirm_button">Erase device</string>
     <string name="firmware_maintenance_erase_confirm_text">This erases everything on %1$s, including its channels, keys and all settings, then reinstalls the firmware. It cannot be undone and there is no backup.\n\nYou will be asked to select the device's drive twice: once for the erase file, then again for the firmware.</string>
@@ -1717,6 +1722,7 @@
     <string name="site_planner_use_current_location">Use current location</string>
     <string name="site_planner_use_map_center">Use map center</string>
     <string name="site_planner_use_node_location">Use current node location</string>
+    <string name="site_planner_webview_updating">The system WebView is updating. Please try again in a moment.</string>
     <string name="skip">Skip</string>
     <string name="slot">Slot</string>
     <string name="smart_position">Smart Position</string>

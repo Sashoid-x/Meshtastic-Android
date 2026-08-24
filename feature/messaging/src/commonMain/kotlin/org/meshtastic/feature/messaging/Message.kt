@@ -81,6 +81,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import kotlinx.collections.immutable.ImmutableMap
@@ -97,7 +98,6 @@ import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.util.getChannel
 import org.meshtastic.core.resources.Res
-import org.meshtastic.core.resources.message_input_label
 import org.meshtastic.core.resources.send
 import org.meshtastic.core.resources.type_a_message
 import org.meshtastic.core.resources.unknown_channel
@@ -129,6 +129,9 @@ private const val IMAGE_COOLDOWN_MS = 120_000L // 2 minutes
 
 // Minimum draft length before the markdown formatting toolbar appears (matches the iOS client).
 private const val FORMATTING_TOOLBAR_MIN_CHARS = 3
+
+// Byte counter appears only once the draft is within this much of the limit.
+private const val COUNTER_VISIBLE_WITHIN_BYTES = 20
 
 /**
  * The main screen for displaying and sending messages to a contact or channel.
@@ -200,7 +203,7 @@ fun MessageScreen(
     }
     var sharedContact by rememberSaveable { mutableStateOf<Node?>(null) }
     val selectedMessageIds = rememberSaveable { mutableStateOf(emptySet<Long>()) }
-    val messageInputState = rememberTextFieldState(message.ifEmpty { viewModel.draftMessage.value })
+    val messageInputState = rememberTextFieldState(message)
     val showQuickChat by viewModel.showQuickChat.collectAsStateWithLifecycle()
     val showFullMessageTimestamps by viewModel.showFullMessageTimestamps.collectAsStateWithLifecycle()
     val filteredCount by viewModel.filteredCount.collectAsStateWithLifecycle()
@@ -215,6 +218,19 @@ fun MessageScreen(
     val imageCooldownTimestamp by viewModel.imageCooldownTimestamp.collectAsStateWithLifecycle()
     val translationDialogState by viewModel.translationDialogState.collectAsStateWithLifecycle()
 
+    // Read the stored draft before wiring the composer up, so its initial empty value cannot erase one.
+    LaunchedEffect(contactKey) { viewModel.loadDraft(contactKey) }
+
+    val storedDraft by viewModel.draftMessage.collectAsStateWithLifecycle()
+
+    // Seed the composer once the draft arrives, unless the screen was opened with a message to prefill.
+    LaunchedEffect(storedDraft) {
+        val draft = storedDraft
+        if (!draft.isNullOrEmpty() && messageInputState.text.isEmpty()) {
+            messageInputState.setTextAndPlaceCursorAtEnd(draft)
+        }
+    }
+
     // Sync text field changes back to ViewModel draft
     LaunchedEffect(messageInputState) {
         snapshotFlow { messageInputState.text.toString() }.collect { text -> viewModel.setDraftMessage(text) }
@@ -222,6 +238,12 @@ fun MessageScreen(
 
     // Prevent the message TextField from stealing focus when the screen opens
     SideEffect(contactKey) { focusManager.clearFocus() }
+
+    // Tell the notification path this conversation is on screen, so an arriving message for it is not announced twice.
+    LifecycleResumeEffect(contactKey) {
+        viewModel.onConversationVisible(contactKey)
+        onPauseOrDispose { viewModel.onConversationHidden(contactKey) }
+    }
 
     // Derived state, memoized for performance
     val channelInfo =
@@ -854,7 +876,6 @@ private fun MessageInput(
             state = textFieldState,
             outputTransformation = mentionOutput,
             lineLimits = TextFieldLineLimits.MultiLine(1, MAX_LINES),
-            label = { Text(stringResource(Res.string.message_input_label)) },
             enabled = isEnabled,
             shape = RoundedCornerShape(ROUNDED_CORNER_PERCENT.toFloat()),
             isError = isOverLimit,
@@ -863,7 +884,9 @@ private fun MessageInput(
             KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Send),
             onKeyboardAction = { onSendAction() },
             supportingText = {
-                if (isEnabled) { // Only show supporting text if input is enabled
+                // The counter is only useful as the limit approaches. Showing 0/200 before a character is typed is
+                // chrome that every chat client has learned to hide.
+                if (isEnabled && currentByteLength >= maxByteSize - COUNTER_VISIBLE_WITHIN_BYTES) {
                     Text(
                         text = "$currentByteLength/$maxByteSize",
                         style = MaterialTheme.typography.bodySmall,
@@ -891,8 +914,20 @@ private fun MessageInput(
                         onPickImage = onPickImage,
                         onResetCooldown = onResetImageCooldown,
                     )
-                    IconButton(onClick = onSendAction, enabled = canSend || mentionActive) {
-                        Icon(imageVector = MeshtasticIcons.Send, contentDescription = stringResource(Res.string.send))
+                    // Colour, not just enablement, carries "this will send" — a greyed-out icon reads as broken rather
+                    // than as waiting for input.
+                    val sendEnabled = isEnabled && (canSend || mentionActive)
+                    IconButton(onClick = onSendAction, enabled = sendEnabled) {
+                        Icon(
+                            imageVector = MeshtasticIcons.Send,
+                            contentDescription = stringResource(Res.string.send),
+                            tint =
+                            if (sendEnabled) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
                     }
                 }
             },

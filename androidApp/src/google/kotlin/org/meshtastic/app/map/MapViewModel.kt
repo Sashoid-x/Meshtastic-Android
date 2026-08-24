@@ -47,6 +47,7 @@ import org.meshtastic.app.map.prefs.map.GoogleMapSelectionPrefs
 import org.meshtastic.app.map.prefs.map.GoogleMapsPrefs
 import org.meshtastic.app.map.repository.CustomTileProviderRepository
 import org.meshtastic.app.map.repository.CustomTileProviderSaveResult
+import org.meshtastic.core.common.util.LocaleUnitsProvider
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
@@ -69,6 +70,12 @@ import java.net.URL
 import kotlin.uuid.Uuid
 
 private const val TILE_SIZE = 256
+
+/** Waypoint coordinates arrive as integer degrees scaled by 1e7. */
+private const val WAYPOINT_COORD_SCALE = 1e7
+
+/** Camera zoom applied when centering on a selected waypoint. */
+private const val WAYPOINT_FOCUS_ZOOM = 15f
 
 enum class CameraInitialization {
     Loading,
@@ -93,6 +100,7 @@ class MapViewModel(
     uiPrefs: UiPrefs,
     notificationPrefs: NotificationPrefs,
     savedStateHandle: SavedStateHandle,
+    localeUnitsProvider: LocaleUnitsProvider,
 ) : BaseMapViewModel(
     mapPrefs,
     nodeRepository,
@@ -100,6 +108,7 @@ class MapViewModel(
     radioController,
     radioConfigRepository,
     notificationPrefs,
+    localeUnitsProvider,
 ) {
 
     private val _selectedWaypointId = MutableStateFlow(savedStateHandle.get<Int>("waypointId"))
@@ -126,8 +135,12 @@ class MapViewModel(
                     val wpMap = waypoints.first { it.containsKey(id) }
                     wpMap[id]?.let { packet ->
                         val waypoint = packet.waypoint!!
-                        val latLng = LatLng((waypoint.latitude_i ?: 0) / 1e7, (waypoint.longitude_i ?: 0) / 1e7)
-                        cameraPositionState.position = CameraPosition.fromLatLngZoom(latLng, 15f)
+                        val latLng =
+                            LatLng(
+                                (waypoint.latitude_i ?: 0) / WAYPOINT_COORD_SCALE,
+                                (waypoint.longitude_i ?: 0) / WAYPOINT_COORD_SCALE,
+                            )
+                        cameraPositionState.position = CameraPosition.fromLatLngZoom(latLng, WAYPOINT_FOCUS_ZOOM)
                     }
                 }
             }
@@ -405,8 +418,12 @@ class MapViewModel(
                 val wpMap = waypoints.first { it.containsKey(wpId) }
                 wpMap[wpId]?.let { packet ->
                     val waypoint = packet.waypoint!!
-                    val latLng = LatLng((waypoint.latitude_i ?: 0) / 1e7, (waypoint.longitude_i ?: 0) / 1e7)
-                    cameraPositionState.position = CameraPosition.fromLatLngZoom(latLng, 15f)
+                    val latLng =
+                        LatLng(
+                            (waypoint.latitude_i ?: 0) / WAYPOINT_COORD_SCALE,
+                            (waypoint.longitude_i ?: 0) / WAYPOINT_COORD_SCALE,
+                        )
+                    cameraPositionState.position = CameraPosition.fromLatLngZoom(latLng, WAYPOINT_FOCUS_ZOOM)
                 }
             }
         }

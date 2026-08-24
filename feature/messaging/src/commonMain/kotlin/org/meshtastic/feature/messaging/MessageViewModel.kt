@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.annotation.KoinViewModel
 import org.meshtastic.core.common.util.currentLocaleCode
 import org.meshtastic.core.common.util.ioDispatcher
@@ -47,12 +48,13 @@ import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
+import org.meshtastic.core.repository.ActiveConversationTracker
 import org.meshtastic.core.repository.ConnectionStateProvider
 import org.meshtastic.core.repository.CustomEmojiPrefs
 import org.meshtastic.core.repository.HomoglyphPrefs
+import org.meshtastic.core.repository.MeshNotificationManager
 import org.meshtastic.core.repository.MessagingController
 import org.meshtastic.core.repository.NodeRepository
-import org.meshtastic.core.repository.NotificationManager
 import org.meshtastic.core.repository.PacketRepository
 import org.meshtastic.core.repository.QuickChatActionRepository
 import org.meshtastic.core.repository.RadioConfigRepository
@@ -104,7 +106,8 @@ class MessageViewModel(
     private val uiPrefs: UiPrefs,
     private val customEmojiPrefs: CustomEmojiPrefs,
     private val homoglyphEncodingPrefs: HomoglyphPrefs,
-    private val notificationManager: NotificationManager,
+    private val meshNotificationManager: MeshNotificationManager,
+    private val activeConversationTracker: ActiveConversationTracker,
     private val sendMessageUseCase: SendMessageUseCase,
     private val messageTranslationService: MessageTranslationService,
     private val snackbarManager: SnackbarManager,
@@ -112,26 +115,56 @@ class MessageViewModel(
     private val _title = MutableStateFlow("")
     val title: StateFlow<String> = _title.asStateFlow()
 
-    private val _draftMessage = MutableStateFlow(savedStateHandle.get<String>("draftMessage") ?: "")
-    val draftMessage: StateFlow<String> = _draftMessage.asStateFlow()
+    private val _draftMessage = MutableStateFlow<String?>(null)
+
+    /** Persisted draft for the conversation on screen. Null until [loadDraft] has read it back. */
+    val draftMessage: StateFlow<String?> = _draftMessage.asStateFlow()
 
     private val sendErrorEvents = errorEventFlow()
 
     private var pendingDraftPersistence: Job? = null
 
+    private var draftContactKey: String? = null
+
     /**
-     * Updates the in-memory draft immediately. The durable [SavedStateHandle] write is debounced by
-     * [DRAFT_PERSISTENCE_DELAY_MS] — rapid edits cancel the prior pending flush, so only the trailing value persists.
-     * On process death within the debounce window the last ≤[DRAFT_PERSISTENCE_DELAY_MS] of typing is not durably
-     * saved; this is a conscious trade-off to avoid per-keystroke jank.
+     * Reads the stored draft for [contactKey] once per conversation.
+     *
+     * [SavedStateHandle] wins over the database when it holds something, because it can carry keystrokes newer than the
+     * last debounced write — the database copy is what makes the draft visible to the conversation list and survive the
+     * screen being popped.
+     */
+    fun loadDraft(contactKey: String) {
+        if (draftContactKey == contactKey) return
+        draftContactKey = contactKey
+        _draftMessage.value = null
+        safeLaunch(context = ioDispatcher, tag = "loadDraft") {
+            val restored = savedStateHandle.get<String>(draftKey(contactKey))
+            val loaded = restored?.takeIf { it.isNotEmpty() } ?: packetRepository.getDraft(contactKey)
+            // Two loads can be in flight after a fast switch between conversations; only the one still current may
+            // publish, or one conversation's unsent text surfaces in another.
+            if (draftContactKey == contactKey) _draftMessage.value = loaded
+        }
+    }
+
+    /**
+     * Updates the in-memory draft immediately; the durable writes are debounced by [DRAFT_PERSISTENCE_DELAY_MS], so
+     * rapid edits cancel the prior pending flush and only the trailing value persists. On process death within that
+     * window the last ≤[DRAFT_PERSISTENCE_DELAY_MS] of typing is not durably saved — a conscious trade-off to avoid
+     * per-keystroke jank.
+     *
+     * No-ops while [draftMessage] is still null, so the composer's initial empty value cannot erase a stored draft
+     * before it has been read back.
      */
     fun setDraftMessage(text: String) {
+        if (_draftMessage.value == null) return
         _draftMessage.value = text
+        val contactKey = draftContactKey ?: return
         pendingDraftPersistence?.cancel()
         pendingDraftPersistence =
             viewModelScope.launch {
                 delay(DRAFT_PERSISTENCE_DELAY_MS)
-                savedStateHandle["draftMessage"] = text
+                savedStateHandle[draftKey(contactKey)] = text
+                withContext(ioDispatcher) { packetRepository.setDraft(contactKey, text) }
             }
     }
 
@@ -139,7 +172,10 @@ class MessageViewModel(
         _draftMessage.value = ""
         pendingDraftPersistence?.cancel()
         pendingDraftPersistence = null
-        savedStateHandle["draftMessage"] = ""
+        draftContactKey?.let { contactKey ->
+            savedStateHandle[draftKey(contactKey)] = ""
+            safeLaunch(context = ioDispatcher, tag = "clearDraft") { packetRepository.setDraft(contactKey, "") }
+        }
     }
 
     val ourNodeInfo = nodeRepository.ourNodeInfo
@@ -459,6 +495,15 @@ class MessageViewModel(
 
     // endregion
 
+    /**
+     * Marks [contactKey] as the conversation on screen so an arriving message for it is not also announced as a
+     * notification. Paired with [onConversationHidden] on pause — backgrounding the app hides the screen, which is what
+     * makes a single signal enough.
+     */
+    fun onConversationVisible(contactKey: String) = activeConversationTracker.setActive(contactKey)
+
+    fun onConversationHidden(contactKey: String) = activeConversationTracker.clearActive(contactKey)
+
     fun clearUnreadCount(contact: String, messageUuid: Long, lastReadTimestamp: Long) =
         safeLaunch(context = ioDispatcher, tag = "clearUnreadCount") {
             val existingTimestamp = contactSettings.value[contact]?.lastReadMessageTimestamp ?: Long.MIN_VALUE
@@ -468,7 +513,14 @@ class MessageViewModel(
             packetRepository.clearUnreadCount(contact, lastReadTimestamp)
             packetRepository.updateLastReadMessage(contact, messageUuid, lastReadTimestamp)
             val unreadCount = packetRepository.getUnreadCount(contact)
-            if (unreadCount == 0) notificationManager.cancel(contact.hashCode())
+            // The count is read before this suspends, so it can be stale by the time the cancel lands. Re-checking
+            // that the conversation is still on screen closes the window: while it is, an arriving message posts no
+            // notification at all (ActiveConversationTracker suppresses it), so there is nothing this can erase. Once
+            // the user has left, the notification is theirs to see and must survive.
+            // Cancelling must go through the domain manager: the conversation is posted under a notification *tag*,
+            // so an untagged cancel by id never matches it. This also rebuilds the group summary.
+            val stillOnScreen = activeConversationTracker.activeContactKey.value == contact
+            if (unreadCount == 0 && stillOnScreen) meshNotificationManager.cancelMessageNotification(contact)
         }
 
     companion object {
@@ -481,5 +533,9 @@ class MessageViewModel(
         private const val SEARCH_DEBOUNCE_MS = 300L
         private const val MIN_SEARCH_LENGTH = 2
         private const val DRAFT_PERSISTENCE_DELAY_MS = 300L
+        private const val KEY_DRAFT_MESSAGE_PREFIX = "draftMessage:"
+
+        /** Saved-state drafts are keyed per conversation; one shared entry would leak text between them. */
+        private fun draftKey(contactKey: String) = KEY_DRAFT_MESSAGE_PREFIX + contactKey
     }
 }

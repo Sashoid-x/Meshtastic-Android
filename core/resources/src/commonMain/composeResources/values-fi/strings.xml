@@ -335,6 +335,8 @@
     <string name="current">Virta</string>
     <string name="currently">Tällä hetkellä:</string>
     <string name="date">Päivä</string>
+    <string name="date_separator_today">Tänään</string>
+    <string name="date_separator_yesterday">Eilen</string>
     <string name="dbm_value">%1$d dBm</string>
     <!-- DEBUG -->
     <string name="debug">Vianetsintä</string>
@@ -668,6 +670,7 @@
     <string name="firmware_event_ended_button">Päivitä laiteohjelmisto</string>
     <string name="firmware_maintenance_cdc_unblock_failed">Poistotiedosto kopioitiin, mutta laite ei aloittanut poistamista. Mitään ei ole vielä muutettu. Irrota laite, paina sen nollauspainiketta kahdesti ja yritä uudelleen.</string>
     <string name="firmware_maintenance_copy_failed">Tiedostoa ei voitu kopioida laitteen asemalle. Varmista, että asema on edelleen yhdistetty ja yritä uudelleen.</string>
+    <string name="firmware_maintenance_data_unavailable">Laitteen tyhjennystiedostoja ei ole tällä hetkellä saatavilla. Tarkista yhteytesi ja yritä uudelleen tai käytä Web Flasheria osoitteessa flasher.meshtastic.org</string>
     <string name="firmware_maintenance_erase_action">Tyhjennä ja asenna uudelleen</string>
     <string name="firmware_maintenance_erase_confirm_button">Tyhjennä laite</string>
     <string name="firmware_maintenance_erase_confirm_text">Tämä tyhjentää kaiken laitteesta %1$s, mukaan lukien kanavat, avaimet ja kaikki asetukset, ja asentaa sitten laiteohjelmiston uudelleen.\n\nToimintoa ei voi peruuttaa, eikä varmuuskopiota ole. Sinua pyydetään valitsemaan laitteen asema kahdesti: ensin poistotiedostoa ja sitten laiteohjelmistoa varten.</string>
@@ -739,6 +742,7 @@
     <string name="firmware_update_open_flasher">Avaa Meshtastic Flasher</string>
     <string name="firmware_update_ota_failed">OTA-päivitys epäonnistui: %1$s</string>
     <string name="firmware_update_ota_unsupported_reason">Tämän laitteen OTA-käynnistyslatain ei tue pyydettyä päivitystapaa: %1$s</string>
+    <string name="firmware_update_preparing_flash">Valmistellaan laitetta: flash-muistia tyhjennetään. Tämä voi kestää jopa minuutin...</string>
     <string name="firmware_update_rak4631_bootloader_hint">RAK WisBlock RAK4631 -laitteessa valmistajan käynnistyslatain (.zip) on asennettava sarjaliitäntäisen DFU-työkalun, kuten adafruit-nrfutilin, avulla. Pelkkä .zip-tiedoston kopioiminen laitteen asemalle ei toimi. Vaihtoehtoisesti voit yhdistää laitteen USB:n kautta ja päivittää käynnistyslataimen tällä sovelluksella.</string>
     <string name="firmware_update_rebooting">Käynnistetään DFU-tilaan...</string>
     <string name="firmware_update_release_notes">Julkaisutiedot</string>
@@ -747,6 +751,7 @@
     <string name="firmware_update_requires_uf2">%1$s edellyttää kohteeseen sopivaa .uf2-tiedostoa.</string>
     <string name="firmware_update_retrieval_failed">Laiteohjelmistotiedostoa ei voitu noutaa.</string>
     <string name="firmware_update_retry">Yritä uudelleen</string>
+    <string name="firmware_update_retrying_upload">Laite ei vastannut. Yritetään lähettää uudelleen (yritys %1$d/%2$d)...</string>
     <string name="firmware_update_save_dfu_file">Tallenna .uf2-tiedosto laitteesi DFU-asemaan.</string>
     <string name="firmware_update_searching_device">Etsitään OTA-laitetta verkosta...</string>
     <string name="firmware_update_select_file">Valitse paikallinen tiedosto</string>
@@ -1703,6 +1708,7 @@
     <string name="site_planner_use_current_location">Käytä nykyistä sijaintia</string>
     <string name="site_planner_use_map_center">Käytä kartan keskikohtaa</string>
     <string name="site_planner_use_node_location">Käytä nykyistä radion sijaintia</string>
+    <string name="site_planner_webview_updating">WebView järjestelmä päivittyy. Yritä myöhemmin uudelleen.</string>
     <string name="skip">Ohita</string>
     <string name="slot">Paikka</string>
     <string name="smart_position">Älykäs sijainti</string>
