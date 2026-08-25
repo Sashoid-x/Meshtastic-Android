@@ -123,7 +123,11 @@ class ContactsViewModel(
                     longName = longName,
                     lastMessageTime = if (packetData.time != 0L) packetData.time else null,
                     lastMessageText =
-                    if (packetData.dataType == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
+                    if (
+                        packetData.dataType == org.meshtastic.proto.PortNum.PRIVATE_APP.value ||
+                        packetData.dataType ==
+                        org.meshtastic.feature.messaging.image.MonochromeImageCodec.PORT_NUM
+                    ) {
                         "\uD83D\uDCF7 Изображение"
                     } else if (fromLocal) {
                         packetData.text

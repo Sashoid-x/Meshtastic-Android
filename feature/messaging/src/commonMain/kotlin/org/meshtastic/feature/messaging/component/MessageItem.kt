@@ -32,7 +32,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -454,8 +453,10 @@ fun MessageItem(
                         remember(message.rawBytes, message.portNum) {
                             val rawBytes = message.rawBytes
                             if (
-                                message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value &&
-                                rawBytes != null
+                                (
+                                    message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value ||
+                                        message.portNum == MonochromeImageCodec.PORT_NUM
+                                    ) && rawBytes != null
                             ) {
                                 MonochromeImageCodec.decode(rawBytes)
                             } else {
@@ -464,15 +465,12 @@ fun MessageItem(
                         }
                     if (monoImage != null) {
                         val imageAspect = monoImage.width.toFloat() / monoImage.height.toFloat()
+                        val targetWidth =
+                            if (imageAspect >= 1f) 220.dp else (220.dp * imageAspect).coerceAtLeast(140.dp)
+                        val targetHeight = targetWidth / imageAspect
                         Box(
                             modifier =
-                            Modifier
-                                // For portrait images (tall) restrict max width so height stays reasonable.
-                                // For landscape (wide) use up to 85% of bubble width.
-                                .fillMaxWidth(
-                                    if (imageAspect >= 1f) 0.85f else (0.85f * imageAspect).coerceAtLeast(0.4f),
-                                )
-                                .aspectRatio(imageAspect)
+                            Modifier.size(width = targetWidth, height = targetHeight)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(Color.Black),
                             contentAlignment = Alignment.Center,

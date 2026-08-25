@@ -86,8 +86,6 @@ import org.meshtastic.proto.StatusMessage
 import org.meshtastic.proto.User
 import org.meshtastic.proto.Waypoint
 
-private const val PORT_MONOCHROME_IMAGE = 264
-
 /**
  * Implementation of [MeshDataHandler] that decodes and routes incoming mesh data packets.
  *

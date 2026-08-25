@@ -235,7 +235,10 @@ fun ReplySnippet(originalMessage: Message?, onClearReply: () -> Unit, ourNode: N
                     style = MaterialTheme.typography.labelMedium,
                 )
                 val snippetText =
-                    if (message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
+                    if (
+                        message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value ||
+                        message.portNum == MonochromeImageCodec.PORT_NUM
+                    ) {
                         "\uD83D\uDCF7 Изображение"
                     } else {
                         message.text.ellipsize(SNIPPET_CHARACTER_LIMIT)
