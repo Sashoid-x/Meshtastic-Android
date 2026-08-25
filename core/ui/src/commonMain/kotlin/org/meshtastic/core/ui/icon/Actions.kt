@@ -36,8 +36,10 @@ import org.meshtastic.core.resources.ic_filter_alt_off
 import org.meshtastic.core.resources.ic_folder
 import org.meshtastic.core.resources.ic_folder_open
 import org.meshtastic.core.resources.ic_image
+import org.meshtastic.core.resources.ic_keep
 import org.meshtastic.core.resources.ic_list
 import org.meshtastic.core.resources.ic_mark_chat_read
+import org.meshtastic.core.resources.ic_mark_chat_unread
 import org.meshtastic.core.resources.ic_more_vert
 import org.meshtastic.core.resources.ic_offline_share
 import org.meshtastic.core.resources.ic_output
@@ -99,6 +101,12 @@ val MeshtasticIcons.ThumbUp: ImageVector
     @Composable get() = vectorResource(Res.drawable.ic_thumb_up)
 val MeshtasticIcons.MarkChatRead: ImageVector
     @Composable get() = vectorResource(Res.drawable.ic_mark_chat_read)
+val MeshtasticIcons.MarkChatUnread: ImageVector
+    @Composable get() = vectorResource(Res.drawable.ic_mark_chat_unread)
+
+/** Pushpin — pins a conversation above its unpinned siblings. */
+val MeshtasticIcons.Keep: ImageVector
+    @Composable get() = vectorResource(Res.drawable.ic_keep)
 val MeshtasticIcons.QrCode2: ImageVector
     @Composable get() = vectorResource(Res.drawable.ic_qr_code_2)
 

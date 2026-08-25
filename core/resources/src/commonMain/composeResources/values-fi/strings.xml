@@ -320,6 +320,8 @@
     <string name="connection_status">Aktiiviset yhteydet:</string>
     <string name="connections">Yhteys</string>
     <string name="contact_draft_prefix">Luonnos: %1$s</string>
+    <string name="contact_muted_snackbar">Mykistettty %1$s</string>
+    <string name="contact_pinned">Kiinnitetty</string>
     <string name="contrast">Kontrasti</string>
     <string name="contrast_high">Korkea</string>
     <string name="contrast_medium">Keskitaso</string>
@@ -905,6 +907,8 @@
     <string name="ip_port">Portti:</string>
     <string name="ipv4_mode">IPv4-tila</string>
     <string name="json_output_enabled">JSON ulostulo käytössä</string>
+    <string name="jump_to_latest_from">%1$s</string>
+    <string name="jump_to_latest_from_and_more">%1$s +%2$d</string>
     <!-- KEY -->
     <string name="key_backup_deleted">Avaimen varmuuskopio poistettu</string>
     <string name="key_backup_not_found">Tälle radiolle ei löytynyt avaimen varmuuskopiota</string>
@@ -1070,6 +1074,7 @@
     <string name="map_type_satellite">Satelliitti</string>
     <string name="map_type_terrain">Maasto</string>
     <string name="mark_as_read">Merkitse luetuksi</string>
+    <string name="mark_unread_selected">Merkitse lukemattomiksi</string>
     <string name="match_all">Täsmää yhteen | kaikkiin</string>
     <string name="match_any">Täsmää yhteen | kaikkiin</string>
     <string name="max">Kaikki</string>
@@ -1403,6 +1408,7 @@
     <string name="permission_missing_31">Meshtastic tarvitsee "lähistön laitteet" -oikeudet, jotta se voi löytää ja yhdistää laitteisiin Bluetoothin kautta. Voit poistaa oikeuden käytöstä, kun et käytä sovellusta.</string>
     <string name="phone_location">Puhelimen sijainti</string>
     <string name="phone_location_description">Meshtastic hyödyntää puhelimen sijaintia tarjotakseen erilaisia toimintoja. Voit muuttaa sijaintioikeuksia koska tahansa asetuksista.</string>
+    <string name="pin_selected">PIN</string>
     <string name="play">Aloita</string>
     <plurals name="plurals_hours">
         <item quantity="one">%1$d tunti</item>
@@ -1736,6 +1742,9 @@
     <string name="super_deep_sleep_duration_seconds">Super-syväunen kesto</string>
     <string name="supported">Tuettu</string>
     <string name="supported_by_community">Meshtastic-yhteisön tukema</string>
+    <string name="swipe_action_delete">Poista</string>
+    <string name="swipe_action_mute">Mykistä</string>
+    <string name="swipe_action_unmute">Poista mykistys</string>
     <string name="sx126x_rx_boosted_gain">RX tehostettu vahvistus</string>
     <string name="system_settings">Järjestelmäasetukset</string>
     <!-- TAK -->
@@ -1881,6 +1890,7 @@
     <string name="type">Kirjoita</string>
     <string name="type_a_message">Kirjoita viesti</string>
     <string name="udp_enabled">UDP-lähetys</string>
+    <string name="undo">Kumoa</string>
     <!-- UNKNOWN -->
     <string name="unknown">Tuntematon</string>
     <string name="unknown_age">Tuntematon ikä</string>
@@ -1892,6 +1902,7 @@
     <string name="unmonitored_or_infrastructure">Ei seurannassa tai toimii infrastruktuurilaitteena</string>
     <string name="unmute">Poista mykistys</string>
     <string name="unmute_selected">Poista mykistys valitusta</string>
+    <string name="unpin_selected">Poista kiinnitys</string>
     <string name="unrecognized">Tuntematon</string>
     <string name="unset">Ei asetettu – 0</string>
     <string name="up_down_select_input_enabled">Ylös/Alas/Valitse syöte käytössä</string>
