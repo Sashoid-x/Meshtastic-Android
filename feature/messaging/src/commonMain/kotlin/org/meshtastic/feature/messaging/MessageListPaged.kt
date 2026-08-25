@@ -149,13 +149,7 @@ internal fun MessageListPaged(
             onResend = {
                 handlers.onDeleteMessages(listOf(message.uuid))
                 val rawBytes = message.rawBytes
-                if (
-                    rawBytes != null &&
-                    (
-                        message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value ||
-                            message.portNum == org.meshtastic.feature.messaging.image.MonochromeImageCodec.PORT_NUM
-                        )
-                ) {
+                if (rawBytes != null && message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
                     handlers.onResendImage(rawBytes, state.contactKey)
                 } else {
                     handlers.onSendMessage(message.text, state.contactKey)

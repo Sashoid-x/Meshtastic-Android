@@ -19,8 +19,6 @@ package org.meshtastic.core.data.manager
 import org.meshtastic.proto.Data
 import org.meshtastic.proto.PortNum
 
-internal const val PORT_MONOCHROME_IMAGE = 264
-
 /** Port numbers whose ordinary data packets are persisted by [MeshDataHandlerImpl.rememberDataPacket]. */
 internal val PERSISTED_DATA_PORT_NUMBERS =
     setOf(
@@ -29,7 +27,6 @@ internal val PERSISTED_DATA_PORT_NUMBERS =
         PortNum.WAYPOINT_APP.value,
         PortNum.NODE_STATUS_APP.value,
         PortNum.PRIVATE_APP.value,
-        PORT_MONOCHROME_IMAGE,
     )
 
 /** A text-app payload that acknowledges another packet with an emoji reaction. */

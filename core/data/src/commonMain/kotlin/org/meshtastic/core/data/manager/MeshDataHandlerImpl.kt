@@ -156,10 +156,6 @@ class MeshDataHandlerImpl(
         logInsertJob: Job?,
     ) {
         val decoded = packet.decoded ?: return
-        if (decoded.portnum.value == PORT_MONOCHROME_IMAGE) {
-            rememberDataPacket(dataPacket, myNodeNum, session = session)
-            return
-        }
         when (decoded.portnum) {
             PortNum.TEXT_MESSAGE_APP -> handleTextMessage(packet, dataPacket, myNodeNum, session)
 

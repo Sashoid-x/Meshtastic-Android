@@ -453,10 +453,8 @@ fun MessageItem(
                         remember(message.rawBytes, message.portNum) {
                             val rawBytes = message.rawBytes
                             if (
-                                (
-                                    message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value ||
-                                        message.portNum == MonochromeImageCodec.PORT_NUM
-                                    ) && rawBytes != null
+                                message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value &&
+                                rawBytes != null
                             ) {
                                 MonochromeImageCodec.decode(rawBytes)
                             } else {

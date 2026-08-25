@@ -61,8 +61,6 @@ data class DecodedMonochromeImage(val presetIndex: Int, val width: Int, val heig
 
 @Suppress("TooManyFunctions")
 object MonochromeImageCodec {
-    const val PORT_NUM = 264
-
     const val ENC_RAW = 0
     const val ENC_BLOCK_4X4 = 1
     const val ENC_BLOCK_8X8 = 2

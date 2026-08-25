@@ -78,6 +78,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import org.meshtastic.core.common.util.NumberFormatter
 import kotlin.math.min
 
 private enum class EditorMode {
@@ -163,8 +164,9 @@ fun MonochromeImageEditorDialog(
             val fitScale = kotlin.math.min(fitScaleX, fitScaleY)
             // At photoScale=1 one preset-cell = fitScale source pixels; zoom multiplies.
             val cellSize = fitScale / photoScale
-            val cosA = kotlin.math.cos(Math.toRadians(photoRotation.toDouble())).toFloat()
-            val sinA = kotlin.math.sin(Math.toRadians(photoRotation.toDouble())).toFloat()
+            val rad = photoRotation.toDouble() * kotlin.math.PI / 180.0
+            val cosA = kotlin.math.cos(rad).toFloat()
+            val sinA = kotlin.math.sin(rad).toFloat()
             val cx = importedWidth / 2f + photoOffset.x
             val cy = importedHeight / 2f + photoOffset.y
             for (y in 0 until preset.height) {
@@ -374,7 +376,7 @@ fun MonochromeImageEditorDialog(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Text(
-                        "Контрастность: ${"%.1f".format(contrast)}x",
+                        "Контрастность: ${NumberFormatter.format(contrast, 1)}x",
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.fillMaxWidth(),
                     )
