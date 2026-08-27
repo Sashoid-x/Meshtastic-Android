@@ -39,6 +39,7 @@ import kotlinx.coroutines.withContext
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.repository.ActiveConversationTracker
+import org.meshtastic.core.repository.AdminController
 import org.meshtastic.core.repository.ConnectionStateProvider
 import org.meshtastic.core.repository.CustomEmojiPrefs
 import org.meshtastic.core.repository.HomoglyphPrefs
@@ -86,6 +87,7 @@ class MessageViewModelTest {
     private val activeConversationTracker = ActiveConversationTracker()
     private val messageTranslationService: MessageTranslationService = mock(MockMode.autofill)
     private val snackbarManager: SnackbarManager = SnackbarManager()
+    private val adminController: AdminController = mock(MockMode.autofill)
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -147,6 +149,7 @@ class MessageViewModelTest {
                 activeConversationTracker = activeConversationTracker,
                 messageTranslationService = messageTranslationService,
                 snackbarManager = snackbarManager,
+                adminController = adminController,
             )
     }
 

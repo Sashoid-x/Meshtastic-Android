@@ -22,6 +22,8 @@ import java.util.Properties
 
 val versionInfo = resolveVersionInfo()
 
+base { archivesName.set("androidApp-adv") }
+
 plugins {
     alias(libs.plugins.meshtastic.android.application)
     alias(libs.plugins.meshtastic.android.application.flavors)
@@ -132,7 +134,7 @@ configure<ApplicationExtension> {
     // Usage: ./gradlew :androidApp:bundleGoogleRelease -Pmeshtastic.disableAbiSplits=true
     val disableSplits = providers.gradleProperty("meshtastic.disableAbiSplits").map { it.toBoolean() }.getOrElse(false)
 
-    // Enable ABI splits to generate smaller APKs per architecture for F-Droid/IzzyOnDroid
+    // Enable ABI splits to generate smaller APKs per architecture and a universal APK for F-Droid/IzzyOnDroid
     splits {
         abi {
             isEnable = !disableSplits

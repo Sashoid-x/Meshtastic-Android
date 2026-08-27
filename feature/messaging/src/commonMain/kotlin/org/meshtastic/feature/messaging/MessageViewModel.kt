@@ -34,9 +34,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -49,6 +51,7 @@ import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.repository.ActiveConversationTracker
+import org.meshtastic.core.repository.AdminController
 import org.meshtastic.core.repository.ConnectionStateProvider
 import org.meshtastic.core.repository.CustomEmojiPrefs
 import org.meshtastic.core.repository.HomoglyphPrefs
@@ -73,6 +76,7 @@ import org.meshtastic.feature.messaging.translation.DownloadResult
 import org.meshtastic.feature.messaging.translation.MessageTranslationService
 import org.meshtastic.feature.messaging.translation.TranslationResult
 import org.meshtastic.proto.ChannelSet
+import org.meshtastic.proto.Config
 
 /**
  * Test seam for resolving [UiText] to a plain string. Unit tests replace [resolve] so ViewModel snackbar paths don't
@@ -98,7 +102,7 @@ sealed interface TranslationDialogState {
 class MessageViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val nodeRepository: NodeRepository,
-    radioConfigRepository: RadioConfigRepository,
+    private val radioConfigRepository: RadioConfigRepository,
     quickChatActionRepository: QuickChatActionRepository,
     private val connectionStateProvider: ConnectionStateProvider,
     private val messagingController: MessagingController,
@@ -111,6 +115,7 @@ class MessageViewModel(
     private val sendMessageUseCase: SendMessageUseCase,
     private val messageTranslationService: MessageTranslationService,
     private val snackbarManager: SnackbarManager,
+    private val adminController: AdminController,
 ) : ViewModel() {
     private val _title = MutableStateFlow("")
     val title: StateFlow<String> = _title.asStateFlow()
@@ -194,7 +199,22 @@ class MessageViewModel(
 
     val showFullMessageTimestamps = uiPrefs.showFullMessageTimestamps
 
-    val textCompressionEnabled = uiPrefs.textCompressionEnabled
+    val textCompressionEnabled: StateFlow<Boolean> = uiPrefs.textCompressionEnabled
+
+    val okToMqtt: StateFlow<Boolean> =
+        radioConfigRepository.channelSetFlow
+            .map { it.lora_config?.config_ok_to_mqtt ?: false }
+            .stateInWhileSubscribed(initialValue = false)
+
+    fun toggleOkToMqtt() {
+        safeLaunch(tag = "toggleOkToMqtt") {
+            val currentChannelSet = radioConfigRepository.channelSetFlow.first()
+            val currentLora = currentChannelSet.lora_config ?: Config.LoRaConfig()
+            val updatedLora = currentLora.copy(config_ok_to_mqtt = !currentLora.config_ok_to_mqtt)
+            adminController.setLocalConfig(Config(lora = updatedLora))
+            radioConfigRepository.updateChannelSet(null, updatedLora)
+        }
+    }
 
     private val _showFiltered = MutableStateFlow(false)
     val showFiltered: StateFlow<Boolean> = _showFiltered.asStateFlow()
@@ -401,10 +421,15 @@ class MessageViewModel(
         _selectedImageBytes.value = bytes
     }
 
-    fun sendMessage(str: String, contactKey: String = "0${NodeAddress.ID_BROADCAST}", replyId: Int? = null) {
+    fun sendMessage(
+        str: String,
+        contactKey: String = "0${NodeAddress.ID_BROADCAST}",
+        replyId: Int? = null,
+        compress: Boolean = false,
+    ) {
         safeLaunch(errorEvents = sendErrorEvents, tag = "sendMessage") {
             val textToSend =
-                if (uiPrefs.textCompressionEnabled.value) {
+                if (compress && uiPrefs.textCompressionEnabled.value) {
                     try {
                         org.meshtastic.feature.messaging.compress.MeshTextCompressor.compress(str)
                     } catch (_: Throwable) {

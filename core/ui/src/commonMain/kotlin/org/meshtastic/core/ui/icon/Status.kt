@@ -27,6 +27,7 @@ import org.meshtastic.core.resources.ic_check_circle_fill1
 import org.meshtastic.core.resources.ic_cloud
 import org.meshtastic.core.resources.ic_cloud_done
 import org.meshtastic.core.resources.ic_cloud_download
+import org.meshtastic.core.resources.ic_cloud_off
 import org.meshtastic.core.resources.ic_cloud_sync
 import org.meshtastic.core.resources.ic_cloud_upload
 import org.meshtastic.core.resources.ic_dangerous
@@ -133,6 +134,10 @@ val MeshtasticIcons.Warning: ImageVector
     @Composable get() = vectorResource(Res.drawable.ic_warning)
 val MeshtasticIcons.MqttConnected: ImageVector
     @Composable get() = vectorResource(Res.drawable.ic_cloud)
+val MeshtasticIcons.Cloud: ImageVector
+    @Composable get() = vectorResource(Res.drawable.ic_cloud)
+val MeshtasticIcons.CloudOff: ImageVector
+    @Composable get() = vectorResource(Res.drawable.ic_cloud_off)
 val MeshtasticIcons.CloudUpload: ImageVector
     @Composable get() = vectorResource(Res.drawable.ic_cloud_upload)
 val MeshtasticIcons.CloudDownload: ImageVector

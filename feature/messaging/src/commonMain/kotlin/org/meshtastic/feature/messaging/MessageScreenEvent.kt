@@ -28,7 +28,8 @@ internal sealed interface MessageScreenEvent {
     data class ToggleShowTranslated(val message: Message) : MessageScreenEvent
 
     /** Send a new text message. */
-    data class SendMessage(val text: String, val replyingToPacketId: Int? = null) : MessageScreenEvent
+    data class SendMessage(val text: String, val replyingToPacketId: Int? = null, val compress: Boolean = false) :
+        MessageScreenEvent
 
     /** Send an emoji reaction to a specific message. */
     data class SendReaction(val emoji: String, val messageId: Int) : MessageScreenEvent

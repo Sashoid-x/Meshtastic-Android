@@ -1,20 +1,31 @@
 <p align="center">
   <img src=".github/meshtastic_logo.png" alt="Meshtastic Logo" width="200"/>
 </p>
-<h1 align="center">Meshtastic-Android</h1>
+<h1 align="center">Meshtastic-Android (Advanced Mod)</h1>
 
-![GitHub all releases](https://img.shields.io/github/downloads/meshtastic/meshtastic-android/total)
-[![Android CI](https://github.com/meshtastic/Meshtastic-Android/actions/workflows/pull-request.yml/badge.svg?branch=main)](https://github.com/meshtastic/Meshtastic-Android/actions/workflows/pull-request.yml)
-[![codecov](https://codecov.io/gh/meshtastic/Meshtastic-Android/graph/badge.svg)](https://codecov.io/gh/meshtastic/Meshtastic-Android)
-[![Crowdin](https://badges.crowdin.net/e/f440f1a5e094a5858dd86deb1adfe83d/localized.svg)](https://crowdin.meshtastic.org/android)
-[![CLA assistant](https://cla-assistant.io/readme/badge/meshtastic/Meshtastic-Android)](https://cla-assistant.io/meshtastic/Meshtastic-Android)
-[![Fiscal Contributors](https://opencollective.com/meshtastic/tiers/badge.svg?label=Fiscal%20Contributors&color=deeppink)](https://opencollective.com/meshtastic/)
-[![Vercel](https://img.shields.io/static/v1?label=Powered%20by&message=Vercel&style=flat&logo=vercel&color=000000)](https://vercel.com?utm_source=meshtastic&utm_campaign=oss)
-[![Revved up by Develocity](https://img.shields.io/badge/Revved%20up%20by-Develocity-06A0CE?logo=Gradle&labelColor=02303A)](https://community.develocity.cloud/scans?search.rootProjectNames=MeshtasticAndroid)
+> **Meshtastic Android Advanced** — расширенная модификация с поддержкой передачи монохромных изображений, Pixel Art, ИИ-сжатия текста без потерь (Lossless AI Text Compression) и быстрого управления MQTT прямо из чата. Устанавливается как отдельное приложение (`com.geeksville.mesh.adv`) параллельно с официальной версией.
 
-This is a tool for using Android (and Compose Desktop) with open-source mesh radios. For more information see our webpage: [meshtastic.org](https://www.meshtastic.org). If you are looking for the device side code, see [here](https://github.com/meshtastic/firmware).
+## ✨ Особенности модификации Advanced
 
-If you have questions or feedback please [Join our discussion forum](https://github.com/orgs/meshtastic/discussions) or the [Discord Group](https://discord.gg/meshtastic). We would love to hear from you!
+1. **🖼️ Передача монохромных изображений и Pixel Art**:
+   - Встроенный редактор изображений: кадрирование, зум, поворот, дизеринг и инверсия.
+   - Встроенный Pixel Art редактор для рисования схем и пиксельной графики по сетке.
+   - 4 адаптивные стратегии сжатия (Raw, H-RLE, V-RLE, Delta+H-RLE) с динамическим расчётом размера в байтах.
+   - Отображение картинок прямо в сообщениях чата и в превью списка диалогов.
+
+2. **🗜️ ИИ-сжатие текста (Lossless AI Text Compression)**:
+   - Легковесная N-gram модель (RU/EN) + 64-битное арифметическое кодирование + Base91 (порт `mesh-compressor`).
+   - Сжатие текста без потерь в 1.5–2.5 раза для экономии эфира LoRa.
+   - Управление: тумблер в Настройках («ИИ-сжатие текста») + поштучная кнопка `🗜️` в панели инструментов Markdown.
+   - Интеллектуальный счётчик байт `🗜️ X/230 (Y Б)` с живым расчётом экономии.
+
+3. **☁️ Быстрое управление «ОК в MQTT» из чата**:
+   - Кнопка-облачко в панели форматирования для мгновенного включения/отключения пересылки в MQTT на подключенной ноде.
+
+4. **📱 Автономная установка (Side-by-side)**:
+   - Собственный Application ID `com.geeksville.mesh.adv` и отдельная иконка `ADV`.
+
+---
 
 ## Features
 

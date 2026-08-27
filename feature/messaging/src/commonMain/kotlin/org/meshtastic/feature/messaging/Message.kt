@@ -208,6 +208,7 @@ fun MessageScreen(
     val showQuickChat by viewModel.showQuickChat.collectAsStateWithLifecycle()
     val showFullMessageTimestamps by viewModel.showFullMessageTimestamps.collectAsStateWithLifecycle()
     val textCompressionEnabled by viewModel.textCompressionEnabled.collectAsStateWithLifecycle()
+    val okToMqtt by viewModel.okToMqtt.collectAsStateWithLifecycle()
     val filteredCount by viewModel.filteredCount.collectAsStateWithLifecycle()
     val showFiltered by viewModel.showFiltered.collectAsStateWithLifecycle()
     val filteringDisabled = contactSettings[contactKey]?.filteringDisabled ?: false
@@ -360,7 +361,12 @@ fun MessageScreen(
             fun handle(event: MessageScreenEvent) {
                 when (event) {
                     is MessageScreenEvent.SendMessage -> {
-                        viewModel.sendMessage(event.text, contactKey, event.replyingToPacketId)
+                        viewModel.sendMessage(
+                            event.text,
+                            contactKey,
+                            event.replyingToPacketId,
+                            compress = event.compress,
+                        )
                         if (event.replyingToPacketId != null) replyingToPacketId = null
                         messageInputState.clearText()
                         viewModel.clearDraftMessage()
@@ -522,16 +528,20 @@ fun MessageScreen(
                     imageCooldownTimestamp = imageCooldownTimestamp,
                     imageCooldownDuration = IMAGE_COOLDOWN_MS,
                     textCompressionEnabled = textCompressionEnabled,
+                    isOkToMqtt = okToMqtt,
+                    onToggleOkToMqtt = viewModel::toggleOkToMqtt,
                     onPickImage = {
                         rawImageGrayValues = null
                         selectedImageUri = null
                         showImageEditor = true
                     },
                     onResetImageCooldown = { viewModel.resetImageCooldown() },
-                    onSendMessage = {
+                    onSendMessage = { compress ->
                         val messageText = messageInputState.text.toString().trim { it.isWhitespace() }
                         if (messageText.isNotEmpty()) {
-                            onEvent(MessageScreenEvent.SendMessage(messageText, replyingToPacketId))
+                            onEvent(
+                                MessageScreenEvent.SendMessage(messageText, replyingToPacketId, compress = compress),
+                            )
                         }
                     },
                 )
@@ -827,9 +837,11 @@ private fun MessageInput(
     imageCooldownTimestamp: Long? = null,
     imageCooldownDuration: Long = IMAGE_COOLDOWN_MS,
     textCompressionEnabled: Boolean = false,
+    isOkToMqtt: Boolean = false,
+    onToggleOkToMqtt: () -> Unit = {},
     onPickImage: () -> Unit = {},
     onResetImageCooldown: () -> Unit = {},
-    onSendMessage: () -> Unit,
+    onSendMessage: (compress: Boolean) -> Unit = {},
 ) {
     val currentTextRaw = textFieldState.text.toString()
 
@@ -840,6 +852,8 @@ private fun MessageInput(
             currentTextRaw
         }
 
+    var isCompressionActive by rememberSaveable { mutableStateOf(false) }
+
     val currentByteLength =
         remember(currentText) {
             // Recalculate only when text changes
@@ -847,8 +861,8 @@ private fun MessageInput(
         }
 
     val compressedByteLength by
-        produceState(initialValue = currentByteLength, currentText, textCompressionEnabled) {
-            if (textCompressionEnabled && currentText.isNotEmpty()) {
+        produceState(initialValue = currentByteLength, currentText, textCompressionEnabled, isCompressionActive) {
+            if (textCompressionEnabled && isCompressionActive && currentText.isNotEmpty()) {
                 try {
                     val compressed = org.meshtastic.feature.messaging.compress.MeshTextCompressor.compress(currentText)
                     value = compressed.encodeToByteArray().size
@@ -860,7 +874,8 @@ private fun MessageInput(
             }
         }
 
-    val effectiveByteLength = if (textCompressionEnabled) compressedByteLength else currentByteLength
+    val effectiveByteLength =
+        if (textCompressionEnabled && isCompressionActive) compressedByteLength else currentByteLength
     val isOverLimit = effectiveByteLength > maxByteSize
     val canSend = !isOverLimit && currentText.isNotEmpty() && isEnabled
 
@@ -889,7 +904,9 @@ private fun MessageInput(
         if (mentionActive) {
             insertMention(suggestions.first())
         } else if (canSend) {
-            onSendMessage()
+            val compress = textCompressionEnabled && isCompressionActive
+            onSendMessage(compress)
+            isCompressionActive = false
         }
     }
 
@@ -926,14 +943,23 @@ private fun MessageInput(
             supportingText = {
                 // The counter is only useful as the limit approaches or when compression is active and saving space
                 val isCompressedEffective =
-                    textCompressionEnabled && currentText.isNotEmpty() && compressedByteLength < currentByteLength
+                    textCompressionEnabled &&
+                        isCompressionActive &&
+                        currentText.isNotEmpty() &&
+                        compressedByteLength < currentByteLength
                 if (
                     isEnabled &&
-                    (isCompressedEffective || effectiveByteLength >= maxByteSize - COUNTER_VISIBLE_WITHIN_BYTES)
+                    (
+                        isCompressedEffective ||
+                            isCompressionActive ||
+                            effectiveByteLength >= maxByteSize - COUNTER_VISIBLE_WITHIN_BYTES
+                        )
                 ) {
                     val counterText =
                         if (isCompressedEffective) {
                             "\uD83D\uDDDC\uFE0F $compressedByteLength/$maxByteSize ($currentByteLength Б)"
+                        } else if (isCompressionActive && textCompressionEnabled && currentText.isNotEmpty()) {
+                            "\uD83D\uDDDC\uFE0F $effectiveByteLength/$maxByteSize"
                         } else {
                             "$effectiveByteLength/$maxByteSize"
                         }
@@ -984,7 +1010,15 @@ private fun MessageInput(
         )
         // Markdown formatting toolbar — shown once the field is focused and holds enough text to format (iOS parity).
         if (isEnabled && isFocused && currentText.length >= FORMATTING_TOOLBAR_MIN_CHARS) {
-            FormattingToolbar(state = textFieldState, modifier = Modifier.padding(horizontal = 8.dp))
+            FormattingToolbar(
+                state = textFieldState,
+                modifier = Modifier.padding(horizontal = 8.dp),
+                isOkToMqtt = isOkToMqtt,
+                onToggleOkToMqtt = onToggleOkToMqtt,
+                isCompressionAvailable = textCompressionEnabled,
+                isCompressionActive = isCompressionActive,
+                onToggleCompression = { isCompressionActive = !isCompressionActive },
+            )
         }
     }
 }

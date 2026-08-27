@@ -38,6 +38,7 @@ import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.repository.ActiveConversationTracker
+import org.meshtastic.core.repository.AdminController
 import org.meshtastic.core.repository.ConnectionStateProvider
 import org.meshtastic.core.repository.CustomEmojiPrefs
 import org.meshtastic.core.repository.HomoglyphPrefs
@@ -126,6 +127,7 @@ class MessageViewModelTranslationTest {
     private val homoglyphPrefs: HomoglyphPrefs = mock(MockMode.autofill)
     private val uiPrefs: UiPrefs = mock(MockMode.autofill)
     private val meshNotificationManager: MeshNotificationManager = mock(MockMode.autofill)
+    private val adminController: AdminController = mock(MockMode.autofill)
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -194,6 +196,7 @@ class MessageViewModelTranslationTest {
                 activeConversationTracker = ActiveConversationTracker(),
                 messageTranslationService = translationService,
                 snackbarManager = snackbarManager,
+                adminController = adminController,
             )
     }
 

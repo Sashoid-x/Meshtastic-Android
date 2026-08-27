@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -30,7 +31,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.unit.dp
@@ -46,8 +49,11 @@ import org.meshtastic.core.resources.insert
 import org.meshtastic.core.resources.insert_link_message
 import org.meshtastic.core.resources.insert_link_title
 import org.meshtastic.core.resources.insert_link_url_hint
+import org.meshtastic.core.resources.ok_to_mqtt
 import org.meshtastic.core.ui.component.InlineStyle
 import org.meshtastic.core.ui.icon.Bold
+import org.meshtastic.core.ui.icon.Cloud
+import org.meshtastic.core.ui.icon.CloudOff
 import org.meshtastic.core.ui.icon.Code
 import org.meshtastic.core.ui.icon.Italic
 import org.meshtastic.core.ui.icon.Link
@@ -60,13 +66,23 @@ import org.meshtastic.feature.messaging.unwrapLink
 import org.meshtastic.feature.messaging.wrapSelection
 import org.meshtastic.feature.messaging.wrapSelectionWithLink
 
+private const val INACTIVE_COMPRESSION_ALPHA = 0.38f
+
 /**
  * A row of markdown formatting actions (bold, italic, strikethrough, code, link) that mutate [state] in place. A
  * collapsed cursor inserts an empty delimiter pair; a non-empty selection is wrapped or, if already wrapped, toggled
  * off. The link action opens a URL-entry dialog, or unwraps a selected `[label](url)` back to its label.
  */
 @Composable
-internal fun FormattingToolbar(state: TextFieldState, modifier: Modifier = Modifier) {
+internal fun FormattingToolbar(
+    state: TextFieldState,
+    modifier: Modifier = Modifier,
+    isOkToMqtt: Boolean = false,
+    onToggleOkToMqtt: () -> Unit = {},
+    isCompressionAvailable: Boolean = false,
+    isCompressionActive: Boolean = false,
+    onToggleCompression: () -> Unit = {},
+) {
     var showLinkDialog by remember { mutableStateOf(false) }
     var pendingLinkRange by remember { mutableStateOf<TextRange?>(null) }
 
@@ -95,7 +111,11 @@ internal fun FormattingToolbar(state: TextFieldState, modifier: Modifier = Modif
         }
     }
 
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         FormatButton(MeshtasticIcons.Bold, stringResource(Res.string.format_bold)) { onStyle(InlineStyle.Bold) }
         FormatButton(MeshtasticIcons.Italic, stringResource(Res.string.format_italic)) { onStyle(InlineStyle.Italic) }
         FormatButton(MeshtasticIcons.Strikethrough, stringResource(Res.string.format_strikethrough)) {
@@ -103,6 +123,27 @@ internal fun FormattingToolbar(state: TextFieldState, modifier: Modifier = Modif
         }
         FormatButton(MeshtasticIcons.Code, stringResource(Res.string.format_code)) { onStyle(InlineStyle.Code) }
         FormatButton(MeshtasticIcons.Link, stringResource(Res.string.format_link)) { onLink() }
+        IconButton(onClick = onToggleOkToMqtt) {
+            Icon(
+                imageVector = if (isOkToMqtt) MeshtasticIcons.Cloud else MeshtasticIcons.CloudOff,
+                contentDescription = stringResource(Res.string.ok_to_mqtt),
+                tint =
+                if (isOkToMqtt) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = INACTIVE_COMPRESSION_ALPHA)
+                },
+            )
+        }
+        if (isCompressionAvailable) {
+            IconButton(onClick = onToggleCompression) {
+                Text(
+                    text = "\uD83D\uDDDC\uFE0F",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.alpha(if (isCompressionActive) 1f else INACTIVE_COMPRESSION_ALPHA),
+                )
+            }
+        }
     }
 
     if (showLinkDialog) {
