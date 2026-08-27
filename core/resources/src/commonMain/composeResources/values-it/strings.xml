@@ -167,7 +167,6 @@
     <string name="buzzer_gpio">GPIO del Buzzer</string>
     <string name="calculating">Calcolo…</string>
     <string name="call_sign">Identificativo di chiamata</string>
-    <string name="call_sign_summary">Il tuo identificativo di chiamata di radioamatore, fino a 8 caratteri</string>
     <string name="camera_permission">Autorizzazione fotocamera</string>
     <string name="camera_permission_rationale">Consenti l'accesso alla fotocamera per scansionare i codici QR.</string>
     <string name="camera_unavailable">Impossibile avviare la fotocamera. Riprovare o chiudere lo scanner e riaprirlo.</string>
@@ -909,6 +908,7 @@
     <string name="local_stats_updated_at">%1$s</string>
     <string name="local_stats_uptime">Tempo di attività: %1$s</string>
     <string name="local_stats_utilization">ChUtil: %1$s% | AirTX: %2$s%</string>
+    <!-- LOCATION -->
     <string name="location_disabled">L'accesso alla posizione è disattivato, non è possibile fornire la posizione al mesh.</string>
     <string name="location_sharing">Condivisione della posizione</string>
     <!-- LOCKDOWN -->
@@ -1294,7 +1294,9 @@
     <string name="paxcounter_config">Configurazione Paxcounter</string>
     <string name="paxcounter_enabled">Paxcounter abilitato</string>
     <string name="periodic_position_broadcast">Trasmissione periodica della posizione</string>
+    <!-- PERMISSION -->
     <string name="permission_missing_31">Meshtastic ha bisogno dei permessi "Dispositivi nelle vicinanze" abilitati per trovare e connettersi ai dispositivi tramite Bluetooth. È possibile disabilitare quando non è in uso.</string>
+    <!-- PERMISSIONS -->
     <string name="phone_location">Posizione del telefono</string>
     <string name="phone_location_description">Meshtastic utilizza la posizione del telefono per abilitare molte funzionalità. È possibile aggiornare i permessi riguardo la posizione in qualsiasi momento dalle impostazioni.</string>
     <string name="pin_selected">Pin</string>

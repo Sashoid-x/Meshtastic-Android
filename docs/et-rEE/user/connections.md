@@ -2,7 +2,7 @@
 title: Ühendus
 parent: Kasutusjuhend
 nav_order: 2
-last_updated: 2026-07-08
+last_updated: 2026-08-25
 description: Ühenda oma telefon või arvuti Meshtastic raadioga Bluetoothi, USB või TCP/IP kaudu.
 aliases:
   - sinihammas
@@ -24,7 +24,7 @@ Sinihamba madal voolutarve on Androidi vaike- ja levinuim ühendusviis.
 1. Veendu, et Meshtastic seade on sisse lülitatud ja sidumisrežiimis.
 2. Ava rakendus ja navigeeri vahekaardile **Ühendused**.
 3. Puuduta valikut **Otsi sinihamba seadmeid** – kuvatakse lähedalasuvad Meshtasticu raadiod.
-4. Select your device from the list.
+4. Vali loendist oma seade.
 5. Nõustu Bluetoothi ​​sidumise taotlusega, kui see kuvatakse.
 
 ![Sinihamba seadmete otsimine, leitud raadio on loendis](../../assets/screenshots/connections_bluetooth_scan.png)
@@ -33,7 +33,18 @@ Sinihamba, võrgu ja USB-transpordi vahel vahetamiseks (üks on korraga aktiivne
 
 ![Transpordi valik](../../assets/screenshots/connections_transport_filters.png)
 
-> 💡 **Vihje:** Kui sinu seadet ei kuvata, kontrolli, kas sinihamba ​​ja asukoha load on antud ning et raadio poleks juba teise seadmega ühendatud.
+> 💡 **Tip:** If your device doesn't appear, check that the radio is not already connected to another device or out of range.
+
+The screen names anything on the app's side that is blocking a scan, with the fix attached:
+
+| What you see                                        | What it means                                                                                                                                                              |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A card asking for **Nearby devices**                | The permission has not been granted. **Grant permission** requests it; once Android stops prompting, the button becomes **Open settings**. |
+| **Bluetooth is off**                                | The adapter is disabled — the card opens Bluetooth settings.                                                                                               |
+| **Bluetooth scanning also needs location services** | Android 11 and older only: the permission is held but the system location toggle is off.                                                   |
+| No card, empty list                                 | Nothing on this side is blocking the scan — the radio is out of range, off, or already connected elsewhere.                                                |
+
+Tapping **Scan** after you have declined the permission once explains what it is for before asking again, and lets you decline again without being cornered.
 
 ### Ühenduse olek
 
@@ -41,7 +52,7 @@ Sinihamba, võrgu ja USB-transpordi vahel vahetamiseks (üks on korraga aktiivne
 | ----- | ---------------- | -------------------------- |
 | 🟢    | Ühendatud        | Aktiivne raadioside loodud |
 | 🟡    | Ühendan          | Kätlemine on pooleli       |
-| 🔴    | Ühendus katkenud | No active connection       |
+| 🔴    | Ühendus katkenud | Aktiivset ühendust pole    |
 | ⚪     | Pole seadistatud | Seadet pole valitud        |
 
 Ühenduse loomisel näitab olekuindikaator ühenduse praegust olekut:
@@ -76,7 +87,7 @@ Mõned Meshtastic raadiod toetavad WiFi/Etherneti ühendust, võimaldades TCP-p�
 
 ### Connecting over the Network
 
-1. Make sure the radio is on the same local network as your phone/desktop.
+1. Veendu, et raadio on samas kohtvõrgus kui sinu telefon/lauaarvuti.
 2. Valige ühenduse loomise ekraanil transpordivalikus **Võrk**.
 3. Choose the radio one of two ways:
    - **Võrguseadmete otsimine** – lülita see sisse, et automaatselt avastada raadioid, mis reklaamivad end kohalikus võrgus (mDNS / `_meshtastic._tcp`). Leitud seadmed kuvatakse loendis; ühenduse loomiseks puuduta neist ühte.
@@ -87,13 +98,13 @@ Mõned Meshtastic raadiod toetavad WiFi/Etherneti ühendust, võimaldades TCP-p�
 
 ### Millal kasutada TCP
 
-- Radio is on the same local network
+- Raadio on samas kohalikus võrgus
 - Testing with a simulated radio
 - Asukohad kus sinihambal on häireid
 
 ## Reconnection Behavior
 
-The app reconnects to the **last selected device** on startup. Transporti saab ühenduskuvalt igal ajal vahetada.
+Rakendus loob käivitamisel uuesti ühenduse **viimati valitud seadmega**. Transporti saab ühenduskuvalt igal ajal vahetada.
 
 Ühenduse katkestamiseks puuduta ühenduse loomise ekraanil katkestamise nuppu:
 

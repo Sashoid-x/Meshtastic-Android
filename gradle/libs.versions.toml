@@ -1,22 +1,22 @@
 [versions]
-xmlutil = "1.0.2"
+xmlutil = "1.0.2.1"
 
 # Android
 agp = "9.3.2"
 appcompat = "1.8.0"
-appfunctions = "1.0.0-alpha10"
+appfunctions = "1.0.0-alpha11"
 
 # androidx
 androidx-sqlite-bundled = "2.7.0"
 androidx-work = "2.11.2"
 datastore = "1.2.1"
-glance = "1.2.0-rc01"
+glance = "1.2.0"
 lifecycle = "2.11.0"
 jetbrains-lifecycle = "2.11.0"
 navigation3 = "1.1.1"
 navigationevent = "1.1.0"
 paging = "3.5.1"
-room = "3.0.1"
+room = "3.0.2"
 koin = "4.2.2"
 koin-plugin = "1.1.0"
 
@@ -36,13 +36,13 @@ konsist = "0.17.3"
 turbine = "1.2.1"
 
 # Compose Screenshot Testing
-compose-screenshot = "0.0.1-alpha15"
+compose-screenshot = "0.0.1-alpha16"
 
 # Baseline Profiles / Macrobenchmark
 # `benchmark` drives both the androidx.benchmark macro lib AND the androidx.baselineprofile
 # Gradle plugin (same coordinates/version). Kept on the alpha track to stay compatible with
 # AGP 9.x (the stable 1.4.x line predates AGP 9 support).
-benchmark = "1.5.0-rc01"
+benchmark = "1.5.0-rc02"
 profileinstaller = "1.4.1"
 androidx-uiautomator = "2.4.0"
 
@@ -75,7 +75,7 @@ mlkit-language-id = "17.0.6"
 mlkit-translate = "17.0.3"
 
 # CameraX
-camerax = "1.6.1"
+camerax = "1.6.2"
 
 # Networking
 ktor = "3.5.2"
@@ -83,9 +83,9 @@ ktor = "3.5.2"
 # Other
 aboutlibraries = "15.1.1"
 jserialcomm = "2.11.4"
-coil = "3.5.0"
+coil = "3.6.0"
 datadog-gradle = "1.30.0"
-dd-sdk-android = "3.12.1"
+dd-sdk-android = "3.13.1"
 detekt = "2.0.0-alpha.6"
 dokka = "2.2.0"
 devtools-ksp = "2.3.11"
@@ -127,7 +127,7 @@ androidx-camera-camera2 = { module = "androidx.camera:camera-camera2", version.r
 androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
 androidx-camera-compose = { module = "androidx.camera:camera-compose", version.ref = "camerax" }
-androidx-camera-viewfinder-compose = { module = "androidx.camera.viewfinder:viewfinder-compose", version = "1.6.1" }
+androidx-camera-viewfinder-compose = { module = "androidx.camera.viewfinder:viewfinder-compose", version = "1.6.2" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version = "1.19.0" }
 androidx-core-location-altitude = { module = "androidx.core:core-location-altitude", version = "1.0.0" }
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version = "1.2.0" }
@@ -313,6 +313,7 @@ androidx-room-gradlePlugin = { module = "androidx.room3:room3-gradle-plugin", ve
 compose-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 compose-multiplatform-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "compose-multiplatform" }
 datadog-gradlePlugin = { module = "com.datadoghq.dd-sdk-android-gradle-plugin:com.datadoghq.dd-sdk-android-gradle-plugin.gradle.plugin", version.ref = "datadog-gradle" }
+compose-screenshot-gradlePlugin = { module = "com.android.compose.screenshot:screenshot-test-gradle-plugin", version.ref = "compose-screenshot" }
 detekt-compose = { module = "io.nlopez.compose.rules:detekt", version = "0.6.4" }
 detekt-formatting = { module = "dev.detekt:detekt-rules-ktlint-wrapper", version.ref = "detekt" }
 detekt-gradlePlugin = { module = "dev.detekt:detekt-gradle-plugin", version.ref = "detekt" }
