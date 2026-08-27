@@ -194,6 +194,8 @@ class MessageViewModel(
 
     val showFullMessageTimestamps = uiPrefs.showFullMessageTimestamps
 
+    val textCompressionEnabled = uiPrefs.textCompressionEnabled
+
     private val _showFiltered = MutableStateFlow(false)
     val showFiltered: StateFlow<Boolean> = _showFiltered.asStateFlow()
 
@@ -401,7 +403,17 @@ class MessageViewModel(
 
     fun sendMessage(str: String, contactKey: String = "0${NodeAddress.ID_BROADCAST}", replyId: Int? = null) {
         safeLaunch(errorEvents = sendErrorEvents, tag = "sendMessage") {
-            sendMessageUseCase.invoke(str, contactKey, replyId)
+            val textToSend =
+                if (uiPrefs.textCompressionEnabled.value) {
+                    try {
+                        org.meshtastic.feature.messaging.compress.MeshTextCompressor.compress(str)
+                    } catch (_: Throwable) {
+                        str
+                    }
+                } else {
+                    str
+                }
+            sendMessageUseCase.invoke(textToSend, contactKey, replyId)
         }
     }
 

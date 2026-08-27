@@ -238,7 +238,14 @@ fun ReplySnippet(originalMessage: Message?, onClearReply: () -> Unit, ourNode: N
                     if (message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
                         "\uD83D\uDCF7 Изображение"
                     } else {
-                        message.text.ellipsize(SNIPPET_CHARACTER_LIMIT)
+                        val raw = message.text
+                        val textToEllipsize =
+                            if (org.meshtastic.feature.messaging.compress.MeshTextCompressor.isCompressed(raw)) {
+                                org.meshtastic.feature.messaging.compress.MeshTextCompressor.decompressSync(raw)
+                            } else {
+                                raw
+                            }
+                        textToEllipsize.ellipsize(SNIPPET_CHARACTER_LIMIT)
                     }
 
                 Text(

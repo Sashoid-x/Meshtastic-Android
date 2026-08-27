@@ -1824,6 +1824,8 @@
     <string name="telemetry">Telemetry</string>
     <string name="telemetry_config">Telemetry Config</string>
     <string name="temperature">Temp</string>
+    <string name="text_compression">AI text compression</string>
+    <string name="text_compression_summary">Lossless compression for Russian and English text messages</string>
     <string name="theme">Theme</string>
     <string name="theme_dark">Dark</string>
     <string name="theme_light">Light</string>

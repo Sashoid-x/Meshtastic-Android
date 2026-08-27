@@ -1773,6 +1773,8 @@ tak_team_yellow
 telemetry
 telemetry_config
 temperature
+text_compression
+text_compression_summary
 theme
 theme_dark
 theme_light

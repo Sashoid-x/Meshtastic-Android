@@ -238,6 +238,13 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `setTextCompressionEnabled updates prefs`() = runTest {
+        viewModel.setTextCompressionEnabled(true)
+
+        appPreferences.ui.textCompressionEnabled.value shouldBe true
+    }
+
+    @Test
     fun `setLocale updates prefs`() = runTest {
         viewModel.setLocale("fr")
         appPreferences.ui.locale.value shouldBe "fr"

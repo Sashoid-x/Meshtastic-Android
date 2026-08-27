@@ -53,6 +53,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -206,6 +207,7 @@ fun MessageScreen(
     val messageInputState = rememberTextFieldState(message)
     val showQuickChat by viewModel.showQuickChat.collectAsStateWithLifecycle()
     val showFullMessageTimestamps by viewModel.showFullMessageTimestamps.collectAsStateWithLifecycle()
+    val textCompressionEnabled by viewModel.textCompressionEnabled.collectAsStateWithLifecycle()
     val filteredCount by viewModel.filteredCount.collectAsStateWithLifecycle()
     val showFiltered by viewModel.showFiltered.collectAsStateWithLifecycle()
     val filteringDisabled = contactSettings[contactKey]?.filteringDisabled ?: false
@@ -519,6 +521,7 @@ fun MessageScreen(
                     mentionCandidates = mentionCandidates,
                     imageCooldownTimestamp = imageCooldownTimestamp,
                     imageCooldownDuration = IMAGE_COOLDOWN_MS,
+                    textCompressionEnabled = textCompressionEnabled,
                     onPickImage = {
                         rawImageGrayValues = null
                         selectedImageUri = null
@@ -574,6 +577,7 @@ fun MessageScreen(
                     searchQuery = if (isSearchActive) searchQuery else "",
                     translationAvailable = translationAvailable,
                     showFullMessageTimestamps = showFullMessageTimestamps,
+                    textCompressionEnabled = textCompressionEnabled,
                 ),
                 handlers =
                 MessageListHandlers(
@@ -822,6 +826,7 @@ private fun MessageInput(
     maxByteSize: Int = MESSAGE_CHARACTER_LIMIT_BYTES,
     imageCooldownTimestamp: Long? = null,
     imageCooldownDuration: Long = IMAGE_COOLDOWN_MS,
+    textCompressionEnabled: Boolean = false,
     onPickImage: () -> Unit = {},
     onResetImageCooldown: () -> Unit = {},
     onSendMessage: () -> Unit,
@@ -841,7 +846,22 @@ private fun MessageInput(
             currentText.encodeToByteArray().size
         }
 
-    val isOverLimit = currentByteLength > maxByteSize
+    val compressedByteLength by
+        produceState(initialValue = currentByteLength, currentText, textCompressionEnabled) {
+            if (textCompressionEnabled && currentText.isNotEmpty()) {
+                try {
+                    val compressed = org.meshtastic.feature.messaging.compress.MeshTextCompressor.compress(currentText)
+                    value = compressed.encodeToByteArray().size
+                } catch (_: Throwable) {
+                    value = currentText.encodeToByteArray().size
+                }
+            } else {
+                value = currentText.encodeToByteArray().size
+            }
+        }
+
+    val effectiveByteLength = if (textCompressionEnabled) compressedByteLength else currentByteLength
+    val isOverLimit = effectiveByteLength > maxByteSize
     val canSend = !isOverLimit && currentText.isNotEmpty() && isEnabled
 
     val mentionOutput = remember(mentionCandidates) { mentionOutputTransformation(mentionCandidates) }
@@ -904,11 +924,21 @@ private fun MessageInput(
             KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Send),
             onKeyboardAction = { onSendAction() },
             supportingText = {
-                // The counter is only useful as the limit approaches. Showing 0/200 before a character is typed is
-                // chrome that every chat client has learned to hide.
-                if (isEnabled && currentByteLength >= maxByteSize - COUNTER_VISIBLE_WITHIN_BYTES) {
+                // The counter is only useful as the limit approaches or when compression is active and saving space
+                val isCompressedEffective =
+                    textCompressionEnabled && currentText.isNotEmpty() && compressedByteLength < currentByteLength
+                if (
+                    isEnabled &&
+                    (isCompressedEffective || effectiveByteLength >= maxByteSize - COUNTER_VISIBLE_WITHIN_BYTES)
+                ) {
+                    val counterText =
+                        if (isCompressedEffective) {
+                            "\uD83D\uDDDC\uFE0F $compressedByteLength/$maxByteSize ($currentByteLength Б)"
+                        } else {
+                            "$effectiveByteLength/$maxByteSize"
+                        }
                     Text(
-                        text = "$currentByteLength/$maxByteSize",
+                        text = counterText,
                         style = MaterialTheme.typography.bodySmall,
                         color =
                         if (isOverLimit) {

@@ -1827,6 +1827,8 @@
     <string name="telemetry">Телеметрия</string>
     <string name="telemetry_config">Настройка телеметрии</string>
     <string name="temperature">Темп</string>
+    <string name="text_compression">ИИ-сжатие текста</string>
+    <string name="text_compression_summary">Сжатие сообщений на русском и английском языках без потерь</string>
     <string name="theme">Тема</string>
     <string name="theme_dark">Темная</string>
     <string name="theme_light">Светлая</string>

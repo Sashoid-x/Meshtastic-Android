@@ -137,6 +137,11 @@ interface UiPrefs {
 
     fun setShowFullMessageTimestamps(show: Boolean)
 
+    /** Whether text messages are compressed/decompressed using N-gram + Arithmetic coding. */
+    val textCompressionEnabled: StateFlow<Boolean>
+
+    fun setTextCompressionEnabled(enabled: Boolean)
+
     /**
      * Whether to apply an event edition's ambient theme (accent wash + custom typeface) app-wide (opt-out; default on).
      */

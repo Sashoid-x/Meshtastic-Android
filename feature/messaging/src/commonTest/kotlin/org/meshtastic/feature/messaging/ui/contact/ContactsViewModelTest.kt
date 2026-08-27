@@ -53,6 +53,7 @@ class ContactsViewModelTest {
     private val packetRepository: PacketRepository = mock(MockMode.autofill)
     private val radioConfigRepository: RadioConfigRepository = mock(MockMode.autofill)
     private val connectionStateProvider: ConnectionStateProvider = mock(MockMode.autofill)
+    private val uiPrefs: org.meshtastic.core.repository.UiPrefs = mock(MockMode.autofill)
 
     @BeforeTest
     fun setUp() {
@@ -61,6 +62,7 @@ class ContactsViewModelTest {
         every { connectionStateProvider.connectionState } returns MutableStateFlow(ConnectionState.Disconnected)
         every { packetRepository.getUnreadCountTotal() } returns MutableStateFlow(0)
         every { radioConfigRepository.channelSetFlow } returns MutableStateFlow(ChannelSet())
+        every { uiPrefs.textCompressionEnabled } returns MutableStateFlow(false)
 
         viewModel =
             ContactsViewModel(
@@ -68,6 +70,7 @@ class ContactsViewModelTest {
                 nodeRepository = nodeRepository,
                 packetRepository = packetRepository,
                 snackbarManager = SnackbarManager(),
+                uiPrefs = uiPrefs,
                 radioConfigRepository = radioConfigRepository,
                 connectionStateProvider = connectionStateProvider,
             )
@@ -95,6 +98,7 @@ class ContactsViewModelTest {
                 nodeRepository,
                 packetRepository,
                 SnackbarManager(),
+                uiPrefs,
                 radioConfigRepository,
                 connectionStateProvider,
             )
@@ -130,6 +134,7 @@ class ContactsViewModelTest {
                 nodeRepository,
                 packetRepository,
                 SnackbarManager(),
+                uiPrefs,
                 radioConfigRepository,
                 connectionStateProvider,
             )

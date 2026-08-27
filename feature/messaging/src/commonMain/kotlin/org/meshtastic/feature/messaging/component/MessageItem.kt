@@ -51,6 +51,7 @@ import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -115,6 +116,7 @@ import org.meshtastic.core.ui.icon.ShieldCheck
 import org.meshtastic.core.ui.theme.MessageItemColors
 import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
 import org.meshtastic.core.ui.util.createClipEntry
+import org.meshtastic.feature.messaging.compress.MeshTextCompressor
 import org.meshtastic.feature.messaging.image.MonochromeImageCodec
 
 internal const val MESSAGE_STATUS_LABEL_TEST_TAG = "message_status_label"
@@ -166,6 +168,7 @@ fun MessageItem(
     hasSameNext: Boolean = false,
     searchQuery: String = "",
     translationAvailable: Boolean = false,
+    textCompressionEnabled: Boolean = false,
     isDirectMessage: Boolean = false,
     onTranslate: () -> Unit = {},
     onToggleTranslation: () -> Unit = {},
@@ -198,7 +201,21 @@ fun MessageItem(
     val isRetryableFailure = message.status == MessageStatus.ERROR && message.isStatusRetryable(isDirectMessage)
     // While searching, always show the original text — FTS matches and highlights apply to it, not the translation.
     val showsTranslation = message.showTranslated && message.translatedText != null && searchQuery.isEmpty()
-    val bodyText = message.displayedText(searching = searchQuery.isNotEmpty())
+    val isCompressedMessage = remember(message.text) { MeshTextCompressor.isCompressed(message.text) }
+    val rawBodyText = message.displayedText(searching = searchQuery.isNotEmpty())
+    val decompressedText by
+        produceState(initialValue = rawBodyText, rawBodyText, textCompressionEnabled) {
+            if (textCompressionEnabled && isCompressedMessage) {
+                try {
+                    value = MeshTextCompressor.decompress(rawBodyText)
+                } catch (_: Throwable) {
+                    value = rawBodyText
+                }
+            } else {
+                value = rawBodyText
+            }
+        }
+    val bodyText = decompressedText
     if (activeSheet != null) {
         ModalBottomSheet(onDismissRequest = { activeSheet = null }, sheetState = sheetState) {
             when (activeSheet) {
@@ -561,6 +578,9 @@ fun MessageItem(
                         }
                         if (containsBel) {
                             Text(text = "\uD83D\uDD14")
+                        }
+                        if (isCompressedMessage && textCompressionEnabled) {
+                            Text(text = "\uD83D\uDDDC\uFE0F", style = metadataStyle)
                         }
                         if (message.filtered) {
                             Text(

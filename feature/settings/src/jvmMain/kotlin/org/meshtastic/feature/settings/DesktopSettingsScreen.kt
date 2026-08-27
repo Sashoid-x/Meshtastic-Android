@@ -77,6 +77,7 @@ import org.meshtastic.feature.settings.component.ExpressiveSection
 import org.meshtastic.feature.settings.component.FullMessageTimestampsSetting
 import org.meshtastic.feature.settings.component.HomoglyphSetting
 import org.meshtastic.feature.settings.component.NotificationSection
+import org.meshtastic.feature.settings.component.TextCompressionSetting
 import org.meshtastic.feature.settings.component.ThemePickerDialog
 import org.meshtastic.feature.settings.navigation.ConfigRoute
 import org.meshtastic.feature.settings.navigation.ModuleRoute
@@ -106,6 +107,8 @@ fun DesktopSettingsScreen(
     val cacheLimit by settingsViewModel.dbCacheLimit.collectAsStateWithLifecycle()
     val isOtaCapable by settingsViewModel.isOtaCapable.collectAsStateWithLifecycle()
     val showFullMessageTimestamps by settingsViewModel.showFullMessageTimestamps.collectAsStateWithLifecycle()
+    val textCompressionEnabled by settingsViewModel.textCompressionEnabled.collectAsStateWithLifecycle()
+    val isConnected by settingsViewModel.isConnected.collectAsStateWithLifecycle(false)
 
     var showThemePickerDialog by remember { mutableStateOf(false) }
     var showLanguagePickerDialog by remember { mutableStateOf(false) }
@@ -191,6 +194,11 @@ fun DesktopSettingsScreen(
                     FullMessageTimestampsSetting(
                         checked = showFullMessageTimestamps,
                         onCheckedChange = settingsViewModel::setShowFullMessageTimestamps,
+                    )
+
+                    TextCompressionSetting(
+                        checked = textCompressionEnabled,
+                        onCheckedChange = settingsViewModel::setTextCompressionEnabled,
                     )
 
                     HomoglyphSetting(

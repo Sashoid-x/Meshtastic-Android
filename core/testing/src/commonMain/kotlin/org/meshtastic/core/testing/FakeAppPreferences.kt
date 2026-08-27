@@ -158,6 +158,12 @@ class FakeUiPrefs : UiPrefs {
         showFullMessageTimestamps.value = show
     }
 
+    override val textCompressionEnabled = MutableStateFlow(false)
+
+    override fun setTextCompressionEnabled(enabled: Boolean) {
+        textCompressionEnabled.value = enabled
+    }
+
     override val eventThemeEnabled = MutableStateFlow(true)
 
     override fun setEventThemeEnabled(enabled: Boolean) {

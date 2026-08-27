@@ -36,6 +36,7 @@ import org.meshtastic.core.repository.ConnectionStateProvider
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.PacketRepository
 import org.meshtastic.core.repository.RadioConfigRepository
+import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.core.ui.util.SnackbarManager
 import org.meshtastic.core.ui.viewmodel.safeLaunch
 import org.meshtastic.core.ui.viewmodel.stateInWhileSubscribed
@@ -48,6 +49,7 @@ class ContactsViewModel(
     private val nodeRepository: NodeRepository,
     private val packetRepository: PacketRepository,
     private val snackbarManager: SnackbarManager,
+    private val uiPrefs: UiPrefs,
     radioConfigRepository: RadioConfigRepository,
     connectionStateProvider: ConnectionStateProvider,
 ) : ViewModel() {
@@ -117,6 +119,21 @@ class ContactsViewModel(
                         user.long_name
                     }
 
+                val rawText = packetData.text.orEmpty()
+                val decodedText =
+                    if (
+                        uiPrefs.textCompressionEnabled.value &&
+                        org.meshtastic.feature.messaging.compress.MeshTextCompressor.isCompressed(rawText)
+                    ) {
+                        try {
+                            org.meshtastic.feature.messaging.compress.MeshTextCompressor.decompress(rawText)
+                        } catch (_: Throwable) {
+                            rawText
+                        }
+                    } else {
+                        rawText
+                    }
+
                 Contact(
                     contactKey = contactKey,
                     shortName = if (toBroadcast) packetData.channel.toString() else shortName,
@@ -126,9 +143,9 @@ class ContactsViewModel(
                     if (packetData.dataType == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
                         "\uD83D\uDCF7 Изображение"
                     } else if (fromLocal) {
-                        packetData.text
+                        decodedText
                     } else {
-                        "$shortName: ${packetData.text}"
+                        "$shortName: $decodedText"
                     },
                     unreadCount = packetRepository.getUnreadCount(contactKey),
                     messageCount = packetRepository.getMessageCount(contactKey),

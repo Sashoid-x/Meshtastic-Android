@@ -163,6 +163,12 @@ class SettingsViewModel(
         uiPrefs.setShowFullMessageTimestamps(show)
     }
 
+    val textCompressionEnabled = uiPrefs.textCompressionEnabled
+
+    fun setTextCompressionEnabled(enabled: Boolean) {
+        uiPrefs.setTextCompressionEnabled(enabled)
+    }
+
     /** Set the application locale. Empty string means system default. */
     fun setLocale(languageTag: String) {
         uiPrefs.setLocale(languageTag)

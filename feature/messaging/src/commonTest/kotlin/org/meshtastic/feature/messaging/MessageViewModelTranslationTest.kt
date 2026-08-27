@@ -172,6 +172,7 @@ class MessageViewModelTranslationTest {
         every { homoglyphPrefs.homoglyphEncodingEnabled } returns MutableStateFlow(false)
         every { uiPrefs.showQuickChat } returns MutableStateFlow(false)
         every { uiPrefs.showFullMessageTimestamps } returns MutableStateFlow(false)
+        every { uiPrefs.textCompressionEnabled } returns MutableStateFlow(false)
         every { packetRepository.getContactSettings() } returns
             MutableStateFlow<Map<String, ContactSettings>>(emptyMap())
         every { quickChatActionRepository.getAllActions() } returns MutableStateFlow(emptyList())

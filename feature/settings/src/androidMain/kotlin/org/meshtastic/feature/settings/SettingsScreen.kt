@@ -258,9 +258,12 @@ fun SettingsScreen(
                         startProvideLocation = { settingsViewModel.startProvidingLocation() },
                         stopProvideLocation = { settingsViewModel.stopProvidingLocation() },
                     )
+                    val textCompressionEnabled by settingsViewModel.textCompressionEnabled.collectAsStateWithLifecycle()
                     AppearanceSettingsContent(
                         showFullMessageTimestamps = showFullMessageTimestamps,
                         onShowFullMessageTimestampsChange = settingsViewModel::setShowFullMessageTimestamps,
+                        textCompressionEnabled = textCompressionEnabled,
+                        onTextCompressionEnabledChange = settingsViewModel::setTextCompressionEnabled,
                         onShowLanguagePicker = { showLanguagePickerDialog = true },
                         onShowThemePicker = { showThemePickerDialog = true },
                     )

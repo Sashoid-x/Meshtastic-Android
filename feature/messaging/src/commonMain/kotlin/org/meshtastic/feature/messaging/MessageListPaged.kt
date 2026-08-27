@@ -113,6 +113,7 @@ internal data class MessageListPagedState(
     val searchQuery: String = "",
     val translationAvailable: Boolean = false,
     val showFullMessageTimestamps: Boolean = false,
+    val textCompressionEnabled: Boolean = false,
 )
 
 private fun MutableState<Set<Long>>.toggle(uuid: Long) {
@@ -422,6 +423,7 @@ private fun RenderPagedChatMessageRow(
         emojis = message.emojis,
         showUserName = showUserName,
         showFullMessageTimestamp = state.showFullMessageTimestamps,
+        textCompressionEnabled = state.textCompressionEnabled,
         sendReaction = { emoji ->
             val hasReacted =
                 message.emojis.any { reaction ->
