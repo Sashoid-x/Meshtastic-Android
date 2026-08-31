@@ -633,7 +633,24 @@ fallback_node_name
 favorite
 favorite_add
 favorite_remove
+### FILE ###
 file_entry
+file_transfer
+file_transfer_attach
+file_transfer_cancel
+file_transfer_cancelled
+file_transfer_chunk_progress
+file_transfer_complete
+file_transfer_error
+file_transfer_in_progress
+file_transfer_minimize
+file_transfer_receiving
+file_transfer_saved
+file_transfer_select_file
+file_transfer_sending
+file_transfer_size_limit
+file_transfer_warning_body
+file_transfer_warning_title
 files_available
 ### FILTER ###
 filter_add_placeholder

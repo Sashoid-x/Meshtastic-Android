@@ -40,6 +40,7 @@ import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -47,6 +48,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -99,6 +101,8 @@ import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.util.getChannel
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.file_transfer
+import org.meshtastic.core.resources.file_transfer_size_limit
 import org.meshtastic.core.resources.send
 import org.meshtastic.core.resources.type_a_message
 import org.meshtastic.core.resources.unknown_channel
@@ -110,7 +114,9 @@ import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Send
 import org.meshtastic.core.ui.theme.AppTheme
 import org.meshtastic.core.ui.util.createClipEntry
+import org.meshtastic.core.ui.util.rememberGetFileInfo
 import org.meshtastic.core.ui.util.rememberOpenFileLauncher
+import org.meshtastic.core.ui.util.rememberReadBytesFromUri
 import org.meshtastic.feature.messaging.component.ActionModeTopBar
 import org.meshtastic.feature.messaging.component.DeleteMessageDialog
 import org.meshtastic.feature.messaging.component.FormattingToolbar
@@ -122,6 +128,11 @@ import org.meshtastic.feature.messaging.component.QuickChatRow
 import org.meshtastic.feature.messaging.component.ReplySnippet
 import org.meshtastic.feature.messaging.component.ScrollToBottomFab
 import org.meshtastic.feature.messaging.component.TranslationModelDownloadDialog
+import org.meshtastic.feature.messaging.filetransfer.FileTransferBanner
+import org.meshtastic.feature.messaging.filetransfer.FileTransferProgressDialog
+import org.meshtastic.feature.messaging.filetransfer.FileTransferWarningDialog
+import org.meshtastic.feature.messaging.filetransfer.MftProtocol
+import org.meshtastic.feature.messaging.filetransfer.TransferState
 import org.meshtastic.feature.messaging.image.MonochromeImageEditorDialog
 
 private const val ROUNDED_CORNER_PERCENT = 100
@@ -200,6 +211,32 @@ fun MessageScreen(
         } else if (rawImageGrayValues == null) {
             // User cancelled the picker without having imported anything
             showImageEditor = false
+        }
+    }
+
+    val isDirectMessageConversation =
+        remember(contactKey) { ContactKey(contactKey).addressString != NodeAddress.ID_BROADCAST }
+    var showFileTransferWarning by rememberSaveable { mutableStateOf(false) }
+    var fileTransferSizeError by rememberSaveable { mutableStateOf<String?>(null) }
+    val outgoingTransferState by viewModel.fileTransferOutgoingState.collectAsStateWithLifecycle()
+    val incomingTransferState by viewModel.fileTransferIncomingState.collectAsStateWithLifecycle()
+    val readFileBytes = rememberReadBytesFromUri()
+    val getFileInfo = rememberGetFileInfo()
+
+    val openFileLauncher = rememberOpenFileLauncher { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                val info = getFileInfo(uri)
+                val bytes = readFileBytes(uri)
+                val fileName = info?.name ?: "file.bin"
+                val fileSize = bytes?.size?.toLong() ?: info?.size ?: 0L
+                if (fileSize > MftProtocol.MAX_FILE_SIZE || (bytes != null && bytes.size > MftProtocol.MAX_FILE_SIZE)) {
+                    fileTransferSizeError = fileName
+                } else if (bytes != null) {
+                    val destAddress = ContactKey(contactKey).addressString
+                    viewModel.startFileTransfer(destAddress = destAddress, fileName = fileName, fileBytes = bytes)
+                }
+            }
         }
     }
     var sharedContact by rememberSaveable { mutableStateOf<Node?>(null) }
@@ -497,6 +534,8 @@ fun MessageScreen(
                     onToggleShowFiltered = viewModel::toggleShowFiltered,
                     onNavigateToFilterSettings = navigateToFilterSettings,
                     onSearchClick = viewModel::toggleSearch,
+                    isDirectMessage = isDirectMessageConversation,
+                    onFileTransferClick = { showFileTransferWarning = true },
                 )
             }
         },
@@ -568,46 +607,133 @@ fun MessageScreen(
                 importedHeight = 500,
             )
         }
-        Box(Modifier.fillMaxSize().padding(paddingValues).focusable()) {
-            MessageListPaged(
-                modifier = Modifier.fillMaxSize(),
-                listState = listState,
-                state =
-                MessageListPagedState(
-                    nodes = nodes,
-                    ourNode = ourNode,
-                    messages = pagedMessages,
-                    selectedIds = selectedMessageIds,
-                    contactKey = contactKey,
-                    firstUnreadMessageUuid = firstUnreadMessageUuid,
-                    hasUnreadMessages = hasUnreadMessages == true,
-                    filteredCount = filteredCount,
-                    showFiltered = showFiltered,
-                    filteringDisabled = filteringDisabled,
-                    searchQuery = if (isSearchActive) searchQuery else "",
-                    translationAvailable = translationAvailable,
-                    showFullMessageTimestamps = showFullMessageTimestamps,
-                    textCompressionEnabled = textCompressionEnabled,
-                ),
-                handlers =
-                MessageListHandlers(
-                    onUnreadChanged = { messageUuid, timestamp ->
-                        onEvent(MessageScreenEvent.ClearUnreadCount(messageUuid, timestamp))
-                    },
-                    onSendReaction = { emoji, id -> onEvent(MessageScreenEvent.SendReaction(emoji, id)) },
-                    onClickChip = { onEvent(MessageScreenEvent.NodeDetails(it)) },
-                    onDeleteMessages = { viewModel.deleteMessages(it) },
-                    onSendMessage = { text, key -> viewModel.sendMessage(text, key) },
-                    onResendImage = { bytes, key -> viewModel.sendImageMessage(bytes, contactKey = key) },
-                    onReply = { message -> replyingToPacketId = message?.packetId },
-                    onTranslate = { onEvent(MessageScreenEvent.TranslateMessage(it)) },
-                    onToggleTranslation = { onEvent(MessageScreenEvent.ToggleShowTranslated(it)) },
-                ),
-                quickEmojis = viewModel.frequentEmojis,
+        if (showFileTransferWarning) {
+            FileTransferWarningDialog(
+                estimatedTime = "5–15 мин",
+                onSelectFile = {
+                    showFileTransferWarning = false
+                    openFileLauncher("*/*")
+                },
+                onDismiss = { showFileTransferWarning = false },
             )
-            // Show FAB if we can scroll towards the newest messages (index 0).
-            if (listState.canScrollBackward) {
-                ScrollToBottomFab(coroutineScope, listState, unreadCount, newestUnreadSender)
+        }
+
+        fileTransferSizeError?.let { _ ->
+            AlertDialog(
+                onDismissRequest = { fileTransferSizeError = null },
+                title = { Text(stringResource(Res.string.file_transfer)) },
+                text = { Text(stringResource(Res.string.file_transfer_size_limit)) },
+                confirmButton = { TextButton(onClick = { fileTransferSizeError = null }) { Text("OK") } },
+            )
+        }
+
+        val showOutgoingDialog =
+            when (val state = outgoingTransferState) {
+                is TransferState.Sending -> !state.isMinimized
+
+                is TransferState.Completed,
+                is TransferState.Failed,
+                -> true
+
+                else -> false
+            }
+        val showIncomingDialog =
+            when (val state = incomingTransferState) {
+                is TransferState.Receiving -> !state.isMinimized
+
+                is TransferState.Completed,
+                is TransferState.Failed,
+                -> true
+
+                else -> false
+            }
+        if (showOutgoingDialog) {
+            FileTransferProgressDialog(
+                state = outgoingTransferState,
+                onMinimize = viewModel::toggleOutgoingFileTransferMinimized,
+                onCancel = viewModel::cancelOutgoingFileTransfer,
+                onDismiss = viewModel::dismissFileTransferResult,
+            )
+        } else if (showIncomingDialog) {
+            FileTransferProgressDialog(
+                state = incomingTransferState,
+                onMinimize = viewModel::toggleIncomingFileTransferMinimized,
+                onCancel = viewModel::cancelIncomingFileTransfer,
+                onDismiss = viewModel::dismissFileTransferResult,
+            )
+        }
+
+        Box(Modifier.fillMaxSize().padding(paddingValues).focusable()) {
+            Column(Modifier.fillMaxSize()) {
+                val activeMinimizedState =
+                    when {
+                        outgoingTransferState is TransferState.Sending &&
+                            (outgoingTransferState as TransferState.Sending).isMinimized -> outgoingTransferState
+
+                        incomingTransferState is TransferState.Receiving &&
+                            (incomingTransferState as TransferState.Receiving).isMinimized -> incomingTransferState
+
+                        else -> TransferState.Idle
+                    }
+                FileTransferBanner(
+                    state = activeMinimizedState,
+                    onExpand = {
+                        if (outgoingTransferState is TransferState.Sending) {
+                            viewModel.toggleOutgoingFileTransferMinimized()
+                        } else if (incomingTransferState is TransferState.Receiving) {
+                            viewModel.toggleIncomingFileTransferMinimized()
+                        }
+                    },
+                    onCancel = {
+                        if (outgoingTransferState is TransferState.Sending) {
+                            viewModel.cancelOutgoingFileTransfer()
+                        } else if (incomingTransferState is TransferState.Receiving) {
+                            viewModel.cancelIncomingFileTransfer()
+                        }
+                    },
+                )
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    MessageListPaged(
+                        modifier = Modifier.fillMaxSize(),
+                        listState = listState,
+                        state =
+                        MessageListPagedState(
+                            nodes = nodes,
+                            ourNode = ourNode,
+                            messages = pagedMessages,
+                            selectedIds = selectedMessageIds,
+                            contactKey = contactKey,
+                            firstUnreadMessageUuid = firstUnreadMessageUuid,
+                            hasUnreadMessages = hasUnreadMessages == true,
+                            filteredCount = filteredCount,
+                            showFiltered = showFiltered,
+                            filteringDisabled = filteringDisabled,
+                            searchQuery = if (isSearchActive) searchQuery else "",
+                            translationAvailable = translationAvailable,
+                            showFullMessageTimestamps = showFullMessageTimestamps,
+                            textCompressionEnabled = textCompressionEnabled,
+                        ),
+                        handlers =
+                        MessageListHandlers(
+                            onUnreadChanged = { messageUuid, timestamp ->
+                                onEvent(MessageScreenEvent.ClearUnreadCount(messageUuid, timestamp))
+                            },
+                            onSendReaction = { emoji, id -> onEvent(MessageScreenEvent.SendReaction(emoji, id)) },
+                            onClickChip = { onEvent(MessageScreenEvent.NodeDetails(it)) },
+                            onDeleteMessages = { viewModel.deleteMessages(it) },
+                            onSendMessage = { text, key -> viewModel.sendMessage(text, key) },
+                            onResendImage = { bytes, key -> viewModel.sendImageMessage(bytes, contactKey = key) },
+                            onReply = { message -> replyingToPacketId = message?.packetId },
+                            onTranslate = { onEvent(MessageScreenEvent.TranslateMessage(it)) },
+                            onToggleTranslation = { onEvent(MessageScreenEvent.ToggleShowTranslated(it)) },
+                        ),
+                        quickEmojis = viewModel.frequentEmojis,
+                    )
+                    // Show FAB if we can scroll towards the newest messages (index 0).
+                    if (listState.canScrollBackward) {
+                        ScrollToBottomFab(coroutineScope, listState, unreadCount, newestUnreadSender)
+                    }
+                }
             }
         }
     }

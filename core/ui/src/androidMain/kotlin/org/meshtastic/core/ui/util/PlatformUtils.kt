@@ -625,3 +625,94 @@ actual fun rememberReadImageGrayValuesFromUri():
         }
     }
 }
+
+@Composable
+actual fun rememberReadBytesFromUri(): suspend (uri: CommonUri) -> ByteArray? {
+    val context = LocalContext.current
+    return remember(context) {
+        { uri ->
+            withContext(ioDispatcher) {
+                try {
+                    val androidUri = uri.toAndroidUri()
+                    context.contentResolver.openInputStream(androidUri)?.use { stream -> stream.readBytes() }
+                } catch (e: Exception) {
+                    Logger.e(e) { "Failed to read bytes from URI: $uri" }
+                    null
+                }
+            }
+        }
+    }
+}
+
+@Composable
+actual fun rememberGetFileInfo(): suspend (uri: CommonUri) -> FileInfo? {
+    val context = LocalContext.current
+    return remember(context) {
+        { uri ->
+            withContext(ioDispatcher) {
+                try {
+                    val androidUri = uri.toAndroidUri()
+                    var name = "file"
+                    var size = -1L
+
+                    context.contentResolver.query(androidUri, null, null, null, null)?.use { cursor ->
+                        val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                        val sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                        if (cursor.moveToFirst()) {
+                            if (nameIndex != -1) {
+                                cursor.getString(nameIndex)?.let { name = it }
+                            }
+                            if (sizeIndex != -1) {
+                                size = cursor.getLong(sizeIndex)
+                            }
+                        }
+                    }
+
+                    if (size <= 0L) {
+                        context.contentResolver.openFileDescriptor(androidUri, "r")?.use { pfd -> size = pfd.statSize }
+                    }
+
+                    FileInfo(name = name, size = size)
+                } catch (e: Exception) {
+                    Logger.e(e) { "Failed to query file info for URI: $uri" }
+                    null
+                }
+            }
+        }
+    }
+}
+
+@Composable
+actual fun rememberSaveToDownloads(): suspend (fileName: String, data: ByteArray) -> String? {
+    val context = LocalContext.current
+    return remember(context) {
+        { fileName, data ->
+            withContext(ioDispatcher) {
+                val path = saveFileToDownloads(fileName, data)
+                if (path != null) {
+                    try {
+                        android.media.MediaScannerConnection.scanFile(context, arrayOf(path), null, null)
+                    } catch (e: Exception) {
+                        Logger.w(e) { "MediaScanner failed for $path" }
+                    }
+                }
+                path
+            }
+        }
+    }
+}
+
+actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? = try {
+    val downloadsDir =
+        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+    val meshtasticDir = java.io.File(downloadsDir, "Meshtastic")
+    if (!meshtasticDir.exists()) {
+        meshtasticDir.mkdirs()
+    }
+    val targetFile = java.io.File(meshtasticDir, fileName)
+    targetFile.writeBytes(data)
+    targetFile.absolutePath
+} catch (e: Exception) {
+    Logger.e(e) { "Failed to save file to Downloads/Meshtastic: $fileName" }
+    null
+}

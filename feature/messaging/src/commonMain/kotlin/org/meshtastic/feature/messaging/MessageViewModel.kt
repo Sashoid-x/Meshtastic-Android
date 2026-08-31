@@ -72,6 +72,8 @@ import org.meshtastic.core.ui.util.SnackbarManager
 import org.meshtastic.core.ui.viewmodel.errorEventFlow
 import org.meshtastic.core.ui.viewmodel.safeLaunch
 import org.meshtastic.core.ui.viewmodel.stateInWhileSubscribed
+import org.meshtastic.feature.messaging.filetransfer.FileTransferManager
+import org.meshtastic.feature.messaging.filetransfer.TransferState
 import org.meshtastic.feature.messaging.translation.DownloadResult
 import org.meshtastic.feature.messaging.translation.MessageTranslationService
 import org.meshtastic.feature.messaging.translation.TranslationResult
@@ -116,7 +118,38 @@ class MessageViewModel(
     private val messageTranslationService: MessageTranslationService,
     private val snackbarManager: SnackbarManager,
     private val adminController: AdminController,
+    private val fileTransferManager: FileTransferManager? = null,
 ) : ViewModel() {
+    val fileTransferOutgoingState: StateFlow<TransferState> =
+        fileTransferManager?.outgoingState ?: MutableStateFlow(TransferState.Idle)
+
+    val fileTransferIncomingState: StateFlow<TransferState> =
+        fileTransferManager?.incomingState ?: MutableStateFlow(TransferState.Idle)
+
+    fun startFileTransfer(destAddress: String, fileName: String, fileBytes: ByteArray) {
+        fileTransferManager?.startSending(destAddress, fileName, fileBytes)
+    }
+
+    fun cancelOutgoingFileTransfer() {
+        fileTransferManager?.cancelOutgoing()
+    }
+
+    fun cancelIncomingFileTransfer() {
+        fileTransferManager?.cancelIncoming()
+    }
+
+    fun toggleOutgoingFileTransferMinimized() {
+        fileTransferManager?.toggleOutgoingMinimized()
+    }
+
+    fun toggleIncomingFileTransferMinimized() {
+        fileTransferManager?.toggleIncomingMinimized()
+    }
+
+    fun dismissFileTransferResult() {
+        fileTransferManager?.dismissResult()
+    }
+
     private val _title = MutableStateFlow("")
     val title: StateFlow<String> = _title.asStateFlow()
 

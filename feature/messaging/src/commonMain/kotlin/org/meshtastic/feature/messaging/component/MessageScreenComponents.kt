@@ -86,6 +86,7 @@ import org.meshtastic.core.resources.delete
 import org.meshtastic.core.resources.delete_messages
 import org.meshtastic.core.resources.delete_messages_title
 import org.meshtastic.core.resources.download
+import org.meshtastic.core.resources.file_transfer_attach
 import org.meshtastic.core.resources.filter_disable_for_contact
 import org.meshtastic.core.resources.filter_enable_for_contact
 import org.meshtastic.core.resources.filter_hide_count
@@ -114,6 +115,7 @@ import org.meshtastic.core.ui.component.NodeKeyStatusIcon
 import org.meshtastic.core.ui.component.SecurityIcon
 import org.meshtastic.core.ui.icon.ArrowBack
 import org.meshtastic.core.ui.icon.ArrowDownward
+import org.meshtastic.core.ui.icon.AttachFile
 import org.meshtastic.core.ui.icon.ChatBubbleOutline
 import org.meshtastic.core.ui.icon.Close
 import org.meshtastic.core.ui.icon.Copy
@@ -417,6 +419,8 @@ fun MessageTopBar(
     onToggleShowFiltered: () -> Unit = {},
     onNavigateToFilterSettings: () -> Unit = {},
     onSearchClick: () -> Unit = {},
+    isDirectMessage: Boolean = false,
+    onFileTransferClick: (() -> Unit)? = null,
 ) = TopAppBar(
     title = {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -437,6 +441,14 @@ fun MessageTopBar(
         }
     },
     actions = {
+        if (isDirectMessage && onFileTransferClick != null) {
+            IconButton(onClick = onFileTransferClick) {
+                Icon(
+                    imageVector = MeshtasticIcons.AttachFile,
+                    contentDescription = stringResource(Res.string.file_transfer_attach),
+                )
+            }
+        }
         IconButton(onClick = onSearchClick) {
             Icon(
                 imageVector = MeshtasticIcons.Search,

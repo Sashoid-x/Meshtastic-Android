@@ -663,7 +663,24 @@
     <string name="favorite">Favorite</string>
     <string name="favorite_add">Add '%1$s' as a favorite node?</string>
     <string name="favorite_remove">Remove '%1$s' as a favorite node?</string>
+    <!-- FILE -->
     <string name="file_entry">- %1$s (%2$d bytes)</string>
+    <string name="file_transfer">File transfer</string>
+    <string name="file_transfer_attach">Attach file</string>
+    <string name="file_transfer_cancel">Cancel transfer</string>
+    <string name="file_transfer_cancelled">Transfer cancelled</string>
+    <string name="file_transfer_chunk_progress">Chunk %1$d / %2$d</string>
+    <string name="file_transfer_complete">Transfer complete</string>
+    <string name="file_transfer_error">Transfer failed: %1$s</string>
+    <string name="file_transfer_in_progress">Transferring file…</string>
+    <string name="file_transfer_minimize">Minimize</string>
+    <string name="file_transfer_receiving">Receiving file…</string>
+    <string name="file_transfer_saved">File saved to Downloads/Meshtastic</string>
+    <string name="file_transfer_select_file">Select file</string>
+    <string name="file_transfer_sending">Sending file…</string>
+    <string name="file_transfer_size_limit">File size exceeds the 500 KB limit</string>
+    <string name="file_transfer_warning_body">File transfer uses LoRa radio with the following limitations:\n\n• Direct link only (0 hops) — both devices must be within radio range\n• Maximum file size: 500 KB\n• MQTT will be bypassed\n• Transfer speed is very slow (~200 bytes per packet)\n• Stay within range during the entire transfer\n• Estimated time: %1$s</string>
+    <string name="file_transfer_warning_title">LoRa file transfer</string>
     <string name="files_available">Files available (%1$d):</string>
     <!-- FILTER -->
     <string name="filter_add_placeholder">Add word or regex:pattern</string>

@@ -161,9 +161,14 @@ class MeshDataHandlerImpl(
 
             PortNum.NODE_STATUS_APP -> handleNodeStatus(packet, dataPacket, myNodeNum, session)
 
-            PortNum.ALERT_APP,
-            PortNum.PRIVATE_APP,
-            -> rememberDataPacket(dataPacket, myNodeNum, session = session)
+            PortNum.ALERT_APP -> rememberDataPacket(dataPacket, myNodeNum, session = session)
+
+            PortNum.PRIVATE_APP -> {
+                val payload = packet.decoded?.payload
+                if (payload == null || !isMftPayload(payload)) {
+                    rememberDataPacket(dataPacket, myNodeNum, session = session)
+                }
+            }
 
             PortNum.WAYPOINT_APP -> handleWaypoint(packet, dataPacket, myNodeNum, session)
 
@@ -686,6 +691,13 @@ class MeshDataHandlerImpl(
 
     private fun DataPacket.hasSameSenderAs(other: DataPacket, myNodeNum: Int): Boolean =
         source == other.source || (isFromLocal(myNodeNum) && other.isFromLocal(myNodeNum))
+
+    @Suppress("MagicNumber")
+    private fun isMftPayload(payload: ByteString): Boolean = payload.size >= 4 &&
+        payload[0] == 0x4D.toByte() &&
+        payload[1] == 0x46.toByte() &&
+        payload[2] == 0x54.toByte() &&
+        payload[3] == 0x01.toByte()
 
     companion object {
         private const val HOPS_AWAY_UNAVAILABLE = -1

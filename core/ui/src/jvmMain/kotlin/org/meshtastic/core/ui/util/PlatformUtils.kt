@@ -252,3 +252,52 @@ actual fun rememberReadImageGrayValuesFromUri():
             }
         }
     }
+
+@Suppress("TooGenericExceptionCaught")
+@Composable
+actual fun rememberReadBytesFromUri(): suspend (uri: CommonUri) -> ByteArray? = { uri ->
+    withContext(ioDispatcher) {
+        try {
+            val file = File(URI(uri.toString()))
+            if (file.exists()) file.readBytes() else null
+        } catch (e: Exception) {
+            Logger.e(e) { "Failed to read bytes from URI: $uri" }
+            null
+        }
+    }
+}
+
+@Suppress("TooGenericExceptionCaught")
+@Composable
+actual fun rememberGetFileInfo(): suspend (uri: CommonUri) -> FileInfo? = { uri ->
+    withContext(ioDispatcher) {
+        try {
+            val file = File(URI(uri.toString()))
+            if (file.exists()) FileInfo(name = file.name, size = file.length()) else null
+        } catch (e: Exception) {
+            Logger.e(e) { "Failed to get file info from URI: $uri" }
+            null
+        }
+    }
+}
+
+@Composable
+actual fun rememberSaveToDownloads(): suspend (fileName: String, data: ByteArray) -> String? = { fileName, data ->
+    withContext(ioDispatcher) { saveFileToDownloads(fileName, data) }
+}
+
+@Suppress("TooGenericExceptionCaught")
+actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? = try {
+    val home = System.getProperty("user.home") ?: "."
+    val downloadsDir = File(home, "Downloads")
+    val meshtasticDir = File(downloadsDir, "Meshtastic")
+    if (!meshtasticDir.exists()) {
+        meshtasticDir.mkdirs()
+    }
+    val targetFile = File(meshtasticDir, fileName)
+    targetFile.writeBytes(data)
+    targetFile.absolutePath
+} catch (e: Exception) {
+    Logger.e(e) { "Failed to save file to Downloads/Meshtastic: $fileName" }
+    null
+}

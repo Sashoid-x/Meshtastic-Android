@@ -65,6 +65,8 @@ data class DataPacket(
     var transportMechanism: Int = 0,
     /** True when the radio verified this broadcast's XEdDSA signature ([MeshPacket.xeddsa_signed]). */
     var xeddsaSigned: Boolean = false,
+    /** When true, forces 0 hops (direct-link only, no mesh relaying). */
+    var isDirectOnly: Boolean = false,
 ) {
 
     /** If there was an error with this message, this string describes what was wrong. */

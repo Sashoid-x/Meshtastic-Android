@@ -142,3 +142,32 @@ expect val bleScanRequiresLocationServices: Boolean
  */
 @Composable
 expect fun rememberReadImageGrayValuesFromUri(): suspend (uri: CommonUri, reqWidth: Int, reqHeight: Int) -> FloatArray?
+
+/** Returns a suspend function that reads all bytes from a [CommonUri]. Returns `null` if the file cannot be read. */
+@Composable expect fun rememberReadBytesFromUri(): suspend (uri: CommonUri) -> ByteArray?
+
+/**
+ * File metadata retrieved from a content URI.
+ *
+ * @property name The display name of the file.
+ * @property size The file size in bytes, or -1 if unknown.
+ */
+data class FileInfo(val name: String, val size: Long)
+
+/**
+ * Returns a suspend function that queries the display name and size of a file from a [CommonUri]. Returns `null` if the
+ * information cannot be determined.
+ */
+@Composable expect fun rememberGetFileInfo(): suspend (uri: CommonUri) -> FileInfo?
+
+/**
+ * Returns a suspend function that saves [data] into the system Downloads directory under a `Meshtastic/` subfolder with
+ * the given [fileName]. Returns the saved file path on success, or `null` on failure.
+ */
+@Composable expect fun rememberSaveToDownloads(): suspend (fileName: String, data: ByteArray) -> String?
+
+/**
+ * Saves [data] into the system Downloads directory under a `Meshtastic/` subfolder with [fileName]. Can be called from
+ * non-Composable code (background services / managers). Returns the saved file path on success, or `null` on failure.
+ */
+expect fun saveFileToDownloads(fileName: String, data: ByteArray): String?

@@ -172,7 +172,7 @@ class CommandSenderImpl(
                 to = resolveNodeNum(NodeAddress.fromString(p.to)),
                 id = p.id,
                 wantAck = p.wantAck,
-                hopLimit = if (p.hopLimit > 0) p.hopLimit else computeHopLimit(),
+                hopLimit = p.hopLimit,
                 channel = p.channel,
                 decoded =
                 Data(
@@ -181,6 +181,7 @@ class CommandSenderImpl(
                     reply_id = p.replyId ?: 0,
                     emoji = p.emoji,
                 ),
+                isDirectOnly = p.isDirectOnly,
             )
         return packetHandler.sendToRadio(meshPacket)
     }
@@ -506,8 +507,16 @@ class CommandSenderImpl(
         channel: Int = 0,
         priority: MeshPacket.Priority = MeshPacket.Priority.UNSET,
         decoded: Data,
+        isDirectOnly: Boolean = false,
     ): MeshPacket {
-        val actualHopLimit = if (hopLimit > 0) hopLimit else computeHopLimit()
+        val actualHopLimit =
+            if (isDirectOnly) {
+                0
+            } else if (hopLimit > 0) {
+                hopLimit
+            } else {
+                computeHopLimit()
+            }
 
         var pkiEncrypted = false
         var publicKey: ByteString = ByteString.EMPTY

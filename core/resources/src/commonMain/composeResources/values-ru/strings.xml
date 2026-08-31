@@ -656,6 +656,23 @@
     <string name="favorite_remove">Удалить '%1$s' из избранных нод?</string>
     <string name="file_entry">- %1$s (%2$d байт)</string>
     <string name="files_available">Доступные файлы (%1$d):</string>
+    <!-- FILE TRANSFER -->
+    <string name="file_transfer">Передача файлов</string>
+    <string name="file_transfer_attach">Прикрепить файл</string>
+    <string name="file_transfer_cancel">Отменить передачу</string>
+    <string name="file_transfer_cancelled">Передача отменена</string>
+    <string name="file_transfer_chunk_progress">Пакет %1$d / %2$d</string>
+    <string name="file_transfer_complete">Передача завершена</string>
+    <string name="file_transfer_error">Ошибка передачи: %1$s</string>
+    <string name="file_transfer_in_progress">Передача файла…</string>
+    <string name="file_transfer_minimize">Свернуть</string>
+    <string name="file_transfer_receiving">Приём файла…</string>
+    <string name="file_transfer_saved">Файл сохранён в Downloads/Meshtastic</string>
+    <string name="file_transfer_select_file">Выбрать файл</string>
+    <string name="file_transfer_sending">Отправка файла…</string>
+    <string name="file_transfer_size_limit">Размер файла превышает лимит 500 КБ</string>
+    <string name="file_transfer_warning_body">Передача файлов использует радиоканал LoRa со следующими ограничениями:\n\n• Только прямая связь (0 хопов) — устройства должны быть в зоне радиовидимости\n• Максимальный размер файла: 500 КБ\n• Передача идёт в обход MQTT\n• Скорость передачи очень низкая (~200 байт на пакет)\n• Не покидайте зону связи во время передачи\n• Примерное время передачи: %1$s</string>
+    <string name="file_transfer_warning_title">LoRa передача файлов</string>
     <!-- FILTER -->
     <string name="filter_add_placeholder">Добавьте слово или регулярное выражение:шаблон</string>
     <string name="filter_disable_for_contact">Отключить фильтрацию</string>

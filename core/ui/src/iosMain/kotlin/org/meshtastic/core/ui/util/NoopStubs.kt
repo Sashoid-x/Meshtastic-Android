@@ -90,3 +90,12 @@ actual fun SetScreenBrightness(brightness: Float) {
 actual fun rememberReadImageGrayValuesFromUri():
     suspend (uri: CommonUri, reqWidth: Int, reqHeight: Int) -> FloatArray? =
     { _, _, _ -> null }
+
+@Composable actual fun rememberReadBytesFromUri(): suspend (uri: CommonUri) -> ByteArray? = { null }
+
+@Composable actual fun rememberGetFileInfo(): suspend (uri: CommonUri) -> FileInfo? = { null }
+
+@Composable
+actual fun rememberSaveToDownloads(): suspend (fileName: String, data: ByteArray) -> String? = { _, _ -> null }
+
+actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? = null
