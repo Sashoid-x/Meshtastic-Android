@@ -19,7 +19,7 @@
     <!-- A11Y -->
     <string name="a11y_label_value">%1$s: %2$s</string>
     <string name="a11y_message_from">Message de %1$s: %2$s</string>
-    <string name="a11y_node_battery">batterie : %1$d%%</string>
+    <string name="a11y_node_battery">batterie : %1$d%</string>
     <string name="a11y_node_distance_away">À %1$s</string>
     <string name="a11y_node_favorite">favori</string>
     <string name="a11y_node_hops_away">À %1$d sauts</string>
@@ -136,6 +136,7 @@
     <string name="battery_ina_2xx_i2c_address">Adresse I2C de la batterie INA_2XX</string>
     <string name="ble_devices">Appareils Bluetooth</string>
     <string name="ble_rssi_threshold_defaults_to_80">Seuil BLE RSSI (par défaut -80)</string>
+    <string name="ble_scan_needs_location_services">La recherche Bluetooth nécessite également des services de localisation activés pour cette version d'Android. Votre position n'est pas utilisée.</string>
     <string name="blue">Bleu</string>
     <!-- BLUETOOTH -->
     <string name="bluetooth">Bluetooth</string>
@@ -148,6 +149,14 @@
     <string name="bluetooth_feature_discovery">Découverte</string>
     <string name="bluetooth_feature_discovery_description">Trouvez et identifiez les dispositifs Meshtastic autour de  vous.</string>
     <string name="bluetooth_permission">Bluetooth</string>
+    <string name="bluetooth_permission_blocked_notice">L'accès aux appareils à proximité est désactivé et Android ne le demandera plus. Activez-le dans les paramètres de l'application pour vous connecter via le Bluetooth, ou bien connectez-vous via Wi-Fi ou USB.</string>
+    <string name="bluetooth_permission_blocked_notice_pre31">L'autorisation de localisation est désactivée et Android ne la demandera plus. Activez-la dans les paramètres de l'application vous rechercher des appareils Bluetooth ou bien connectez-vous via Wi-Fi ou USB.</string>
+    <string name="bluetooth_permission_blocked_rationale">L'accès aux appareils à proximité est désactivé et Android ne le demandera plus. Activez-le dans les paramètres de l'application pour rechercher et vous connecter via Bluetooth.</string>
+    <string name="bluetooth_permission_blocked_rationale_pre31">L'autorisation de localisation est désactivée et Android ne la demandera plus. Activez-la dans les paramètres de l'application pour rechercher et vous connecter via Bluetooth.</string>
+    <string name="bluetooth_permission_denied_notice">Sans accès aux appareils à proximité, Meshtastic ne peut pas trouver ou se connecter à votre radio via Bluetooth. Vous pouvez toujours vous connecter via Wi-Fi ou USB.</string>
+    <string name="bluetooth_permission_denied_notice_pre31">Sans autorisation de localisation, Android bloque la recherche Bluetooth, Meshtastic ne peut donc pas trouver votre radio. Vous pouvez toujours vous connecter via Wi-Fi ou USB.</string>
+    <string name="bluetooth_permission_rationale">Meshtastic a besoin de l'accès aux périphériques à proximité pour trouver votre radio et se connecter à celle-ci. Il est utilisé seulement pour parler à vos propres appareils, jamais pour vous localiser. Sans cela, le Bluetooth est indisponible — le Wi-Fi et l'USB fonctionnent toujours.</string>
+    <string name="bluetooth_permission_rationale_pre31">Meshtastic a besoin d'une autorisation de localisation car cette version d'Android traite la recherche Bluetooth comme une capacité de localisation. Votre position n'est jamais lue ou partagée pour cela. Sans elle, le Bluetooth n'est pas disponible — le Wi-Fi et l'USB fonctionnent toujours.</string>
     <string name="bluetooth_scan_location_services_disabled">Les services de localisation sont désactivés. Activez-les pour rechercher les appareils à proximité.</string>
     <string name="bluetooth_scan_missing_permission">L'analyse Bluetooth nécessite une autorisation. Autorisez les périphériques à proximité (ou la localisation) pour trouver des périphériques.</string>
     <string name="bluetooth_scan_start_failed">L'analyse Bluetooth n'a pas pu démarrer. Essayez à nouveau, ou activez/désactivez Bluetooth si le problème continue.</string>
@@ -158,12 +167,19 @@
     <string name="bold_heading">Titre en gras</string>
     <string name="bonding_failed_permissions">L'appairage a échoué. Accorder les autorisations de l'appareil à proximité et essayer à nouveau.</string>
     <string name="bonding_failed_retry">L'appairage n'a pas abouti. Veuillez réessayer.</string>
+    <string name="boot_reconnect_blocked_message">L'autorisation d'accès aux appareils à proximité est désactivée, votre radio ne peut donc pas être atteinte en Bluetooth. Appuyez pour l'allumer.</string>
+    <string name="boot_reconnect_blocked_title">Meshtastic ne peut pas se reconnecter</string>
     <string name="bottom_nav_settings">Réglages</string>
     <string name="broadcast_interval">Intervalle de diffusion</string>
     <string name="button_gpio">GPIO du bouton</string>
     <string name="buzzer_gpio">GPIO du buzzer</string>
+    <plurals name="cache_limit_eviction_warning">
+        <item quantity="one">Réduire ceci supprimera définitivement l'historique pour %1$d appareil.</item>
+        <item quantity="other">Réduire ceci supprimera définitivement l'historique pour %1$d appareils.</item>
+    </plurals>
     <string name="calculating">Calcul en cours…</string>
     <string name="call_sign">Indicatif d'appel</string>
+    <string name="call_sign_summary">Votre indicatif de radio amateur, jusqu'à 7 caractères</string>
     <string name="camera_permission">Autorisation de la caméra</string>
     <string name="camera_permission_rationale">Autoriser l'accès à l'appareil photo pour scanner les codes QR.</string>
     <string name="camera_unavailable">La caméra n'a pas pu démarrer. Essayez à nouveau, ou fermez le scanner et rouvrez-le.</string>
@@ -197,7 +213,6 @@
     <string name="chirpy">Chirpy</string>
     <string name="chirpy_assistant_title">Assistant Chirpy</string>
     <string name="chirpy_downloading">Chirpy est en train de télécharger…</string>
-    <string name="chirpy_downloading_progress">Téléchargement du modèle Chirpy : %1$d%%</string>
     <string name="chirpy_downloading_subtitle">Cela ne se produit qu'une seule fois. Chirpy sera bientôt prêt !</string>
     <string name="chirpy_error_busy">Woah! Le canal est totalement bondé avec un lourd trafic actuellement ! 📶 Attende pour un moment plus calme et réessayer la transmission.</string>
     <string name="chirpy_error_model_unavailable">Ma batterie se charge ou mon firmware est toujours en téléchargement ! 🔋Donne-moi un peu de temps pour me synchroniser et m'allumer !</string>
@@ -221,6 +236,7 @@
     <string name="clean_unknown_nodes">Nettoyer uniquement les nœuds inconnus</string>
     <!-- CLEAR -->
     <string name="clear">Effacer</string>
+    <string name="clear_position_track_message">Ceci supprimera définitivement les données GPS de ce nœud. Cette action est irréversible.</string>
     <string name="clear_selection">Effacer la sélection</string>
     <string name="clear_time_zone">Effacer le fuseau horaire</string>
     <string name="client_notification">Notification client</string>
@@ -272,7 +288,7 @@
     <string name="config_lora_region_summary">La région où vous allez utiliser vos radios.</string>
     <string name="config_network_eth_enabled_summary">Activer Ethernet désactivera la connexion Bluetooth à l'application. Les connexions de nœuds via TCP ne sont pas disponibles sur les appareils Apple.</string>
     <string name="config_network_udp_enabled_summary">Activer les paquets de diffusion via UDP sur le réseau local.</string>
-    <string name="config_network_wifi_enabled_summary">L'activation du Wifi désactivera la connexion Bluetooth à l'application.</string>
+    <string name="config_network_wifi_enabled_summary">Activer le Wi-Fi désactivera la connexion Bluetooth à l'application.</string>
     <string name="config_position_broadcast_secs_summary">L'intervalle maximum qui peut s'écouler sans qu'un nœud diffuse une position.</string>
     <string name="config_position_broadcast_smart_minimum_distance_summary">Distance minimale en mètres pour considérer une diffusion de position intelligente.</string>
     <string name="config_position_broadcast_smart_minimum_interval_secs_summary">Intervalle minimum auquel les mises à jour de position seront envoyées si la distance minimale est respectée.</string>
@@ -347,6 +363,7 @@
     <string name="debug_store_logs_summary">Désactiver pour passer l'écriture des journaux de maillage sur le disque</string>
     <string name="debug_store_logs_title">Stocker les journaux de maillage</string>
     <string name="debug_tab_app_logs">Journal de l'application</string>
+    <string name="debug_tab_packets">Paquets</string>
     <string name="deep_link_connect_message">Un lien demande à cette application de se connecter à l'appareil %1$s. Ne continuez que si vous avez confiance en l'origine du lien.</string>
     <string name="deep_link_connect_title">Se connecter à cet appareil ?</string>
     <string name="deep_link_disconnect_message">Un lien demande à cette application de se déconnecter de votre appareil. Continuez uniquement si vous faites confiance à l'origine du lien.</string>
@@ -433,7 +450,6 @@
     <string name="discovery_map">Carte de découverte</string>
     <string name="discovery_not_connected">Non connecté</string>
     <string name="discovery_not_connected_description">Connectez-vous à un périphérique Meshtastic pour commencer à scanner.</string>
-    <string name="discovery_paused">En pause : %1$s</string>
     <string name="discovery_preparing">Préparation de l'analyse</string>
     <string name="discovery_preset_home_label">%1$s (Accueil)</string>
     <string name="discovery_reconnecting">Reconnexion sur %1$s</string>
@@ -453,16 +469,23 @@
     <string name="discovery_start_scan_reason_no_presets">Aucun préréglage sélectionné</string>
     <string name="discovery_start_scan_reason_not_connected">Appareil non connecté</string>
     <string name="discovery_stat_analysis">Analyse</string>
+    <string name="discovery_stat_bad_packets">Paquets invalides</string>
     <string name="discovery_stat_channel_utilization">Utilisation du canal</string>
     <string name="discovery_stat_date">Date</string>
     <string name="discovery_stat_direct">Direct</string>
+    <string name="discovery_stat_duplicate_packets">Paquets en double</string>
     <string name="discovery_stat_failure_rate">Taux d'erreur</string>
+    <string name="discovery_stat_mesh">Maillage</string>
     <string name="discovery_stat_messages">Messages</string>
     <string name="discovery_stat_online_total_nodes">Nœuds en ligne / Total</string>
+    <string name="discovery_stat_packets_rx">Paquets RX</string>
+    <string name="discovery_stat_packets_tx">Paquets TX</string>
     <string name="discovery_stat_selected">Sélectionné</string>
     <string name="discovery_stat_session_overview">Aperçu de la session</string>
     <string name="discovery_stat_status">Statut</string>
     <string name="discovery_stat_success_rate">Taux de réussite</string>
+    <string name="discovery_stat_total_messages">Messages totaux</string>
+    <string name="discovery_stat_total_unique_nodes">Total de nœuds uniques</string>
     <string name="discovery_stat_unique_nodes">Nœuds uniques</string>
     <string name="discovery_stat_unselected">Non sélectionné</string>
     <string name="discovery_stop_scan">Arrêter le scan</string>
@@ -488,11 +511,10 @@
     <string name="doc_search_placeholder">Rechercher dans la documentation</string>
     <string name="doc_section_developer">Guide du développeur</string>
     <string name="doc_section_user">Guide de l'utilisateur</string>
-    <string name="doc_title_android_auto">Android Auto</string>
     <string name="doc_title_connections">Connexions</string>
     <string name="doc_title_debug_logs">Journaux de débogage</string>
     <string name="doc_title_desktop">Application pour ordinateur</string>
-    <string name="doc_title_discovery">Découverte</string>
+    <string name="doc_title_discovery">Découverte de maille locale</string>
     <string name="doc_title_firmware">Mises à jour du firmware</string>
     <string name="doc_title_mqtt">MQTT</string>
     <string name="doc_title_node_metrics">Métriques du nœud</string>
@@ -586,8 +608,6 @@
     <string name="firmware_edition">Version du micrologiciel</string>
     <string name="firmware_event_ended_banner">%1$s est déprécié. Utilisez un micrologiciel Meshtastic standard pour restaurer les fonctionnalités normales.</string>
     <string name="firmware_event_ended_button">Mettre à jour le micrologiciel</string>
-    <string name="firmware_maintenance_erase_action">Effacer et réinstaller</string>
-    <string name="firmware_maintenance_erase_confirm_title">Effacer ce périphérique ?</string>
     <string name="firmware_maintenance_upgrade_bootloader_action">Mise à jour du bootloader</string>
     <string name="firmware_maintenance_upgrade_confirm_title">Mettre à jour le chargeur de démarrage ?</string>
     <string name="firmware_old">Le micrologiciel de la radio est trop ancien pour communiquer avec cette application. Pour des informations, voir <a href="https://meshtastic.org/docs/getting-started/flashing-firmware">Guide d'installation du micrologiciel</a>.</string>
@@ -631,7 +651,6 @@
     <string name="firmware_update_method_ble">Mise à jour via Bluetooth</string>
     <string name="firmware_update_method_detail">Mettre à jour via %1$s</string>
     <string name="firmware_update_method_usb">Transfert de fichier USB</string>
-    <string name="firmware_update_method_wifi">Mise à jour via WiFi</string>
     <string name="firmware_update_missing_target">Les informations de destination du micrologiciel ne sont pas disponibles pour cet appareil.</string>
     <string name="firmware_update_nightly">Nightly</string>
     <string name="firmware_update_no_device">Aucun appareil connecté</string>
@@ -776,17 +795,6 @@
     <string name="key_verification_final_title">Vérification de la clé terminée</string>
     <string name="key_verification_request_title">Requête de vérification de clé</string>
     <string name="key_verification_title">Vérification de la clé</string>
-    <!-- LABEL -->
-    <string name="label_long_fast">Longue portée-Rapide</string>
-    <string name="label_long_moderate">Longue portée - Modérée</string>
-    <string name="label_long_slow">Longue portée - Lent</string>
-    <string name="label_long_turbo">Longue portée - Turbo</string>
-    <string name="label_medium_fast">Portée moyenne - Rapide</string>
-    <string name="label_medium_slow">Portée moyenne - Lent</string>
-    <string name="label_short_fast">Portée courte - Rapide</string>
-    <string name="label_short_slow">Portée courte - Lent</string>
-    <string name="label_short_turbo">Portée courte - Turbo</string>
-    <string name="label_very_long_slow">Très longue portée - Lent</string>
     <string name="last_heard_filter_label">Filtrer par la dernière écoute : %1$s</string>
     <string name="last_position_update">Dernière mise à jour de position</string>
     <string name="latest_alpha_firmware">Dernière version alpha</string>
@@ -893,7 +901,11 @@
     <string name="map_download_complete">Téléchargement terminé !</string>
     <string name="map_download_errors">Téléchargement terminé avec %1$d erreurs</string>
     <string name="map_download_region">Télécharger la région</string>
+    <string name="map_download_status_complete">Complété</string>
     <string name="map_filter">Filtre de carte\n</string>
+    <string name="map_filter_all_roles">Tout</string>
+    <string name="map_filter_display_title">Écran</string>
+    <string name="map_filter_nodes_title">Nœuds</string>
     <string name="map_layer_formats">Les calques personnalisés prennent en charge les fichiers .kml, .kmz ou GeoJSON.</string>
     <string name="map_node_popup_details">%1$s&lt;br&gt;Dernière écoute : %2$s&lt;br&gt;Dernière position : %3$s&lt;br&gt;Batterie : %4$s</string>
     <string name="map_offline_manager">Gestionnaire hors-ligne</string>
@@ -922,6 +934,9 @@
     <string name="mesh_beacon_broadcast_summary">Annoncez périodiquement ce maillage aux nœuds proches</string>
     <string name="mesh_beacon_offer_dismiss">Rejeter</string>
     <string name="mesh_beacon_preset_none">Aucun</string>
+    <string name="mesh_beacon_region_label">Région</string>
+    <string name="mesh_beacon_target_channel_index">Canal</string>
+    <string name="mesh_beacon_target_default">Par défaut</string>
     <string name="mesh_map_location">Emplacement de la carte de maillage</string>
     <string name="mesh_map_location_description">Active le point de localisation bleu de votre téléphone sur la carte de maillage.</string>
     <!-- MESHTASTIC -->
@@ -1047,7 +1062,6 @@
     <string name="node_sort_title">Trier</string>
     <string name="node_sort_via_favorite">par Favoris</string>
     <string name="node_sort_via_mqtt">via MQTT</string>
-    <string name="node_status_summary">La chaîne de statut actuelle</string>
     <string name="nodedb_reset">Reconfiguration de NodeDB</string>
     <string name="nodeinfo_broadcast_interval">Intervalle de diffusion des infos nœud</string>
     <!-- NODES -->
@@ -1073,6 +1087,7 @@
     <string name="now">Maintenant</string>
     <string name="ntp_server">Serveur NTP</string>
     <string name="number_of_records">Nombre d'enregistrements</string>
+    <!-- OFFLINE -->
     <string name="ok_to_mqtt">Transmission des paquets vers MQTT</string>
     <string name="okay">D'accord</string>
     <string name="oled_type">Type d'OLED</string>
@@ -1113,7 +1128,6 @@
     <string name="pax_total_format">PAX : %1$d</string>
     <string name="pax_total_marker">PAX : %1$s</string>
     <string name="pax_wifi_format">W :%1$d</string>
-    <string name="pax_wifi_marker">Wi-Fi : %1$s</string>
     <string name="paxcounter">Compteur de passages</string>
     <string name="paxcounter_config">Configuration du Paxcounter</string>
     <string name="paxcounter_enabled">Paxcounter activé</string>
@@ -1259,18 +1273,30 @@
     <string name="ringtone_imported">Sonnerie importée</string>
     <!-- ROLE -->
     <string name="role">Rôle de l'appareil</string>
+    <string name="role_client">Client</string>
+    <string name="role_client_base">Base Client</string>
     <string name="role_client_base_desc">Traite les paquets depuis ou vers les nœuds favoris comme Routeur avec retard (ROUTER_LATE), et tous les autres paquets comme CLIENT.</string>
     <string name="role_client_desc">Dispositif de messagerie autonome ou connecté à l'application.</string>
+    <string name="role_client_hidden">Client masqué</string>
     <string name="role_client_hidden_desc">Appareil ne diffusant que si nécessaire pour la discrétion et l'économie d'énergie.</string>
+    <string name="role_client_mute">Client muet</string>
     <string name="role_client_mute_desc">Appareil ne transmettant pas les paquets provenant d'autres appareils.</string>
-    <string name="role_lost_and_found_desc">Transmet régulièrement la position par message dans le canal par défaut pour vous aider à retrouver l'appareil.</string>
+    <string name="role_lost_and_found">Objets trouvés</string>
+    <string name="role_repeater">Répéteur</string>
     <string name="role_repeater_desc">Nœud d'infrastructure pour étendre la couverture réseau en relayant les messages avec une surcharge minimale. Non visible dans la liste des nœuds.</string>
+    <string name="role_router">Routeur</string>
+    <string name="role_router_client">Routeur Client</string>
     <string name="role_router_client_desc">Combinaison à la fois du ROUTER et du CLIENT. Pas pour les appareils mobiles.</string>
     <string name="role_router_desc">Nœud d'infrastructure pour étendre la couverture réseau en relayant les messages. Visible dans la liste des nœuds.</string>
+    <string name="role_router_late">Routeur avec retard</string>
     <string name="role_router_late_desc">Nœud d'infrastructure qui retransmet toujours les paquets une fois mais seulement après tous les autres modes, assurant une couverture supplémentaire pour les clusters locaux. Visible dans la liste des nœuds.</string>
+    <string name="role_sensor">Capteur</string>
     <string name="role_sensor_desc">Transmet les paquets de télémétrie en priorité.</string>
+    <string name="role_tak">TAK</string>
     <string name="role_tak_desc">Optimisé pour le système de communication ATAK, diminue les émissions de routine.</string>
+    <string name="role_tak_tracker">Traqueur TAK</string>
     <string name="role_tak_tracker_desc">Active les diffusions automatiques de TAK PLI et réduit les diffusions de routine.</string>
+    <string name="role_tracker">Traqueur</string>
     <string name="role_tracker_desc">Transmet les paquets de positions GPS en priorité.</string>
     <string name="root_topic">Sujet principal</string>
     <string name="rotary_encoder_1_enabled">Encodeur rotatif #1 activé</string>
@@ -1383,7 +1409,6 @@
     <string name="ssid">SSID</string>
     <string name="state_broadcast_seconds">Diffusion de l'État (secondes)</string>
     <string name="status_message">Statut du message</string>
-    <string name="status_message_config">Configuration du statut du message</string>
     <string name="stay_connected_anywhere">Restez connecté n'importe où</string>
     <string name="store_forward">Stocker &amp; Transférer</string>
     <string name="store_forward_config">Stocker &amp; Transférer la configuration</string>
@@ -1477,7 +1502,6 @@
     <string name="traffic_management_nodeinfo_direct_response_max_hops">Max de saut pour une réponse directe</string>
     <string name="traffic_management_position_dedup">Déduplication de Position</string>
     <string name="traffic_management_position_min_interval">Intervalle de position min (secs)</string>
-    <string name="traffic_management_position_precision">Précision de position (octets)</string>
     <string name="traffic_management_rate_limit_enabled">Limitation de débit</string>
     <string name="traffic_management_rate_limit_max_packets">Paquets maximum dans la fenêtre</string>
     <string name="traffic_management_rate_limit_window">Fenêtre de limitation de taux (secs)</string>
@@ -1499,6 +1523,9 @@
     <string name="tx_power_dbm">Puissance d'émission</string>
     <string name="type">Type</string>
     <string name="type_a_message">Composer un message</string>
+    <!-- UNITS -->
+    <string name="units_follow_system">Valeur par défaut du système</string>
+    <string name="units_metric">Métrique</string>
     <!-- UNKNOWN -->
     <string name="unknown">Inconnu</string>
     <string name="unknown_age">Age inconnu</string>
@@ -1554,27 +1581,19 @@
     <string name="waypoint_received">Point de passage reçu : %1$s</string>
     <string name="weight">Poids</string>
     <!-- WIFI -->
-    <string name="wifi_config">Options WiFi</string>
     <string name="wifi_devices">Approvisionnement Wi-Fi pour mPWRD-OS</string>
-    <string name="wifi_enabled">WiFi activé</string>
-    <string name="wifi_ip">IP du Wifi :</string>
     <string name="wifi_provision_available_networks">Réseaux disponibles</string>
     <string name="wifi_provision_connect_failed">Impossible de se connecter : %1$s</string>
     <string name="wifi_provision_description">Fournissez les identifiants Wi-Fi à votre appareil mPWRD-OS via Bluetooth.</string>
     <string name="wifi_provision_device_found">Appareil détecté</string>
-    <string name="wifi_provision_device_found_detail">Prêt à rechercher des réseaux WiFi.</string>
     <string name="wifi_provision_mpwrd_disclaimer">En savoir plus sur le projet mPWRD-OS\nhttps://github.com/mPWRD-OS</string>
     <string name="wifi_provision_no_networks">Aucun réseau trouvé</string>
-    <string name="wifi_provision_scan_failed">Échec de la recherche des réseaux WiFi : %1$s</string>
     <string name="wifi_provision_scan_networks">Rechercher des réseaux</string>
     <string name="wifi_provision_scanning_ble">Recherche de l'appareil</string>
     <string name="wifi_provision_scanning_wifi">Recherche…</string>
-    <string name="wifi_provision_sending_credentials">Application de la configuration WiFi…</string>
     <string name="wifi_provision_signal_strength">%1$d%</string>
     <string name="wifi_provision_ssid_label">Nom du réseau (SSID)</string>
     <string name="wifi_provision_ssid_placeholder">Saisir ou sélectionnez un réseau</string>
-    <string name="wifi_provision_status_applied">WiFi configuré avec succès !</string>
-    <string name="wifi_provision_status_failed">Impossible d'appliquer la configuration WiFi</string>
     <string name="wifi_provision_success_description">Votre appareil mPWRD-OS a rejoint le réseau Wi-Fi.</string>
     <string name="wifi_provision_success_device_connected">Appareil connecté</string>
     <string name="wifi_provision_success_done">Terminé</string>
@@ -1589,9 +1608,6 @@
     <string name="wifi_provision_success_ssh_unavailable">Commande SSH disponible après l'attribution de l'IP.</string>
     <string name="wifi_provision_success_username">Nom d'utilisateur</string>
     <string name="wifi_provisioning">Approvisionnement Wi-Fi pour mPWRD-OS</string>
-    <string name="wifi_qr_code_error">Format du code QR d'identification WiFi invalide</string>
-    <string name="wifi_qr_code_scan">Scanner le code QR WiFi</string>
-    <string name="wifi_rssi_threshold_defaults_to_80">Seuil RSSI WiFi (par défaut -80)</string>
     <!-- WIND -->
     <string name="wind">Vent</string>
     <string name="wind_direction">Direction du vent</string>
@@ -1600,4 +1616,6 @@
     <string name="wind_speed">Vitesse du vent</string>
     <!-- WRITE -->
     <string name="you">Vous</string>
+    <string name="zoom_in">Zoom +</string>
+    <string name="zoom_out">Zoom -</string>
 </resources>

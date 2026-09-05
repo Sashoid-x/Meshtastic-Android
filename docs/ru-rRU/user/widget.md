@@ -2,7 +2,7 @@
 title: Виджет на главный экран
 parent: Руководство пользователя
 nav_order: 20
-last_updated: 2026-06-25
+last_updated: 2026-08-30
 description: Добавь виджет главного экрана Meshtastic, чтобы видеть местную статистику своего подключенного радио без открытия приложения.
 aliases:
   - widget
@@ -18,29 +18,33 @@ aliases:
 
 Виджет показывает текущую локальную статистику **подключённого радиоустройства**:
 
+- A **node chip** across the top, carrying the radio's short name in its own colors
 - **Батарея** — уровень заряда батареи радиоустройства или _Питание от сети_, когда работает от внешнего источника
 - **ChUtil** — использование канала (насколько занят канал LoRa, в процентах)
 - **AirUtil** — использование времени передачи (сколько рабочих циклов передаёт вашего радиоустройство)
 - **Трафик** — пакеты, переданные / полученные, и дубликаты
 - **Relays** — пересылаемые пакеты и отмены пересылки (показаны, когда радио действует как ретранслятор)
+- **Diagnostics** — a combined line carrying **Noise** (the background noise level in dBm), **Bad** (corrupt packets received), and **Dropped** (packets the radio discarded). Bad and Dropped appear only once they are above zero, so a quiet radio may show the noise reading alone
+- **Heap** — free versus total memory on the radio, drawn as a bar
+- **Nodes** — how many nodes are online, out of the total known
+- **Uptime** — how long the radio has been running since its last reboot, shown beside Nodes
+- **Updated** — the time the stats last refreshed, along the foot of the widget
 
 Нажми на виджет, чтобы открыть приложение, или используй его кнопку обновления для запроса свежей статистики.
 
-> 💡 **Совет:** значения отражают радиоустройство, к которому ты подключен в данный момент. Если приложение не подключено к радиоустройству, виджет покажет последнюю известную статистику до переподключения.
+> ℹ️ **Note:** The values reflect the connected radio. If the radio disconnects, the widget replaces the stats with a status line — **Disconnected**, **Connecting**, or **Device sleeping**. It does not keep the last-known numbers on screen.
 
 ## Добавление виджета
 
-1. Долгое нажатие на пустой области твоего рабочего стола Android.
+1. Touch & hold an empty area of your Android home screen.
 2. Нажми **Виджет**.
-3. Найди **Meshtastic** в списке и перетащи виджет **Local Stats** на домашний экран.
+3. Drag the **Meshtastic** widget to your home screen. The app ships one widget, so the picker entry is just the app name.
 4. Изменение размера по мере необходимости — макет адаптируется к доступному пространству.
 
-> ⚠️ **Примечание:** Виджет только для Android. Он недоступен для ПК или сборках для iOS.
+> ℹ️ **Note:** The widget is Android-only. Он недоступен для ПК или сборках для iOS.
 
 ## Связанные темы
 
 - [Метрики нод](node-metrics) — полная статистика сигнала и локальная статистика внутри приложения
 - [Подключения](connections) — подключиться к радиоустройству, чтобы виджет показывал статистику
-- [Discovery](discovery) — использование канала и времени передачи через сеть
-
----
+- [Local Mesh Discovery](discovery) — channel and airtime utilization across the mesh

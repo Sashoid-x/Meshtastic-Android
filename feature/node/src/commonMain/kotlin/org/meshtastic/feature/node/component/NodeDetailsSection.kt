@@ -84,6 +84,7 @@ import org.meshtastic.core.resources.uptime
 import org.meshtastic.core.resources.user_id
 import org.meshtastic.core.ui.component.SignedNodeDialog
 import org.meshtastic.core.ui.component.determineSignalQuality
+import org.meshtastic.core.ui.component.label
 import org.meshtastic.core.ui.component.transportInfo
 import org.meshtastic.core.ui.icon.ArrowCircleUp
 import org.meshtastic.core.ui.icon.DeviceNumbers
@@ -101,6 +102,7 @@ import org.meshtastic.core.ui.icon.Verified
 import org.meshtastic.core.ui.icon.role
 import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
 import org.meshtastic.core.ui.util.LocalModemPreset
+import org.meshtastic.core.ui.util.LocalNoiseFloor
 import org.meshtastic.core.ui.util.createClipEntry
 import org.meshtastic.core.ui.util.formatAgo
 import org.meshtastic.proto.MeshPacket.TransportMechanism
@@ -210,7 +212,7 @@ private fun NameAndRoleRow(node: Node) {
         )
         InfoItem(
             label = stringResource(Res.string.role),
-            value = node.user.role.name,
+            value = stringResource(node.user.role.label),
             icon = MeshtasticIcons.role(node.user.role),
             modifier = Modifier.weight(1f),
         )
@@ -294,8 +296,9 @@ private fun UserAndUptimeRow(node: Node) {
 private fun SignalRow(node: Node) {
     Row(modifier = Modifier.fillMaxWidth()) {
         val snr = node.snrOrNull
+        val rssi = node.rssiOrNull
         if (snr != null) {
-            val quality = determineSignalQuality(snr, LocalModemPreset.current)
+            val quality = determineSignalQuality(snr, LocalModemPreset.current, rssi, LocalNoiseFloor.current)
             // Value-before-quality with " · " matches the node-list signal pill in SignalInfo.kt.
             InfoItem(
                 label = stringResource(Res.string.snr),
@@ -307,7 +310,6 @@ private fun SignalRow(node: Node) {
         } else {
             Spacer(Modifier.weight(1f))
         }
-        val rssi = node.rssiOrNull
         if (rssi != null) {
             // No quality word here: RSSI alone can't be rated without the noise floor - see determineSignalQuality.
             InfoItem(

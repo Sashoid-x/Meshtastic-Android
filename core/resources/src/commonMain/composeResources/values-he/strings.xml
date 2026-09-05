@@ -61,7 +61,6 @@
     <plurals name="delete_messages">
         <item quantity="one">מחק הודעה?</item>
         <item quantity="two">מחק %1$s הודעות?</item>
-        <item quantity="many">מחק %1$s הודעות?</item>
         <item quantity="other">מחק %1$s הודעות?</item>
     </plurals>
     <string name="description">תיאור</string>
@@ -102,7 +101,6 @@
     <string name="ip_address">‏כתובת IP:</string>
     <string name="ip_port">פורט:</string>
     <!-- KEY -->
-    <!-- LABEL -->
     <!-- LAYER -->
     <!-- LICENSED -->
     <!-- LOAD -->
@@ -130,6 +128,8 @@
     <string name="map_tile_download_estimate">הערכת זמן להורדה:</string>
     <string name="map_tile_source">מקור מפות</string>
     <!-- MESH -->
+    <string name="mesh_beacon_region_label">אזור</string>
+    <string name="mesh_beacon_target_channel_index">ערוץ</string>
     <!-- MESHTASTIC -->
     <string name="meshtastic_alerts_notifications">התראות</string>
     <string name="meshtastic_service_notifications">התראות שירות</string>
@@ -160,6 +160,7 @@
     <string name="none">לא מחובר (כבוי)</string>
     <string name="not_connected">לא מחובר</string>
     <!-- NOTIFICATIONS -->
+    <!-- OFFLINE -->
     <string name="okay">אישור</string>
     <!-- ONE -->
     <!-- OPEN -->
@@ -221,6 +222,8 @@
     <!-- TRAFFIC -->
     <!-- TRANSLATION -->
     <!-- TRANSPORT -->
+    <!-- UNITS -->
+    <string name="units_follow_system">ברירות מחדל</string>
     <!-- UNKNOWN -->
     <string name="unknown_username">שם המשתמש אינו מוכר</string>
     <!-- URL -->

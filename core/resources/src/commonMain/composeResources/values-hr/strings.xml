@@ -107,7 +107,6 @@
     <string name="intro_show">Prikaži uvod</string>
     <string name="ip_address">IP Adresa:</string>
     <!-- KEY -->
-    <!-- LABEL -->
     <!-- LAYER -->
     <!-- LICENSED -->
     <!-- LOAD -->
@@ -135,6 +134,9 @@
     <string name="map_tile_download_estimate">Procjena preuzimanja:</string>
     <string name="map_tile_source">Izvor karte</string>
     <!-- MESH -->
+    <string name="mesh_beacon_region_label">Regija</string>
+    <string name="mesh_beacon_target_channel_index">Kanal</string>
+    <string name="mesh_beacon_target_default">Zadano</string>
     <!-- MESHTASTIC -->
     <string name="meshtastic">Meshtastic</string>
     <string name="meshtastic_app_name">Meshtastic</string>
@@ -171,6 +173,7 @@
     <string name="none">Ništa (onemogućeno)</string>
     <string name="not_connected">Nije povezano</string>
     <!-- NOTIFICATIONS -->
+    <!-- OFFLINE -->
     <string name="okay">U redu</string>
     <!-- ONE -->
     <string name="one_day">24 Sati</string>
@@ -239,6 +242,8 @@
     <!-- TRANSLATION -->
     <!-- TRANSPORT -->
     <string name="two_days">48 Sati</string>
+    <!-- UNITS -->
+    <string name="units_follow_system">Sistemski zadano</string>
     <!-- UNKNOWN -->
     <string name="unknown_username">Nepoznati korisnik</string>
     <!-- URL -->

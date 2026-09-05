@@ -221,6 +221,7 @@ chirpy_suggested_pages_help
 chirpy_thinking
 choose_contrast
 choose_theme
+choose_units
 ### CLEAN ###
 clean_node_database_confirmation
 clean_node_database_description
@@ -446,7 +447,6 @@ discovery_lora_presets_description
 discovery_map
 discovery_not_connected
 discovery_not_connected_description
-discovery_paused
 discovery_preparing
 discovery_preset_home_label
 discovery_reconnecting
@@ -515,7 +515,6 @@ distance_measurements_description
 dns
 ### DOC ###
 doc_clear_search
-doc_keywords_android_auto
 doc_keywords_app_functions
 doc_keywords_connections
 doc_keywords_debug_logs
@@ -541,7 +540,6 @@ doc_keywords_widget
 doc_search_placeholder
 doc_section_developer
 doc_section_user
-doc_title_android_auto
 doc_title_app_functions
 doc_title_connections
 doc_title_debug_logs
@@ -571,6 +569,7 @@ double_tap_as_button_press
 downlink_enabled
 downlink_feature_description
 download
+download_this_area
 duplicated_public_key_title
 dynamic
 easily_set_up_private_mesh_networks
@@ -684,10 +683,6 @@ firmware_event_ended_button
 firmware_maintenance_cdc_unblock_failed
 firmware_maintenance_copy_failed
 firmware_maintenance_data_unavailable
-firmware_maintenance_erase_action
-firmware_maintenance_erase_confirm_button
-firmware_maintenance_erase_confirm_text
-firmware_maintenance_erase_confirm_title
 firmware_maintenance_no_release
 firmware_maintenance_not_a_bootloader_volume
 firmware_maintenance_select_drive
@@ -929,24 +924,6 @@ key_backup_saved
 key_verification_final_title
 key_verification_request_title
 key_verification_title
-### LABEL ###
-label_lite_fast
-label_lite_slow
-label_long_fast
-label_long_moderate
-label_long_slow
-label_long_turbo
-label_medium_fast
-label_medium_slow
-label_medium_turbo
-label_narrow_fast
-label_narrow_slow
-label_short_fast
-label_short_slow
-label_short_turbo
-label_tiny_fast
-label_tiny_slow
-label_very_long_slow
 last_heard_filter_label
 last_position_update
 latest_alpha_firmware
@@ -1062,16 +1039,47 @@ manual_position_request
 map
 map_cache_info
 map_cache_manager
+map_cache_megabytes
 map_cache_size
 map_cache_tiles
 map_clear_tiles
 map_download_complete
 map_download_errors
 map_download_region
+map_download_status_complete
+map_download_status_downloading
+map_download_status_paused
+map_engine_unavailable
+map_engine_unavailable_detail
 map_filter
+map_filter_all_roles
+map_filter_display_title
+map_filter_nodes_title
+map_filter_roles_title
+map_filter_show_ignored
+map_filter_title
 map_layer_formats
+map_layer_opacity
 map_node_popup_details
+map_offline_banner
+map_offline_download_failed_build
+map_offline_download_failed_io
+map_offline_download_failed_region_limit
+map_offline_download_failed_storage
+map_offline_download_failed_tile_limit
+map_offline_download_terrain
+map_offline_downloading_progress
 map_offline_manager
+map_offline_region_label
+map_offline_show_on_map
+map_offline_terrain_contours
+map_offline_terrain_download_complete
+map_offline_terrain_download_failed_io
+map_offline_terrain_download_failed_tile_limit
+map_offline_terrain_downloading_progress
+map_overlay_hillshade
+map_overlay_precipitation
+map_overlay_weather_radar
 map_purge_fail
 map_purge_success
 map_reporting
@@ -1084,11 +1092,14 @@ map_start_download
 map_style_selection
 map_subDescription
 map_tile_download_estimate
+map_tile_download_estimate_detail
+map_tile_limit_reached
 map_tile_source
 map_type_hybrid
 map_type_normal
 map_type_satellite
 map_type_terrain
+map_zoom_levels
 mark_as_read
 mark_unread_selected
 match_all
@@ -1097,7 +1108,9 @@ max
 ### MESH ###
 mesh_beacon
 mesh_beacon_broadcast
+mesh_beacon_broadcast_requires_preset
 mesh_beacon_broadcast_summary
+mesh_beacon_channel_number
 mesh_beacon_channels_title
 mesh_beacon_interval
 mesh_beacon_interval_error
@@ -1106,30 +1119,29 @@ mesh_beacon_listen
 mesh_beacon_listen_summary
 mesh_beacon_message
 mesh_beacon_message_error
+mesh_beacon_no_channels
 mesh_beacon_notification_body
 mesh_beacon_notification_title
 mesh_beacon_offer_add
 mesh_beacon_offer_channel
-mesh_beacon_offer_channel_key
 mesh_beacon_offer_channel_name
 mesh_beacon_offer_discover
 mesh_beacon_offer_dismiss
 mesh_beacon_offer_from_unknown
 mesh_beacon_offer_join
 mesh_beacon_offer_preset
-mesh_beacon_offer_preset_setting
 mesh_beacon_offer_region
-mesh_beacon_offer_region_setting
 mesh_beacon_offer_signal
 mesh_beacon_offer_title
 mesh_beacon_on_preset
-mesh_beacon_on_region
 mesh_beacon_preset_indicator
 mesh_beacon_preset_none
-mesh_beacon_send_as_node
+mesh_beacon_region_label
+mesh_beacon_region_required
 mesh_beacon_target
 mesh_beacon_target_add
 mesh_beacon_target_channel_index
+mesh_beacon_target_default
 mesh_beacon_target_remove
 mesh_beacon_targets
 mesh_map_location
@@ -1336,7 +1348,6 @@ node_sort_last_heard
 node_sort_title
 node_sort_via_favorite
 node_sort_via_mqtt
-node_status_summary
 nodedb_reset
 nodeinfo_broadcast_interval
 ### NODES ###
@@ -1369,6 +1380,13 @@ notifications_on_message_receipt
 now
 ntp_server
 number_of_records
+### OFFLINE ###
+offline_maps
+offline_maps_empty
+offline_terrain_cache_detail
+offline_terrain_empty
+offline_terrain_manager
+offline_terrain_regional_detail
 ok_to_mqtt
 okay
 oled_type
@@ -1594,18 +1612,31 @@ ringtone_import_error
 ringtone_imported
 ### ROLE ###
 role
+role_client
+role_client_base
 role_client_base_desc
 role_client_desc
+role_client_hidden
 role_client_hidden_desc
+role_client_mute
 role_client_mute_desc
+role_lost_and_found
 role_lost_and_found_desc
+role_repeater
 role_repeater_desc
+role_router
+role_router_client
 role_router_client_desc
 role_router_desc
+role_router_late
 role_router_late_desc
+role_sensor
 role_sensor_desc
+role_tak
 role_tak_desc
+role_tak_tracker
 role_tak_tracker_desc
+role_tracker
 role_tracker_desc
 root_topic
 rotary_encoder_1_enabled
@@ -1738,6 +1769,7 @@ signal_quality
 site_planner
 site_planner_antenna_gain_dbi
 site_planner_antenna_height_meters
+site_planner_browser_note
 site_planner_color_scale
 site_planner_estimate
 site_planner_estimating
@@ -1775,7 +1807,7 @@ spread_factor
 ssid
 state_broadcast_seconds
 status_message
-status_message_config
+status_message_summary
 stay_connected_anywhere
 stop_connecting
 store_forward
@@ -1898,7 +1930,6 @@ traffic_management_nodeinfo_direct_response
 traffic_management_nodeinfo_direct_response_max_hops
 traffic_management_position_dedup
 traffic_management_position_min_interval
-traffic_management_position_precision
 traffic_management_rate_limit_enabled
 traffic_management_rate_limit_max_packets
 traffic_management_rate_limit_window
@@ -1912,6 +1943,8 @@ translation_downloading
 translation_failed
 translation_model_download_failed
 translation_not_required
+transmit_disabled
+transmit_disabled_summary
 transmit_over_lora
 ### TRANSPORT ###
 transport
@@ -1932,6 +1965,12 @@ type
 type_a_message
 udp_enabled
 undo
+### UNITS ###
+units
+units_follow_system
+units_imperial
+units_metric
+units_scope_summary
 ### UNKNOWN ###
 unknown
 unknown_age
@@ -1949,6 +1988,7 @@ unset
 up_down_select_input_enabled
 update_interval
 update_interval_seconds
+update_status
 updated
 uplink_enabled
 uplink_feature_description
@@ -1958,6 +1998,7 @@ uptime
 ### URL ###
 url
 url_cannot_be_empty
+url_must_be_http
 url_must_contain_placeholders
 url_template
 url_template_hint
@@ -2054,3 +2095,5 @@ write_nfc_text
 you
 zh_CN
 zh_TW
+zoom_in
+zoom_out

@@ -2,7 +2,8 @@
 title: Measurement & Formatting
 parent: Developer Guide
 nav_order: 9
-last_updated: 2026-08-19
+last_updated: 2026-08-29
+description: How MetricFormatter and NumberFormatter format measurements, and how the app resolves metric or imperial units from locale and user preference.
 aliases:
   - measurement
   - metric-formatter
@@ -61,7 +62,7 @@ MetricFormatter.rssi(-97)     // "-97 dBm"
 // Environment
 MetricFormatter.pressure(1013.25f)  // "1013.3 hPa"
 MetricFormatter.humidity(65.0f)     // "65%"
-MetricFormatter.windSpeed(3.7f, isImperial = false)  // "3.7 m/s"
+MetricFormatter.windSpeed(3.7f, isImperial = false)  // "13.3 km/h"
 MetricFormatter.windSpeed(3.7f, isImperial = true)   // "8.3 mph"
 MetricFormatter.rainfall(12.3f, isImperial = false)  // "12.3 mm"
 MetricFormatter.rainfall(12.3f, isImperial = true)   // "0.5 in"
@@ -95,10 +96,20 @@ Three measurements convert away from metric for display, each gated by a boolean
 | Measurement | Flag | Source | Conversion |
 |---|---|---|---|
 | `temperature` | `isFahrenheit` | `getSystemTemperatureUnit()` | `°F = °C × 1.8 + 32` |
-| `windSpeed` | `isImperial` | `getSystemMeasurementSystem()` | m/s × 2.23694 → mph |
+| `windSpeed` | `isImperial` | `getSystemMeasurementSystem()` | m/s × 3.6 → km/h, or × 2.23694 → mph |
 | `rainfall` | `isImperial` | `getSystemMeasurementSystem()` | mm ÷ 25.4 → in |
 
 The two source functions (in `core/common/.../util/MeasurementSystem.kt`) are deliberately separate: some locales mix systems (the UK uses miles for distance but Celsius for temperature), so temperature must never be derived from the distance unit. On Android, `getSystemTemperatureUnit()` delegates to `androidx.core.text.util.LocalePreferences`, which resolves CLDR locale data and honors the Android 14+ Regional preferences temperature override.
+
+The user's in-app **Units** choice (`UnitsOverride`, stored in `UiPrefs`) is folded in by `LocaleUnitsProvider`, which is the only place display code takes units from. A Konsist rule (`MeasurementSystemSourceTest`) keeps direct reads of the OS resolution out of the rest of the codebase, because a direct read follows the locale but ignores the setting. A forced system carries its temperature with it (metric → °C, imperial → °F), overriding even an explicit OS regional temperature preference.
+
+`getSystemMeasurementSystem()` resolves the locale in this order (temperature is separate: as described above, `getSystemTemperatureUnit()` reads the regional temperature preference via `LocalePreferences`, shares only the region backfill, and falls back to Celsius):
+
+1. The `ms` Unicode extension (the Android 16+ Measurement system preference) wins outright.
+2. A locale with no region — the in-app language picker offers bare tags like `en` — takes its region from the system configuration rather than letting ICU guess one from the language.
+3. Anything still unclassified falls back to metric, never imperial.
+
+The Android and Desktop implementations share the region table and the override reader in `commonMain`, so the two clients cannot disagree about the same locale.
 
 Everything else (voltage, current, pressure, SNR, RSSI, humidity, percent) displays in its native metric units. The user-facing [Units & Locale](../user/units-and-locale) page explains what end users see.
 

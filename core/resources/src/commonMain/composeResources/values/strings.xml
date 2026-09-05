@@ -19,7 +19,7 @@
     <!-- A11Y -->
     <string name="a11y_label_value">%1$s: %2$s</string>
     <string name="a11y_message_from">Message from %1$s: %2$s</string>
-    <string name="a11y_node_battery">battery %1$d%%</string>
+    <string name="a11y_node_battery">battery %1$d%</string>
     <string name="a11y_node_distance_away">%1$s away</string>
     <string name="a11y_node_favorite">favorite</string>
     <string name="a11y_node_hops_away">%1$d hops away</string>
@@ -230,7 +230,7 @@
     <string name="chirpy_assistant_title">Chirpy Assistant</string>
     <string name="chirpy_checking">Checking Chirpy availability…</string>
     <string name="chirpy_downloading">Chirpy is downloading…</string>
-    <string name="chirpy_downloading_progress">Downloading Chirpy model: %1$d%%</string>
+    <string name="chirpy_downloading_progress">Downloading Chirpy model: %1$d%</string>
     <string name="chirpy_downloading_subtitle">This only happens once. Chirpy will be ready soon!</string>
     <string name="chirpy_error_busy">Whoa! The channel is totally congested right now with heavy traffic! 📶 Let's wait for a clear slot and retry our transmission.</string>
     <string name="chirpy_error_model_unavailable">My battery is charging or my firmware is still downloading! 🔋 Give me a few moments to sync up and boot!</string>
@@ -245,6 +245,7 @@
     <string name="chirpy_thinking">Chirpy is routing through the mesh… 📡</string>
     <string name="choose_contrast">Contrast level</string>
     <string name="choose_theme">Choose theme</string>
+    <string name="choose_units">Choose units</string>
     <!-- CLEAN -->
     <string name="clean_node_database_confirmation">This will remove %1$d nodes from your database. This action cannot be undone.</string>
     <string name="clean_node_database_description">Caution: This removes nodes from in-app and on-device databases.\nSelections are additive.</string>
@@ -307,7 +308,7 @@
     <string name="config_lora_region_summary">The region where you will be using your radios.</string>
     <string name="config_network_eth_enabled_summary">Enabling Ethernet will disable the bluetooth connection to the app. TCP node connections are not available on Apple devices.</string>
     <string name="config_network_udp_enabled_summary">Enable broadcasting packets via UDP over the local network.</string>
-    <string name="config_network_wifi_enabled_summary">Enabling WiFi will disable the bluetooth connection to the app.</string>
+    <string name="config_network_wifi_enabled_summary">Enabling Wi-Fi will disable the bluetooth connection to the app.</string>
     <string name="config_position_broadcast_secs_summary">The maximum interval that can elapse without a node broadcasting a position.</string>
     <string name="config_position_broadcast_smart_minimum_distance_summary">The minimum distance change in meters to be considered for a smart position broadcast.</string>
     <string name="config_position_broadcast_smart_minimum_interval_secs_summary">The fastest that position updates will be sent if the minimum distance has been satisfied.</string>
@@ -476,7 +477,6 @@
     <string name="discovery_map">Discovery Map</string>
     <string name="discovery_not_connected">Not Connected</string>
     <string name="discovery_not_connected_description">Connect to a Meshtastic device to start scanning.</string>
-    <string name="discovery_paused">Paused: %1$s</string>
     <string name="discovery_preparing">Preparing scan</string>
     <string name="discovery_preset_home_label">%1$s (Home)</string>
     <string name="discovery_reconnecting">Reconnecting on %1$s</string>
@@ -545,7 +545,6 @@
     <string name="dns">DNS</string>
     <!-- DOC -->
     <string name="doc_clear_search">Clear search</string>
-    <string name="doc_keywords_android_auto">android auto,car,head unit,driving,hands free,messaging</string>
     <string name="doc_keywords_app_functions">system ai,gemini,assistant,functions,automation,voice</string>
     <string name="doc_keywords_connections">bluetooth,usb,tcp,pairing,serial,wifi</string>
     <string name="doc_keywords_debug_logs">debug,logs,logcat,export,bug report,issue,troubleshooting,diagnostics</string>
@@ -571,12 +570,11 @@
     <string name="doc_search_placeholder">Search documentation…</string>
     <string name="doc_section_developer">Developer Guide</string>
     <string name="doc_section_user">User Guide</string>
-    <string name="doc_title_android_auto">Android Auto</string>
     <string name="doc_title_app_functions">App Functions</string>
     <string name="doc_title_connections">Connections</string>
     <string name="doc_title_debug_logs">Debug Logs</string>
     <string name="doc_title_desktop">Desktop App</string>
-    <string name="doc_title_discovery">Discovery</string>
+    <string name="doc_title_discovery">Local Mesh Discovery</string>
     <string name="doc_title_firmware">Firmware Updates</string>
     <string name="doc_title_help">Help &amp; In-App Docs</string>
     <string name="doc_title_map">Map &amp; Waypoints</string>
@@ -601,6 +599,7 @@
     <string name="downlink_enabled">MQTT Downlink Enabled</string>
     <string name="downlink_feature_description">Messages from a public internet gateway are forwarded to the local mesh. Due to the zero-hop policy, traffic from the default MQTT server will not propagate further than this device.</string>
     <string name="download">Download</string>
+    <string name="download_this_area">Download this area</string>
     <string name="duplicated_public_key_title">Duplicate Public Key Detected</string>
     <string name="dynamic">Dynamic</string>
     <string name="easily_set_up_private_mesh_networks">Easily set up private mesh networks for secure and reliable communication in remote areas.</string>
@@ -714,10 +713,6 @@
     <string name="firmware_maintenance_cdc_unblock_failed">The erase file was copied but the device didn't start erasing. Nothing has been changed yet. Unplug the device, double-press its reset button, and try again.</string>
     <string name="firmware_maintenance_copy_failed">Couldn't copy the file to the device's drive. Make sure the drive is still connected and try again.</string>
     <string name="firmware_maintenance_data_unavailable">The erase image list isn't available right now. Check your connection and try again, or use the web flasher at flasher.meshtastic.org.</string>
-    <string name="firmware_maintenance_erase_action">Erase and reinstall</string>
-    <string name="firmware_maintenance_erase_confirm_button">Erase device</string>
-    <string name="firmware_maintenance_erase_confirm_text">This erases everything on %1$s, including its channels, keys and all settings, then reinstalls the firmware. It cannot be undone and there is no backup.\n\nYou will be asked to select the device's drive twice: once for the erase file, then again for the firmware.</string>
-    <string name="firmware_maintenance_erase_confirm_title">Erase this device?</string>
     <string name="firmware_maintenance_no_release">Select a firmware version first, so the device can be reinstalled after erasing.</string>
     <string name="firmware_maintenance_not_a_bootloader_volume">That drive isn't the device's update drive. Select the drive that appears when the device is in update mode (it contains a file named INFO_UF2.TXT).</string>
     <string name="firmware_maintenance_select_drive">Select the device's update drive</string>
@@ -773,7 +768,7 @@
     <string name="firmware_update_method_ble">BLE OTA</string>
     <string name="firmware_update_method_detail">Update via %1$s</string>
     <string name="firmware_update_method_usb">USB File Transfer</string>
-    <string name="firmware_update_method_wifi">WiFi OTA</string>
+    <string name="firmware_update_method_wifi">Wi-Fi OTA</string>
     <string name="firmware_update_missing_target">Firmware target information is unavailable for this device.</string>
     <string name="firmware_update_nightly">Nightly</string>
     <string name="firmware_update_no_device">No device connected</string>
@@ -959,24 +954,6 @@
     <string name="key_verification_final_title">Key Verification Complete</string>
     <string name="key_verification_request_title">Key Verification Request</string>
     <string name="key_verification_title">Key Verification</string>
-    <!-- LABEL -->
-    <string name="label_lite_fast">Lite - Fast</string>
-    <string name="label_lite_slow">Lite - Slow</string>
-    <string name="label_long_fast">Long Range - Fast</string>
-    <string name="label_long_moderate">Long Range - Moderate</string>
-    <string name="label_long_slow">Long Range - Slow</string>
-    <string name="label_long_turbo">Long Range - Turbo</string>
-    <string name="label_medium_fast">Medium Range - Fast</string>
-    <string name="label_medium_slow">Medium Range - Slow</string>
-    <string name="label_medium_turbo">Medium Range - Turbo</string>
-    <string name="label_narrow_fast">Narrow - Fast</string>
-    <string name="label_narrow_slow">Narrow - Slow</string>
-    <string name="label_short_fast">Short Range - Fast</string>
-    <string name="label_short_slow">Short Range - Slow</string>
-    <string name="label_short_turbo">Short Range - Turbo</string>
-    <string name="label_tiny_fast">Tiny - Fast</string>
-    <string name="label_tiny_slow">Tiny - Slow</string>
-    <string name="label_very_long_slow">Very Long Range - Slow</string>
     <string name="last_heard_filter_label">Filter by Last Heard time: %1$s</string>
     <string name="last_position_update">Last position update</string>
     <string name="latest_alpha_firmware">Latest alpha</string>
@@ -1015,7 +992,7 @@
     <string name="local_network_permission">Local network permission</string>
     <string name="local_network_permission_blocked_rationale">Local network access is off and Android will not ask again. A radio on your Wi-Fi cannot be found or reached until you turn it on in app settings. A radio on a public address or over a VPN is unaffected.</string>
     <string name="local_network_permission_denied_hint">Local network access is turned off for Meshtastic. If this radio is on your local network, the connection will fail until you allow local network access in system settings.</string>
-    <string name="local_network_permission_rationale">Meshtastic needs local network access to find radios on your Wi-Fi. It only looks on the network you are already connected to. Without it, you can still reach a radio by typing its address.</string>
+    <string name="local_network_permission_rationale">Meshtastic needs local network access to find and reach radios on your Wi-Fi. It only looks on the network you are already connected to. Without it, a radio on your Wi-Fi cannot be reached even by typing its address; a radio on a public address or over a VPN is unaffected.</string>
     <string name="local_stats_bad">Bad %1$d</string>
     <string name="local_stats_battery">Battery: %1$d%</string>
     <string name="local_stats_diagnostics_prefix">Diagnostics: %1$s</string>
@@ -1098,16 +1075,47 @@
     <string name="map">Mesh Map</string>
     <string name="map_cache_info">Cache Capacity: %1$d MB\nCache Usage: %2$d MB</string>
     <string name="map_cache_manager">Cache Manager</string>
+    <string name="map_cache_megabytes">%1$s MB</string>
     <string name="map_cache_size">Current Cache size</string>
     <string name="map_cache_tiles">%1$d tiles</string>
     <string name="map_clear_tiles">Clear Downloaded Tiles</string>
     <string name="map_download_complete">Download complete!</string>
     <string name="map_download_errors">Download complete with %1$d errors</string>
     <string name="map_download_region">Download Region</string>
+    <string name="map_download_status_complete">Complete</string>
+    <string name="map_download_status_downloading">Downloading</string>
+    <string name="map_download_status_paused">Paused</string>
+    <string name="map_engine_unavailable">Map unavailable on this device</string>
+    <string name="map_engine_unavailable_detail">This build of the app does not include the map renderer for your phone's processor. Everything else works normally.</string>
     <string name="map_filter">Map Filter\n</string>
+    <string name="map_filter_all_roles">All</string>
+    <string name="map_filter_display_title">Display</string>
+    <string name="map_filter_nodes_title">Nodes</string>
+    <string name="map_filter_roles_title">Node roles</string>
+    <string name="map_filter_show_ignored">Show ignored nodes</string>
+    <string name="map_filter_title">Filter map</string>
     <string name="map_layer_formats">Map layers support .kml, .kmz, or GeoJSON formats.</string>
+    <string name="map_layer_opacity">Opacity: %1$d%</string>
     <string name="map_node_popup_details">%1$s&lt;br&gt;Last heard: %2$s&lt;br&gt;Last position: %3$s&lt;br&gt;Battery: %4$s</string>
+    <string name="map_offline_banner">Offline — showing cached map data</string>
+    <string name="map_offline_download_failed_build">No offline map data available right now — try again later</string>
+    <string name="map_offline_download_failed_io">Download failed — check your connection and try again</string>
+    <string name="map_offline_download_failed_region_limit">Too many offline regions downloaded already — delete one first</string>
+    <string name="map_offline_download_failed_storage">Downloaded regions are using too much storage — delete one first</string>
+    <string name="map_offline_download_failed_tile_limit">Selected area is too large — zoom in or pick a smaller region</string>
+    <string name="map_offline_download_terrain">Download Terrain</string>
+    <string name="map_offline_downloading_progress">Downloading… %1$d / %2$d tiles</string>
     <string name="map_offline_manager">Offline Manager</string>
+    <string name="map_offline_region_label">%1$s, %2$s  %3$s</string>
+    <string name="map_offline_show_on_map">Show on map</string>
+    <string name="map_offline_terrain_contours">Contours</string>
+    <string name="map_offline_terrain_download_complete">Terrain download complete</string>
+    <string name="map_offline_terrain_download_failed_io">Terrain download failed — check your connection and try again</string>
+    <string name="map_offline_terrain_download_failed_tile_limit">Selected area is too large for terrain — zoom in or pick a smaller region</string>
+    <string name="map_offline_terrain_downloading_progress">Downloading terrain… %1$d / %2$d tiles</string>
+    <string name="map_overlay_hillshade">Hillshade</string>
+    <string name="map_overlay_precipitation">Precipitation</string>
+    <string name="map_overlay_weather_radar">Weather radar</string>
     <string name="map_purge_fail">SQL Cache purge failed, see logcat for details</string>
     <string name="map_purge_success">SQL Cache purged for %1$s</string>
     <string name="map_reporting">Map reporting</string>
@@ -1120,11 +1128,14 @@
     <string name="map_style_selection">Map style selection</string>
     <string name="map_subDescription">bearing: %1$d° distance: %2$s</string>
     <string name="map_tile_download_estimate">Tile download estimate:</string>
+    <string name="map_tile_download_estimate_detail">%1$s %2$s %3$s</string>
+    <string name="map_tile_limit_reached">Tile limit reached (%1$d)</string>
     <string name="map_tile_source">Tile Source</string>
     <string name="map_type_hybrid">Hybrid</string>
     <string name="map_type_normal">Normal</string>
     <string name="map_type_satellite">Satellite</string>
     <string name="map_type_terrain">Terrain</string>
+    <string name="map_zoom_levels" translatable="false">(z%1$d–%2$d)</string>
     <string name="mark_as_read">Mark as read</string>
     <string name="mark_unread_selected">Mark unread</string>
     <string name="match_all">Match All | Any</string>
@@ -1133,39 +1144,40 @@
     <!-- MESH -->
     <string name="mesh_beacon">Mesh Beacon</string>
     <string name="mesh_beacon_broadcast">Broadcast a beacon</string>
+    <string name="mesh_beacon_broadcast_requires_preset">Beacon broadcasting advertises a modem preset for others to join. This radio uses custom LoRa settings instead of a standard preset, so a beacon could invite people onto settings they cannot hear. Broadcasting can be turned off here, but not on, until the radio uses a standard modem preset.</string>
     <string name="mesh_beacon_broadcast_summary">Periodically advertise this mesh to nearby nodes</string>
+    <string name="mesh_beacon_channel_number">Channel %1$d</string>
     <string name="mesh_beacon_channels_title">Beacon channels</string>
-    <string name="mesh_beacon_interval">Broadcast interval (seconds)</string>
-    <string name="mesh_beacon_interval_error">Minimum %1$d seconds</string>
+    <string name="mesh_beacon_interval">Broadcast interval</string>
+    <string name="mesh_beacon_interval_error">Choose an interval of at least one hour</string>
     <string name="mesh_beacon_invitations_title">Mesh invitations</string>
     <string name="mesh_beacon_listen">Listen for beacons</string>
     <string name="mesh_beacon_listen_summary">Capture invitations advertised by nearby meshes</string>
     <string name="mesh_beacon_message">Beacon message</string>
     <string name="mesh_beacon_message_error">Maximum %1$d bytes</string>
+    <string name="mesh_beacon_no_channels">No channels available</string>
     <string name="mesh_beacon_notification_body">A nearby mesh invited you to join</string>
     <string name="mesh_beacon_notification_title">Mesh invitation</string>
     <string name="mesh_beacon_offer_add">Add channel</string>
     <string name="mesh_beacon_offer_channel">Channel: %1$s</string>
-    <string name="mesh_beacon_offer_channel_key">Offered channel key (base64)</string>
-    <string name="mesh_beacon_offer_channel_name">Offered channel name</string>
+    <string name="mesh_beacon_offer_channel_name">Offered channel</string>
     <string name="mesh_beacon_offer_discover">Discover</string>
     <string name="mesh_beacon_offer_dismiss">Dismiss</string>
     <string name="mesh_beacon_offer_from_unknown">From an unknown node</string>
     <string name="mesh_beacon_offer_join">Join</string>
     <string name="mesh_beacon_offer_preset">Preset: %1$s</string>
-    <string name="mesh_beacon_offer_preset_setting">Offered preset</string>
     <string name="mesh_beacon_offer_region">Region: %1$s</string>
-    <string name="mesh_beacon_offer_region_setting">Offered region</string>
     <string name="mesh_beacon_offer_signal">Signal: %1$s / %2$s</string>
     <string name="mesh_beacon_offer_title">Mesh invitation</string>
     <string name="mesh_beacon_on_preset">Transmit preset</string>
-    <string name="mesh_beacon_on_region">Transmit region</string>
     <string name="mesh_beacon_preset_indicator">Advertised by a nearby beacon</string>
     <string name="mesh_beacon_preset_none">None</string>
-    <string name="mesh_beacon_send_as_node">Broadcast as node number (0 = this node)</string>
+    <string name="mesh_beacon_region_label">Region</string>
+    <string name="mesh_beacon_region_required">Set your radio's region before setting up a beacon.</string>
     <string name="mesh_beacon_target">Target %1$d</string>
     <string name="mesh_beacon_target_add">Add target</string>
-    <string name="mesh_beacon_target_channel_index">Channel index</string>
+    <string name="mesh_beacon_target_channel_index">Channel</string>
+    <string name="mesh_beacon_target_default">Default</string>
     <string name="mesh_beacon_target_remove">Remove target</string>
     <string name="mesh_beacon_targets">Broadcast targets</string>
     <string name="mesh_map_location">Mesh Map Location</string>
@@ -1341,11 +1353,11 @@
     <string name="node_layout_complete_description">The Complete layout displays all available node data. Fields with no data are automatically hidden.</string>
     <string name="node_layout_device_role">Device &amp; Role</string>
     <string name="node_layout_distance_and_bearing">Distance and Bearing</string>
-    <string name="node_layout_help_signal_bad">Signal is poor. SNR is above −18 dB and RSSI is above −125 dBm.</string>
-    <string name="node_layout_help_signal_fair">Signal is moderate. SNR is above −12 dB and RSSI is above −120 dBm.</string>
-    <string name="node_layout_help_signal_good">Signal is strong. SNR is above −7 dB and RSSI is above −115 dBm.</string>
-    <string name="node_layout_help_signal_indicator">Combines SNR and RSSI into a quality level shown as a colored icon with description. Displayed in the Complete layout only.</string>
-    <string name="node_layout_help_signal_none">No usable signal detected. Below all quality thresholds.</string>
+    <string name="node_layout_help_signal_bad">Signal is poor. SNR is 5.5 to 7.5 dB below the preset's SNR limit.</string>
+    <string name="node_layout_help_signal_fair">Signal is moderate. SNR is less than 5.5 dB below the preset's SNR limit.</string>
+    <string name="node_layout_help_signal_good">Signal is strong. SNR is above your modem preset's SNR limit.</string>
+    <string name="node_layout_help_signal_indicator">Rates SNR against your modem preset's SNR limit and shows the result as a colored icon with a label. RSSI is displayed but does not affect the rating.</string>
+    <string name="node_layout_help_signal_none">No usable signal. SNR is more than 7.5 dB below the preset's SNR limit.</string>
     <string name="node_layout_hops_away">Hops Away</string>
     <string name="node_layout_last_heard_time">Last Heard Time</string>
     <string name="node_layout_log_icons">Environment Metrics</string>
@@ -1372,7 +1384,6 @@
     <string name="node_sort_title">Sort by</string>
     <string name="node_sort_via_favorite">via Favorite</string>
     <string name="node_sort_via_mqtt">via MQTT</string>
-    <string name="node_status_summary">The actual status string</string>
     <string name="nodedb_reset">NodeDB reset</string>
     <string name="nodeinfo_broadcast_interval">Node Info Broadcast Interval</string>
     <!-- NODES -->
@@ -1405,6 +1416,13 @@
     <string name="now">Now</string>
     <string name="ntp_server">NTP server</string>
     <string name="number_of_records">Number of records</string>
+    <!-- OFFLINE -->
+    <string name="offline_maps">Offline maps</string>
+    <string name="offline_maps_empty">No areas downloaded yet</string>
+    <string name="offline_terrain_cache_detail">%1$s: %2$s · %3$s</string>
+    <string name="offline_terrain_empty">No terrain downloaded yet</string>
+    <string name="offline_terrain_manager">Offline Terrain</string>
+    <string name="offline_terrain_regional_detail">Includes high-detail regional terrain</string>
     <string name="ok_to_mqtt">Ok to MQTT</string>
     <string name="okay">OK</string>
     <string name="oled_type">OLED type</string>
@@ -1460,7 +1478,7 @@
     <string name="pax_total_format">PAX: %1$d</string>
     <string name="pax_total_marker">PAX: %1$s</string>
     <string name="pax_wifi_format">W:%1$d</string>
-    <string name="pax_wifi_marker">WiFi: %1$s</string>
+    <string name="pax_wifi_marker">Wi-Fi: %1$s</string>
     <string name="paxcounter">Paxcounter</string>
     <string name="paxcounter_config">Paxcounter Config</string>
     <string name="paxcounter_enabled">Paxcounter enabled</string>
@@ -1645,18 +1663,31 @@
     <string name="ringtone_imported">Imported ringtone</string>
     <!-- ROLE -->
     <string name="role">Device Role</string>
+    <string name="role_client">Client</string>
+    <string name="role_client_base">Client Base</string>
     <string name="role_client_base_desc">Treats packets from or to favorited nodes as ROUTER_LATE, and all other packets as CLIENT.</string>
     <string name="role_client_desc">App connected or standalone messaging device.</string>
+    <string name="role_client_hidden">Client Hidden</string>
     <string name="role_client_hidden_desc">Device that only broadcasts as needed for stealth or power savings.</string>
+    <string name="role_client_mute">Client Mute</string>
     <string name="role_client_mute_desc">Device that does not forward packets from other devices.</string>
-    <string name="role_lost_and_found_desc">Broadcasts location as message to default channel regularly for to assist with device recovery.</string>
+    <string name="role_lost_and_found">Lost and Found</string>
+    <string name="role_lost_and_found_desc">Broadcasts location as message to default channel regularly to assist with device recovery.</string>
+    <string name="role_repeater">Repeater</string>
     <string name="role_repeater_desc">Infrastructure node for extending network coverage by relaying messages with minimal overhead. Not visible in nodes list.</string>
+    <string name="role_router">Router</string>
+    <string name="role_router_client">Router Client</string>
     <string name="role_router_client_desc">Combination of both ROUTER and CLIENT. Not for mobile devices.</string>
     <string name="role_router_desc">Infrastructure node for extending network coverage by relaying messages. Visible in nodes list.</string>
+    <string name="role_router_late">Router Late</string>
     <string name="role_router_late_desc">Infrastructure node that always rebroadcasts packets once but only after all other modes, ensuring additional coverage for local clusters. Visible in nodes list.</string>
+    <string name="role_sensor">Sensor</string>
     <string name="role_sensor_desc">Broadcasts telemetry packets as priority.</string>
+    <string name="role_tak">TAK</string>
     <string name="role_tak_desc">Optimized for ATAK system communication, reduces routine broadcasts.</string>
+    <string name="role_tak_tracker">TAK Tracker</string>
     <string name="role_tak_tracker_desc">Enables automatic TAK PLI broadcasts and reduces routine broadcasts.</string>
+    <string name="role_tracker">Tracker</string>
     <string name="role_tracker_desc">Broadcasts GPS position packets as priority.</string>
     <string name="root_topic">Root topic</string>
     <string name="rotary_encoder_1_enabled">Rotary encoder #1 enabled</string>
@@ -1789,6 +1820,7 @@
     <string name="site_planner">Site Planner</string>
     <string name="site_planner_antenna_gain_dbi">Antenna gain (dBi)</string>
     <string name="site_planner_antenna_height_meters">Antenna height (m)</string>
+    <string name="site_planner_browser_note">The estimate opens in your browser. To bring it onto this map, click the transmitter pin there, choose Export › GeoJSON, then add the downloaded file under Manage Map Layers › Add Layer. Use the GeoJSON export — the KML one is a ground-overlay image this map cannot draw.</string>
     <string name="site_planner_color_scale">Color palette</string>
     <string name="site_planner_estimate">Estimate coverage</string>
     <string name="site_planner_estimating">Estimating coverage…</string>
@@ -1826,7 +1858,7 @@
     <string name="ssid">SSID</string>
     <string name="state_broadcast_seconds">State broadcast (seconds)</string>
     <string name="status_message">Status Message</string>
-    <string name="status_message_config">Status Message Config</string>
+    <string name="status_message_summary">A public status message that is broadcast to the mesh on change and every 12 hours.</string>
     <string name="stay_connected_anywhere">Stay Connected Anywhere</string>
     <string name="stop_connecting">Stop Connecting</string>
     <string name="store_forward">Store &amp; Forward</string>
@@ -1955,7 +1987,6 @@
     <string name="traffic_management_nodeinfo_direct_response_max_hops">Max Hops for Direct Response</string>
     <string name="traffic_management_position_dedup">Position Deduplication</string>
     <string name="traffic_management_position_min_interval">Min Position Interval (secs)</string>
-    <string name="traffic_management_position_precision">Position Precision (bits)</string>
     <string name="traffic_management_rate_limit_enabled">Rate Limiting</string>
     <string name="traffic_management_rate_limit_max_packets">Max Packets in Window</string>
     <string name="traffic_management_rate_limit_window">Rate Limit Window (secs)</string>
@@ -1969,6 +2000,8 @@
     <string name="translation_failed">Unable to translate message</string>
     <string name="translation_model_download_failed">Translation model download failed</string>
     <string name="translation_not_required">Message is already in your language</string>
+    <string name="transmit_disabled">Transmit is disabled</string>
+    <string name="transmit_disabled_summary">This device can receive but will not send anything over LoRa.</string>
     <string name="transmit_over_lora">Transmit over LoRa</string>
     <!-- TRANSPORT -->
     <string name="transport">Transport</string>
@@ -1989,6 +2022,12 @@
     <string name="type_a_message">Type a message</string>
     <string name="udp_enabled">UDP broadcasting</string>
     <string name="undo">Undo</string>
+    <!-- UNITS -->
+    <string name="units">Units</string>
+    <string name="units_follow_system">System default</string>
+    <string name="units_imperial">Imperial</string>
+    <string name="units_metric">Metric</string>
+    <string name="units_scope_summary">How this app displays distance, altitude, speed, and temperature. Your device's own screen follows its Display config instead.</string>
     <!-- UNKNOWN -->
     <string name="unknown">Unknown</string>
     <string name="unknown_age">Unknown Age</string>
@@ -2006,6 +2045,7 @@
     <string name="up_down_select_input_enabled">Up/Down/Select input enabled</string>
     <string name="update_interval">GPS Polling Interval</string>
     <string name="update_interval_seconds">Update interval (seconds)</string>
+    <string name="update_status">Update status</string>
     <string name="updated">Updated</string>
     <string name="uplink_enabled">MQTT Uplink Enabled</string>
     <string name="uplink_feature_description">Messages from the mesh will be sent to the public internet through any node's configured gateway.</string>
@@ -2015,6 +2055,7 @@
     <!-- URL -->
     <string name="url">URL</string>
     <string name="url_cannot_be_empty">URL cannot be empty.</string>
+    <string name="url_must_be_http">URL must start with http:// or https://.</string>
     <string name="url_must_contain_placeholders">URL must contain placeholders.</string>
     <string name="url_template">URL Template</string>
     <string name="url_template_hint" translatable="false">https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png</string>
@@ -2054,28 +2095,28 @@
     <string name="what_is_meshtastic">What is Meshtastic?</string>
     <string name="what_is_meshtastic_description">An open source, off-grid, decentralized, mesh network that runs on affordable, low-power radios.</string>
     <!-- WIFI -->
-    <string name="wifi_config">WiFi Options</string>
+    <string name="wifi_config">Wi-Fi Options</string>
     <string name="wifi_devices">Wi-Fi Provisioning for mPWRD-OS</string>
-    <string name="wifi_enabled">WiFi enabled</string>
-    <string name="wifi_ip">Wifi IP:</string>
+    <string name="wifi_enabled">Wi-Fi enabled</string>
+    <string name="wifi_ip">Wi-Fi IP:</string>
     <string name="wifi_provision_available_networks">Available Networks</string>
     <string name="wifi_provision_connect_failed">Could not connect: %1$s</string>
     <string name="wifi_provision_description">Provision Wi-Fi credentials to your mPWRD-OS device via Bluetooth.</string>
     <string name="wifi_provision_device_found">Device found</string>
-    <string name="wifi_provision_device_found_detail">Ready to scan for WiFi networks.</string>
+    <string name="wifi_provision_device_found_detail">Ready to scan for Wi-Fi networks.</string>
     <string name="wifi_provision_hidden_network">Hidden network</string>
     <string name="wifi_provision_mpwrd_disclaimer">Learn more about the mPWRD-OS project\nhttps://github.com/mPWRD-OS</string>
     <string name="wifi_provision_no_networks">No networks found</string>
-    <string name="wifi_provision_scan_failed">Failed to scan for WiFi networks: %1$s</string>
+    <string name="wifi_provision_scan_failed">Failed to scan for Wi-Fi networks: %1$s</string>
     <string name="wifi_provision_scan_networks">Scan for Networks</string>
     <string name="wifi_provision_scanning_ble">Searching for device…</string>
     <string name="wifi_provision_scanning_wifi">Scanning…</string>
-    <string name="wifi_provision_sending_credentials">Applying WiFi configuration…</string>
+    <string name="wifi_provision_sending_credentials">Applying Wi-Fi configuration…</string>
     <string name="wifi_provision_signal_strength">%1$d%</string>
     <string name="wifi_provision_ssid_label">Network Name (SSID)</string>
     <string name="wifi_provision_ssid_placeholder">Enter or select a network</string>
-    <string name="wifi_provision_status_applied">WiFi configured successfully!</string>
-    <string name="wifi_provision_status_failed">Failed to apply WiFi configuration</string>
+    <string name="wifi_provision_status_applied">Wi-Fi configured successfully!</string>
+    <string name="wifi_provision_status_failed">Failed to apply Wi-Fi configuration</string>
     <string name="wifi_provision_success_description">Your mPWRD-OS device has joined the Wi-Fi network.</string>
     <string name="wifi_provision_success_device_connected">Device Connected</string>
     <string name="wifi_provision_success_done">Done</string>
@@ -2092,9 +2133,9 @@
     <string name="wifi_provision_success_username">Username</string>
     <string name="wifi_provision_success_username_value" translatable="false">root</string>
     <string name="wifi_provisioning">Wi-Fi Provisioning for mPWRD-OS</string>
-    <string name="wifi_qr_code_error">Invalid WiFi Credential QR code format</string>
-    <string name="wifi_qr_code_scan">Scan WiFi QR code</string>
-    <string name="wifi_rssi_threshold_defaults_to_80">WiFi RSSI threshold (defaults to -80)</string>
+    <string name="wifi_qr_code_error">Invalid Wi-Fi Credential QR code format</string>
+    <string name="wifi_qr_code_scan">Scan Wi-Fi QR code</string>
+    <string name="wifi_rssi_threshold_defaults_to_80">Wi-Fi RSSI threshold (defaults to -80)</string>
     <string name="wifi_unavailable">Not connected to Wi-Fi. Network scan may not find nearby devices.</string>
     <!-- WIND -->
     <string name="wind">Wind</string>
@@ -2111,5 +2152,7 @@
     <string name="you">You</string>
     <string name="zh_CN" translatable="false">简体中文</string>
     <string name="zh_TW" translatable="false">繁體中文</string>
+    <string name="zoom_in">Zoom in</string>
+    <string name="zoom_out">Zoom out</string>
 </resources>
 

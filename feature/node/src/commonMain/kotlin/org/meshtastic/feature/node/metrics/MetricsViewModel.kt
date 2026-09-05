@@ -16,8 +16,12 @@
  */
 package org.meshtastic.feature.node.metrics
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import androidx.lifecycle.ViewModel
 import co.touchlab.kermit.Logger
@@ -45,6 +49,7 @@ import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.TelemetryType
 import org.meshtastic.core.model.TracerouteOverlay
 import org.meshtastic.core.model.evaluateTracerouteMapAvailability
+import org.meshtastic.core.model.noiseFloorOrNull
 import org.meshtastic.core.model.util.GeoConstants
 import org.meshtastic.core.model.util.TELEMETRY_CHANNEL_COUNT
 import org.meshtastic.core.model.util.UnitConversions
@@ -296,7 +301,11 @@ open class MetricsViewModel(
     fun showLogDetail(titleRes: StringResource, annotatedMessage: AnnotatedString) {
         alertManager.showAlert(
             titleRes = titleRes,
-            composableMessage = { SelectionContainer { Text(text = annotatedMessage) } },
+            composableMessage = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    SelectionContainer { Text(text = annotatedMessage) }
+                }
+            },
         )
     }
 
@@ -311,7 +320,11 @@ open class MetricsViewModel(
             val snapshotPositions = tracerouteSnapshotRepository.getSnapshotPositions(responseLogUuid).first()
             alertManager.showAlert(
                 titleRes = Res.string.traceroute,
-                composableMessage = { SelectionContainer { Text(text = annotatedMessage) } },
+                composableMessage = {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        SelectionContainer { Text(text = annotatedMessage) }
+                    }
+                },
                 confirmTextRes = Res.string.view_on_map,
                 onConfirm = {
                     val positionedNodeNums =
@@ -412,7 +425,7 @@ open class MetricsViewModel(
             epochSeconds = { it.time.toLong() },
         ) { telemetry ->
             val stats = telemetry.local_stats
-            "\"${stats?.noise_floor ?: ""}\",\"${stats?.uptime_seconds ?: ""}\"," +
+            "\"${stats?.noiseFloorOrNull ?: ""}\",\"${stats?.uptime_seconds ?: ""}\"," +
                 "\"${stats?.channel_utilization ?: ""}\",\"${stats?.air_util_tx ?: ""}\"," +
                 "\"${stats?.num_packets_tx ?: ""}\",\"${stats?.num_packets_rx ?: ""}\"," +
                 "\"${stats?.num_packets_rx_bad ?: ""}\",\"${stats?.num_rx_dupe ?: ""}\"," +

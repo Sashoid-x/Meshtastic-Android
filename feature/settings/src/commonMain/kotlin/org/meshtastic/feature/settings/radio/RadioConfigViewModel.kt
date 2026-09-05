@@ -56,6 +56,7 @@ import org.meshtastic.core.domain.usecase.settings.InstallProfileUseCase
 import org.meshtastic.core.domain.usecase.settings.ProcessRadioResponseUseCase
 import org.meshtastic.core.domain.usecase.settings.RadioConfigUseCase
 import org.meshtastic.core.domain.usecase.settings.RadioResponseResult
+import org.meshtastic.core.model.Capabilities
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.HamName
 import org.meshtastic.core.model.MqttConnectionState
@@ -72,6 +73,7 @@ import org.meshtastic.core.repository.LocationService
 import org.meshtastic.core.repository.LockdownCoordinator
 import org.meshtastic.core.repository.LockdownPassphraseStore
 import org.meshtastic.core.repository.MapConsentPrefs
+import org.meshtastic.core.repository.MeshConnectionManager
 import org.meshtastic.core.repository.MqttManager
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.NodeRestartTracker
@@ -151,7 +153,7 @@ data class RadioConfigState(
 @KoinViewModel
 @Suppress("LongParameterList", "LargeClass")
 open class RadioConfigViewModel(
-    @InjectedParam private val destNum: Int?,
+    @InjectedParam initialDestNum: Int?,
     private val radioConfigRepository: RadioConfigRepository,
     private val packetRepository: PacketRepository,
     private val serviceRepository: ServiceRepository,
@@ -174,16 +176,25 @@ open class RadioConfigViewModel(
     private val securityKeyBackupStore: SecurityKeyBackupStore,
     private val snackbarManager: SnackbarManager,
     private val nodeRestartTracker: NodeRestartTracker,
+    private val connectionManager: MeshConnectionManager,
     private val analytics: PlatformAnalytics,
 ) : ViewModel() {
+
+    /**
+     * The node this session addresses. Starts as the injected destination (null = the connected node, whatever its
+     * number). A session opened on the connected node *by number* — Node detail → Administration — drops to null when
+     * that number moves under it (firmware 2.8 renumbers on the first region set), so later writes follow the connected
+     * node through [destNode] instead of a number the radio no longer answers to.
+     */
+    private val activeDestNum = MutableStateFlow(initialDestNum)
+    private val destNum: Int?
+        get() = activeDestNum.value
 
     val lockdownTokenInfo = serviceRepository.lockdownTokenInfo
     val sessionAuthorized = serviceRepository.sessionAuthorized
     val lockdownState = serviceRepository.lockdownState
 
-    fun sendLockNow() {
-        safeLaunch(tag = "sendLockNow") { lockdownCoordinator.lockNow() }
-    }
+    fun sendLockNow(): Boolean = lockdownCoordinator.lockNow()
 
     /**
      * Submits a lockdown passphrase: enables lockdown (from DISABLED), authenticates ([disable]=false from LOCKED), or
@@ -195,11 +206,7 @@ open class RadioConfigViewModel(
         hours: Int = 0,
         maxSessionSeconds: Int = 0,
         disable: Boolean = false,
-    ) {
-        safeLaunch(tag = "submitLockdownPassphrase") {
-            lockdownCoordinator.submitPassphrase(passphrase, boots, hours, maxSessionSeconds, disable)
-        }
-    }
+    ): Boolean = lockdownCoordinator.submitPassphrase(passphrase, boots, hours, maxSessionSeconds, disable)
 
     val analyticsAllowedFlow = analyticsPrefs.analyticsAllowed
 
@@ -280,6 +287,10 @@ open class RadioConfigViewModel(
 
     private val requestIds = MutableStateFlow(hashSetOf<Int>())
 
+    // USER reads one config on firmware without the status message module and two with it, so whether a
+    // load fanned out is a property of that load, not of the route. Null falls back to the route's flag.
+    private var loadFanOut: Pair<String, Boolean>? = null
+
     // Main-dispatcher confined with the other ViewModel request state below. Keep every access on viewModelScope unless
     // these collections are moved behind explicit synchronization.
     private val requestTimeoutJobs = mutableMapOf<Int, Job>()
@@ -304,8 +315,9 @@ open class RadioConfigViewModel(
         locationService.getCurrentLocation()
 
     init {
-        nodeRepository.nodeDBbyNum
-            .map { nodes -> if (destNum != null) nodes[destNum] else nodes.values.firstOrNull() }
+        combine(nodeRepository.nodeDBbyNum, activeDestNum) { nodes, dest ->
+            if (dest != null) nodes[dest] else nodes.values.firstOrNull()
+        }
             .distinctUntilChanged()
             .onEach {
                 _destNode.value = it
@@ -320,11 +332,10 @@ open class RadioConfigViewModel(
         // Derive isLocal from the immutable destNum and the (possibly changing) myNodeInfo.
         // flatMapLatest cancels the previous inner flow on every change, so there is
         // no window where stale local config can leak through.
-        nodeRepository.myNodeInfo
-            .map { ni ->
-                val isLocal = (destNum == null) || (destNum == ni?.myNodeNum)
-                isLocal to if (isLocal) ni?.pioEnv else null
-            }
+        combine(nodeRepository.myNodeInfo, activeDestNum) { ni, dest ->
+            val isLocal = (dest == null) || (dest == ni?.myNodeNum)
+            isLocal to if (isLocal) ni?.pioEnv else null
+        }
             .distinctUntilChanged()
             .flatMapLatest { (isLocal, pioEnv) ->
                 if (isLocal) {
@@ -834,12 +845,28 @@ open class RadioConfigViewModel(
         _radioConfigState.update {
             it.copy(route = route.name, responseState = ResponseState.Loading(showOverlay = showOverlay))
         }
+        loadFanOut = null
 
         when (route) {
-            ConfigRoute.USER ->
+            ConfigRoute.USER -> {
                 safeLaunch(tag = "getOwner") {
                     radioConfigUseCase.getOwner(destNum, onRequestId = ::registerReadRequestId)
                 }
+                // The status message is edited on the user screen, so it is read with the owner. Gated on the
+                // capability: firmware without the module never answers the get, leaving the overlay waiting.
+                val readsStatusMessage =
+                    Capabilities(radioConfigState.value.metadata?.firmware_version).supportsStatusMessage
+                loadFanOut = ConfigRoute.USER.name to readsStatusMessage
+                if (readsStatusMessage) {
+                    safeLaunch(tag = "getStatusMessageConfig") {
+                        radioConfigUseCase.getModuleConfig(
+                            destNum,
+                            AdminMessage.ModuleConfigType.STATUSMESSAGE_CONFIG.value,
+                            onRequestId = ::registerReadRequestId,
+                        )
+                    }
+                }
+            }
 
             ConfigRoute.CHANNELS -> {
                 safeLaunch(tag = "getChannel0") {
@@ -1214,6 +1241,27 @@ open class RadioConfigViewModel(
                 }
             }
 
+            is RadioResponseResult.UnexpectedAckSender -> {
+                // The connected radio ACKed our local write from a node number other than the one we addressed:
+                // firmware 2.8 renumbers itself (num = crc32(public_key)) when it mints the PKI key on the first
+                // region set, live and without a reboot, so our cached number is now stale and every further admin
+                // write would NAK PKI_SEND_FAIL_PUBLIC_KEY until we re-learn it. Re-run the config handshake to pick
+                // up the new my_node_num, and treat this ACK as the save's confirmation. Scoped to a local save
+                // (route empty, isLocal): a remote admin target legitimately answers from a different node.
+                if (requestId != null && !isLateRemoteRead && route.isEmpty() && radioConfigState.value.isLocal) {
+                    clearRequestIds()
+                    // A session opened on the connected node by number would otherwise keep addressing the old
+                    // number (and stop counting as local) once the handshake reports the new one.
+                    activeDestNum.value = null
+                    connectionManager.startConfigOnly()
+                    setResponseStateSuccess()
+                }
+                // Otherwise an unaddressed node's ack says nothing about our request: leave it pending, exactly as
+                // when the use case returned null for it. Falling through would let the generic completion below
+                // retire the request and resolve a remote save on a foreign ack.
+                return
+            }
+
             is RadioResponseResult.Metadata -> {
                 _radioConfigState.update { it.copy(metadata = result.metadata) }
                 if (!isLateRemoteRead) incrementCompleted()
@@ -1362,7 +1410,8 @@ open class RadioConfigViewModel(
     private fun isSingleResponseRemoteReadRoute(route: String): Boolean {
         if (!isRemoteReadRoute(route)) return false
         val hasReadFanOut =
-            ConfigRoute.entries.firstOrNull { it.name == route }?.hasReadFanOut
+            loadFanOut?.takeIf { it.first == route }?.second
+                ?: ConfigRoute.entries.firstOrNull { it.name == route }?.hasReadFanOut
                 ?: ModuleRoute.entries.firstOrNull { it.name == route }?.hasReadFanOut
         // Unknown routes are never retained.
         return hasReadFanOut == false

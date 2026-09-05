@@ -106,6 +106,9 @@ sealed interface SettingsRoute : Route {
 
     @Serializable data object User : SettingsRoute
 
+    /** The user screen opened straight to its status message field — the local node's edit shortcut. */
+    @Serializable data object UserStatusMessage : SettingsRoute
+
     @Serializable data object ChannelConfig : SettingsRoute
 
     @Serializable data object Device : SettingsRoute
@@ -153,8 +156,6 @@ sealed interface SettingsRoute : Route {
     @Serializable data object DetectionSensor : SettingsRoute
 
     @Serializable data object Paxcounter : SettingsRoute
-
-    @Serializable data object StatusMessage : SettingsRoute
 
     @Serializable data object TAK : SettingsRoute
 

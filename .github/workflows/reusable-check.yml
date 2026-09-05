@@ -21,9 +21,6 @@ on:
       run_desktop_builds:
         type: boolean
         default: false
-      run_desktop_flatpak_src:
-        type: boolean
-        default: false
       upload_artifacts:
         type: boolean
         default: true
@@ -85,7 +82,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Full history: spotless ratchetFrom("origin/main") diffs against main.
           fetch-depth: 0
@@ -99,7 +96,13 @@ jobs:
           develocity_access_key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
           job_summary_pr_comment: ${{ env.GRADLE_PR_COMMENT }}
           cache_read_only: ${{ env.GRADLE_CACHE_READ_ONLY }}
-          cache_configuration_cache: 'true' # VERSION_CODE pinned -> entries actually reuse
+          # Disabled on Gradle 9.7.1: restoring an entry written by another runner crashes
+          # fingerprint deserialization (IsInIdeaSyncValueSource CNFE, settings-plugin
+          # classloader scope) and the job dies in ~10s before any test. A cross-machine
+          # restore is the only thing that triggers it, so it is 100% red in CI and not
+          # reproducible from a local store/reuse pair. Re-enable when that is fixed
+          # upstream; VERSION_CODE is still pinned above so entries would reuse.
+          cache_configuration_cache: 'false'
           install_jetbrains_jdk: 'true'
 
       - name: Lint, Analysis & KMP Smoke Compile
@@ -118,7 +121,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           submodules: true
@@ -130,7 +133,13 @@ jobs:
           develocity_access_key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
           job_summary_pr_comment: ${{ env.GRADLE_PR_COMMENT }}
           cache_read_only: ${{ env.GRADLE_CACHE_READ_ONLY }}
-          cache_configuration_cache: 'true' # VERSION_CODE pinned -> entries actually reuse
+          # Disabled on Gradle 9.7.1: restoring an entry written by another runner crashes
+          # fingerprint deserialization (IsInIdeaSyncValueSource CNFE, settings-plugin
+          # classloader scope) and the job dies in ~10s before any test. A cross-machine
+          # restore is the only thing that triggers it, so it is 100% red in CI and not
+          # reproducible from a local store/reuse pair. Re-enable when that is fixed
+          # upstream; VERSION_CODE is still pinned above so entries would reuse.
+          cache_configuration_cache: 'false'
 
       - name: Screenshot Test Validation
         # -Dorg.gradle.isolated-projects=false: AGP's screenshot plugin iterates BuildServicesRegistry at
@@ -139,7 +148,7 @@ jobs:
 
       - name: Upload screenshot diff report
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: screenshot-diff-report
           path: screenshot-tests/build/reports/screenshotTest/
@@ -159,7 +168,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           submodules: true
@@ -244,6 +253,8 @@ jobs:
               :feature:firmware:allTests
               :feature:intro:allTests
               :feature:map:allTests
+              :feature:map-maplibre:allTests
+              :feature:map-terrain:allTests
               :feature:messaging:allTests
               :feature:node:allTests
               :feature:settings:allTests
@@ -256,6 +267,8 @@ jobs:
               :feature:firmware:koverXmlReport
               :feature:intro:koverXmlReport
               :feature:map:koverXmlReport
+              :feature:map-maplibre:koverXmlReport
+              :feature:map-terrain:koverXmlReport
               :feature:messaging:koverXmlReport
               :feature:node:koverXmlReport
               :feature:settings:koverXmlReport
@@ -282,7 +295,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 1
           submodules: true
@@ -294,7 +307,13 @@ jobs:
           develocity_access_key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
           job_summary_pr_comment: ${{ env.GRADLE_PR_COMMENT }}
           cache_read_only: ${{ env.GRADLE_CACHE_READ_ONLY }}
-          cache_configuration_cache: 'true' # VERSION_CODE pinned -> entries actually reuse
+          # Disabled on Gradle 9.7.1: restoring an entry written by another runner crashes
+          # fingerprint deserialization (IsInIdeaSyncValueSource CNFE, settings-plugin
+          # classloader scope) and the job dies in ~10s before any test. A cross-machine
+          # restore is the only thing that triggers it, so it is 100% red in CI and not
+          # reproducible from a local store/reuse pair. Re-enable when that is fixed
+          # upstream; VERSION_CODE is still pinned above so entries would reuse.
+          cache_configuration_cache: 'false'
           # Shards run different task graphs; kover flips the graph again.
           cache_key_suffix: ${{ matrix.shard.name }}${{ inputs.run_coverage && '-kover' || '' }}
 
@@ -316,7 +335,7 @@ jobs:
       # which Codecov flag its coverage lands under.
       - name: Upload test results to Codecov (core)
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: meshtastic/Meshtastic-Android
@@ -328,7 +347,7 @@ jobs:
 
       - name: Upload test results to Codecov (feature)
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: meshtastic/Meshtastic-Android
@@ -340,7 +359,7 @@ jobs:
 
       - name: Upload test results to Codecov (app)
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: meshtastic/Meshtastic-Android
@@ -352,7 +371,7 @@ jobs:
 
       - name: Upload test results to Codecov (desktop)
         if: ${{ !cancelled() }}
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: meshtastic/Meshtastic-Android
@@ -364,7 +383,7 @@ jobs:
 
       - name: Upload coverage to Codecov (core)
         if: ${{ !cancelled() && inputs.run_coverage }}
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: meshtastic/Meshtastic-Android
@@ -375,7 +394,7 @@ jobs:
 
       - name: Upload coverage to Codecov (feature)
         if: ${{ !cancelled() && inputs.run_coverage }}
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: meshtastic/Meshtastic-Android
@@ -386,7 +405,7 @@ jobs:
 
       - name: Upload coverage to Codecov (app)
         if: ${{ !cancelled() && inputs.run_coverage }}
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: meshtastic/Meshtastic-Android
@@ -397,7 +416,7 @@ jobs:
 
       - name: Upload coverage to Codecov (desktop)
         if: ${{ !cancelled() && inputs.run_coverage }}
-        uses: codecov/codecov-action@v7
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: meshtastic/Meshtastic-Android
@@ -407,8 +426,10 @@ jobs:
           files: "desktopApp/build/reports/kover/report*.xml"
 
       - name: Upload shard reports
-        if: ${{ always() && inputs.upload_artifacts }}
-        uses: actions/upload-artifact@v7
+        # !cancelled(), not always(): a shard cancelled before Gradle ran has no
+        # reports, and the upload warns "No files were found" on the way out.
+        if: ${{ !cancelled() && inputs.upload_artifacts }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: reports-${{ matrix.shard.name }}
           path: |
@@ -427,7 +448,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           filter: 'blob:none'
@@ -529,14 +550,19 @@ jobs:
       - name: Build Android APKs
         # -Dorg.gradle.isolated-projects=false: the dependency-graph plugin injected by setup-gradle force-resolves
         # via allprojects{}, which Isolated Projects forbids (fatal since Gradle 9.7). The property form is
-        # used everywhere instead of --no-isolated-projects: that flag only exists on Gradle 9.7+, and the
-        # wrapper is pinned to 9.6.1 (9.7.1 broke the CC fingerprint and CMP Windows packaging — see
-        # gradle-wrapper.properties and the renovate.json block on the 9.7 line).
+        # used everywhere instead of --no-isolated-projects: that flag only exists on 9.7+, so the property
+        # survives a pin-back below 9.7 without editing this line.
         run: ./gradlew androidApp:assembleFdroidDebug androidApp:assembleGoogleDebug -Pci=true --parallel --configuration-cache -Dorg.gradle.isolated-projects=false --continue
+
+      # A dependency published for only some of our ABIs builds and installs cleanly and then
+      # crashes with UnsatisfiedLinkError on the others (#7001). Compare the splits here, where
+      # they are already built for every PR.
+      - name: Verify native library ABI parity
+        run: ./scripts/verify-abi-parity.sh
 
       - name: Upload debug artifact
         if: ${{ inputs.upload_artifacts }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: app-debug-apks
           path: androidApp/build/outputs/apk/*/debug/*.apk
@@ -568,7 +594,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           filter: 'blob:none'
@@ -594,7 +620,24 @@ jobs:
         # packageDistributionForCurrentOS (debug build type, no ProGuard) produces real
         # installers (dmg/msi+exe/deb+rpm+AppImage-dir) so the snapshot release below can
         # ship something testers can actually install, not just an unpacked app dir.
-        run: ./gradlew :desktopApp:packageDistributionForCurrentOS :desktopApp:proguardReleaseJars -Pci=true
+        # Windows only: CMP's WiX packaging reads Project.layout on the root project from
+        # ':desktopApp', which Isolated Projects rejects. Stack, from a --dry-run on
+        # windows-latest against compose-multiplatform 1.12.0:
+        #     WixToolsetKt.configureWix(wixToolset.kt:43)
+        #     ConfigureJvmApplicationKt.configureJvmApplication(configureJvmApplication.kt:46)
+        #     ComposePlugin.apply$lambda$2(ComposePlugin.kt:58)
+        # configureWix only runs where MSI/EXE are target formats, which is why macOS,
+        # ubuntu-24.04 and ubuntu-24.04-arm all package fine with IP on — verified by
+        # running this exact task list unflagged on all four runners. Keep the escape
+        # pinned to the one OS that needs it, and drop it when CMP stops reaching for
+        # the root project.
+        # Both flags go together: IP implies the configuration cache, and Gradle refuses
+        # --no-configuration-cache while IP is still on. Flags, not -D properties —
+        # -Dorg.gradle.isolated-projects=false is inert on windows-latest. --no-isolated-projects
+        # needs Gradle 9.7+, so a pin-back below 9.7 has to revert this line with it.
+        run: >
+          ./gradlew :desktopApp:packageDistributionForCurrentOS :desktopApp:proguardReleaseJars -Pci=true
+          ${{ runner.os == 'Windows' && '--no-isolated-projects --no-configuration-cache' || '' }}
 
       # CMP's TargetFormat.AppImage is jpackage's "app-image" — an unpacked directory, not
       # a Linux .AppImage. Wrap it into a real AppImage, same as the release workflow.
@@ -607,7 +650,7 @@ jobs:
 
       - name: Upload Desktop artifact
         if: ${{ inputs.upload_artifacts }}
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: desktop-app-${{ runner.os }}-${{ runner.arch }}
           path: |
@@ -619,56 +662,3 @@ jobs:
             desktopApp/build/compose/binaries/main/*/*.AppImage
           retention-days: 7
           if-no-files-found: error
-
-  # ── Flatpak Sources ───────────────────────────────────────────────────
-  build-flatpak-src:
-    name: Generate Flatpak Sources (${{ matrix.os }})
-    if: inputs.run_desktop_flatpak_src == true
-    runs-on: ${{ matrix.os }}
-    permissions:
-      contents: read
-      pull-requests: write
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-24.04, ubuntu-24.04-arm]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-          filter: 'blob:none'
-          submodules: true
-
-      - name: Gradle Setup
-        uses: ./.github/actions/gradle-setup
-        with:
-          gradle_encryption_key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
-          develocity_access_key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
-          job_summary_pr_comment: ${{ env.GRADLE_PR_COMMENT }}
-          cache_read_only: true
-          install_jetbrains_jdk: 'true'
-
-      # Isolated Gradle user home — see explanation in release.yml.
-      # packageUberJarForCurrentOS is what the in-flatpak build invokes; it resolves the FULL
-      # runtime classpath. :assemble alone would miss runtime-only deps (skiko, ktor-cio, …).
-      - name: Generate Flatpak Sources
-        run: >
-          ./gradlew --no-build-cache
-          -Dgradle.user.home=${{ runner.temp }}/flatpak-gradle-home
-          :desktopApp:packageUberJarForCurrentOS :captureFlatpakSources
-
-      - name: Stage manifest
-        run: cp build/flatpak-sources.json flatpak-sources.json
-
-      - run: ls -lah flatpak-sources.json
-
-      - name: Upload Flatpak Sources
-        if: ${{ inputs.upload_artifacts }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: flatpak-sources-${{ runner.arch }}
-          path: flatpak-sources.json
-          retention-days: 7

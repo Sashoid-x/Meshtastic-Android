@@ -24,11 +24,13 @@ import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.LatLngBounds
 import com.google.android.gms.maps.model.TileProvider
-import com.google.android.gms.maps.model.UrlTileProvider
 import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.MapType
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,20 +39,31 @@ import kotlinx.coroutines.flow.asFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okio.FileSystem
+import okio.Path.Companion.toPath
 import org.koin.core.annotation.KoinViewModel
-import org.meshtastic.app.map.model.CustomTileProviderConfig
-import org.meshtastic.app.map.model.isValidTileUrlTemplate
+import org.meshtastic.app.map.offline.pmtiles.OfflineDownloadState
+import org.meshtastic.app.map.offline.pmtiles.OfflineRegion
+import org.meshtastic.app.map.offline.pmtiles.OfflineRegionExtractor
+import org.meshtastic.app.map.offline.pmtiles.OfflineRegionStore
+import org.meshtastic.app.map.offline.pmtiles.OfflineRegionTileSet
+import org.meshtastic.app.map.offline.terrain.TerrainDownloadPlanner
 import org.meshtastic.app.map.prefs.map.GoogleCameraPosition
 import org.meshtastic.app.map.prefs.map.GoogleMapSelectionPrefs
 import org.meshtastic.app.map.prefs.map.GoogleMapsPrefs
-import org.meshtastic.app.map.repository.CustomTileProviderRepository
-import org.meshtastic.app.map.repository.CustomTileProviderSaveResult
+import org.meshtastic.app.map.tiles.MapTileHttpClient
+import org.meshtastic.app.map.tiles.RasterBasemap
+import org.meshtastic.app.map.tiles.RasterTileProvider
+import org.meshtastic.app.map.tiles.toRasterBasemap
 import org.meshtastic.core.common.util.LocaleUnitsProvider
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
+import org.meshtastic.core.network.repository.NetworkRepository
 import org.meshtastic.core.repository.MapPrefs
 import org.meshtastic.core.repository.MapTileProviderPrefs
 import org.meshtastic.core.repository.NodeRepository
@@ -61,15 +74,26 @@ import org.meshtastic.core.repository.RadioController
 import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.core.ui.viewmodel.stateInWhileSubscribed
 import org.meshtastic.feature.map.BaseMapViewModel
+import org.meshtastic.feature.map.layers.LayerOpacityStore
+import org.meshtastic.feature.map.layers.MapLayerItem
+import org.meshtastic.feature.map.layers.MapLayersManager
+import org.meshtastic.feature.map.layers.PickedMapFile
+import org.meshtastic.feature.map.shouldAutoUseOfflineBasemap
+import org.meshtastic.feature.map.terrain.GeoBounds
+import org.meshtastic.feature.map.terrain.TerrainDownloadState
+import org.meshtastic.feature.map.terrain.TerrainRegionExtractor
+import org.meshtastic.feature.map.terrain.TerrainTileStore
+import org.meshtastic.feature.map.tiles.CustomTileProviderConfig
+import org.meshtastic.feature.map.tiles.CustomTileProviderRepository
+import org.meshtastic.feature.map.tiles.CustomTileProviderSaveResult
+import org.meshtastic.feature.map.tiles.MapTileCatalogue
+import org.meshtastic.feature.map.tiles.RasterOverlaySource
+import org.meshtastic.feature.map.tiles.RasterTileSpec
+import org.meshtastic.feature.map.tiles.isValidTileUrlTemplate
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.io.InputStream
-import java.net.MalformedURLException
-import java.net.URL
 import kotlin.uuid.Uuid
-
-private const val TILE_SIZE = 256
 
 /** Waypoint coordinates arrive as integer degrees scaled by 1e7. */
 private const val WAYPOINT_COORD_SCALE = 1e7
@@ -89,6 +113,7 @@ class MapViewModel(
     private val application: Application,
     private val dispatchers: CoroutineDispatchers,
     private val mapLayersManager: MapLayersManager,
+    private val layerOpacityStore: LayerOpacityStore,
     mapPrefs: MapPrefs,
     private val googleMapsPrefs: GoogleMapsPrefs,
     nodeRepository: NodeRepository,
@@ -97,10 +122,12 @@ class MapViewModel(
     radioController: RadioController,
     private val customTileProviderRepository: CustomTileProviderRepository,
     private val mapTileProviderPrefs: MapTileProviderPrefs,
+    private val mapTileHttpClient: MapTileHttpClient,
     uiPrefs: UiPrefs,
     notificationPrefs: NotificationPrefs,
     savedStateHandle: SavedStateHandle,
     localeUnitsProvider: LocaleUnitsProvider,
+    networkRepository: NetworkRepository,
 ) : BaseMapViewModel(
     mapPrefs,
     nodeRepository,
@@ -109,6 +136,7 @@ class MapViewModel(
     radioConfigRepository,
     notificationPrefs,
     localeUnitsProvider,
+    networkRepository,
 ) {
 
     private val _selectedWaypointId = MutableStateFlow(savedStateHandle.get<Int>("waypointId"))
@@ -160,14 +188,44 @@ class MapViewModel(
     val customTileProviderConfigs: StateFlow<List<CustomTileProviderConfig>> =
         customTileProviderRepository.getCustomTileProviders().stateInWhileSubscribed(initialValue = emptyList())
 
-    private val _selectedCustomTileProviderId = MutableStateFlow<String?>(null)
-    val selectedCustomTileProviderId: StateFlow<String?> = _selectedCustomTileProviderId.asStateFlow()
+    private val _selectedRasterBasemapId = MutableStateFlow<String?>(null)
 
-    val selectedCustomTileProvider: StateFlow<CustomTileProviderConfig?> =
-        combine(_selectedCustomTileProviderId, customTileProviderConfigs) { selectedId, providers ->
-            providers.findSelectedCustomTileProvider(selectedId)
+    /** The chosen raster basemap: a [MapTileCatalogue] source, or one of the user's own. Null means Google's own. */
+    val selectedRasterBasemapId: StateFlow<String?> = _selectedRasterBasemapId.asStateFlow()
+
+    val selectedRasterBasemap: StateFlow<RasterBasemap?> =
+        combine(_selectedRasterBasemapId, customTileProviderConfigs) { selectedId, providers ->
+            selectedId?.let { id ->
+                MapTileCatalogue.basemaps.firstOrNull { it.id == id }?.let { RasterBasemap.Remote(id, it.spec) }
+                    ?: providers.findSelectedCustomTileProvider(id)?.toRasterBasemap()
+            }
         }
             .stateInWhileSubscribed(initialValue = null)
+
+    /**
+     * The overlays this map can composite over its basemap.
+     *
+     * DEM sources are dropped: their pixels encode elevation for a renderer that shades them into terrain, and drawing
+     * the raw values over the map would just be noise. The MapLibre map, which does shade them, offers the full set.
+     */
+    val availableOverlays: List<RasterOverlaySource> = MapTileCatalogue.overlays.filter { it.demEncoding == null }
+
+    private val _enabledOverlayIds = MutableStateFlow<Set<String>>(emptySet())
+    val enabledOverlayIds: StateFlow<Set<String>> = _enabledOverlayIds.asStateFlow()
+
+    /** Per-layer opacity, shared with the MapLibre map through [LayerOpacityStore]. */
+    val layerOpacity: StateFlow<Map<String, Float>> = layerOpacityStore.opacity
+
+    fun setLayerOpacity(key: String, opacity: Float) = layerOpacityStore.setOpacity(key, opacity)
+
+    fun toggleOverlay(overlayId: String) {
+        _enabledOverlayIds.update { enabled -> if (overlayId in enabled) enabled - overlayId else enabled + overlayId }
+    }
+
+    /**
+     * A tile provider for an overlay. The basemap goes through [getTileProvider], which keeps the archive it opened.
+     */
+    fun createTileProvider(spec: RasterTileSpec): TileProvider = RasterTileProvider(spec, mapTileHttpClient.client)
 
     private val _selectedGoogleMapType = MutableStateFlow(MapType.NORMAL)
     val selectedGoogleMapType: StateFlow<MapType> = _selectedGoogleMapType.asStateFlow()
@@ -261,13 +319,13 @@ class MapViewModel(
     fun removeCustomTileProvider(configId: String) {
         viewModelScope.launch {
             val configToRemove = customTileProviderRepository.getCustomTileProviderById(configId)
-            val wasSelected = _selectedCustomTileProviderId.value == configId
+            val wasSelected = _selectedRasterBasemapId.value == configId
             customTileProviderRepository.deleteCustomTileProvider(configId)
 
             if (configToRemove != null) {
                 if (wasSelected) {
                     clearCurrentTileProvider()
-                    _selectedCustomTileProviderId.value = null
+                    _selectedRasterBasemapId.value = null
                     _selectedGoogleMapType.value = MapType.NORMAL
                     mapTileProviderPrefs.setSelectedCustomTileProviderId(null)
                     googleMapsPrefs.setSelectedCustomTileUrl(null)
@@ -283,25 +341,22 @@ class MapViewModel(
     }
 
     fun selectCustomTileProvider(config: CustomTileProviderConfig?) {
+        offlineAutoSwitch = null // The user is choosing a basemap directly; stop tracking an auto-switch to restore.
         if (config != null) {
             if (!config.isLocal && !isValidTileUrlTemplate(config.urlTemplate)) {
                 Logger.withTag("MapViewModel").w("Attempted to select an invalid custom tile URL template")
                 clearCurrentTileProvider()
-                _selectedCustomTileProviderId.value = null
+                _selectedRasterBasemapId.value = null
                 _selectedGoogleMapType.value = MapType.NORMAL
                 viewModelScope.launch { mapTileProviderPrefs.setSelectedCustomTileProviderId(null) }
                 googleMapsPrefs.setSelectedCustomTileUrl(null)
                 googleMapsPrefs.setSelectedGoogleMapType(MapType.NORMAL.name)
                 return
             }
-            _selectedCustomTileProviderId.value = config.id
-            _selectedGoogleMapType.value = MapType.NONE
-            viewModelScope.launch { mapTileProviderPrefs.setSelectedCustomTileProviderId(config.id) }
-            googleMapsPrefs.setSelectedCustomTileUrl(null)
-            googleMapsPrefs.setSelectedGoogleMapType(null)
+            applyRasterBasemapSelection(config.id)
         } else {
             clearCurrentTileProvider()
-            _selectedCustomTileProviderId.value = null
+            _selectedRasterBasemapId.value = null
             _selectedGoogleMapType.value = MapType.NORMAL
             viewModelScope.launch { mapTileProviderPrefs.setSelectedCustomTileProviderId(null) }
             googleMapsPrefs.setSelectedCustomTileUrl(null)
@@ -309,88 +364,320 @@ class MapViewModel(
         }
     }
 
+    /** Selects one of the raster basemaps we ship. They draw exactly as a user's own source does. */
+    fun selectCatalogueBasemap(basemapId: String) {
+        offlineAutoSwitch = null // The user is choosing a basemap directly; stop tracking an auto-switch to restore.
+        applyRasterBasemapSelection(basemapId)
+    }
+
+    /**
+     * Points the map at a raster source and turns Google's own basemap off.
+     *
+     * `MapType.NONE` matters: leaving it on would have Google fetch and draw a basemap underneath tiles that are
+     * already opaque — paid quota spent on pixels nobody sees.
+     */
+    private fun applyRasterBasemapSelection(basemapId: String) {
+        _selectedRasterBasemapId.value = basemapId
+        _selectedGoogleMapType.value = MapType.NONE
+        viewModelScope.launch { mapTileProviderPrefs.setSelectedCustomTileProviderId(basemapId) }
+        googleMapsPrefs.setSelectedCustomTileUrl(null)
+        googleMapsPrefs.setSelectedGoogleMapType(null)
+    }
+
     fun setSelectedGoogleMapType(mapType: MapType) {
+        offlineAutoSwitch = null // The user is choosing a basemap directly; stop tracking an auto-switch to restore.
         clearCurrentTileProvider()
         _selectedGoogleMapType.value = mapType
-        _selectedCustomTileProviderId.value = null
+        _selectedRasterBasemapId.value = null
         viewModelScope.launch { mapTileProviderPrefs.setSelectedCustomTileProviderId(null) }
         googleMapsPrefs.setSelectedGoogleMapType(mapType.name)
         googleMapsPrefs.setSelectedCustomTileUrl(null)
     }
 
     private var currentTileProvider: TileProvider? = null
-    private var currentTileProviderConfig: CustomTileProviderConfig? = null
+    private var currentTileProviderBasemap: RasterBasemap? = null
 
-    fun getTileProvider(config: CustomTileProviderConfig?): TileProvider? {
-        if (config == null) {
+    /**
+     * The tile provider drawing [basemap], reused while the selection holds.
+     *
+     * Kept rather than rebuilt because a local archive owns an open database handle, and because rebuilding a remote
+     * provider would drop the tiles it has already fetched.
+     */
+    fun getTileProvider(basemap: RasterBasemap?): TileProvider? {
+        if (basemap == null) {
             clearCurrentTileProvider()
             return null
         }
 
-        if (currentTileProvider != null && currentTileProviderConfig == config) {
+        if (currentTileProvider != null && currentTileProviderBasemap == basemap) {
             return currentTileProvider
         }
 
         clearCurrentTileProvider()
 
         val newProvider =
-            if (config.isLocal) {
-                val uri = Uri.parse(config.localUri)
-                val file =
-                    try {
-                        uri.toFile()
-                    } catch (e: Exception) {
-                        File(uri.path ?: "")
-                    }
-                if (file.exists()) {
-                    MBTilesProvider(file)
-                } else {
-                    Logger.withTag("MapViewModel").w("Selected local MBTiles file does not exist")
-                    null
-                }
-            } else {
-                val urlString = config.urlTemplate
-                if (!isValidTileUrlTemplate(urlString)) {
-                    Logger.withTag("MapViewModel").w("Selected custom tile URL template is invalid")
-                    null
-                } else {
-                    object : UrlTileProvider(TILE_SIZE, TILE_SIZE) {
-                        override fun getTileUrl(x: Int, y: Int, zoom: Int): URL? {
-                            val subdomains = listOf("a", "b", "c")
-                            val subdomain = subdomains[(x + y) % subdomains.size]
-                            val formattedUrl =
-                                urlString
-                                    .replace("{s}", subdomain, ignoreCase = true)
-                                    .replace("{z}", zoom.toString(), ignoreCase = true)
-                                    .replace("{x}", x.toString(), ignoreCase = true)
-                                    .replace("{y}", y.toString(), ignoreCase = true)
-                            return try {
-                                URL(formattedUrl)
-                            } catch (_: MalformedURLException) {
-                                Logger.withTag("MapViewModel").w("Custom tile provider produced a malformed URL")
-                                null
-                            }
-                        }
-                    }
-                }
+            when (basemap) {
+                is RasterBasemap.Local -> openLocalArchive(basemap.uri)
+                is RasterBasemap.Remote -> RasterTileProvider(basemap.spec, mapTileHttpClient.client)
             }
 
         currentTileProvider = newProvider
-        currentTileProviderConfig = config.takeIf { newProvider != null }
+        currentTileProviderBasemap = basemap.takeIf { newProvider != null }
         return newProvider
+    }
+
+    private fun openLocalArchive(localUri: String): MBTilesProvider? {
+        val uri = Uri.parse(localUri)
+        val file =
+            try {
+                uri.toFile()
+            } catch (e: IllegalArgumentException) {
+                Logger.withTag("MapViewModel").w(e) { "Falling back to the raw path for a local MBTiles archive" }
+                File(uri.path ?: "")
+            }
+        return if (file.exists()) {
+            MBTilesProvider(file)
+        } else {
+            Logger.withTag("MapViewModel").w("Selected local MBTiles file does not exist")
+            null
+        }
     }
 
     private fun isValidTileUrlTemplate(urlTemplate: String): Boolean =
         urlTemplate.isValidTileUrlTemplate(requireHttps = false)
 
+    /** What to restore once the network returns from an auto-switch; null when nothing has been auto-switched. */
+    private data class OfflineAutoSwitchState(val rasterBasemapId: String?, val googleMapType: MapType)
+
+    private var offlineAutoSwitch: OfflineAutoSwitchState? = null
+
+    /**
+     * Google's own tiles have no offline continuity of their own — no downloaded packs, no ambient cache the app
+     * controls — so unlike the MapLibre flavor (whose engine keeps serving downloaded/cached tiles for the current
+     * style without any app-level help) this flavor has to switch basemaps itself to keep the map usable offline.
+     *
+     * Switches to the user's first local MBTiles source the instant the network drops, and switches back to whatever
+     * was selected before once it returns — but only if nothing else changed the selection in between; see the
+     * `offlineAutoSwitch = null` lines in [selectCustomTileProvider], [selectCatalogueBasemap] and
+     * [setSelectedGoogleMapType].
+     */
+    private fun handleConnectivityChange(networkAvailable: Boolean, providers: List<CustomTileProviderConfig>) {
+        if (networkAvailable) {
+            restoreFromOfflineAutoSwitch()
+        } else {
+            autoSwitchToOfflineBasemap(providers)
+        }
+    }
+
+    private fun autoSwitchToOfflineBasemap(providers: List<CustomTileProviderConfig>) {
+        val alreadyLocal = providers.findSelectedCustomTileProvider(_selectedRasterBasemapId.value)?.isLocal == true
+        val fallback = providers.firstOrNull { it.isLocal }
+        val shouldSwitch =
+            offlineAutoSwitch == null &&
+                !alreadyLocal &&
+                shouldAutoUseOfflineBasemap(networkAvailable = false, hasOfflineBasemap = fallback != null)
+
+        if (shouldSwitch && fallback != null) {
+            offlineAutoSwitch = OfflineAutoSwitchState(_selectedRasterBasemapId.value, _selectedGoogleMapType.value)
+            applyRasterBasemapSelection(fallback.id)
+        }
+    }
+
+    private fun restoreFromOfflineAutoSwitch() {
+        val saved = offlineAutoSwitch ?: return
+        offlineAutoSwitch = null
+        // The saved id might no longer resolve — e.g. the user deleted that custom tile provider while offline —
+        // in which case applying it anyway would leave selectedRasterBasemap null with Google's own basemap also
+        // off (MapType.NONE), so the map would show nothing at all. Fall back to the native basemap instead.
+        val savedIdStillResolves =
+            saved.rasterBasemapId != null &&
+                (
+                    MapTileCatalogue.basemaps.any { it.id == saved.rasterBasemapId } ||
+                        customTileProviderConfigs.value.findSelectedCustomTileProvider(saved.rasterBasemapId) != null
+                    )
+        if (savedIdStillResolves) {
+            applyRasterBasemapSelection(checkNotNull(saved.rasterBasemapId))
+        } else {
+            clearCurrentTileProvider()
+            _selectedGoogleMapType.value = saved.googleMapType
+            _selectedRasterBasemapId.value = null
+            viewModelScope.launch { mapTileProviderPrefs.setSelectedCustomTileProviderId(null) }
+            googleMapsPrefs.setSelectedGoogleMapType(saved.googleMapType.name)
+            googleMapsPrefs.setSelectedCustomTileUrl(null)
+        }
+    }
+
     private fun clearCurrentTileProvider() {
         (currentTileProvider as? MBTilesProvider)?.close()
         currentTileProvider = null
-        currentTileProviderConfig = null
+        currentTileProviderBasemap = null
     }
 
     /** Imported overlay layers; owned by the flavor-neutral [MapLayersManager] and rendered by [MapLayerOverlay]. */
     val mapLayers: StateFlow<List<MapLayerItem>> = mapLayersManager.mapLayers
+
+    // --- Offline vector regions (PMTiles-extracted) ---
+
+    // Offline properties exposed as internal StateFlow for composable consumption
+    internal val offlineRegionStore = OfflineRegionStore(File(application.filesDir, "offline_regions"))
+
+    // A single shared instance, not one per download call: OfflineRegionExtractor's mutex only serializes concurrent
+    // downloads against each other if they all go through the same instance.
+    private val offlineRegionExtractor = OfflineRegionExtractor(offlineRegionStore)
+
+    private val _offlineRegions = MutableStateFlow(offlineRegionStore.list())
+    val offlineRegions: StateFlow<List<OfflineRegion>> = _offlineRegions.asStateFlow()
+
+    private val _offlineDownloadState = MutableStateFlow<OfflineDownloadState?>(null)
+    val offlineDownloadState: StateFlow<OfflineDownloadState?> = _offlineDownloadState.asStateFlow()
+
+    /**
+     * Shown on the map whenever a downloaded region covers the current viewport — manual, not tied to connectivity.
+     * Wiring this to `mapNetworkAvailable` (from the sibling offline-fallback change) so it activates itself the
+     * instant the network drops is the natural next step once both land; kept manual here so this change doesn't depend
+     * on that one merging first.
+     */
+    private val _offlineOverlayEnabled = MutableStateFlow(false)
+    val offlineOverlayEnabled: StateFlow<Boolean> = _offlineOverlayEnabled.asStateFlow()
+
+    fun setOfflineOverlayEnabled(enabled: Boolean) {
+        _offlineOverlayEnabled.value = enabled
+    }
+
+    fun estimateOfflineTileCount(bounds: LatLngBounds, zoomRange: IntRange): Long =
+        OfflineRegionTileSet.estimateTileCount(bounds, zoomRange)
+
+    fun downloadOfflineRegion(bounds: LatLngBounds, zoomRange: IntRange) {
+        viewModelScope.launch {
+            offlineRegionExtractor.download(bounds, zoomRange).collect { state ->
+                _offlineDownloadState.value = state
+                if (state is OfflineDownloadState.Complete) _offlineRegions.value = offlineRegionStore.list()
+            }
+        }
+    }
+
+    fun clearOfflineDownloadState() {
+        _offlineDownloadState.value = null
+    }
+
+    fun deleteOfflineRegion(id: String) {
+        viewModelScope.launch {
+            if (_terrainDownloadRegionId.value == id) {
+                // Joined, not just cancelled: the terrain job's Complete handler would otherwise re-add this region
+                // to the manifest with no archive behind it, and its tile writes would race the directory delete.
+                terrainDownloadJob?.cancelAndJoin()
+                clearTerrainDownloadState()
+            }
+            offlineRegionStore.delete(id)
+            _offlineRegions.value = offlineRegionStore.list()
+        }
+    }
+
+    fun offlineRegionArchiveFile(id: String): File = offlineRegionStore.archiveFile(id)
+
+    /** The downloaded region, if any, whose bounds fully cover [bounds] — the current camera viewport. */
+    fun offlineRegionCovering(bounds: LatLngBounds): OfflineRegion? = _offlineRegions.value.firstOrNull {
+        it.bounds.contains(bounds.northeast) && it.bounds.contains(bounds.southwest)
+    }
+
+    // --- Offline terrain (hillshade + contours), attached to an already-downloaded base region ---
+
+    private val _terrainDownloadState = MutableStateFlow<TerrainDownloadState?>(null)
+    val terrainDownloadState: StateFlow<TerrainDownloadState?> = _terrainDownloadState.asStateFlow()
+
+    /** Which region [terrainDownloadState] belongs to — terrain, unlike the base layer, downloads per-row. */
+    private val _terrainDownloadRegionId = MutableStateFlow<String?>(null)
+    val terrainDownloadRegionId: StateFlow<String?> = _terrainDownloadRegionId.asStateFlow()
+
+    /**
+     * Manual toggles, same shape as [offlineOverlayEnabled] — independent of it, gated by [OfflineRegion.hasTerrain].
+     */
+    private val _terrainHillshadeEnabled = MutableStateFlow(false)
+    val terrainHillshadeEnabled: StateFlow<Boolean> = _terrainHillshadeEnabled.asStateFlow()
+
+    private val _terrainContoursEnabled = MutableStateFlow(false)
+    val terrainContoursEnabled: StateFlow<Boolean> = _terrainContoursEnabled.asStateFlow()
+
+    fun setTerrainHillshadeEnabled(enabled: Boolean) {
+        _terrainHillshadeEnabled.value = enabled
+    }
+
+    fun setTerrainContoursEnabled(enabled: Boolean) {
+        _terrainContoursEnabled.value = enabled
+    }
+
+    fun clearTerrainDownloadState() {
+        _terrainDownloadState.value = null
+        _terrainDownloadRegionId.value = null
+    }
+
+    /** A [TerrainTileStore] rooted at this region's own terrain subdirectory of [offlineRegionStore]'s base dir. */
+    fun terrainStoreForRegion(id: String): TerrainTileStore =
+        TerrainTileStore(FileSystem.SYSTEM, offlineRegionStore.terrainDir(id).absolutePath.toPath())
+
+    private var terrainDownloadJob: Job? = null
+
+    /**
+     * Downloads terrain for an already-downloaded base region. No-ops (rather than starting a download that would only
+     * fail) unless [canDownloadTerrainForRegion] — the UI already keeps its "Download Terrain" affordance disabled in
+     * that case; this is the defensive re-check, same relationship [downloadOfflineRegion] has to its own button's
+     * `enabled` condition. One terrain job at a time: a second would race the single [terrainDownloadState] and both
+     * would pass the same one-shot storage check.
+     */
+    fun downloadTerrainForRegion(regionId: String) {
+        val region = _offlineRegions.value.firstOrNull { it.id == regionId }
+        if (region == null || terrainDownloadJob?.isActive == true || !canDownloadTerrainForRegion(regionId)) return
+
+        _terrainDownloadRegionId.value = regionId
+        _terrainDownloadState.value = null
+        terrainDownloadJob =
+            viewModelScope.launch {
+                val store = terrainStoreForRegion(regionId)
+                val bounds =
+                    GeoBounds(
+                        south = region.southLat,
+                        west = region.westLon,
+                        north = region.northLat,
+                        east = region.eastLon,
+                    )
+                val maxZoom = TerrainDownloadPlanner.maxZoomFitting(bounds, TerrainRegionExtractor.MAX_TILES)
+                // flowOn: the extractor does blocking per-tile HTTP on its collector's dispatcher.
+                TerrainRegionExtractor(store).download(bounds, maxZoom).flowOn(dispatchers.io).collect { state ->
+                    _terrainDownloadState.value = state
+                    if (state is TerrainDownloadState.Complete) attachTerrain(region, state, store)
+                }
+            }
+    }
+
+    private suspend fun attachTerrain(
+        region: OfflineRegion,
+        state: TerrainDownloadState.Complete,
+        store: TerrainTileStore,
+    ) {
+        // deleteOfflineRegion joins this job first, but the manifest is the authority on whether the region survived.
+        if (offlineRegionStore.list().none { it.id == region.id }) {
+            store.deleteAll()
+            return
+        }
+        offlineRegionStore.add(
+            region.copy(
+                hasTerrain = true,
+                terrainByteSize = state.byteSize,
+                terrainHasRegionalDetail = state.hasRegionalDetail,
+            ),
+        )
+        _offlineRegions.value = offlineRegionStore.list()
+    }
+
+    /**
+     * Whether [regionId] is eligible for a terrain download: doesn't have one yet, and the shared storage budget
+     * ([OfflineRegionExtractor.MAX_TOTAL_BYTES], covering every region's base archive plus any terrain attached to it —
+     * [OfflineRegionStore.totalBytes]) isn't already exhausted.
+     */
+    private fun canDownloadTerrainForRegion(regionId: String): Boolean {
+        val region = _offlineRegions.value.firstOrNull { it.id == regionId } ?: return false
+        return !region.hasTerrain && offlineRegionStore.totalBytes() < OfflineRegionExtractor.MAX_TOTAL_BYTES
+    }
 
     init {
         viewModelScope.launch {
@@ -411,6 +698,14 @@ class MapViewModel(
                 selection = googleMapsPrefs.awaitMapSelection(),
                 selectedProviderId = mapTileProviderPrefs.awaitSelectedCustomTileProviderId(),
             )
+
+            // Sequenced after the persisted-selection load, in the same coroutine, deliberately: this collector can
+            // otherwise start reacting to an offline-at-startup provider/network combination before the persisted
+            // selection above has been applied, auto-switching against a still-default _selectedRasterBasemapId —
+            // and loadPersistedMapType's own writes moments later would silently clobber that switch.
+            combine(mapNetworkAvailable, customTileProviderConfigs, ::Pair).collect { (available, providers) ->
+                handleConnectivityChange(available, providers)
+            }
         }
 
         selectedWaypointId.value?.let { wpId ->
@@ -445,6 +740,14 @@ class MapViewModel(
         selection: GoogleMapSelectionPrefs,
         selectedProviderId: String?,
     ) {
+        // A catalogue source is not in the user's list, so it has to be recognised before that lookup decides the
+        // stored id points at a source that no longer exists.
+        if (MapTileCatalogue.basemaps.any { it.id == selectedProviderId }) {
+            _selectedRasterBasemapId.value = selectedProviderId
+            _selectedGoogleMapType.value = MapType.NONE
+            return
+        }
+
         val resolvedSelection =
             providers.resolvePersistedCustomTileSelection(
                 selectedProviderId = selectedProviderId,
@@ -454,14 +757,14 @@ class MapViewModel(
         val selectedProvider = resolvedSelection.provider
 
         if (selectedProvider != null) {
-            _selectedCustomTileProviderId.value = selectedProvider.id
+            _selectedRasterBasemapId.value = selectedProvider.id
             _selectedGoogleMapType.value = MapType.NONE
             if (selectedProviderId != selectedProvider.id) {
                 mapTileProviderPrefs.setSelectedCustomTileProviderId(selectedProvider.id)
             }
             if (selection.customTileUrl != null) googleMapsPrefs.setSelectedCustomTileUrl(null)
         } else {
-            _selectedCustomTileProviderId.value = null
+            _selectedRasterBasemapId.value = null
             if (resolvedSelection.canDiscardMissingSelection) {
                 if (selectedProviderId != null) mapTileProviderPrefs.setSelectedCustomTileProviderId(null)
                 if (selection.customTileUrl != null) googleMapsPrefs.setSelectedCustomTileUrl(null)
@@ -480,7 +783,7 @@ class MapViewModel(
         }
     }
 
-    fun addMapLayer(uri: Uri, fileName: String?) = mapLayersManager.addMapLayer(uri, fileName)
+    fun addMapLayer(picked: PickedMapFile) = mapLayersManager.addMapLayer(picked)
 
     fun addNetworkMapLayer(name: String, url: String) {
         mapLayersManager.addNetworkMapLayer(name, url)?.let { error ->
@@ -529,8 +832,7 @@ class MapViewModel(
         }
     }
 
-    suspend fun getInputStreamFromUri(layerItem: MapLayerItem): InputStream? =
-        mapLayersManager.getInputStreamFromUri(layerItem)
+    suspend fun readLayerBytes(layerItem: MapLayerItem): ByteArray? = mapLayersManager.readLayerBytes(layerItem)
 
     override fun onCleared() {
         super.onCleared()

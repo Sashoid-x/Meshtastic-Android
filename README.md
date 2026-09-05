@@ -5,6 +5,8 @@
 
 > **Meshtastic Android Advanced** — расширенная модификация с поддержкой передачи монохромных изображений, Pixel Art, ИИ-сжатия текста без потерь (Lossless AI Text Compression) и быстрого управления MQTT прямо из чата. Устанавливается как отдельное приложение (`com.geeksville.mesh.adv`) параллельно с официальной версией.
 
+The Meshtastic client for Android and Compose Desktop — an app for communicating over open-source mesh radios. For more information see our webpage: [meshtastic.org](https://www.meshtastic.org). The device-side code lives in the [firmware repository](https://github.com/meshtastic/firmware).
+
 ## ✨ Особенности модификации Advanced
 
 1. **🖼️ Передача монохромных изображений и Pixel Art**:
@@ -29,7 +31,7 @@
 
 ## Features
 
-Highlights from the 2.8.0 release:
+Highlights of the 2.8 line:
 
 - **Mesh network discovery** to surface nodes and channels around you, with **Mesh Beacon** invitations for joining nearby meshes.
 - **Waypoint geofences** — draw zones on the map and get alerts when nodes cross them.
@@ -41,7 +43,7 @@ Highlights from the 2.8.0 release:
 
 ## Get Meshtastic
 
-The easiest and fastest way to get the latest releases is to use our [GitHub releases](https://github.com/meshtastic/Meshtastic-Android/releases). It is recommended to use these with [Obtainium](https://github.com/ImranR98/Obtainium) to get the latest updates automatically.
+The fastest way to get releases is [GitHub releases](https://github.com/meshtastic/Meshtastic-Android/releases); pair them with [Obtainium](https://github.com/ImranR98/Obtainium) for automatic updates.
 
 With Obtainium installed, tap a link below on your phone to set it up with everything pre-configured. The `google` flavor adds Google Crashlytics and Google Maps; `fdroid` has no Google dependencies.
 
@@ -67,7 +69,7 @@ What those two channels point at right now:
 
 Closed-beta and per-commit snapshot channels, importable config files, and the setup details are in [Test Builds & Obtainium](docs/en/developer/test-builds.md). These links, files and the table above are generated — see [`obtainium/`](obtainium/).
 
-Alternatively, these other providers are also available, but may be slower to update. 
+These providers are also available but may update more slowly.
 
 [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
 alt="Get it on F-Droid"
@@ -79,10 +81,10 @@ width="24%">](https://apt.izzysoft.de/fdroid/index/apk/com.geeksville.mesh)
 alt="Get it on GitHub"
 width="24%">](https://github.com/meshtastic/Meshtastic-Android/releases)
 [<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-alt="Download at https://play.google.com/store/apps/details?id=com.geeksville.mesh]"
+alt="Get it on Google Play"
 width="24%">](https://play.google.com/store/apps/details?id=com.geeksville.mesh&referrer=utm_source%3Dgithub-android-readme)
 
-The play store is the last to update of these options, but if you want to join the Play Store testing program go to [this URL](https://play.google.com/apps/testing/com.geeksville.mesh) and opt-in to become a tester.
+The play store is the last to update of these options. To [join the Play Store testing program](https://play.google.com/apps/testing/com.geeksville.mesh), opt in to become a tester.
 If you encounter any problems or have questions, [ask us on the discord](https://discord.gg/meshtastic), [create an issue](https://github.com/meshtastic/Meshtastic-Android/issues), or [post in the forum](https://github.com/orgs/meshtastic/discussions) and we'll help as we can.
 
 ### Desktop
@@ -91,7 +93,7 @@ If you encounter any problems or have questions, [ask us on the discord](https:/
 
 ## Documentation
 
-Both sites are deployed to GitHub Pages automatically on every push to `main`.
+The two documentation sites below are deployed to GitHub Pages automatically on every push to `main`.
 
 | Site | URL | Contents |
 |---|---|---|
@@ -133,6 +135,8 @@ Each module has its own README with details on its responsibilities, API surface
 
 | Module | Description |
 |---|---|
+| [androidApp](androidApp/README.md) | Android application host — activity, manifest, flavors, root Koin graph |
+| [desktopApp](desktopApp/README.md) | Compose Desktop host — window, transports, packaging |
 | [core/domain](core/domain/README.md) | Business-logic use cases (radio config, sessions, exports) |
 | [core/repository](core/repository/README.md) | Data & infrastructure contracts (RadioTransport, NodeRepository, ServiceRepository) |
 | [core/takserver](core/takserver/README.md) | Meshtastic ↔ TAK (ATAK/iTAK) bridge — CoT server & conversion |
@@ -151,10 +155,11 @@ Each module has its own README with details on its responsibilities, API surface
 | [core/testing](core/testing/README.md) | Shared test fakes & utilities |
 | [core/konsist](core/konsist/README.md) | Konsist architecture-rule tests (KMP boundary guards) |
 | [core/nfc](core/nfc/README.md) | NFC support |
-| [core/prefs](core/prefs/README.md) | Legacy preference helpers |
+| [core/prefs](core/prefs/README.md) | Type-safe preferences over multiplatform DataStore |
 | [core/barcode](core/barcode/README.md) | Barcode / QR scanning |
 | [feature/messaging](feature/messaging/README.md) | Messaging UI feature |
-| [feature/map](feature/map/README.md) | Map UI feature |
+| [feature/map](feature/map/README.md) | Map UI feature — shared state, policy, tile sources and the waypoint editor |
+| [feature/map-maplibre](feature/map-maplibre/README.md) | MapLibre map surfaces shared by the `fdroid` flavor and Desktop |
 | [feature/node](feature/node/README.md) | Node detail UI feature |
 | [feature/settings](feature/settings/README.md) | Settings UI feature |
 | [feature/firmware](feature/firmware/README.md) | Firmware update UI feature |
@@ -164,7 +169,6 @@ Each module has its own README with details on its responsibilities, API surface
 | [feature/discovery](feature/discovery/README.md) | Mesh network discovery (scanner, AI summaries, Mesh Beacon) |
 | [feature/docs](feature/docs/README.md) | In-app documentation browser with Chirpy AI assistant |
 | [feature/widget](feature/widget/README.md) | Android home-screen Glance widget (live mesh stats) |
-| [feature/car](feature/car/README.md) | Android Auto integration (Car App Library, `google` flavor) |
 | [baselineprofile](baselineprofile/README.md) | Macrobenchmark Baseline Profile generation for `:androidApp` |
 
 ## Translations
@@ -177,11 +181,11 @@ The app includes a built-in **Local TAK Server** feature that can be enabled in 
 
 ## Building the Android App
 > [!WARNING]
-> Debug and release builds can be installed concurrently. This is solely to enable smoother development, and you should avoid running both apps simultaneously. To ensure proper function, force quit the app not in use.
+> Debug and release builds install side by side to ease development, but don't run both at once — force-quit the one you are not using.
 
-https://meshtastic.org/docs/development/android/
+Follow the [Android development guide](https://meshtastic.org/docs/development/android/) to set up your environment.
 
-Note: when building the `google` flavor locally you will need to supply your own [Google Maps Android SDK api key](https://developers.google.com/maps/documentation/android-sdk/get-api-key) as `MAPS_API_KEY` in `secrets.properties` (repo root — create the file if it doesn't exist) in order to use Google Maps. Without it, `secrets.defaults.properties` supplies a placeholder so the build still succeeds, but map tiles will not load.
+Note: when building the `google` flavor locally you will need a [Google Maps Android SDK api key](https://developers.google.com/maps/documentation/android-sdk/get-api-key) to use Google Maps. Create `secrets.properties` at the repo root and set `MAPS_API_KEY=…`. Without it the build still succeeds with a placeholder key, but map tiles will not load.
 e.g.
 ```properties
 # secrets.properties

@@ -17,7 +17,6 @@
 package org.meshtastic.app.map
 
 import androidx.lifecycle.SavedStateHandle
-import androidx.test.core.app.ApplicationProvider
 import app.cash.turbine.test
 import dev.mokkery.MockMode
 import dev.mokkery.answering.returns
@@ -32,12 +31,14 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import okio.Path.Companion.toOkioPath
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.Node
+import org.meshtastic.core.network.repository.NetworkRepository
 import org.meshtastic.core.repository.PacketRepository
 import org.meshtastic.core.testing.FakeLocaleUnitsProvider
 import org.meshtastic.core.testing.FakeMapPrefs
@@ -45,10 +46,13 @@ import org.meshtastic.core.testing.FakeNodeRepository
 import org.meshtastic.core.testing.FakeNotificationPrefs
 import org.meshtastic.core.testing.FakeRadioConfigRepository
 import org.meshtastic.core.testing.FakeRadioController
+import org.meshtastic.feature.map.layers.MapLayersManager
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import kotlin.io.path.createTempDirectory
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import java.nio.file.Path as NioPath
 
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
@@ -58,10 +62,12 @@ class MapViewModelSitePlannerRequestTest {
     private val testDispatcher = StandardTestDispatcher()
     private val nodeRepository = FakeNodeRepository()
     private val packetRepository = mock<PacketRepository>(MockMode.autofill)
+    private val networkRepository = mock<NetworkRepository>(MockMode.autofill)
     private val mapPrefs = FakeMapPrefs()
     private val firstNode = Node(num = 11)
     private val secondNode = Node(num = 22)
     private lateinit var httpClient: HttpClient
+    private lateinit var layersDir: NioPath
     private lateinit var mapLayersManager: MapLayersManager
     private lateinit var viewModel: MapViewModel
 
@@ -69,13 +75,16 @@ class MapViewModelSitePlannerRequestTest {
     fun setUp() {
         Dispatchers.setMain(testDispatcher)
         every { packetRepository.getWaypoints() } returns flowOf(emptyList())
+        every { networkRepository.networkAvailable } returns flowOf(true)
         httpClient = HttpClient()
+        layersDir = createTempDirectory("map-layers")
         mapLayersManager =
             MapLayersManager(
-                application = ApplicationProvider.getApplicationContext(),
                 dispatchers = CoroutineDispatchers(testDispatcher, testDispatcher, testDispatcher),
                 httpClient = httpClient,
                 mapPrefs = mapPrefs,
+                // The real location reads a global application context this test never installs.
+                layersDir = layersDir.toOkioPath(),
             )
 
         nodeRepository.setNodes(listOf(firstNode, secondNode))
@@ -90,12 +99,14 @@ class MapViewModelSitePlannerRequestTest {
                 mapLayersManager = mapLayersManager,
                 savedStateHandle = SavedStateHandle(),
                 localeUnitsProvider = FakeLocaleUnitsProvider(),
+                networkRepository = networkRepository,
             )
     }
 
     @After
     fun tearDown() {
         httpClient.close()
+        layersDir.toFile().deleteRecursively()
         Dispatchers.resetMain()
     }
 

@@ -145,7 +145,6 @@
     <string name="config_lora_region_summary">Region, w którym będziesz używać urządzenia.</string>
     <string name="config_network_eth_enabled_summary">Włączenie połączenia Ethernet spowoduje wyłączenie bluetootha. Połączania TCP nie są dostępne na urządzeniach Apple.</string>
     <string name="config_network_udp_enabled_summary">Włącz nadawanie pakietów poprzez UDP w lokalnej sieci.</string>
-    <string name="config_network_wifi_enabled_summary">Włączenie WiFi spowoduje wyłączenie bluetootha.</string>
     <string name="config_position_broadcast_secs_summary">Maksymalny odstęp czasu, jaki może upłynąć bez nadawania lokalizacji przez węzeł.</string>
     <string name="config_position_broadcast_smart_minimum_distance_summary">Minimalna zmiana odległości w metrach, którą należy uwzględnić w przypadku inteligentnego pozycjonowania.</string>
     <string name="config_position_broadcast_smart_minimum_interval_secs_summary">Kiedy najszybciej pozycja zostanie zaktualizowana, jeśli minimalna odległość została osiągnięta.</string>
@@ -313,7 +312,6 @@
     <string name="firmware_update_failed">Aktualizacja nie udała się</string>
     <string name="firmware_update_method_ble">BLE OTA</string>
     <string name="firmware_update_method_detail">Aktualizuj przez %1$s</string>
-    <string name="firmware_update_method_wifi">WiFi OTA</string>
     <string name="firmware_update_no_device">Brak podłączonych urządzeń</string>
     <string name="firmware_update_ota_failed">Aktualizacja OTA nie powiodła się: %1$s</string>
     <string name="firmware_update_release_notes">Informacje o wersji</string>
@@ -387,17 +385,6 @@
     <string name="ipv4_mode">Tryb IPv4</string>
     <string name="json_output_enabled">Włącz wyjście JSON</string>
     <!-- KEY -->
-    <!-- LABEL -->
-    <string name="label_long_fast">Daleki zasięg — Szybko</string>
-    <string name="label_long_moderate">Daleki zasięg — Średnio</string>
-    <string name="label_long_slow">Daleki zasięg — Wolno</string>
-    <string name="label_long_turbo">Daleki zasięg — Turbo</string>
-    <string name="label_medium_fast">Średni zasięg — Szybko</string>
-    <string name="label_medium_slow">Średni zasięg — wolno</string>
-    <string name="label_short_fast">Krótki zasięg — Szybko</string>
-    <string name="label_short_slow">Bliski zasięg — Wolno</string>
-    <string name="label_short_turbo">Krótki zasięg — Turbo</string>
-    <string name="label_very_long_slow">Bardzo daleki zasięg — Wolno</string>
     <string name="last_position_update">Ostatnia aktualizacja lokalizacji</string>
     <string name="latest_alpha_firmware">Ostatnia wersja alpha</string>
     <string name="latest_stable_firmware">Ostatnia stabilna wersja</string>
@@ -450,6 +437,9 @@
     <string name="map_download_complete">Pobieranie ukończone!</string>
     <string name="map_download_errors">Pobieranie zakończone z %1$d błędami</string>
     <string name="map_download_region">Pobierz region</string>
+    <string name="map_filter_all_roles">Wszystkie</string>
+    <string name="map_filter_display_title">Wyświetlacz</string>
+    <string name="map_filter_nodes_title">Węzeł</string>
     <string name="map_offline_manager">Menedżer map offline</string>
     <string name="map_purge_fail">Usuwanie pamięci podręcznej SQL nie powiodło się, zobacz logcat</string>
     <string name="map_purge_success">Pamięć podręczna wyczyszczona dla %1$s</string>
@@ -474,6 +464,9 @@
     <!-- MESH -->
     <string name="mesh_beacon_offer_dismiss">Zamknij</string>
     <string name="mesh_beacon_preset_none">Brak</string>
+    <string name="mesh_beacon_region_label">Region</string>
+    <string name="mesh_beacon_target_channel_index">Kanał</string>
+    <string name="mesh_beacon_target_default">Domyślny</string>
     <!-- MESHTASTIC -->
     <string name="meshtastic">Meshtastic</string>
     <string name="meshtastic_alerts_notifications">Powiadomienia alertowe</string>
@@ -566,6 +559,7 @@
     <string name="notifications_on_message_receipt">Powiadomienia o otrzymaniu wiadomości</string>
     <string name="now">Teraz</string>
     <string name="ntp_server">Serwer NTP</string>
+    <!-- OFFLINE -->
     <string name="ok_to_mqtt">Ok dla MQTT</string>
     <string name="okay">OK</string>
     <string name="oled_type">Typ ekranu OLED</string>
@@ -677,15 +671,21 @@
     <string name="ringtone">Dzwonek</string>
     <!-- ROLE -->
     <string name="role">Rola urządzenia</string>
+    <string name="role_client">Klient</string>
     <string name="role_client_desc">Urządzenie samodzielne lub sparowane z aplikacją.</string>
     <string name="role_client_hidden_desc"> Used for nodes that "only speak when spoken to" Turns all of the routine broadcasts but allows for ad-hoc communication. Still rebroadcasts, but with local only rebroadcast mode (known meshes only). Can be used for private operation or to dramatically reduce airtime / power consumption.</string>
+    <string name="role_client_mute">Klient pasywny</string>
     <string name="role_client_mute_desc">Wyciszenie klienta - To samo, co klient, z wyjątkiem pakietów, które nie przeskakują przez ten węzeł, nie przyczynia się do routingu pakietów dla siatki.</string>
-    <string name="role_lost_and_found_desc">Nadaje regularnie lokalizację jako wiadomości do głównego kanału, aby pomóc w odzyskaniu urządzenia.</string>
+    <string name="role_repeater">Repeater</string>
     <string name="role_repeater_desc">Węzeł infrastruktury do rozszerzenia zasięgu sieci poprzez przekazywanie pakietów z minimalnym narzutem. Niewidoczny na liście węzłów.</string>
+    <string name="role_router">Router</string>
+    <string name="role_router_client">Router Klienta</string>
     <string name="role_router_client_desc">Połączenie zarówno trybu ROUTER, jak i CLIENT. Nie dla urządzeń przenośnych.</string>
     <string name="role_router_desc">Węzeł infrastruktury do rozszerzenia zasięgu sieci poprzez przekazywanie pakietów. Widoczny na liście węzłów.</string>
     <string name="role_router_late_desc">Węzeł infrastruktury, który zawsze powtarza pakiety raz, ale tylko po wszystkich innych trybach, zapewniając dodatkowe pokrycie lokalnych klastrów. Widoczne na liście węzłów.</string>
+    <string name="role_sensor">Czujnik</string>
     <string name="role_sensor_desc">Nadaje priorytetowo pakiety telemetryczne.</string>
+    <string name="role_tak">TAK</string>
     <string name="role_tak_desc">Zoptymalizowany pod kątem komunikacji systemowej ATAK, redukuje nadmiarowe transmisje.</string>
     <string name="role_tak_tracker_desc">Umożliwia automatyczne transmisje TAK PLI i zmniejsza liczbę nadmiarowych transmisji.</string>
     <string name="role_tracker_desc">Tracker - Do użytku z urządzeniami przeznaczonymi jako śledzenie GPS. Pakiety pozycyjne wysyłane z tego urządzenia będą miały wyższy priorytet, z nadawaniem pozycji co dwie minuty. Inteligentna transmisja pozycji będzie domyślnie wyłączona.</string>
@@ -813,6 +813,8 @@
     <string name="tx_enabled">Nadawanie włączone</string>
     <string name="tx_power_dbm">Moc nadawania</string>
     <string name="type">Typ</string>
+    <!-- UNITS -->
+    <string name="units_follow_system">Domyślny systemu</string>
     <!-- UNKNOWN -->
     <string name="unknown">Nieznany</string>
     <string name="unknown_age">Unknown Age</string>
@@ -848,18 +850,14 @@
     <string name="waypoint_new">Nowy punkt nawigacyjny</string>
     <string name="waypoint_received">Otrzymano punkt orientacyjny: %1$s</string>
     <!-- WIFI -->
-    <string name="wifi_config">Ustawienia WiFi</string>
-    <string name="wifi_enabled">WiFi włączone</string>
-    <string name="wifi_ip">Wifi IP:</string>
     <string name="wifi_provision_signal_strength">%1$d%</string>
     <string name="wifi_provision_success_done">Wykonano</string>
     <string name="wifi_provision_success_ip_address">Adres IP</string>
     <string name="wifi_provision_success_username">Nazwa użytkownika</string>
-    <string name="wifi_qr_code_error">Nieprawidłowy format kodu QR</string>
-    <string name="wifi_qr_code_scan">Skanuj kod QR Wi-Fi</string>
-    <string name="wifi_rssi_threshold_defaults_to_80">Próg WiFi RSSI (domyślnie: -80)</string>
     <!-- WIND -->
     <string name="wind">Wiatr</string>
     <!-- WRITE -->
     <string name="you">Ty</string>
+    <string name="zoom_in">Powiększ</string>
+    <string name="zoom_out">Oddal</string>
 </resources>

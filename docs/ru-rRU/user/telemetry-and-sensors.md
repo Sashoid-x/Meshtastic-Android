@@ -2,7 +2,7 @@
 title: Телеметрия и датчики
 parent: Руководство пользователя
 nav_order: 9
-last_updated: 2026-05-13
+last_updated: 2026-08-30
 description: Данные датчиков в mesh-сети — поддерживаемые датчики окружающей среды, качества воздуха и питания, а также руководства по настройке и просмотру.
 aliases:
   - sensors
@@ -13,23 +13,19 @@ aliases:
 
 # Телеметрия и датчики
 
-Ноды Meshtastic могут собирать и передавать данные датчиков по всей mesh-сети.
-
-## Обзор
-
-Телеметрия позволяет нодам, оснащённым датчиками, передавать информацию об окружающей среде, питании и состоянии устройства. Эти данные отображаются на экране сведений о ноде и могут регистрироваться с течением времени.
+Ноды Meshtastic могут собирать и передавать данные датчиков по всей mesh-сети. Telemetry allows nodes equipped with sensors to broadcast environmental, power, and device health information, visible on the node detail screen and logged over time.
 
 ## Телеметрия устройства
 
 Все ноды Meshtastic передают базовую телеметрию устройства:
 
-| Метрика                                     | Описание                                       | Типичный диапазон                                                  |
-| ------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------ |
-| Уровень заряда                              | Процент заряда                                 | 0–100%                                                             |
-| Напряжение                                  | Напряжение батареи                             | 3.0–4.2V (LiPo) |
-| Использование канала                        | % использованного локально эфирного времени    | 0–100%                                                             |
-| Использование эфира (TX) | % эфирного времени, использованного этой нодой | 0–100%                                                             |
-| Аптайм                                      | Секунд с последней загрузки                    | Варьируется                                                        |
+| Метрика        | Описание                                        | Типичный диапазон                                                  |
+| -------------- | ----------------------------------------------- | ------------------------------------------------------------------ |
+| Уровень заряда | Процент заряда                                  | 0–100%                                                             |
+| Напряжение     | Напряжение батареи                              | 3.0–4.2V (LiPo) |
+| ChUtil         | % of local airtime in use                       | 0–100%                                                             |
+| AirUtil        | % of the last hour this node spent transmitting | 0–100%                                                             |
+| Аптайм         | Секунд с последней загрузки                     | Варьируется                                                        |
 
 ## Датчики окружающей среды
 
@@ -47,11 +43,20 @@ aliases:
 
 ### Качество воздуха
 
-| Sensor   | Метрика                                            | Заметки                         |
-| -------- | -------------------------------------------------- | ------------------------------- |
-| BME680   | Сопротивление газа / IAQ                           | Летучие органические соединения |
-| PMSA003I | PM1.0, PM2.5, PM10 | Взвешенные частицы              |
-| SEN55    | PM, NOx, VOC, температура, влажность               | Мультисенсор                    |
+| Sensor   | Метрика                                            | Заметки                                                                                                                               |
+| -------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| BME680   | Сопротивление газа / IAQ                           | Летучие органические соединения                                                                                                       |
+| PMSA003I | PM1.0, PM2.5, PM10 | See [Air Quality Metrics](#air-quality-metrics)                                                                                       |
+| SEN55    | PM, Temp, Humidity                                 | Multi-sensor. Its NOx and VOC indices are recorded and included in a CSV export, but are not shown as cards or charts |
+
+### Soil
+
+| Метрика     | Единица | Заметки                                         |
+| ----------- | ------- | ----------------------------------------------- |
+| Темп почвы  | °C / °F | Reported alongside soil moisture by soil probes |
+| Влажн почвы | %       | Volumetric water content                        |
+
+Both appear as info cards on the node detail screen, next to the other environment readings.
 
 ### Освещённость и УФ
 
@@ -61,36 +66,51 @@ aliases:
 | VEML7700 | Окружающая освещённость (люкс) |
 | LTR390   | УФ-индекс                                         |
 
+### Weather and Other Readings
+
+| Метрическая                           | Единица              | Where it appears                                                                                                                                            |
+| ------------------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Wind speed                            | km/h or mph          | Card and chart. Sensors report meters per second; the app converts to match your unit setting, and the chart uses the same unit as the card |
+| Wind direction, gust, and lull        | degrees, km/h or mph | Listed with each reading on the Environment Metrics screen; not charted                                                                                     |
+| Rainfall, last hour and last 24 hours | mm or in             | Listed with each reading on the Environment Metrics screen; not charted                                                                                     |
+| Радиация                              | µR/h                 | Card and chart                                                                                                                                              |
+| Вес                                   | kg or lb             | Card only — load cells, such as a beehive scale                                                                                                             |
+| Расстояние                            | mm or in             | Card only — water level, from a distance sensor                                                                                                             |
+| Dew point                             | °C or °F             | Card only — computed from temperature and humidity                                                                                                          |
+| 1-Wire temperature                    | °C or °F             | Card and chart, up to eight DS18B20-style probes                                                                                                            |
+| ADC voltage                           | V                    | Card and chart, up to eight raw analog channels                                                                                                             |
+
 ## Метрики питания
 
 Ноды с датчиками питания серии INA могут сообщать:
 
-| Метрика         | Описание                                    |
-| --------------- | ------------------------------------------- |
-| Напряжение шины | Напряжение линии питания                    |
-| Ток             | Потребляемый ток (мА)    |
-| Питание         | Расчётная мощность (мВт) |
+| Метрическая | Описание                        |
+| ----------- | ------------------------------- |
+| Напряжение  | Per-channel voltage reading     |
+| Ток         | Per-channel current draw, in mA |
+
+The node detail screen shows read-only cards for channels 1 to 3. Use the chart button on the **Power Metrics** row to open the chart screen, which lists a chip for every channel that reported data — up to eight — and charts the one you select. Rename a channel there, in the label field under the chips, to something like Solar or Battery. There is no separate wattage reading; the app charts voltage and current, and does not compute power from them.
 
 Полезно для мониторинга солнечной зарядки или состояния батареи на удалённых нодах.
 
 ## Настройка телеметрии
 
-1. Перейдите в **Настройки → Конфигурация модулей → Телеметрия**.
-2. Установите интервалы передачи:
-   - **Интервал метрик устройства** — как часто передавать метрики устройства
-   - **Интервал метрик окружающей среды** — как часто передавать данные датчиков
-3. Включайте нужные типы датчиков по необходимости.
+1. Navigate to **Settings → Module configuration → Telemetry**.
+2. Each metric group has its own enable toggle and its own interval:
 
-### Рекомендуемые интервалы
+   - **Device Metrics** — battery, voltage, uptime, ChUtil, and AirUtil. Its enable toggle, **Send Device Telemetry**, appears only on firmware 2.7.12 and later; on older firmware you can change the interval but not turn the group off
+   - **Environment Metrics** — temperature, humidity, pressure and the other sensor readings
+   - **Air Quality Metrics** — particulate and CO₂ readings
+   - **Power Metrics** — the per-channel voltage and current readings
 
-| Сценарий использования                             | Устройство (сек.) | Окружающая среда (сек.) |
-| -------------------------------------------------- | ---------------------------------------------------- | ---------------------------------------------------------- |
-| Городская mesh-сеть (много нод) | 3600                                                 | 3600                                                       |
-| Сельская mesh-сеть (мало нод)   | 900                                                  | 900                                                        |
-| Метеостанция                                       | 900                                                  | 300                                                        |
-| Экономия заряда батареи                            | 7200                                                 | 7200                                                       |
+   Environment and Power each have an extra toggle to show their readings on the radio's own
+   screen, and Environment has one more to show its temperatures there in Fahrenheit.
 
-> ⚠️ **Примечание**: Более короткие интервалы увеличивают использование эфирного времени и расход батареи во всей mesh-сети.
+### Choosing an Interval
+
+These are nominal values, not hard schedules. On a congested mesh the firmware automatically
+backs off to longer intervals based on how many nodes are online, so you do not need to
+hand-tune them for mesh size. Lengthen them deliberately only to save battery.
 
 ## Метрики качества воздуха
 
@@ -112,14 +132,10 @@ aliases:
 ## Просмотр телеметрии
 
 1. Перейдите в **Ноды** и выберите ноду.
-2. Разделы телеметрии отображаются на экране сведений:
-   - Метрики устройства (доступны всегда)
-   - Метрики окружающей среды (при наличии датчиков)
-   - Метрики питания (при наличии датчика INA)
-   - Метрики качества воздуха (при наличии датчика PM/CO₂)
-3. Исторические графики показывают тенденции с течением времени.
+2. The **Telemetry** section lists a row for every metric type — Device, Environment, Air Quality, Power, and the rest — whether or not this node has reported it. A row fills in with readings, and grows a chart button, once that node has actually sent that kind of telemetry. An empty row means nothing has arrived yet, not that the sensor is missing.
+3. Use the chart button on a row to open that metric's history, where you can pick a time frame and export the readings as CSV.
 
-![Действия с телеметрией](../../assets/screenshots/node-metrics_telemetric_actions.png)
+![Node detail screen with the telemetry chart action menu open](../../assets/screenshots/node-metrics_telemetric_actions.png)
 
 ## Устранение неполадок
 
@@ -132,6 +148,3 @@ aliases:
 - [Метрики нод](node-metrics) — просмотр данных телеметрии на экране сведений о ноде
 - [Настройки — Модули и администрирование](settings-module-admin) — конфигурация модуля телеметрии
 - [Единицы измерения и регион](units-and-locale) — единицы отображения температуры и давления
-
----
-

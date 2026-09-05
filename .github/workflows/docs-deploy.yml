@@ -44,7 +44,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           submodules: true
           fetch-depth: 0
@@ -56,7 +56,7 @@ jobs:
           develocity_access_key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
 
       - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@95ef2b042f9d7a56d8268cba8559e2842e2ad01b # v1.321.0
         with:
           ruby-version: '4.0.6'
           bundler-cache: true
@@ -69,7 +69,7 @@ jobs:
       # Manual runs always rebuild everything, so the diff is only needed on push.
       - name: Detect Dokka-relevant changes
         if: github.event_name != 'workflow_dispatch'
-        uses: dorny/paths-filter@v4
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4
         id: filter
         with:
           token: ''
@@ -110,7 +110,7 @@ jobs:
             --baseurl /${{ github.event.repository.name }}/main &
           jekyll_pid=$!
           if [ "$BUILD_DOKKA" = "true" ]; then
-            ./gradlew dokkaGeneratePublicationHtml -Dorg.gradle.isolated-projects=false --no-configuration-cache
+            ./gradlew dokkaGeneratePublicationHtml
           else
             echo "No Dokka-relevant changes — skipping API reference rebuild."
           fi

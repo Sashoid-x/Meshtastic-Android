@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-20T14:28:46.266Z",
+  "generatedAt": "2026-09-04T17:23:12.532Z",
   "source": "https://msh.to/api/urls",
   "links": [
     {
@@ -3774,6 +3774,112 @@
       ],
       "hwModels": [
         131
+      ],
+      "marketplace": null,
+      "regions": null
+    },
+    {
+      "shortCode": "rokland-t-deck-cypher",
+      "url": "https://msh.to/rokland-t-deck-cypher",
+      "description": "LILYGO T-Deck CYPHER-M8K (Rokland)",
+      "type": "marketplace",
+      "targets": [
+        "t-deck"
+      ],
+      "hwModels": [
+        50
+      ],
+      "marketplace": "rokland",
+      "regions": [
+        "AU",
+        "AT",
+        "BE",
+        "CA",
+        "DK",
+        "EC",
+        "FR",
+        "DE",
+        "IE",
+        "JP",
+        "NL",
+        "NZ",
+        "NO",
+        "PK",
+        "ES",
+        "SE",
+        "CH",
+        "GB",
+        "US"
+      ]
+    },
+    {
+      "shortCode": "rokland-rak6421",
+      "url": "https://msh.to/rokland-rak6421",
+      "description": "Rokland RAK6421 Hat+",
+      "type": "marketplace",
+      "targets": [
+        "native"
+      ],
+      "hwModels": [
+        121
+      ],
+      "marketplace": "rokland",
+      "regions": [
+        "AU",
+        "AT",
+        "BE",
+        "CA",
+        "DK",
+        "EC",
+        "FR",
+        "DE",
+        "IE",
+        "JP",
+        "NL",
+        "NZ",
+        "NO",
+        "PK",
+        "ES",
+        "SE",
+        "CH",
+        "GB",
+        "US"
+      ]
+    },
+    {
+      "shortCode": "ttc",
+      "url": "https://msh.to/ttc",
+      "description": "Thing Things Conference 2026",
+      "type": "internal",
+      "targets": [],
+      "hwModels": [],
+      "marketplace": null,
+      "regions": null
+    },
+    {
+      "shortCode": "mini-epaper-s3",
+      "url": "https://msh.to/mini-epaper-s3",
+      "description": "Mini E-Paper S3 Kit",
+      "type": "vendor",
+      "targets": [
+        "mini-epaper-s3"
+      ],
+      "hwModels": [
+        125
+      ],
+      "marketplace": null,
+      "regions": null
+    },
+    {
+      "shortCode": "tlora-c6",
+      "url": "https://msh.to/tlora-c6",
+      "description": "T-Lora C6",
+      "type": "vendor",
+      "targets": [
+        "tlora-c6"
+      ],
+      "hwModels": [
+        83
       ],
       "marketplace": null,
       "regions": null

@@ -104,7 +104,6 @@
     <string name="ip_address">Enderezo IP:</string>
     <string name="ip_port">Porto:</string>
     <!-- KEY -->
-    <!-- LABEL -->
     <!-- LAYER -->
     <!-- LICENSED -->
     <!-- LOAD -->
@@ -132,6 +131,8 @@
     <string name="map_tile_download_estimate">Descarga de 'tile' estimada:</string>
     <string name="map_tile_source">Fonte de 'tile'</string>
     <!-- MESH -->
+    <string name="mesh_beacon_region_label">Rexión</string>
+    <string name="mesh_beacon_target_channel_index">Canle</string>
     <!-- MESHTASTIC -->
     <string name="meshtastic_service_notifications">Notificacións de servizo</string>
     <!-- MESSAGE -->
@@ -166,6 +167,7 @@
     <string name="none">Ningún (desactivado)</string>
     <string name="not_connected">Non conectado</string>
     <!-- NOTIFICATIONS -->
+    <!-- OFFLINE -->
     <string name="okay">OK</string>
     <!-- ONE -->
     <string name="one_day">24 Horas</string>
@@ -202,6 +204,7 @@
     <string name="reset">Restablecer</string>
     <string name="reset_to_defaults">Restablecer a por defecto</string>
     <!-- ROLE -->
+    <string name="role_client">Cliente</string>
     <string name="role_client_desc">Aplicación conectada ou dispositivo de mensaxería autónomo.</string>
     <!-- ROUTING -->
     <!-- SAVE -->
@@ -232,6 +235,8 @@
     <!-- TRANSLATION -->
     <!-- TRANSPORT -->
     <string name="two_days">48 Horas</string>
+    <!-- UNITS -->
+    <string name="units_follow_system">Predeterminado do sistema</string>
     <!-- UNKNOWN -->
     <string name="unknown_username">Nome de usuario descoñecido</string>
     <string name="unrecognized">Non recoñecido</string>

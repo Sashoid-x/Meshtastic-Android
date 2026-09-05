@@ -2,15 +2,19 @@
 title: Единицы измерения и локаль
 parent: Руководство пользователя
 nav_order: 16
-last_updated: 2026-08-19
+last_updated: 2026-08-30
 description: Как приложение отображает температуру, расстояние, скорость и другие показатели в зависимости от настроек устройства.
+aliases:
+  - measurement
+  - units
+  - locale
+  - metric
+  - imperial
 ---
 
 # Единицы измерения и локаль
 
-Приложение Meshtastic автоматически отображает температуру, расстояние, скорость и время в единицах, настроенных на вашем устройстве — никаких настроек внутри приложения менять не нужно.
-
----
+The Meshtastic app automatically displays temperatures, distances, speeds, and times in the units your device is configured to use. If your device's settings can't express the units you want, an in-app **Units** setting overrides them.
 
 ## Как это работает
 
@@ -18,9 +22,15 @@ description: Как приложение отображает температу
 
 На Android твои предпочтения единиц измерений определяются настройками системы **Язык и регион**. На настольном компьютере (JVM) приложение использует стандартную `Locale` JVM.
 
-> 💡 **Совет:** тебе никогда не нужно менять единицы измерения в приложении. Измени настройки единиц измерения в системе, и все экраны в Meshtastic обновятся автоматически — детали ноды, графики телеметрии, погода, высота и многое другое.
+Units follow your device's **region**, not the display language. Plain languages — like **English** in the app's own Language setting or Android's per-app language — keep the region your device is set to. A choice that names a region of its own, like **English (Canada)**, overrides it and brings that region's units with it. On Android 16+, the system-wide **Measurement system** preference overrides the region for distance, speed, and the other measurements — but not for temperature, which keeps following the region.
 
----
+> 💡 **Tip:** By default there is nothing to configure — change your system measurement preferences and every screen in Meshtastic updates automatically. If your device offers no working region or measurement setting (some manufacturer builds don't), set **Settings → Units** in the app instead.
+
+## The Radio's Own Screen Is Separate
+
+**Settings → Device configuration → Display → Display units** configures the screen on the radio, not the app. The **Use 12h clock format** and **Always point north** settings do too — all three apply to the radio's display only. Temperature on that screen has its own setting, **Environment metrics use Fahrenheit**, on the radio's Telemetry module — see the [Telemetry module reference](https://meshtastic.org/docs/configuration/module/telemetry#display-fahrenheit) on meshtastic.org.
+
+If your node list shows miles while the radio's screen shows kilometers, this is why: the two are set in different places. Changing the radio's setting never alters what the app displays. See the [Display Config](https://meshtastic.org/docs/configuration/radio/display) guide on meshtastic.org for the device-side options.
 
 ## Температура
 
@@ -48,7 +58,7 @@ description: Как приложение отображает температу
 | Метрическая    | 350 м                | 2,5 км             | 1200 м  |
 | Имперская      | 1148 фт              | 1,6 миль           | 3937 фт |
 
-Приложение использует естественное масштабирование — небольшие расстояния остаются в метрах или футах, а более дальние автоматически переключаются на километры или мили.
+The app uses natural scaling — short distances stay in meters or feet, while longer distances switch to kilometers or miles automatically.
 
 ### Где они появляются
 
@@ -68,23 +78,32 @@ description: Как приложение отображает температу
 
 ## Ветер
 
-Данные о скорости ветра и порывах с датчиков окружающей среды передаются в **м/с** и преобразуются для отображения.
+Wind speed, gust and lull are transmitted by the sensor as **m/s** and converted for display — the app shows the unit weather forecasts use in your region, not the raw sensor unit.
 
-| Твоя настройка                     | Ты видишь |
-| ---------------------------------- | --------- |
-| Метрическая                        | 5 м/с     |
-| Имперская (США) | 11 миль/ч |
+| Твоя настройка                     | Ты видишь                 |
+| ---------------------------------- | ------------------------- |
+| Метрическая                        | 18.0 km/h |
+| Имперская (США) | 11.2 mph  |
 
-Показания ветра отображаются в разделе среды **Детали ноды** и на диаграммах **Телеметрия окружающей среды**.
+All three read in the same unit wherever they appear: the Node Detail environment section, the Environment Telemetry log, and the charts.
+
+## Вес
+
+Readings from a connected scale are transmitted in **kg** and converted for display.
+
+| Твоя настройка                     | Ты видишь               |
+| ---------------------------------- | ----------------------- |
+| Метрическая                        | 1.50 kg |
+| Имперская (США) | 3.31 lb |
 
 ## Осадки
 
 Измерения осадков (за 1 час и за 24 часа) передаются в **мм** и конвертируются для отображения.
 
-| Твоя настройка                     | Ты видишь  |
-| ---------------------------------- | ---------- |
-| Метрическая                        | 12 мм      |
-| Имперская (США) | 0,5 дюймов |
+| Ваши настройки                     | Вы видите               |
+| ---------------------------------- | ----------------------- |
+| Метрическая                        | 12.0 mm |
+| Имперская (США) | 0.47 in |
 
 ## Единицы, которые никогда не меняются
 
@@ -94,7 +113,7 @@ description: Как приложение отображает температу
 | ----------------------------------- | ------------------------------ | ---------------------------------------- |
 | Барометрическое давление            | гПа                            | Международный метеорологический стандарт |
 | Курс / азимут                       | ° (градусы) | Универсальная навигационная конвенция    |
-| Радиация                            | мкР/ч                          | Стандартная единица дозиметрии           |
+| Радиация                            | µR/h                           | Стандартная единица дозиметрии           |
 | GPS координаты                      | десятичные градусы             | Универсальный географический стандарт    |
 | Влажность, батарея, влажность почвы | %                              | Универсальный                            |
 
@@ -107,18 +126,35 @@ description: Как приложение отображает температу
 | **24-часовой формат времени** | Формат часов         | 14:30 или 2:30 PM |
 | **Формат даты**               | Сортировка даты      | 09/05/2026 или 05/09/2026                         |
 
-Приложение также использует **относительное время** в списке нод, где это имеет смысл — например, "5 минут назад" или "2 часа назад", которое автоматически локализуется на язык твоего устройства.
+The app also uses **relative time** where it makes sense — for example, "5 min ago" or "2 hours ago" in the node list — which is automatically localized into your device language.
 
-## Изменение системы измерений (Android)
+## Changing Your Measurement System
 
-На Android система измерений (метрическая или имперская) связана с настройкой региона:
+By default the app follows your device, and your measurement system (metric vs imperial) is tied to your region setting:
 
 1. Откройте **Настройки Android → Система → Язык и регион**
-2. Измените свои предпочтения в **Регион** или **Единицы измерения**
-3. На Android 14+ температуру можно настроить отдельно в **Региональные настройки → Температура**
-4. Вернуться к Meshtastic — значения обновляются немедленно
+2. Change your **Region**
+3. Вернуться к Meshtastic — значения обновляются немедленно
 
-> 💡 **Совет:** Все форматирование производится в централизованном порядке и уважает локаль платформы, поэтому единицы измерения всегда в приложении.
+On Android 16+, the system-wide **Measurement system** preference overrides the region for distance, speed, and the other measurements — but not for temperature. Temperature is resolved separately, and on Android 14+ you override it on its own under **Regional preferences → Temperature**.
+
+Not every English region is fully metric. **English (United Kingdom)** uses miles and feet for distance, so the node list shows miles and altitude in feet. For metric distances, set the app's **Units** setting to Metric (see [Overriding the Units in the App](#overriding-the-units-in-the-app)), or choose a fully metric region such as English (Canada), English (Ireland), or English (New Zealand).
+
+Some phones do not offer the **Regional preferences** menu at all and list only English (United States). On those devices, use the app's **Units** setting (see [Overriding the Units in the App](#overriding-the-units-in-the-app)).
+
+### Overriding the units in the app
+
+Not every device can express every preference — some manufacturer builds ship no regional preferences at all, some
+offer only one English variant, and UK regions are imperial for distance even if you'd rather read altitude in
+meters. For those cases the app has its own switch:
+
+1. Open **Meshtastic Settings → Units**
+2. Choose **System default**, **Metric**, or **Imperial**
+3. Every screen updates immediately — no restart needed
+
+**System default** follows your phone's or computer's region and measurement settings. Forcing **Metric** or **Imperial** applies to
+everything, temperature included (metric → °C, imperial → °F), even where the system's own regional preferences say
+otherwise. The setting exists on Android and Desktop alike.
 
 ## Связанные темы
 
@@ -126,6 +162,4 @@ description: Как приложение отображает температу
 - [Телеметрия и датчики](telemetry-and-sensors) — датчики, производящие эти измерения
 - [Измерение и форматирование](../developer/measurement) — ссылка на разработчика утилит форматирования
 - [Настройки — Радио и Пользователь](settings-radio-user) — настройка региона, управляющая выбором единиц
-
----
-
+- [Display Config](https://meshtastic.org/docs/configuration/radio/display) — units, clock, and compass settings for the radio's own screen, on meshtastic.org

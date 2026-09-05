@@ -2,7 +2,7 @@
 title: Ohjeet jasovelluksen sisäinen dokumentaatio
 parent: Käyttöopas
 nav_order: 21
-last_updated: 2026-06-25
+last_updated: 2026-08-30
 description: Selaa tätä dokumentaatiota sovelluksessa, hae siitä tietoa ja kysy Meshtasticiin liittyviä kysymyksiä Chirpyltä — laitteella toimivalta tekoälyavustajalta.
 aliases:
   - apua
@@ -23,7 +23,7 @@ Dokumentaation selain näyttää kaikki käyttöohjeen sivut. Avaa sivu napautta
 
 ### Haku
 
-Napauta hakukuvaketta ja kirjoita hakusanoja suodattaaksesi sivuja otsikon ja avainsanojen perusteella — tulokset päivittyvät kirjoittaessasi.
+The search box sits at the top of the docs browser. Type in it to filter pages by title and keywords — results update as you type, and the **Clear search** button (✕) empties the box.
 
 ![Haku sovelluksen sisäisessä dokumentaatiossa](../../assets/screenshots/docs-browser_search.png)
 
@@ -37,13 +37,11 @@ Dokumentaatiosivu avattuna selaimessa:
 
 ![Chirpy-tekoälyavustaja vastaa kysymykseen ja näyttää linkkejä sivuille](../../assets/screenshots/docs-browser_chirpy.png)
 
-> ⚠️ **Tietosuoja:** Google-versiota käyttävillä laitteilla Chirpy toimii **laitteella** Gemini Nanon avulla — kysymyksesi eivät poistu puhelimestasi. Pieni kielimalli ladataan ensimmäisellä käyttökerralla.
+Chirpy on käytettävissä vain Androidin Google-versiossa. F-Droid-, Työpöytä- ja iOS-versioissa avustajapainiketta ei näytetä lainkaan — sama koskee puhelimia, joiden laitteisto ei pysty suorittamaan laitteella ajettavaa mallia. Selaaminen ja ohjeselaimen oma haku toimivat normaalisti kaikilla alustoilla.
 
-> ⚠️ **Huomautus:** F-Droid-, Desktop- ja iOS-versioissa Chirpy käyttää generatiivisen mallin sijaan dokumentaatioon perustuvaa **avainsanahakua**. Jos laitteesi ei tue laitteella toimivaa tekoälyä, avustaja piilotetaan, mutta voit silti selata dokumentaatiota ja hakea siitä tietoa normaalisti.
+> 🔒 **Tietosuoja:** Tuetuissa puhelimissa, joissa käytetään Google-versiota, Chirpy toimii **laitteella** Gemini Nanon avulla — kysymyksesi eivät koskaan poistu puhelimestasi. Pieni kielimalli ladataan ensimmäisellä käyttökerralla.
 
 ## Aiheeseen liittyvät aiheet
 
 - [Käännä sovellus](translate) — miten nämä sivut lokalisoidaan muille kielille
 - [Sovelluksen toiminnot](app-functions) — erillinen järjestelmätekoälyintegraatio (ei sama kuin Chirpy)
-
----

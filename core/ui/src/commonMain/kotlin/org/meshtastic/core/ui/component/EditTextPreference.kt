@@ -33,7 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.FocusState
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -209,7 +211,12 @@ fun EditTextPreference(
     modifier: Modifier = Modifier,
     summary: String? = null,
     maxSize: Int = 0, // max_size - 1 (in bytes)
+    // Set to show the byte counter once the value is within this much of [maxSize], the way the message composer
+    // does, instead of only while the field has focus.
+    counterVisibleWithinBytes: Int? = null,
     onFocusChanged: (FocusState) -> Unit = {},
+    // [modifier] lands on the wrapping column, so a caller that needs the text field itself focused passes one here.
+    focusRequester: FocusRequester? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     multiline: Boolean = false,
@@ -218,7 +225,13 @@ fun EditTextPreference(
 
     Column(modifier = modifier.fillMaxWidth().padding(8.dp)) {
         OutlinedTextField(
-            modifier = Modifier.fillMaxWidth().onFocusEvent { onFocusChanged(it) },
+            modifier =
+            Modifier.fillMaxWidth()
+                .then(focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier)
+                .onFocusEvent {
+                    isFocused = it.isFocused
+                    onFocusChanged(it)
+                },
             value = value,
             singleLine = !multiline,
             maxLines = if (multiline) 5 else 1,
@@ -261,17 +274,34 @@ fun EditTextPreference(
             )
         }
 
-        if (maxSize > 0 && isFocused) {
-            Box(contentAlignment = Alignment.BottomEnd, modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = "${value.encodeToByteArray().size}/$maxSize",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(end = 8.dp, bottom = 4.dp),
-                )
-            }
+        val valueBytes = value.encodeToByteArray().size
+        if (showByteCounter(valueBytes, maxSize, counterVisibleWithinBytes, isFocused)) {
+            ByteCounter(valueBytes = valueBytes, maxSize = maxSize, isError = isError)
         }
     }
+}
+
+/** The `n/max` byte budget shown under a size-capped field. */
+@Composable
+private fun ByteCounter(valueBytes: Int, maxSize: Int, isError: Boolean) {
+    Box(contentAlignment = Alignment.BottomEnd, modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "$valueBytes/$maxSize",
+            style = MaterialTheme.typography.bodySmall,
+            color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(end = 8.dp, bottom = 4.dp),
+        )
+    }
+}
+
+/**
+ * Whether the byte counter earns its place: within [within] bytes of the limit when a field asks for the message
+ * composer's rule, otherwise while the field has focus. A counter reading 0/80 before a character is typed is chrome.
+ */
+private fun showByteCounter(valueBytes: Int, maxSize: Int, within: Int?, isFocused: Boolean) = when {
+    maxSize <= 0 -> false
+    within == null -> isFocused
+    else -> valueBytes >= maxSize - within
 }
 
 @Preview(showBackground = true)

@@ -20,22 +20,41 @@ plugins {
 }
 
 kotlin {
+    // Desktop needs this module: MapScreen and the shared map view models are common code, and
+    // :feature:map-maplibre renders them on the JVM target.
+    jvm()
+
     android { withHostTest { isIncludeAndroidResources = true } }
 
     sourceSets {
         commonMain.dependencies {
             implementation(libs.kotlinx.collections.immutable)
+            // KML import parses through the same xmlutil the app already resolves for CoT XML.
+            implementation(libs.xmlutil.core)
             implementation(projects.core.data)
             implementation(projects.core.database)
             implementation(projects.core.datastore)
             implementation(projects.core.model)
             implementation(projects.core.navigation)
+            // NetworkRepository backs the offline-basemap auto-fallback (see OfflineFallback.kt).
+            implementation(projects.core.network)
             implementation(projects.core.prefs)
+            implementation(projects.core.repository)
             implementation(libs.meshtastic.protobufs)
             implementation(projects.core.service)
             implementation(projects.core.resources)
             implementation(projects.core.ui)
             implementation(projects.core.di)
+            // The imported-layer store: Okio for the files it keeps, Ktor for the network layers it fetches.
+            implementation(libs.okio)
+            implementation(libs.ktor.client.core)
+        }
+
+        // Compose UI tests live in jvmTest, not commonTest: this module enables Android host tests, and
+        // `runComposeUiTest` has no Robolectric host there — the same tests NPE the moment they run under it.
+        jvmTest.dependencies {
+            implementation(libs.compose.multiplatform.ui.test)
+            implementation(compose.desktop.currentOs)
         }
     }
 }

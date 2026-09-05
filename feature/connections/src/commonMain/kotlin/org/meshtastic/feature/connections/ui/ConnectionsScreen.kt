@@ -61,6 +61,7 @@ import org.meshtastic.core.model.DeviceType
 import org.meshtastic.core.model.FirmwareUpdateDestination
 import org.meshtastic.core.model.FirmwareUpdateNotice
 import org.meshtastic.core.model.InterfaceId
+import org.meshtastic.core.model.service.LockdownState
 import org.meshtastic.core.navigation.FirmwareRoute
 import org.meshtastic.core.navigation.Route
 import org.meshtastic.core.navigation.SettingsRoute
@@ -96,6 +97,8 @@ import org.meshtastic.core.resources.open_settings
 import org.meshtastic.core.resources.open_wifi_settings
 import org.meshtastic.core.resources.rssi
 import org.meshtastic.core.resources.set_your_region
+import org.meshtastic.core.resources.transmit_disabled
+import org.meshtastic.core.resources.transmit_disabled_summary
 import org.meshtastic.core.resources.unknown
 import org.meshtastic.core.resources.unknown_device
 import org.meshtastic.core.resources.wifi_unavailable
@@ -107,6 +110,7 @@ import org.meshtastic.core.ui.component.PermissionRecoveryCard
 import org.meshtastic.core.ui.component.RecoveryCard
 import org.meshtastic.core.ui.icon.AppSettingsAlt
 import org.meshtastic.core.ui.icon.Bluetooth
+import org.meshtastic.core.ui.icon.CellTower
 import org.meshtastic.core.ui.icon.Language
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.NoDevice
@@ -145,6 +149,67 @@ import org.meshtastic.feature.connections.ui.components.TransportSelector
  */
 private val CardMinHeight = 100.dp
 
+/** Whether the connected card's config warning cards (region, transmit) may render for this connection. */
+internal fun canShowConfigWarnings(
+    connectedWithNode: Boolean,
+    activeNodeInfoReady: Boolean,
+    lockdownState: LockdownState,
+    isManaged: Boolean,
+    isPhysicalDevice: Boolean,
+): Boolean =
+    connectedWithNode && activeNodeInfoReady && lockdownState.allowsConfigWrites && !isManaged && isPhysicalDevice
+
+/** Applies connection policy and renders the actionable configuration-health cards it admits. */
+@Composable
+internal fun ConfigurationWarningCards(
+    connectedWithNode: Boolean,
+    activeNodeInfoReady: Boolean,
+    lockdownState: LockdownState,
+    isManaged: Boolean,
+    isPhysicalDevice: Boolean,
+    regionUnset: Boolean,
+    txDisabled: Boolean,
+    onConfigNavigate: (Route) -> Unit,
+) {
+    val showWarnings =
+        canShowConfigWarnings(
+            connectedWithNode = connectedWithNode,
+            activeNodeInfoReady = activeNodeInfoReady,
+            lockdownState = lockdownState,
+            isManaged = isManaged,
+            isPhysicalDevice = isPhysicalDevice,
+        )
+
+    Column {
+        if (showWarnings && regionUnset) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    leadingIcon = MeshtasticIcons.Language,
+                    text = stringResource(Res.string.set_your_region),
+                    // Navigate straight to the LoRa screen: it re-reads the route on entry and renders from the
+                    // connect-time snapshot meanwhile, so pre-fetching behind a progress dialog here bought nothing and
+                    // could strand the user on an empty dialog when the read completed before the dialog observed it.
+                    onClick = { onConfigNavigate(SettingsRoute.LoRa) },
+                )
+            }
+        }
+
+        // An unset region already disables transmit and has its own card, so do not blame one root cause twice.
+        if (showWarnings && txDisabled && !regionUnset) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Card(modifier = Modifier.fillMaxWidth()) {
+                ListItem(
+                    leadingIcon = MeshtasticIcons.CellTower,
+                    text = stringResource(Res.string.transmit_disabled),
+                    supportingText = stringResource(Res.string.transmit_disabled_summary),
+                    onClick = { onConfigNavigate(SettingsRoute.LoRa) },
+                )
+            }
+        }
+    }
+}
+
 /** Composable screen for managing device connections (BLE, TCP, USB). It displays connection status. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Suppress("CyclomaticComplexMethod", "LongMethod", "MagicNumber", "ModifierMissing", "ComposableParamOrder")
@@ -162,7 +227,10 @@ fun ConnectionsScreen(
     val ourNode by connectionsViewModel.ourNodeForDisplay.collectAsStateWithLifecycle()
     val firmwareUpdateNotice by connectionsViewModel.firmwareUpdateNotice.collectAsStateWithLifecycle()
     val regionUnset by connectionsViewModel.regionUnset.collectAsStateWithLifecycle()
-    val sessionAuthorized by connectionsViewModel.sessionAuthorized.collectAsStateWithLifecycle()
+    val txDisabled by connectionsViewModel.txDisabled.collectAsStateWithLifecycle()
+    val activeNodeInfoReady by connectionsViewModel.activeNodeInfoReady.collectAsStateWithLifecycle()
+    val lockdownState by connectionsViewModel.lockdownState.collectAsStateWithLifecycle()
+    val localConfig by connectionsViewModel.localConfig.collectAsStateWithLifecycle()
 
     val selectedDevice by scanModel.selectedNotNullFlow.collectAsStateWithLifecycle()
     val persistedDeviceName by scanModel.persistedDeviceName.collectAsStateWithLifecycle()
@@ -495,30 +563,32 @@ fun ConnectionsScreen(
                                 )
                             }
 
-                        // Region warning sits outside the animated card so it does not affect the
+                        // Config warnings sit outside the animated card so they do not affect the
                         // CONNECTED ↔ CONNECTING ↔ NO_DEVICE size transition.
                         val isPhysicalDevice =
                             selectedDevice != InterfaceId.MOCK.id.toString() &&
                                 selectedDevice != InterfaceId.REPLAY.id.toString()
-                        if (
-                            uiState == ConnectionUiState.CONNECTED_WITH_NODE &&
-                            regionUnset &&
-                            sessionAuthorized &&
-                            isPhysicalDevice
-                        ) {
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                ListItem(
-                                    leadingIcon = MeshtasticIcons.Language,
-                                    text = stringResource(Res.string.set_your_region),
-                                    // Navigate straight to the LoRa screen: it re-reads the route on entry and
-                                    // renders from the connect-time snapshot meanwhile, so pre-fetching behind a
-                                    // progress dialog here bought nothing and could strand the user on an empty
-                                    // dialog when the read completed before the dialog observed it.
-                                    onClick = { onConfigNavigate(SettingsRoute.LoRa) },
-                                )
-                            }
-                        }
+                        val isManaged = localConfig.security?.is_managed == true
+                        // Gate on LockdownState rather than sessionAuthorized. Pre-2.8 firmware and newer builds that
+                        // do not include runtime lockdown support never enter that authentication flow, while an
+                        // explicit DISABLED state also leaves sessionAuthorized false. None, Disabled, and Unlocked do
+                        // not withhold config writes on lockdown grounds; AwaitingResponse stays non-actionable until
+                        // firmware reports the result. Managed mode is a separate client policy: match the existing
+                        // settings behavior and suppress warnings only when SecurityConfig explicitly marks the device
+                        // managed, so an incomplete first-run config stream does not hide the region warning.
+                        // Node readiness binds the warnings to the active transport session. Stage 1 clears cached
+                        // config before accepting the fresh stream, while a cached node can survive a database switch;
+                        // do not attribute post-handshake config state to a node the new session has not identified.
+                        ConfigurationWarningCards(
+                            connectedWithNode = uiState == ConnectionUiState.CONNECTED_WITH_NODE,
+                            activeNodeInfoReady = activeNodeInfoReady,
+                            lockdownState = lockdownState,
+                            isManaged = isManaged,
+                            isPhysicalDevice = isPhysicalDevice,
+                            regionUnset = regionUnset,
+                            txDisabled = txDisabled,
+                            onConfigNavigate = onConfigNavigate,
+                        )
 
                         // Transport selector sits between the connection card and device list; it controls only the
                         // visible discovery pane, not the globally selected/connected device shown above.
@@ -587,10 +657,11 @@ fun ConnectionsScreen(
                                 onAction = openLocationSettings,
                             )
                         }
-                        // The BLE pane's missing-permission card, for the transport whose discovery Android 17 gates.
-                        // Without it the network pane repeats the BLE bug it was just fixed for: an empty list and a
-                        // hint about the network, when the app was never allowed to look. Manual entry still works,
-                        // which is why the copy points at it rather than presenting this as a dead end.
+                        // The BLE pane's missing-permission card, for the transport Android 17 gates. Without it
+                        // the network pane repeats the BLE bug it was just fixed for: an empty list and a hint about
+                        // the network, when the app was never allowed to look. The gate is on the socket, not just
+                        // discovery, so manual entry is no workaround for a radio on this Wi-Fi — only one reached
+                        // over a public address or a VPN is unaffected, which is what the copy now says.
                         if (activeTransport == DeviceType.TCP && !localNetworkPermission.isGranted) {
                             PermissionRecoveryCard(
                                 state = localNetworkPermission,

@@ -21,7 +21,6 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.Single
 import org.meshtastic.core.common.util.currentLocaleQualifier
-import org.meshtastic.core.resources.doc_keywords_android_auto
 import org.meshtastic.core.resources.doc_keywords_app_functions
 import org.meshtastic.core.resources.doc_keywords_connections
 import org.meshtastic.core.resources.doc_keywords_debug_logs
@@ -43,7 +42,6 @@ import org.meshtastic.core.resources.doc_keywords_telemetry
 import org.meshtastic.core.resources.doc_keywords_translate
 import org.meshtastic.core.resources.doc_keywords_units
 import org.meshtastic.core.resources.doc_keywords_widget
-import org.meshtastic.core.resources.doc_title_android_auto
 import org.meshtastic.core.resources.doc_title_app_functions
 import org.meshtastic.core.resources.doc_title_connections
 import org.meshtastic.core.resources.doc_title_debug_logs
@@ -283,7 +281,7 @@ class DefaultDocBundleLoader : DocBundleLoader {
                 CoreRes.string.doc_keywords_nodes,
                 "en/user/nodes.html",
                 4,
-                listOf("node-list", "mesh-nodes", "peers"),
+                listOf("node-list", "mesh-nodes", "peers", "hop-histogram"),
                 3800,
                 "nodes",
             ),
@@ -303,7 +301,7 @@ class DefaultDocBundleLoader : DocBundleLoader {
                 CoreRes.string.doc_keywords_map,
                 "en/user/map-and-waypoints.html",
                 6,
-                listOf("map", "waypoints", "gps", "location"),
+                listOf("map", "waypoints", "gps", "location", "site-planner", "map-layers", "geojson", "kml"),
                 3600,
                 "map",
             ),
@@ -363,7 +361,15 @@ class DefaultDocBundleLoader : DocBundleLoader {
                 CoreRes.string.doc_keywords_discovery,
                 "en/user/discovery.html",
                 12,
-                listOf("mesh-discovery", "local-discovery", "network-scan"),
+                listOf(
+                    "discovery",
+                    "local-mesh-discovery",
+                    "mesh-discovery",
+                    "local-discovery",
+                    "network-scan",
+                    "traceroute",
+                    "neighbor-info",
+                ),
                 2800,
                 "discovery",
             ),
@@ -393,7 +399,7 @@ class DefaultDocBundleLoader : DocBundleLoader {
                 CoreRes.string.doc_keywords_signal_meter,
                 "en/user/signal-meter.html",
                 15,
-                listOf("signal-quality", "signal-strength", "rssi", "snr"),
+                listOf("signal", "signal-meter", "signal-quality", "signal-strength", "snr", "rssi"),
                 3500,
                 "signal-meter",
             ),
@@ -413,19 +419,9 @@ class DefaultDocBundleLoader : DocBundleLoader {
                 CoreRes.string.doc_keywords_translate,
                 "en/user/translate.html",
                 17,
-                listOf("crowdin", "localization", "language", "i18n", "contribute"),
+                listOf("translate", "crowdin", "localization", "language", "i18n", "contribute"),
                 3700,
                 "translate",
-            ),
-            UserPageDef(
-                "android-auto",
-                CoreRes.string.doc_title_android_auto,
-                CoreRes.string.doc_keywords_android_auto,
-                "en/user/android-auto.html",
-                18,
-                listOf("android-auto", "car", "head-unit", "auto"),
-                2119,
-                "android-auto",
             ),
             UserPageDef(
                 "app-functions",
@@ -496,7 +492,7 @@ class DefaultDocBundleLoader : DocBundleLoader {
             "en/developer/architecture.html",
             1,
             listOf("architecture", "kmp", "module", "layer", "core", "feature", "compose"),
-            listOf("layers", "module-architecture", "kmp"),
+            listOf("layers", "module-architecture", "kmp", "radio-control"),
             4600,
             "architecture",
         ),
@@ -598,6 +594,17 @@ class DefaultDocBundleLoader : DocBundleLoader {
             listOf("test-builds", "obtainium", "beta", "snapshot"),
             18000,
             "test-builds",
+        ),
+        KeywordIndexEntry(
+            "documentation-style",
+            "Documentation Style",
+            "developer",
+            "en/developer/documentation-style.html",
+            11,
+            listOf("style", "writing", "docs", "prose", "voice", "admonition", "wording"),
+            listOf("style", "style-guide", "docs-style", "writing"),
+            15400,
+            "documentation-style",
         ),
     )
 

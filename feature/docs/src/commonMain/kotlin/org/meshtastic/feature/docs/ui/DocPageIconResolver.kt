@@ -26,6 +26,7 @@ import org.meshtastic.core.ui.icon.BugReport
 import org.meshtastic.core.ui.icon.Chart
 import org.meshtastic.core.ui.icon.ConfigChannels
 import org.meshtastic.core.ui.icon.Device
+import org.meshtastic.core.ui.icon.Edit
 import org.meshtastic.core.ui.icon.ForkLeft
 import org.meshtastic.core.ui.icon.Group
 import org.meshtastic.core.ui.icon.Language
@@ -35,7 +36,6 @@ import org.meshtastic.core.ui.icon.Nodes
 import org.meshtastic.core.ui.icon.Notes
 import org.meshtastic.core.ui.icon.PersonSearch
 import org.meshtastic.core.ui.icon.PinDrop
-import org.meshtastic.core.ui.icon.Route
 import org.meshtastic.core.ui.icon.Rssi
 import org.meshtastic.core.ui.icon.Settings
 import org.meshtastic.core.ui.icon.SignalCellular3Bar
@@ -82,8 +82,6 @@ internal fun DocPage.resolveIcon(): ImageVector = when (iconId) {
 
     "translate" -> MeshtasticIcons.Language
 
-    "android-auto" -> MeshtasticIcons.Route
-
     "app-functions" -> MeshtasticIcons.Api
 
     "widget" -> MeshtasticIcons.Chart
@@ -112,6 +110,8 @@ internal fun DocPage.resolveIcon(): ImageVector = when (iconId) {
     "measurement" -> MeshtasticIcons.Chart
 
     "test-builds" -> MeshtasticIcons.SystemUpdate
+
+    "documentation-style" -> MeshtasticIcons.Edit
 
     else -> MeshtasticIcons.Notes
 }
