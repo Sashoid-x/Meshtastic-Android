@@ -3,202 +3,160 @@
 </p>
 <h1 align="center">Meshtastic-Android (Advanced Mod)</h1>
 
-> **Meshtastic Android Advanced** — расширенная модификация с поддержкой передачи монохромных изображений, Pixel Art, ИИ-сжатия текста без потерь (Lossless AI Text Compression) и быстрого управления MQTT прямо из чата. Устанавливается как отдельное приложение (`com.geeksville.mesh.adv`) параллельно с официальной версией.
+<p align="center">
+  <b>Ультимативная модификация клиента Meshtastic для Android и Desktop</b><br>
+  Передача файлов и картинок по LoRa без интернета • ИИ-сжатие текста без потерь • Встроенный фотохостинг • Быстрый MQTT
+</p>
 
-The Meshtastic client for Android and Compose Desktop — an app for communicating over open-source mesh radios. For more information see our webpage: [meshtastic.org](https://www.meshtastic.org). The device-side code lives in the [firmware repository](https://github.com/meshtastic/firmware).
-
-## ✨ Особенности модификации Advanced
-
-1. **🖼️ Передача монохромных изображений и Pixel Art**:
-   - Встроенный редактор изображений: кадрирование, зум, поворот, дизеринг и инверсия.
-   - Встроенный Pixel Art редактор для рисования схем и пиксельной графики по сетке.
-   - 4 адаптивные стратегии сжатия (Raw, H-RLE, V-RLE, Delta+H-RLE) с динамическим расчётом размера в байтах.
-   - Отображение картинок прямо в сообщениях чата и в превью списка диалогов.
-
-2. **🗜️ ИИ-сжатие текста (Lossless AI Text Compression)**:
-   - Легковесная N-gram модель (RU/EN) + 64-битное арифметическое кодирование + Base91 (порт `mesh-compressor`).
-   - Сжатие текста без потерь в 1.5–2.5 раза для экономии эфира LoRa.
-   - Управление: тумблер в Настройках («ИИ-сжатие текста») + поштучная кнопка `🗜️` в панели инструментов Markdown.
-   - Интеллектуальный счётчик байт `🗜️ X/230 (Y Б)` с живым расчётом экономии.
-
-3. **☁️ Быстрое управление «ОК в MQTT» из чата**:
-   - Кнопка-облачко в панели форматирования для мгновенного включения/отключения пересылки в MQTT на подключенной ноде.
-
-4. **📱 Автономная установка (Side-by-side)**:
-   - Собственный Application ID `com.geeksville.mesh.adv` и отдельная иконка `ADV`.
+<p align="center">
+  <img src="https://img.shields.io/badge/App_ID-com.geeksville.mesh.adv-gold?style=flat-square" alt="App ID"/>
+  <img src="https://img.shields.io/badge/Meshtastic_Core-v2.8.2-blue?style=flat-square" alt="Core Version"/>
+  <img src="https://img.shields.io/badge/Status-Active_Development-brightgreen?style=flat-square" alt="Status"/>
+  <img src="https://img.shields.io/badge/License-GPL--3.0-orange?style=flat-square" alt="License"/>
+</p>
 
 ---
 
-## Features
+## 🌟 О проекте
 
-Highlights of the 2.8 line:
+**Meshtastic Android Advanced** — это мощная расширенная редакция официального клиента Meshtastic, созданная для радиолюбителей, туристов, инженеров и энтузиастов автономной связи. 
 
-- **Mesh network discovery** to surface nodes and channels around you, with **Mesh Beacon** invitations for joining nearby meshes.
-- **Waypoint geofences** — draw zones on the map and get alerts when nodes cross them.
-- **Secure key backup** — encrypted backup, restore, and delete for your device security keys.
-- **NFC sharing** — write shared contacts and channels to NFC tags.
-- **XEdDSA packet signing** indicators in the node and messaging UI.
-- **Air-quality telemetry** — PM1.0, PM2.5, PM10, and CO₂ readings from supported sensors.
-- **App Functions / system-AI integration** so on-device assistants can trigger common workflows.
+Модификация сохраняет **100% совместимость с базовым протоколом Meshtastic**, но при этом добавляет уникальные возможности, которые выводят автономные mesh-сети на принципиально новый уровень.
 
-## Get Meshtastic
+Приложение устанавливается с собственным идентификатором **`com.geeksville.mesh.adv`** и уникальной иконкой **ADV**, что позволяет использовать его **параллельно с официальным приложением** на одном устройстве без конфликтов настроек или баз данных.
 
-The fastest way to get releases is [GitHub releases](https://github.com/meshtastic/Meshtastic-Android/releases); pair them with [Obtainium](https://github.com/ImranR98/Obtainium) for automatic updates.
+---
 
-With Obtainium installed, tap a link below on your phone to set it up with everything pre-configured. The `google` flavor adds Google Crashlytics and Google Maps; `fdroid` has no Google dependencies.
+## 🚀 Ключевые возможности Advanced Mod (Отличия от `main`)
 
-<!-- BEGIN GENERATED LINKS: obtainium/generate-links.py -->
+### 📡 1. Прямая передача файлов по LoRa (MFT — Meshtastic File Transfer)
+*Передавайте любые файлы напрямую через радиоэфир без интернета, сотовой связи и внешних серверов.*
 
-| Channel | `google` flavor | `fdroid` flavor |
-|---|---|---|
-| **Latest release** | [Add](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22com.geeksville.mesh%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fmeshtastic%2FMeshtastic-Android%22%2C%22author%22%3A%22meshtastic%22%2C%22name%22%3A%22Meshtastic%22%2C%22additionalSettings%22%3A%22%7B%5C%22apkFilterRegEx%5C%22%3A%5C%22google-release%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22appName%5C%22%3A%5C%22Meshtastic%5C%22%7D%22%7D) | [Add](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22com.geeksville.mesh%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fmeshtastic%2FMeshtastic-Android%22%2C%22author%22%3A%22meshtastic%22%2C%22name%22%3A%22Meshtastic%22%2C%22additionalSettings%22%3A%22%7B%5C%22apkFilterRegEx%5C%22%3A%5C%22fdroid-.%2A-release%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22Meshtastic%5C%22%7D%22%7D) |
-| **Open beta** | [Add](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22com.geeksville.mesh%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fmeshtastic%2FMeshtastic-Android%22%2C%22author%22%3A%22meshtastic%22%2C%22name%22%3A%22Meshtastic%20Beta%22%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22-open%5C%22%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22google-release%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22appName%5C%22%3A%5C%22Meshtastic%20Beta%5C%22%7D%22%7D) | [Add](https://apps.obtainium.imranr.dev/redirect.html?r=obtainium://app/%7B%22id%22%3A%22com.geeksville.mesh%22%2C%22url%22%3A%22https%3A%2F%2Fgithub.com%2Fmeshtastic%2FMeshtastic-Android%22%2C%22author%22%3A%22meshtastic%22%2C%22name%22%3A%22Meshtastic%20Beta%22%2C%22additionalSettings%22%3A%22%7B%5C%22includePrereleases%5C%22%3Atrue%2C%5C%22filterReleaseTitlesByRegEx%5C%22%3A%5C%22-open%5C%22%2C%5C%22apkFilterRegEx%5C%22%3A%5C%22fdroid-.%2A-release%5C%5C%5C%5C.apk%24%5C%22%2C%5C%22autoApkFilterByArch%5C%22%3Atrue%2C%5C%22appName%5C%22%3A%5C%22Meshtastic%20Beta%5C%22%7D%22%7D) |
+- **Любые типы файлов:** передача изображений, GPX-треков, схем, текстовых заметок и бинарных конфигураций.
+- **Надёжный протокол Stop-and-Wait ARQ:** автоматическая фрагментация на пакеты, квитирование доставки (ACK) и повторная отправка при помехах.
+- **Прямая передача (0-hop):** пакеты не перегружают общую сеть ретрансляторов и передаются напрямую адресату.
+- **Адаптивные профили таймингов:** гибкая настройка интервалов передачи под ваш пресет модема (*Short Fast*, *Medium Fast*, *Long Fast*, *Long Slow*).
+- **Интуитивный интерфейс:** анимированный прогресс-бар в реальном времени, отображение скорости, возможность паузы/отмены и проверка целостности (CRC32).
 
-<!-- END GENERATED LINKS -->
+---
 
-What those two channels point at right now:
+### 🖼️ 2. Монохромные изображения и Pixel Art в одном радиопакете
+*Отправляйте карты, эскизы местности, схемы и пиксельные рисунки прямо по LoRa — мгновенно и без задержек.*
 
-<!-- BEGIN GENERATED STATUS: obtainium/generate-links.py --refresh -->
+- **1 пакет = 1 картинка:** высокоэффективное сжатие позволяет уместить полноценную графику всего в один стандартный пакет LoRa!
+- **Встроенный графический редактор:**
+  - Кадрирование, свободное масштабирование (pinch-to-zoom) и поворот фото.
+  - Адаптивный дизеринг (Bayer 4×4 / Floyd-Steinberg), контрастность и негатив (инверсия цветов).
+- **Редактор Pixel Art:** холст с сеткой для быстрого рисования схем, условных обозначений и планов местности.
+- **4 умных алгоритма сжатия:** *Raw*, *H-RLE*, *V-RLE*, *Delta+H-RLE* с автоматическим выбором наименьшего размера.
+- **Нативный просмотр:** изображения отображаются прямо в пузырях чата и в превью списка диалогов.
 
-| Channel | Currently | Released |
-|---|---|---|
-| **Latest release** | `v2.8.1` | 2026-08-20 |
-| **Open beta** | *none published right now* | — |
+---
 
-<!-- END GENERATED STATUS -->
+### 🗜️ 3. ИИ-сжатие текста без потерь (Lossless AI Text Compression)
+*Увеличьте вместимость сообщений и экономьте эфирное время LoRa в 1.5–2.5 раза.*
 
-Closed-beta and per-commit snapshot channels, importable config files, and the setup details are in [Test Builds & Obtainium](docs/en/developer/test-builds.md). These links, files and the table above are generated — see [`obtainium/`](obtainium/).
+- **Без потерь данных:** оригинальный текст восстанавливается символ в символ с сохранением любого форматирования.
+- **Двуязычная нейросетевая модель:** компактная статистическая N-gram модель (RU/EN) + 64-битное арифметическое кодирование + Base91 (порт `mesh-compressor`).
+- **Живой расчёт экономии:** счётчик `🗜️ X/230 (Y Б)` показывает размер сжатого текста в реальном времени прямо при вводе.
+- **Гибкость использования:** глобальный переключатель в настройках + мгновенная кнопка `🗜️` на панели ввода для точечного сжатия нужных сообщений.
+- **Прозрачность:** автоматическая распаковка при получении без необходимости ручных действий.
 
-These providers are also available but may update more slowly.
+---
 
-[<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
-alt="Get it on F-Droid"
-width="24%">](https://f-droid.org/packages/com.geeksville.mesh/)
-[<img src="https://gitlab.com/IzzyOnDroid/repo/-/raw/master/assets/IzzyOnDroid.png"
-alt="Get it on IzzyOnDroid"
-width="24%">](https://apt.izzysoft.de/fdroid/index/apk/com.geeksville.mesh)
-[<img src="https://github.com/machiav3lli/oandbackupx/blob/034b226cea5c1b30eb4f6a6f313e4dadcbb0ece4/badge_github.png"
-alt="Get it on GitHub"
-width="24%">](https://github.com/meshtastic/Meshtastic-Android/releases)
-[<img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
-alt="Get it on Google Play"
-width="24%">](https://play.google.com/store/apps/details?id=com.geeksville.mesh&referrer=utm_source%3Dgithub-android-readme)
+### ☁️ 4. Интеграция с фотохостингами (Meshpic & Meshapp / MeshFiles)
+*Делитесь полноразмерными цветными фотографиями в один клик, когда доступен интернет.*
 
-The play store is the last to update of these options. To [join the Play Store testing program](https://play.google.com/apps/testing/com.geeksville.mesh), opt in to become a tester.
-If you encounter any problems or have questions, [ask us on the discord](https://discord.gg/meshtastic), [create an issue](https://github.com/meshtastic/Meshtastic-Android/issues), or [post in the forum](https://github.com/orgs/meshtastic/discussions) and we'll help as we can.
+- **Поддержка хостингов:** выбор провайдера в настройках:
+  - **Выкл.** — отключение веб-хостингов.
+  - **Meshpic** (`meshpic.org`) — популярный легковесный хостинг для mesh-сетей.
+  - **Meshapp / MeshFiles** (`meshfiles.org`) — быстрый альтернативный сервис обмена файлами.
+- **Умный резолвер предпросмотра (`ImageUrlResolver`):** определение картинок по типу содержимого (HTTP HEAD / OpenGraph метатеги), кэширование и inline-превью в чате.
+- **Открытие в один тап:** нажатие на миниатюру сразу открывает снимок в системной галерее или браузере.
 
-### Desktop
+---
 
-**Meshtastic Desktop** installers (macOS DMG, Windows MSI/EXE, Linux DEB/RPM/AppImage) are available from [GitHub Releases](https://github.com/meshtastic/Meshtastic-Android/releases). A Flatpak is available on [Flathub](https://flathub.org/apps/org.meshtastic.MeshtasticDesktop) (packaging repo: [flathub/org.meshtastic.MeshtasticDesktop](https://github.com/flathub/org.meshtastic.MeshtasticDesktop)).
+### ⚡ 5. Быстрое управление «ОК в MQTT» прямо из чата
+- Удобная кнопка с облаком на панели форматирования сообщений.
+- Мгновенно переключает параметр `ok_to_mqtt` на подключенном радиоузле без блуждания по вложенным меню настроек.
 
-## Documentation
+---
 
-The two documentation sites below are deployed to GitHub Pages automatically on every push to `main`.
+### ⚙️ 6. Выделенный раздел «Настройки ADV»
+- Удобный раздел в главном меню настроек для централизованного управления всеми фичами мода:
+  - Выбор активного фотохостинга.
+  - Управление ИИ-сжатием текста.
+  - Настройка таймингов и параметров передачи файлов.
 
-| Site | URL | Contents |
-|---|---|---|
-| **User & Developer Docs** | [meshtastic.github.io/Meshtastic-Android](https://meshtastic.github.io/Meshtastic-Android/) | Jekyll site — user guide, developer guide, in-app doc content |
-| **API Reference** | [meshtastic.github.io/Meshtastic-Android/api](https://meshtastic.github.io/Meshtastic-Android/api/) | Dokka-generated KDoc for all public APIs |
+---
 
-### Generating Locally
+### 📱 7. Полная автономность и Side-by-Side установка
+- Собственный `applicationId`: **`com.geeksville.mesh.adv`**.
+- Кастомная золотисто-тёмная иконка приложения с бейджем **ADV**.
+- Работает независимо от стандартного клиента Meshtastic: отдельные базы данных, независимые Bluetooth/USB подключения и настройки.
 
-**User & Developer Docs (Jekyll):**
+---
+
+## 📊 Сравнение версий
+
+| Функция | Официальный `main` | Meshtastic `Advanced Mod` |
+| :--- | :---: | :---: |
+| **Базовый обмен сообщениями и телеметрия** | ✅ | ✅ |
+| **Оффлайн-карты (MapLibre) и геозоны** | ✅ | ✅ |
+| **Mesh Beacon и обнаружение соседей** | ✅ | ✅ |
+| **Передача файлов по LoRa (MFT)** | ❌ | **✅ Есть (Stop-and-Wait ARQ)** |
+| **Монохромные фото и Pixel Art в эфире** | ❌ | **✅ Есть (в 1 пакете)** |
+| **ИИ-сжатие текста без потерь (N-gram + Base91)** | ❌ | **✅ Есть (сжатие в 1.5–2.5х)** |
+| **Поддержка Meshpic и Meshapp фотохостингов** | ❌ | **✅ Есть (с авто-превью)** |
+| **Кнопка «ОК в MQTT» прямо в чате** | ❌ | **✅ Есть** |
+| **Установка параллельно с оригиналом** | ❌ | **✅ Да (`com.geeksville.mesh.adv`)** |
+
+---
+
+## 📥 Загрузка и установка
+
+Готовые релизные APK-пакеты (F-Droid flavor, без сервисов Google) доступны для скачивания:
+
+- **Universal APK** (для всех типов устройств): `androidApp-adv-fdroid-universal-release.apk`
+- **ARM64 (v8a)** (современные смартфоны и планшеты): `androidApp-adv-fdroid-arm64-v8a-release.apk`
+- **ARMv7 (32-bit)** (старые устройства): `androidApp-adv-fdroid-armeabi-v7a-release.apk`
+
+---
+
+## 🛠️ Сборка из исходного кода
+
+### Требования
+- **JDK:** OpenJDK 21 или новее (рекомендуется 25)
+- **Android SDK:** API 36 / Build Tools 36.x
+
+### Команды сборки
+
 ```bash
-./gradlew generateDocsBundle publishDocsSite
-BUNDLE_GEMFILE=docs/Gemfile bundle exec jekyll serve \
-  --source build/_site --baseurl ""
+# Проверка форматирования и линтеров
+./gradlew spotlessCheck detekt
+
+# Сборка отладочной версии
+./gradlew assembleDebug
+
+# Сборка релизной F-Droid версии
+./gradlew assembleFdroidRelease --no-isolated-projects --no-configuration-cache
+
+# Запуск полного набора тестов
+./gradlew test allTests
 ```
 
-**API Reference (Dokka):**
-```bash
-./gradlew dokkaGeneratePublicationHtml
-# Output: build/dokka/html/index.html
-```
+---
 
-## Architecture
+## 🌐 Базовая документация Meshtastic
 
-### Modern Android Development (MAD)
-The app follows modern Android development practices, built on top of a shared Kotlin Multiplatform (KMP) Core:
-- **KMP Modules:** Business logic (`core:domain`), data sources (`core:data`, `core:database`, `core:datastore`), and communications (`core:network`, `core:ble`) are entirely platform-agnostic, targeting Android and Compose Desktop.
-- **UI:** JetBrains Compose Multiplatform (Material 3) using Compose Multiplatform resources.
-- **State Management:** Unidirectional Data Flow (UDF) with ViewModels, Coroutines, and Flow.
-- **Dependency Injection:** Koin with Koin Annotations (K2 Compiler Plugin).
-- **Navigation:** JetBrains Navigation 3 (Multiplatform routing with RESTful deep linking).
-- **Data Layer:** Repository pattern with Room KMP (local DB), DataStore (prefs), and Protobuf (device comms). Protobuf models are consumed from the upstream `org.meshtastic:protobufs` Maven artifact, pinned in `gradle/libs.versions.toml`.
+The Meshtastic client for Android and Compose Desktop — an app for communicating over open-source mesh radios. For more information see our webpage: [meshtastic.org](https://www.meshtastic.org). The device-side code lives in the [firmware repository](https://github.com/meshtastic/firmware).
 
-### Bluetooth Low Energy (BLE)
-The BLE stack uses a multiplatform interface-driven architecture. Platform-agnostic interfaces live in `commonMain`, utilizing the **Kable** multiplatform BLE library to handle device communication across all supported targets (Android, Desktop). This provides a robust, Coroutine-based architecture for reliable device communication while remaining fully KMP compatible. See [core/ble/README.md](core/ble/README.md) for details.
+### Документация и ссылки
+- **Пользовательская документация:** [meshtastic.github.io/Meshtastic-Android](https://meshtastic.github.io/Meshtastic-Android/)
+- **API Reference (Dokka):** [meshtastic.github.io/Meshtastic-Android/api](https://meshtastic.github.io/Meshtastic-Android/api/)
+- **Сообщество и поддержка:** [Discord Meshtastic](https://discord.gg/meshtastic) • [GitHub Issues](https://github.com/meshtastic/Meshtastic-Android/issues)
 
-### Module Documentation
+---
 
-Each module has its own README with details on its responsibilities, API surface, and internal design.
+Copyright 2025-2026, Meshtastic LLC & Meshtastic Advanced Contributors. GPL-3.0 license.
 
-| Module | Description |
-|---|---|
-| [androidApp](androidApp/README.md) | Android application host — activity, manifest, flavors, root Koin graph |
-| [desktopApp](desktopApp/README.md) | Compose Desktop host — window, transports, packaging |
-| [core/domain](core/domain/README.md) | Business-logic use cases (radio config, sessions, exports) |
-| [core/repository](core/repository/README.md) | Data & infrastructure contracts (RadioTransport, NodeRepository, ServiceRepository) |
-| [core/takserver](core/takserver/README.md) | Meshtastic ↔ TAK (ATAK/iTAK) bridge — CoT server & conversion |
-| [core/ble](core/ble/README.md) | Multiplatform BLE transport (Kable) |
-| [core/network](core/network/README.md) | Internet comms: firmware metadata, map tiles, radio transports |
-| [core/data](core/data/README.md) | Repository layer — orchestrates DB, network, and service data |
-| [core/database](core/database/README.md) | Room KMP local persistence |
-| [core/datastore](core/datastore/README.md) | DataStore preferences |
-| [core/service](core/service/README.md) | Meshtastic Android service abstractions |
-| [core/navigation](core/navigation/README.md) | Type-safe Navigation 3 route model |
-| [core/resources](core/resources/README.md) | Centralised CMP string & drawable resources |
-| [core/model](core/model/README.md) | Shared domain models |
-| [core/ui](core/ui/README.md) | Shared UI components |
-| [core/common](core/common/README.md) | Common utilities |
-| [core/di](core/di/README.md) | Koin DI modules |
-| [core/testing](core/testing/README.md) | Shared test fakes & utilities |
-| [core/konsist](core/konsist/README.md) | Konsist architecture-rule tests (KMP boundary guards) |
-| [core/nfc](core/nfc/README.md) | NFC support |
-| [core/prefs](core/prefs/README.md) | Type-safe preferences over multiplatform DataStore |
-| [core/barcode](core/barcode/README.md) | Barcode / QR scanning |
-| [feature/messaging](feature/messaging/README.md) | Messaging UI feature |
-| [feature/map](feature/map/README.md) | Map UI feature — shared state, policy, tile sources and the waypoint editor |
-| [feature/map-maplibre](feature/map-maplibre/README.md) | MapLibre map surfaces shared by the `fdroid` flavor and Desktop |
-| [feature/node](feature/node/README.md) | Node detail UI feature |
-| [feature/settings](feature/settings/README.md) | Settings UI feature |
-| [feature/firmware](feature/firmware/README.md) | Firmware update UI feature |
-| [feature/intro](feature/intro/README.md) | Onboarding / intro UI feature |
-| [feature/wifi-provision](feature/wifi-provision/README.md) | Wi-Fi provisioning UI feature |
-| [feature/connections](feature/connections/README.md) | Device discovery & connection management (BLE / USB / TCP) |
-| [feature/discovery](feature/discovery/README.md) | Mesh network discovery (scanner, AI summaries, Mesh Beacon) |
-| [feature/docs](feature/docs/README.md) | In-app documentation browser with Chirpy AI assistant |
-| [feature/widget](feature/widget/README.md) | Android home-screen Glance widget (live mesh stats) |
-| [baselineprofile](baselineprofile/README.md) | Macrobenchmark Baseline Profile generation for `:androidApp` |
-
-## Translations
-
-You can help translate the app into your native language using [Crowdin](https://crowdin.meshtastic.org/android).
-
-## Integration
-
-The app includes a built-in **Local TAK Server** feature that can be enabled in settings. This runs a loopback-only TLS (mTLS) server on port 8089 so ATAK on the same device can connect directly and route its traffic over the mesh.
-
-## Building the Android App
-> [!WARNING]
-> Debug and release builds install side by side to ease development, but don't run both at once — force-quit the one you are not using.
-
-Follow the [Android development guide](https://meshtastic.org/docs/development/android/) to set up your environment.
-
-Note: when building the `google` flavor locally you will need a [Google Maps Android SDK api key](https://developers.google.com/maps/documentation/android-sdk/get-api-key) to use Google Maps. Create `secrets.properties` at the repo root and set `MAPS_API_KEY=…`. Without it the build still succeeds with a placeholder key, but map tiles will not load.
-e.g.
-```properties
-# secrets.properties
-MAPS_API_KEY=your_google_maps_api_key_here
-```
-
-## Contributing guidelines
-
-For detailed instructions on how to contribute, please see our [CONTRIBUTING.md](CONTRIBUTING.md) file.
-For details on our release process, see the [RELEASE_PROCESS.md](RELEASE_PROCESS.md) file.
-
-## Repository Statistics
-
-![Alt](https://repobeats.axiom.co/api/embed/1d75239069a6d671fe0b8f80b2e1bf590a98f0eb.svg "Repobeats analytics image")
-
-Copyright 2025-2026, Meshtastic LLC. GPL-3.0 license
