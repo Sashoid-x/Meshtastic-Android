@@ -89,6 +89,8 @@ fun FileTransferProgressDialog(
     onMinimize: () -> Unit,
     onCancel: () -> Unit,
     onDismiss: () -> Unit,
+    onRetry: (() -> Unit)? = null,
+    onOpenFile: ((String) -> Unit)? = null,
 ) {
     AlertDialog(
         onDismissRequest = { /* prevent accidental dismiss */ },
@@ -107,7 +109,14 @@ fun FileTransferProgressDialog(
         },
         text = { TransferProgressContent(state) },
         confirmButton = {
-            TransferProgressButtons(state = state, onMinimize = onMinimize, onCancel = onCancel, onDismiss = onDismiss)
+            TransferProgressButtons(
+                state = state,
+                onMinimize = onMinimize,
+                onCancel = onCancel,
+                onDismiss = onDismiss,
+                onRetry = onRetry,
+                onOpenFile = onOpenFile,
+            )
         },
     )
 }
@@ -116,45 +125,20 @@ fun FileTransferProgressDialog(
 private fun TransferProgressContent(state: TransferState) {
     Column(modifier = Modifier.fillMaxWidth()) {
         when (state) {
-            is TransferState.Sending -> {
-                Text(text = state.fileName, style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(progress = { state.progress }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text =
-                    stringResource(Res.string.file_transfer_chunk_progress, state.currentChunk, state.totalChunks),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                if (state.retryCount > 0) {
-                    Text(
-                        text = "Retries: ${state.retryCount}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-            }
+            is TransferState.Sending -> SendingProgressContent(state)
 
-            is TransferState.Receiving -> {
-                Text(text = state.fileName, style = MaterialTheme.typography.bodyMedium)
-                Spacer(modifier = Modifier.height(8.dp))
-                LinearProgressIndicator(progress = { state.progress }, modifier = Modifier.fillMaxWidth())
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text =
-                    stringResource(
-                        Res.string.file_transfer_chunk_progress,
-                        state.receivedChunks,
-                        state.totalChunks,
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            is TransferState.Receiving -> ReceivingProgressContent(state)
 
             is TransferState.Completed -> {
                 Text(text = state.fileName, style = MaterialTheme.typography.bodyMedium)
+                if (state.statusMessage.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = state.statusMessage,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 if (state.savedPath != null) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -175,11 +159,140 @@ private fun TransferProgressContent(state: TransferState) {
 }
 
 @Composable
+@Suppress("LongMethod")
+private fun SendingProgressContent(state: TransferState.Sending) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = state.fileName, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            if (state.isGzip) {
+                Text(
+                    text = "Gzip",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        LinearProgressIndicator(progress = { state.progress }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            val countText =
+                stringResource(Res.string.file_transfer_chunk_progress, state.currentChunk, state.totalChunks)
+            Text(
+                text = "$countText (${state.percent}%)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = formatSpeed(state.speedBytesPerSec),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        state.etaSeconds?.let { eta ->
+            Text(
+                text = formatEta(eta),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (state.statusMessage.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = state.statusMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        if (state.passNumber > 1) {
+            Text(
+                text = "Досыл чанков (проход ${state.passNumber})",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        if (state.retryCount > 0) {
+            Text(
+                text = "Retries: ${state.retryCount}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
+@Composable
+@Suppress("LongMethod")
+private fun ReceivingProgressContent(state: TransferState.Receiving) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = state.fileName, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            if (state.isGzip) {
+                Text(
+                    text = "Gzip",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        LinearProgressIndicator(progress = { state.progress }, modifier = Modifier.fillMaxWidth())
+        Spacer(modifier = Modifier.height(4.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            val countText =
+                stringResource(Res.string.file_transfer_chunk_progress, state.receivedChunks, state.totalChunks)
+            Text(
+                text = "$countText (${state.percent}%)",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = formatSpeed(state.speedBytesPerSec),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        state.etaSeconds?.let { eta ->
+            Text(
+                text = formatEta(eta),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        if (state.statusMessage.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = state.statusMessage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+        if (state.passNumber > 1) {
+            Text(
+                text = "Досыл чанков (проход ${state.passNumber})",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+    }
+}
+
+@Composable
 private fun TransferProgressButtons(
     state: TransferState,
     onMinimize: () -> Unit,
     onCancel: () -> Unit,
     onDismiss: () -> Unit,
+    onRetry: (() -> Unit)? = null,
+    onOpenFile: ((String) -> Unit)? = null,
 ) {
     when (state) {
         is TransferState.Sending,
@@ -193,6 +306,24 @@ private fun TransferProgressButtons(
                         color = MaterialTheme.colorScheme.error,
                     )
                 }
+            }
+        }
+
+        is TransferState.Failed -> {
+            Row {
+                if (state.canRetry && onRetry != null) {
+                    TextButton(onClick = onRetry) { Text(text = "Повторить") }
+                }
+                TextButton(onClick = onDismiss) { Text(text = "OK") }
+            }
+        }
+
+        is TransferState.Completed -> {
+            Row {
+                if (state.savedPath != null && onOpenFile != null) {
+                    TextButton(onClick = { onOpenFile(state.savedPath) }) { Text(text = "Открыть") }
+                }
+                TextButton(onClick = onDismiss) { Text(text = "OK") }
             }
         }
 
@@ -222,39 +353,7 @@ fun FileTransferBanner(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    val title =
-                        when (state) {
-                            is TransferState.Sending -> stringResource(Res.string.file_transfer_sending)
-                            is TransferState.Receiving -> stringResource(Res.string.file_transfer_receiving)
-                            else -> ""
-                        }
-                    val fileName =
-                        when (state) {
-                            is TransferState.Sending -> state.fileName
-                            is TransferState.Receiving -> state.fileName
-                            else -> ""
-                        }
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                    )
-                    Text(
-                        text = fileName,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer,
-                        maxLines = 1,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    val progress =
-                        when (state) {
-                            is TransferState.Sending -> state.progress
-                            is TransferState.Receiving -> state.progress
-                            else -> 0f
-                        }
-                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
-                }
+                BannerDetails(state = state, modifier = Modifier.weight(1f))
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(onClick = onCancel, modifier = Modifier.size(32.dp)) {
                     Icon(
@@ -266,4 +365,55 @@ fun FileTransferBanner(
             }
         }
     }
+}
+
+@Composable
+private fun BannerDetails(state: TransferState, modifier: Modifier = Modifier) {
+    val info = bannerInfo(state)
+    Column(modifier = modifier) {
+        Text(
+            text = "${info.title} • ${info.percent}% (${info.speed})",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+        )
+        Text(
+            text = info.fileName,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSecondaryContainer,
+            maxLines = 1,
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        LinearProgressIndicator(progress = { info.progress }, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+private data class BannerDisplayInfo(
+    val title: String,
+    val fileName: String,
+    val progress: Float,
+    val percent: Int,
+    val speed: String,
+)
+
+@Composable
+private fun bannerInfo(state: TransferState): BannerDisplayInfo = when (state) {
+    is TransferState.Sending ->
+        BannerDisplayInfo(
+            title = stringResource(Res.string.file_transfer_sending),
+            fileName = state.fileName,
+            progress = state.progress,
+            percent = state.percent,
+            speed = formatSpeed(state.speedBytesPerSec),
+        )
+
+    is TransferState.Receiving ->
+        BannerDisplayInfo(
+            title = stringResource(Res.string.file_transfer_receiving),
+            fileName = state.fileName,
+            progress = state.progress,
+            percent = state.percent,
+            speed = formatSpeed(state.speedBytesPerSec),
+        )
+
+    else -> BannerDisplayInfo("", "", 0f, 0, "")
 }

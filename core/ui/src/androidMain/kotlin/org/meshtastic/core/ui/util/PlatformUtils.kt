@@ -702,17 +702,161 @@ actual fun rememberSaveToDownloads(): suspend (fileName: String, data: ByteArray
     }
 }
 
-actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? = try {
-    val downloadsDir =
-        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
-    val meshtasticDir = java.io.File(downloadsDir, "Meshtastic")
-    if (!meshtasticDir.exists()) {
-        meshtasticDir.mkdirs()
+actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? {
+    // 1. Try public Downloads/Meshtastic (legacy storage or if permission available)
+    try {
+        val downloadsDir =
+            android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+        val meshtasticDir = java.io.File(downloadsDir, "Meshtastic")
+        if (!meshtasticDir.exists()) {
+            meshtasticDir.mkdirs()
+        }
+        val targetFile = java.io.File(meshtasticDir, fileName)
+        targetFile.writeBytes(data)
+        if (targetFile.exists() && targetFile.length() == data.size.toLong()) {
+            return targetFile.absolutePath
+        }
+    } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+        Logger.w(e) { "Could not save to public Downloads/Meshtastic, falling back to app files" }
     }
-    val targetFile = java.io.File(meshtasticDir, fileName)
-    targetFile.writeBytes(data)
-    targetFile.absolutePath
-} catch (e: Exception) {
-    Logger.e(e) { "Failed to save file to Downloads/Meshtastic: $fileName" }
-    null
+
+    // 2. Fallback: app's external files dir (fully writable on Android 10+ without permissions, accessible to
+    // FileProvider)
+    try {
+        val context = org.koin.mp.KoinPlatform.getKoin().getOrNull<Context>()
+        val baseDir =
+            context?.getExternalFilesDir(android.os.Environment.DIRECTORY_DOWNLOADS)
+                ?: context?.filesDir
+                ?: android.os.Environment.getExternalStorageDirectory()
+        val meshtasticDir = java.io.File(baseDir, "Meshtastic")
+        if (!meshtasticDir.exists()) {
+            meshtasticDir.mkdirs()
+        }
+        val targetFile = java.io.File(meshtasticDir, fileName)
+        targetFile.writeBytes(data)
+        if (targetFile.exists()) {
+            return targetFile.absolutePath
+        }
+    } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+        Logger.e(e) { "Failed to save file fallback: $fileName" }
+    }
+
+    return null
+}
+
+@Composable
+actual fun rememberOpenFile(): (filePath: String) -> Unit {
+    val context = LocalContext.current
+    return remember(context) {
+        { filePath ->
+            try {
+                val file = java.io.File(filePath)
+                val uri =
+                    androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
+                val extension = file.extension.lowercase()
+                val mimeType = android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension) ?: "*/*"
+                val intent =
+                    Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(uri, mimeType)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+                val chooser = Intent.createChooser(intent, file.name).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+                context.startActivity(chooser)
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                Logger.e(e) { "Failed to open file: $filePath" }
+            }
+        }
+    }
+}
+
+private fun getLocalImageTargetFile(cacheDir: java.io.File, url: String): java.io.File {
+    val dir = java.io.File(cacheDir, "shared_images").apply { mkdirs() }
+    val hash = (url.hashCode().toLong() and 0xFFFFFFFFL).toString(16)
+    val ext =
+        when {
+            url.contains(".png", ignoreCase = true) -> "png"
+            url.contains(".webp", ignoreCase = true) -> "webp"
+            url.contains(".gif", ignoreCase = true) -> "gif"
+            url.contains(".bmp", ignoreCase = true) -> "bmp"
+            else -> "jpg"
+        }
+    return java.io.File(dir, "img_$hash.$ext")
+}
+
+@Composable
+actual fun rememberGetLocalImageFile(): (url: String) -> String? {
+    val context = LocalContext.current
+    return remember(context) {
+        { url ->
+            val target = getLocalImageTargetFile(context.cacheDir, url)
+            if (target.exists() && target.length() > 0L) target.absolutePath else null
+        }
+    }
+}
+
+@Composable
+actual fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> String? {
+    val context = LocalContext.current
+    return remember(context) {
+        { url, image ->
+            try {
+                val target = getLocalImageTargetFile(context.cacheDir, url)
+                if (target.exists() && target.length() > 0L) {
+                    target.absolutePath
+                } else {
+                    var copied = false
+                    val snapshot = coil3.SingletonImageLoader.get(context).diskCache?.openSnapshot(url)
+                    if (snapshot != null) {
+                        try {
+                            val okioPath = snapshot.data
+                            val file = okioPath.toFile()
+                            if (file.exists() && file.length() > 0L) {
+                                file.copyTo(target, overwrite = true)
+                                copied = true
+                            }
+                        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                            Logger.w(e) { "Failed to copy image from disk cache for $url" }
+                        } finally {
+                            snapshot.close()
+                        }
+                    }
+                    if (!copied) {
+                        val bitmap =
+                            (image as? coil3.BitmapImage)?.bitmap
+                                ?: (image as? coil3.DrawableImage)?.let { drawableImage ->
+                                    val d = drawableImage.drawable
+                                    if (d is android.graphics.drawable.BitmapDrawable) {
+                                        d.bitmap
+                                    } else {
+                                        val bm =
+                                            android.graphics.Bitmap.createBitmap(
+                                                d.intrinsicWidth.coerceAtLeast(1),
+                                                d.intrinsicHeight.coerceAtLeast(1),
+                                                android.graphics.Bitmap.Config.ARGB_8888,
+                                            )
+                                        val canvas = android.graphics.Canvas(bm)
+                                        d.setBounds(0, 0, canvas.width, canvas.height)
+                                        d.draw(canvas)
+                                        bm
+                                    }
+                                }
+                        if (bitmap != null) {
+                            target.outputStream().use { out ->
+                                if (target.extension.equals("png", ignoreCase = true)) {
+                                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out)
+                                } else {
+                                    bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 90, out)
+                                }
+                            }
+                        }
+                    }
+                    target.absolutePath
+                }
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                Logger.e(e) { "Failed to save local image for $url" }
+                null
+            }
+        }
+    }
 }

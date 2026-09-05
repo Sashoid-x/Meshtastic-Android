@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,6 +50,8 @@ import org.meshtastic.core.navigation.Route
 import org.meshtastic.core.navigation.SettingsRoute
 import org.meshtastic.core.navigation.WifiProvisionRoute
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.adv_settings
+import org.meshtastic.core.resources.adv_settings_summary
 import org.meshtastic.core.resources.app_functions_settings
 import org.meshtastic.core.resources.app_functions_settings_summary
 import org.meshtastic.core.resources.app_settings
@@ -65,6 +68,7 @@ import org.meshtastic.core.resources.wifi_devices
 import org.meshtastic.core.ui.component.ListItem
 import org.meshtastic.core.ui.component.MainAppBar
 import org.meshtastic.core.ui.component.MeshtasticDialog
+import org.meshtastic.core.ui.icon.AppSettingsAlt
 import org.meshtastic.core.ui.icon.Device
 import org.meshtastic.core.ui.icon.FilterList
 import org.meshtastic.core.ui.icon.HelpOutline
@@ -72,6 +76,7 @@ import org.meshtastic.core.ui.icon.List
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.SettingsRemote
 import org.meshtastic.core.ui.icon.Wifi
+import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
 import org.meshtastic.feature.settings.component.AppInfoSection
 import org.meshtastic.feature.settings.component.AppearanceSettingsContent
 import org.meshtastic.feature.settings.component.ExpressiveSection
@@ -263,15 +268,22 @@ fun SettingsScreen(
                         startProvideLocation = { settingsViewModel.startProvidingLocation() },
                         stopProvideLocation = { settingsViewModel.stopProvidingLocation() },
                     )
-                    val textCompressionEnabled by settingsViewModel.textCompressionEnabled.collectAsStateWithLifecycle()
                     AppearanceSettingsContent(
                         showFullMessageTimestamps = showFullMessageTimestamps,
                         onShowFullMessageTimestampsChange = settingsViewModel::setShowFullMessageTimestamps,
-                        textCompressionEnabled = textCompressionEnabled,
-                        onTextCompressionEnabledChange = settingsViewModel::setTextCompressionEnabled,
                         onShowLanguagePicker = { showLanguagePickerDialog = true },
                         onShowThemePicker = { showThemePickerDialog = true },
                     )
+                    ListItem(
+                        text = stringResource(Res.string.adv_settings),
+                        supportingText = stringResource(Res.string.adv_settings_summary),
+                        leadingIcon = MeshtasticIcons.AppSettingsAlt,
+                        textColor = MaterialTheme.colorScheme.StatusGreen,
+                        leadingIconTint = MaterialTheme.colorScheme.StatusGreen,
+                        trailingIconTint = MaterialTheme.colorScheme.StatusGreen,
+                    ) {
+                        onNavigate(SettingsRoute.AdvSettings)
+                    }
                     PersistenceSettingsContent(
                         cacheLimit = settingsViewModel.dbCacheLimit.collectAsStateWithLifecycle().value,
                         onCheckCacheLimitEvictionCount = { settingsViewModel.cachedDeviceCountExceeding(it) },

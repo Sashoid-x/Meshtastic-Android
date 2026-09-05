@@ -142,6 +142,26 @@ interface UiPrefs {
 
     fun setTextCompressionEnabled(enabled: Boolean)
 
+    /** Whether Pixel Art / Monochrome Image messaging is enabled. */
+    val pixelArtEnabled: StateFlow<Boolean>
+
+    fun setPixelArtEnabled(enabled: Boolean)
+
+    /** Whether LoRa Direct File Transfer (MFT) is enabled. */
+    val fileTransferEnabled: StateFlow<Boolean>
+
+    fun setFileTransferEnabled(enabled: Boolean)
+
+    /** Selected photo hosting provider (DISABLED, MESHPIC, MESHAPP). */
+    val photoHostingProvider: StateFlow<org.meshtastic.core.model.PhotoHostingProvider>
+
+    fun setPhotoHostingProvider(provider: org.meshtastic.core.model.PhotoHostingProvider)
+
+    /** Whether Photo Hosting is enabled (any provider other than DISABLED). */
+    val photoHostingEnabled: StateFlow<Boolean>
+
+    fun setPhotoHostingEnabled(enabled: Boolean)
+
     /**
      * Whether to apply an event edition's ambient theme (accent wash + custom typeface) app-wide (opt-out; default on).
      */

@@ -35,7 +35,10 @@
     <!-- ACTION -->
     <string name="action_copy_message">Copy message</string>
     <string name="action_delete_message">Delete message</string>
+    <string name="action_file">File</string>
     <string name="action_more_message_actions">More message actions</string>
+    <string name="action_photo_hosting">Photo Hosting</string>
+    <string name="action_pixel_art">Pixel Art</string>
     <string name="action_react_with_emoji">React with emoji</string>
     <string name="action_select_device">Select device</string>
     <string name="action_select_message">Select message</string>
@@ -63,6 +66,8 @@
     <string name="admin_key">Admin Key</string>
     <string name="admin_keys">Admin Keys</string>
     <string name="administration">Administration</string>
+    <string name="adv_settings">ADV Settings</string>
+    <string name="adv_settings_summary">Manage extended and experimental mod features</string>
     <string name="advanced">Advanced</string>
     <string name="advanced_device_gps">Advanced Device GPS</string>
     <string name="advanced_title">Advanced</string>
@@ -678,6 +683,8 @@
     <string name="file_transfer_saved">File saved to Downloads/Meshtastic</string>
     <string name="file_transfer_select_file">Select file</string>
     <string name="file_transfer_sending">Sending file…</string>
+    <string name="file_transfer_setting">File Transfer</string>
+    <string name="file_transfer_setting_summary">LoRa direct file transfer (MFT)</string>
     <string name="file_transfer_size_limit">File size exceeds the 500 KB limit</string>
     <string name="file_transfer_warning_body">File transfer uses LoRa radio with the following limitations:\n\n• Direct link only (0 hops) — both devices must be within radio range\n• Maximum file size: 500 KB\n• MQTT will be bypassed\n• Transfer speed is very slow (~200 bytes per packet)\n• Stay within range during the entire transfer\n• Estimated time: %1$s</string>
     <string name="file_transfer_warning_title">LoRa file transfer</string>
@@ -912,6 +919,7 @@
     <string name="ignore_incoming">Ignore incoming</string>
     <string name="ignore_mqtt">Ignore MQTT</string>
     <string name="ignore_remove">Remove '%1$s' from ignore list?</string>
+    <string name="image_loading_error">Image unavailable</string>
     <!-- IMPORT -->
     <string name="import_configuration">Import configuration</string>
     <string name="import_export_label">Import/Export</string>
@@ -1483,7 +1491,15 @@
     <string name="permissions_show">Show permissions</string>
     <string name="phone_location">Phone Location</string>
     <string name="phone_location_description">Meshtastic uses your phone's location to enable a number of features. You can update your location permissions at any time from settings.</string>
+    <!-- PHOTO -->
+    <string name="photo_hosting_provider_disabled">Off</string>
+    <string name="photo_hosting_provider_meshapp">Meshapp</string>
+    <string name="photo_hosting_provider_meshpic">Meshpic</string>
+    <string name="photo_hosting_setting">Photo Hosting</string>
+    <string name="photo_hosting_setting_summary">Upload photos to hosting service and share links in chat</string>
     <string name="pin_selected">Pin</string>
+    <string name="pixel_art_messaging">Pixel Art</string>
+    <string name="pixel_art_messaging_summary">Monochrome pixel art editor and chat rendering</string>
     <string name="play">Play</string>
     <plurals name="plurals_hours">
         <item quantity="one">%1$d hour</item>
@@ -1993,6 +2009,8 @@
     <string name="updated">Updated</string>
     <string name="uplink_enabled">MQTT Uplink Enabled</string>
     <string name="uplink_feature_description">Messages from the mesh will be sent to the public internet through any node's configured gateway.</string>
+    <string name="upload_photo_failed">Failed to upload photo</string>
+    <string name="uploading_photo">Uploading photo…</string>
     <string name="uptime">Uptime</string>
     <!-- URL -->
     <string name="url">URL</string>

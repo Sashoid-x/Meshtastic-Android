@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,6 +44,8 @@ import org.meshtastic.core.navigation.SettingsRoute
 import org.meshtastic.core.navigation.WifiProvisionRoute
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.about
+import org.meshtastic.core.resources.adv_settings
+import org.meshtastic.core.resources.adv_settings_summary
 import org.meshtastic.core.resources.app_settings
 import org.meshtastic.core.resources.app_version
 import org.meshtastic.core.resources.bottom_nav_settings
@@ -60,6 +63,7 @@ import org.meshtastic.core.resources.wifi_devices
 import org.meshtastic.core.ui.component.ListItem
 import org.meshtastic.core.ui.component.MainAppBar
 import org.meshtastic.core.ui.component.MeshtasticDialog
+import org.meshtastic.core.ui.icon.AppSettingsAlt
 import org.meshtastic.core.ui.icon.ChevronRight
 import org.meshtastic.core.ui.icon.Device
 import org.meshtastic.core.ui.icon.FormatPaint
@@ -71,13 +75,13 @@ import org.meshtastic.core.ui.icon.Memory
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.PermScanWifi
 import org.meshtastic.core.ui.icon.Wifi
+import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
 import org.meshtastic.core.ui.util.rememberShowToastResource
 import org.meshtastic.feature.settings.component.CacheLimitPreference
 import org.meshtastic.feature.settings.component.ExpressiveSection
 import org.meshtastic.feature.settings.component.FullMessageTimestampsSetting
 import org.meshtastic.feature.settings.component.HomoglyphSetting
 import org.meshtastic.feature.settings.component.NotificationSection
-import org.meshtastic.feature.settings.component.TextCompressionSetting
 import org.meshtastic.feature.settings.component.ThemePickerDialog
 import org.meshtastic.feature.settings.navigation.ConfigRoute
 import org.meshtastic.feature.settings.navigation.ModuleRoute
@@ -196,10 +200,16 @@ fun DesktopSettingsScreen(
                         onCheckedChange = settingsViewModel::setShowFullMessageTimestamps,
                     )
 
-                    TextCompressionSetting(
-                        checked = textCompressionEnabled,
-                        onCheckedChange = settingsViewModel::setTextCompressionEnabled,
-                    )
+                    ListItem(
+                        text = stringResource(Res.string.adv_settings),
+                        supportingText = stringResource(Res.string.adv_settings_summary),
+                        leadingIcon = MeshtasticIcons.AppSettingsAlt,
+                        textColor = MaterialTheme.colorScheme.StatusGreen,
+                        leadingIconTint = MaterialTheme.colorScheme.StatusGreen,
+                        trailingIconTint = MaterialTheme.colorScheme.StatusGreen,
+                    ) {
+                        onNavigate(SettingsRoute.AdvSettings)
+                    }
 
                     HomoglyphSetting(
                         homoglyphEncodingEnabled = homoglyphEnabled,

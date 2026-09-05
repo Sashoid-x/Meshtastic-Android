@@ -76,6 +76,9 @@ import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.action_file
+import org.meshtastic.core.resources.action_photo_hosting
+import org.meshtastic.core.resources.action_pixel_art
 import org.meshtastic.core.resources.alert_bell_text
 import org.meshtastic.core.resources.cancel
 import org.meshtastic.core.resources.cancel_reply
@@ -122,6 +125,7 @@ import org.meshtastic.core.ui.icon.Copy
 import org.meshtastic.core.ui.icon.Delete
 import org.meshtastic.core.ui.icon.FilterList
 import org.meshtastic.core.ui.icon.FilterListOff
+import org.meshtastic.core.ui.icon.Image
 import org.meshtastic.core.ui.icon.KeyboardArrowDown
 import org.meshtastic.core.ui.icon.KeyboardArrowUp
 import org.meshtastic.core.ui.icon.MeshtasticIcons
@@ -132,6 +136,7 @@ import org.meshtastic.core.ui.icon.Search
 import org.meshtastic.core.ui.icon.SelectAll
 import org.meshtastic.core.ui.icon.Settings
 import org.meshtastic.core.ui.icon.Unmuted
+import org.meshtastic.core.ui.icon.Upload
 import org.meshtastic.core.ui.icon.Visibility
 import org.meshtastic.core.ui.icon.VisibilityOff
 import org.meshtastic.feature.messaging.DeliveryInfo
@@ -420,7 +425,12 @@ fun MessageTopBar(
     onNavigateToFilterSettings: () -> Unit = {},
     onSearchClick: () -> Unit = {},
     isDirectMessage: Boolean = false,
+    fileTransferEnabled: Boolean = false,
+    pixelArtEnabled: Boolean = false,
+    photoHostingEnabled: Boolean = false,
     onFileTransferClick: (() -> Unit)? = null,
+    onPixelArtClick: (() -> Unit)? = null,
+    onPhotoHostingClick: (() -> Unit)? = null,
 ) = TopAppBar(
     title = {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -441,13 +451,20 @@ fun MessageTopBar(
         }
     },
     actions = {
-        if (isDirectMessage && onFileTransferClick != null) {
-            IconButton(onClick = onFileTransferClick) {
-                Icon(
-                    imageVector = MeshtasticIcons.AttachFile,
-                    contentDescription = stringResource(Res.string.file_transfer_attach),
-                )
-            }
+        val showAttachButton =
+            (fileTransferEnabled && onFileTransferClick != null) ||
+                (pixelArtEnabled && onPixelArtClick != null) ||
+                (photoHostingEnabled && onPhotoHostingClick != null)
+        if (showAttachButton) {
+            AttachmentMenuButton(
+                fileTransferEnabled = fileTransferEnabled,
+                pixelArtEnabled = pixelArtEnabled,
+                photoHostingEnabled = photoHostingEnabled,
+                isDirectMessage = isDirectMessage,
+                onFileTransferClick = onFileTransferClick,
+                onPixelArtClick = onPixelArtClick,
+                onPhotoHostingClick = onPhotoHostingClick,
+            )
         }
         IconButton(onClick = onSearchClick) {
             Icon(
@@ -470,6 +487,60 @@ fun MessageTopBar(
         )
     },
 )
+
+@Composable
+private fun AttachmentMenuButton(
+    fileTransferEnabled: Boolean,
+    pixelArtEnabled: Boolean,
+    photoHostingEnabled: Boolean,
+    isDirectMessage: Boolean,
+    onFileTransferClick: (() -> Unit)?,
+    onPixelArtClick: (() -> Unit)?,
+    onPhotoHostingClick: (() -> Unit)?,
+) {
+    var attachMenuExpanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { attachMenuExpanded = true }) {
+            Icon(
+                imageVector = MeshtasticIcons.AttachFile,
+                contentDescription = stringResource(Res.string.file_transfer_attach),
+            )
+        }
+        DropdownMenu(expanded = attachMenuExpanded, onDismissRequest = { attachMenuExpanded = false }) {
+            if (fileTransferEnabled && onFileTransferClick != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.action_file)) },
+                    onClick = {
+                        attachMenuExpanded = false
+                        onFileTransferClick()
+                    },
+                    leadingIcon = { Icon(imageVector = MeshtasticIcons.AttachFile, contentDescription = null) },
+                    enabled = isDirectMessage,
+                )
+            }
+            if (pixelArtEnabled && onPixelArtClick != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.action_pixel_art)) },
+                    onClick = {
+                        attachMenuExpanded = false
+                        onPixelArtClick()
+                    },
+                    leadingIcon = { Icon(imageVector = MeshtasticIcons.Image, contentDescription = null) },
+                )
+            }
+            if (photoHostingEnabled && onPhotoHostingClick != null) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.action_photo_hosting)) },
+                    onClick = {
+                        attachMenuExpanded = false
+                        onPhotoHostingClick()
+                    },
+                    leadingIcon = { Icon(imageVector = MeshtasticIcons.Upload, contentDescription = null) },
+                )
+            }
+        }
+    }
+}
 
 @Composable
 private fun MessageTopBarActions(

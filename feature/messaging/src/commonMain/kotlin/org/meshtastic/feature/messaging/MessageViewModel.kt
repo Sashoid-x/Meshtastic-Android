@@ -50,6 +50,11 @@ import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
+import org.meshtastic.core.model.PhotoHostingProvider
+import org.meshtastic.core.network.service.MeshFilesService
+import org.meshtastic.core.network.service.MeshFilesServiceImpl
+import org.meshtastic.core.network.service.MeshPicService
+import org.meshtastic.core.network.service.MeshPicServiceImpl
 import org.meshtastic.core.repository.ActiveConversationTracker
 import org.meshtastic.core.repository.AdminController
 import org.meshtastic.core.repository.ConnectionStateProvider
@@ -68,6 +73,8 @@ import org.meshtastic.core.resources.UiText
 import org.meshtastic.core.resources.translation_failed
 import org.meshtastic.core.resources.translation_model_download_failed
 import org.meshtastic.core.resources.translation_not_required
+import org.meshtastic.core.resources.upload_photo_failed
+import org.meshtastic.core.resources.uploading_photo
 import org.meshtastic.core.ui.util.SnackbarManager
 import org.meshtastic.core.ui.viewmodel.errorEventFlow
 import org.meshtastic.core.ui.viewmodel.safeLaunch
@@ -119,6 +126,8 @@ class MessageViewModel(
     private val snackbarManager: SnackbarManager,
     private val adminController: AdminController,
     private val fileTransferManager: FileTransferManager? = null,
+    private val meshPicService: MeshPicService = MeshPicServiceImpl(),
+    private val meshFilesService: MeshFilesService = MeshFilesServiceImpl(),
 ) : ViewModel() {
     val fileTransferOutgoingState: StateFlow<TransferState> =
         fileTransferManager?.outgoingState ?: MutableStateFlow(TransferState.Idle)
@@ -128,6 +137,10 @@ class MessageViewModel(
 
     fun startFileTransfer(destAddress: String, fileName: String, fileBytes: ByteArray) {
         fileTransferManager?.startSending(destAddress, fileName, fileBytes)
+    }
+
+    fun retryOutgoingFileTransfer() {
+        fileTransferManager?.retryOutgoing()
     }
 
     fun cancelOutgoingFileTransfer() {
@@ -233,6 +246,12 @@ class MessageViewModel(
     val showFullMessageTimestamps = uiPrefs.showFullMessageTimestamps
 
     val textCompressionEnabled: StateFlow<Boolean> = uiPrefs.textCompressionEnabled
+
+    val pixelArtEnabled: StateFlow<Boolean> = uiPrefs.pixelArtEnabled
+
+    val fileTransferEnabled: StateFlow<Boolean> = uiPrefs.fileTransferEnabled
+
+    val photoHostingEnabled: StateFlow<Boolean> = uiPrefs.photoHostingEnabled
 
     val okToMqtt: StateFlow<Boolean> =
         radioConfigRepository.channelSetFlow
@@ -496,6 +515,48 @@ class MessageViewModel(
 
     fun resetImageCooldown() {
         updateGlobalImageCooldown(null)
+    }
+
+    private val _isUploadingPhoto = MutableStateFlow(false)
+    val isUploadingPhoto: StateFlow<Boolean> = _isUploadingPhoto.asStateFlow()
+
+    fun uploadAndSendPhoto(
+        imageBytes: ByteArray,
+        contactKey: String = "0${NodeAddress.ID_BROADCAST}",
+        fileName: String = "photo.jpg",
+    ) {
+        viewModelScope.launch {
+            _isUploadingPhoto.value = true
+            snackbarManager.showSnackbar(MessagingUiTextResolver.resolve(UiText.Resource(Res.string.uploading_photo)))
+            val provider = uiPrefs.photoHostingProvider.value
+            val result =
+                when (provider) {
+                    PhotoHostingProvider.MESHPIC -> meshPicService.uploadImage(imageBytes, fileName)
+                    PhotoHostingProvider.MESHAPP -> meshFilesService.uploadImage(imageBytes, fileName)
+                    PhotoHostingProvider.DISABLED -> Result.failure(IllegalStateException("Photo hosting is disabled"))
+                }
+            _isUploadingPhoto.value = false
+            result
+                .onSuccess { idOrUrl ->
+                    val link =
+                        when (provider) {
+                            PhotoHostingProvider.MESHPIC -> "${MeshPicServiceImpl.MESHPIC_IMAGE_URL_PREFIX}$idOrUrl"
+
+                            PhotoHostingProvider.MESHAPP ->
+                                if (idOrUrl.startsWith("http")) idOrUrl else "${MeshFilesServiceImpl.BASE_URL}/$idOrUrl"
+
+                            PhotoHostingProvider.DISABLED -> ""
+                        }
+                    if (link.isNotEmpty()) {
+                        sendMessage(str = link, contactKey = contactKey, replyId = null, compress = false)
+                    }
+                }
+                .onFailure {
+                    snackbarManager.showSnackbar(
+                        MessagingUiTextResolver.resolve(UiText.Resource(Res.string.upload_photo_failed)),
+                    )
+                }
+        }
     }
 
     fun sendReaction(emoji: String, replyId: Int, contactKey: String) =

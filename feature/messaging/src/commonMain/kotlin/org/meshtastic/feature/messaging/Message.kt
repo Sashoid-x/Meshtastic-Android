@@ -109,12 +109,12 @@ import org.meshtastic.core.resources.unknown_channel
 import org.meshtastic.core.ui.component.InlineStyle
 import org.meshtastic.core.ui.component.SharedContactDialog
 import org.meshtastic.core.ui.component.smartScrollToIndex
-import org.meshtastic.core.ui.icon.Image
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Send
 import org.meshtastic.core.ui.theme.AppTheme
 import org.meshtastic.core.ui.util.createClipEntry
 import org.meshtastic.core.ui.util.rememberGetFileInfo
+import org.meshtastic.core.ui.util.rememberOpenFile
 import org.meshtastic.core.ui.util.rememberOpenFileLauncher
 import org.meshtastic.core.ui.util.rememberReadBytesFromUri
 import org.meshtastic.feature.messaging.component.ActionModeTopBar
@@ -137,7 +137,6 @@ import org.meshtastic.feature.messaging.image.MonochromeImageEditorDialog
 
 private const val ROUNDED_CORNER_PERCENT = 100
 private const val MAX_LINES = 3
-private const val IMAGE_COOLDOWN_MS = 120_000L // 2 minutes
 
 // Minimum draft length before the markdown formatting toolbar appears (matches the iOS client).
 private const val FORMATTING_TOOLBAR_MIN_CHARS = 3
@@ -239,12 +238,29 @@ fun MessageScreen(
             }
         }
     }
+
+    val openPhotoHostingLauncher = rememberOpenFileLauncher { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                val bytes = readFileBytes(uri)
+                val info = getFileInfo(uri)
+                val fileName = info?.name ?: "photo.jpg"
+                if (bytes != null && bytes.isNotEmpty()) {
+                    viewModel.uploadAndSendPhoto(imageBytes = bytes, contactKey = contactKey, fileName = fileName)
+                }
+            }
+        }
+    }
+
     var sharedContact by rememberSaveable { mutableStateOf<Node?>(null) }
     val selectedMessageIds = rememberSaveable { mutableStateOf(emptySet<Long>()) }
     val messageInputState = rememberTextFieldState(message)
     val showQuickChat by viewModel.showQuickChat.collectAsStateWithLifecycle()
     val showFullMessageTimestamps by viewModel.showFullMessageTimestamps.collectAsStateWithLifecycle()
     val textCompressionEnabled by viewModel.textCompressionEnabled.collectAsStateWithLifecycle()
+    val pixelArtEnabled by viewModel.pixelArtEnabled.collectAsStateWithLifecycle()
+    val fileTransferEnabled by viewModel.fileTransferEnabled.collectAsStateWithLifecycle()
+    val photoHostingEnabled by viewModel.photoHostingEnabled.collectAsStateWithLifecycle()
     val okToMqtt by viewModel.okToMqtt.collectAsStateWithLifecycle()
     val filteredCount by viewModel.filteredCount.collectAsStateWithLifecycle()
     val showFiltered by viewModel.showFiltered.collectAsStateWithLifecycle()
@@ -255,7 +271,6 @@ fun MessageScreen(
     val searchResultIndex by viewModel.searchResultIndex.collectAsStateWithLifecycle()
     val currentSearchResult by viewModel.currentSearchResult.collectAsStateWithLifecycle()
     val translationAvailable by viewModel.translationAvailable.collectAsStateWithLifecycle()
-    val imageCooldownTimestamp by viewModel.imageCooldownTimestamp.collectAsStateWithLifecycle()
     val translationDialogState by viewModel.translationDialogState.collectAsStateWithLifecycle()
 
     // Read the stored draft before wiring the composer up, so its initial empty value cannot erase one.
@@ -535,7 +550,16 @@ fun MessageScreen(
                     onNavigateToFilterSettings = navigateToFilterSettings,
                     onSearchClick = viewModel::toggleSearch,
                     isDirectMessage = isDirectMessageConversation,
+                    fileTransferEnabled = fileTransferEnabled,
+                    pixelArtEnabled = pixelArtEnabled,
+                    photoHostingEnabled = photoHostingEnabled,
                     onFileTransferClick = { showFileTransferWarning = true },
+                    onPixelArtClick = {
+                        rawImageGrayValues = null
+                        selectedImageUri = null
+                        showImageEditor = true
+                    },
+                    onPhotoHostingClick = { openPhotoHostingLauncher("image/*") },
                 )
             }
         },
@@ -564,17 +588,9 @@ fun MessageScreen(
                     isHomoglyphEncodingEnabled = homoglyphEncodingEnabled,
                     textFieldState = messageInputState,
                     mentionCandidates = mentionCandidates,
-                    imageCooldownTimestamp = imageCooldownTimestamp,
-                    imageCooldownDuration = IMAGE_COOLDOWN_MS,
                     textCompressionEnabled = textCompressionEnabled,
                     isOkToMqtt = okToMqtt,
                     onToggleOkToMqtt = viewModel::toggleOkToMqtt,
-                    onPickImage = {
-                        rawImageGrayValues = null
-                        selectedImageUri = null
-                        showImageEditor = true
-                    },
-                    onResetImageCooldown = { viewModel.resetImageCooldown() },
                     onSendMessage = { compress ->
                         val messageText = messageInputState.text.toString().trim { it.isWhitespace() }
                         if (messageText.isNotEmpty()) {
@@ -653,13 +669,16 @@ fun MessageScreen(
                 onMinimize = viewModel::toggleOutgoingFileTransferMinimized,
                 onCancel = viewModel::cancelOutgoingFileTransfer,
                 onDismiss = viewModel::dismissFileTransferResult,
+                onRetry = viewModel::retryOutgoingFileTransfer,
             )
         } else if (showIncomingDialog) {
+            val openFile = rememberOpenFile()
             FileTransferProgressDialog(
                 state = incomingTransferState,
                 onMinimize = viewModel::toggleIncomingFileTransferMinimized,
                 onCancel = viewModel::cancelIncomingFileTransfer,
                 onDismiss = viewModel::dismissFileTransferResult,
+                onOpenFile = openFile,
             )
         }
 
@@ -712,6 +731,8 @@ fun MessageScreen(
                             translationAvailable = translationAvailable,
                             showFullMessageTimestamps = showFullMessageTimestamps,
                             textCompressionEnabled = textCompressionEnabled,
+                            pixelArtEnabled = pixelArtEnabled,
+                            photoHostingEnabled = photoHostingEnabled,
                         ),
                         handlers =
                         MessageListHandlers(
@@ -960,13 +981,9 @@ private fun MessageInput(
     mentionCandidates: ImmutableMap<String, MentionCandidate>,
     modifier: Modifier = Modifier,
     maxByteSize: Int = MESSAGE_CHARACTER_LIMIT_BYTES,
-    imageCooldownTimestamp: Long? = null,
-    imageCooldownDuration: Long = IMAGE_COOLDOWN_MS,
     textCompressionEnabled: Boolean = false,
     isOkToMqtt: Boolean = false,
     onToggleOkToMqtt: () -> Unit = {},
-    onPickImage: () -> Unit = {},
-    onResetImageCooldown: () -> Unit = {},
     onSendMessage: (compress: Boolean) -> Unit = {},
 ) {
     val currentTextRaw = textFieldState.text.toString()
@@ -1108,29 +1125,20 @@ private fun MessageInput(
             // If strict real-time byte trimming is required, it needs careful handling of
             // cursor position and multi-byte characters, likely outside simple inputTransformation.
             trailingIcon = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    ImageCooldownButton(
-                        isEnabled = isEnabled,
-                        cooldownTimestamp = imageCooldownTimestamp,
-                        cooldownDuration = imageCooldownDuration,
-                        onPickImage = onPickImage,
-                        onResetCooldown = onResetImageCooldown,
+                // Colour, not just enablement, carries "this will send" — a greyed-out icon reads as broken rather
+                // than as waiting for input.
+                val sendEnabled = isEnabled && (canSend || mentionActive)
+                IconButton(onClick = onSendAction, enabled = sendEnabled) {
+                    Icon(
+                        imageVector = MeshtasticIcons.Send,
+                        contentDescription = stringResource(Res.string.send),
+                        tint =
+                        if (sendEnabled) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
-                    // Colour, not just enablement, carries "this will send" — a greyed-out icon reads as broken rather
-                    // than as waiting for input.
-                    val sendEnabled = isEnabled && (canSend || mentionActive)
-                    IconButton(onClick = onSendAction, enabled = sendEnabled) {
-                        Icon(
-                            imageVector = MeshtasticIcons.Send,
-                            contentDescription = stringResource(Res.string.send),
-                            tint =
-                            if (sendEnabled) {
-                                MaterialTheme.colorScheme.primary
-                            } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                            },
-                        )
-                    }
                 }
             },
         )
@@ -1145,62 +1153,6 @@ private fun MessageInput(
                 isCompressionActive = isCompressionActive,
                 onToggleCompression = { isCompressionActive = !isCompressionActive },
             )
-        }
-    }
-}
-
-private const val COOLDOWN_TICK_MS = 100L
-private const val SECRET_TAP_WINDOW_MS = 2000L
-private const val SECRET_TAP_COUNT = 7
-
-@Composable
-private fun ImageCooldownButton(
-    isEnabled: Boolean,
-    cooldownTimestamp: Long?,
-    cooldownDuration: Long,
-    onPickImage: () -> Unit,
-    onResetCooldown: () -> Unit,
-) {
-    var progress by remember { androidx.compose.runtime.mutableFloatStateOf(0f) }
-    var isCoolingDown by remember { mutableStateOf(false) }
-
-    LaunchedEffect(cooldownTimestamp, cooldownDuration) {
-        val endTime = (cooldownTimestamp ?: 0L) + cooldownDuration
-        isCoolingDown = org.meshtastic.core.common.util.nowMillis < endTime
-        while (isCoolingDown) {
-            val remaining = endTime - org.meshtastic.core.common.util.nowMillis
-            if (remaining <= 0) break
-            progress = (remaining.toFloat() / cooldownDuration).coerceIn(0f, 1f)
-            kotlinx.coroutines.delay(COOLDOWN_TICK_MS)
-            isCoolingDown = org.meshtastic.core.common.util.nowMillis < endTime
-        }
-        progress = 0f
-        isCoolingDown = false
-    }
-
-    if (isCoolingDown) {
-        // Secret tap sequence to reset
-        var tapTimestamps by remember { mutableStateOf(emptyList<Long>()) }
-        IconButton(
-            onClick = {
-                val now = org.meshtastic.core.common.util.nowMillis
-                tapTimestamps = (tapTimestamps + now).filter { now - it < SECRET_TAP_WINDOW_MS }
-                if (tapTimestamps.size >= SECRET_TAP_COUNT) {
-                    tapTimestamps = emptyList()
-                    onResetCooldown()
-                }
-            },
-            enabled = true,
-        ) {
-            androidx.compose.material3.CircularProgressIndicator(
-                progress = { progress },
-                modifier = Modifier.size(24.dp),
-                strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
-            )
-        }
-    } else {
-        IconButton(onClick = onPickImage, enabled = isEnabled) {
-            Icon(imageVector = MeshtasticIcons.Image, contentDescription = "Pick Image")
         }
     }
 }

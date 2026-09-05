@@ -17,6 +17,7 @@
 package org.meshtastic.core.ui.util
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLinkStyles
@@ -99,3 +100,10 @@ actual fun rememberReadImageGrayValuesFromUri():
 actual fun rememberSaveToDownloads(): suspend (fileName: String, data: ByteArray) -> String? = { _, _ -> null }
 
 actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? = null
+
+@Composable actual fun rememberOpenFile(): (filePath: String) -> Unit = remember { {} }
+
+@Composable actual fun rememberGetLocalImageFile(): (url: String) -> String? = remember { { null } }
+
+@Composable
+actual fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> String? = remember { { _, _ -> null } }

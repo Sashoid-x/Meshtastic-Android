@@ -38,6 +38,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.ContactSettings
+import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.repository.ActiveConversationTracker
 import org.meshtastic.core.repository.AdminController
 import org.meshtastic.core.repository.ConnectionStateProvider
@@ -61,8 +62,10 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -96,6 +99,10 @@ class MessageViewModelTest {
     private val showFullMessageTimestampsFlow = MutableStateFlow(false)
     private val customEmojiFrequencyFlow = MutableStateFlow<String?>(null)
     private val contactSettingsFlow = MutableStateFlow<Map<String, ContactSettings>>(emptyMap())
+    private val pixelArtEnabledFlow = MutableStateFlow(true)
+    private val fileTransferEnabledFlow = MutableStateFlow(true)
+    private val photoHostingEnabledFlow = MutableStateFlow(true)
+    private val photoHostingProviderFlow = MutableStateFlow(PhotoHostingProvider.MESHPIC)
 
     @BeforeTest
     fun setUp() {
@@ -106,6 +113,10 @@ class MessageViewModelTest {
         connectionStateFlow.value = ConnectionState.Disconnected
         showQuickChatFlow.value = false
         showFullMessageTimestampsFlow.value = false
+        pixelArtEnabledFlow.value = true
+        fileTransferEnabledFlow.value = true
+        photoHostingEnabledFlow.value = true
+        photoHostingProviderFlow.value = PhotoHostingProvider.MESHPIC
         customEmojiFrequencyFlow.value = null
         contactSettingsFlow.value = emptyMap()
 
@@ -123,6 +134,14 @@ class MessageViewModelTest {
         every { uiPrefs.setShowQuickChat(any()) } returns Unit
         every { uiPrefs.showFullMessageTimestamps } returns showFullMessageTimestampsFlow
         every { uiPrefs.textCompressionEnabled } returns MutableStateFlow(false)
+        every { uiPrefs.pixelArtEnabled } returns pixelArtEnabledFlow
+        every { uiPrefs.fileTransferEnabled } returns fileTransferEnabledFlow
+        every { uiPrefs.photoHostingEnabled } returns photoHostingEnabledFlow
+        every { uiPrefs.photoHostingProvider } returns photoHostingProviderFlow
+        every { uiPrefs.setPixelArtEnabled(any()) } returns Unit
+        every { uiPrefs.setFileTransferEnabled(any()) } returns Unit
+        every { uiPrefs.setPhotoHostingEnabled(any()) } returns Unit
+        every { uiPrefs.setPhotoHostingProvider(any()) } returns Unit
 
         every { packetRepository.getContactSettings() } returns contactSettingsFlow
         every { packetRepository.getFirstUnreadMessageUuid(any<String>()) } returns MutableStateFlow(null)
@@ -432,6 +451,128 @@ class MessageViewModelTest {
             assertEquals(3, list.size)
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun testAdvPreferencesExposedFromUiPrefs() = runTest {
+        assertTrue(viewModel.pixelArtEnabled.value)
+        assertTrue(viewModel.fileTransferEnabled.value)
+        assertTrue(viewModel.photoHostingEnabled.value)
+
+        pixelArtEnabledFlow.value = false
+        fileTransferEnabledFlow.value = false
+        photoHostingEnabledFlow.value = false
+
+        assertFalse(viewModel.pixelArtEnabled.value)
+        assertFalse(viewModel.fileTransferEnabled.value)
+        assertFalse(viewModel.photoHostingEnabled.value)
+    }
+
+    @Test
+    fun testUploadAndSendPhotoSuccess() = runTest {
+        val fakeService =
+            object : org.meshtastic.core.network.service.MeshPicService {
+                override suspend fun uploadImage(imageBytes: ByteArray, filename: String): Result<String> =
+                    Result.success("abc123xyz")
+            }
+        val vm =
+            MessageViewModel(
+                savedStateHandle = savedStateHandle,
+                nodeRepository = nodeRepository,
+                radioConfigRepository = radioConfigRepository,
+                quickChatActionRepository = quickChatActionRepository,
+                connectionStateProvider = connectionStateProvider,
+                messagingController = messagingController,
+                packetRepository = packetRepository,
+                sendMessageUseCase = sendMessageUseCase,
+                customEmojiPrefs = customEmojiPrefs,
+                homoglyphEncodingPrefs = homoglyphPrefs,
+                uiPrefs = uiPrefs,
+                meshNotificationManager = meshNotificationManager,
+                activeConversationTracker = activeConversationTracker,
+                messageTranslationService = messageTranslationService,
+                snackbarManager = snackbarManager,
+                adminController = adminController,
+                meshPicService = fakeService,
+            )
+
+        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns 1
+
+        vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
+        advanceUntilIdle()
+
+        verifySuspend { sendMessageUseCase.invoke("https://meshpic.org/image/abc123xyz", "0^all", null) }
+    }
+
+    @Test
+    fun testUploadAndSendPhotoMeshappSuccess() = runTest {
+        photoHostingProviderFlow.value = PhotoHostingProvider.MESHAPP
+        val fakeMeshFilesService =
+            object : org.meshtastic.core.network.service.MeshFilesService {
+                override suspend fun uploadImage(imageBytes: ByteArray, filename: String): Result<String> =
+                    Result.success("https://d.privatepractice.app/xyz789")
+            }
+        val vm =
+            MessageViewModel(
+                savedStateHandle = savedStateHandle,
+                nodeRepository = nodeRepository,
+                radioConfigRepository = radioConfigRepository,
+                quickChatActionRepository = quickChatActionRepository,
+                connectionStateProvider = connectionStateProvider,
+                messagingController = messagingController,
+                packetRepository = packetRepository,
+                sendMessageUseCase = sendMessageUseCase,
+                customEmojiPrefs = customEmojiPrefs,
+                homoglyphEncodingPrefs = homoglyphPrefs,
+                uiPrefs = uiPrefs,
+                meshNotificationManager = meshNotificationManager,
+                activeConversationTracker = activeConversationTracker,
+                messageTranslationService = messageTranslationService,
+                snackbarManager = snackbarManager,
+                adminController = adminController,
+                meshFilesService = fakeMeshFilesService,
+            )
+
+        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns 1
+
+        vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
+        advanceUntilIdle()
+
+        verifySuspend { sendMessageUseCase.invoke("https://d.privatepractice.app/xyz789", "0^all", null) }
+    }
+
+    @Test
+    fun testUploadAndSendPhotoFailure() = runTest {
+        val fakeService =
+            object : org.meshtastic.core.network.service.MeshPicService {
+                override suspend fun uploadImage(imageBytes: ByteArray, filename: String): Result<String> =
+                    Result.failure(RuntimeException("Upload error"))
+            }
+        val vm =
+            MessageViewModel(
+                savedStateHandle = savedStateHandle,
+                nodeRepository = nodeRepository,
+                radioConfigRepository = radioConfigRepository,
+                quickChatActionRepository = quickChatActionRepository,
+                connectionStateProvider = connectionStateProvider,
+                messagingController = messagingController,
+                packetRepository = packetRepository,
+                sendMessageUseCase = sendMessageUseCase,
+                customEmojiPrefs = customEmojiPrefs,
+                homoglyphEncodingPrefs = homoglyphPrefs,
+                uiPrefs = uiPrefs,
+                meshNotificationManager = meshNotificationManager,
+                activeConversationTracker = activeConversationTracker,
+                messageTranslationService = messageTranslationService,
+                snackbarManager = snackbarManager,
+                adminController = adminController,
+                meshPicService = fakeService,
+            )
+
+        vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
+        advanceUntilIdle()
+
+        verifySuspend(mode = VerifyMode.not) { sendMessageUseCase.invoke(any(), any(), any()) }
     }
 
     private companion object {

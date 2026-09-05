@@ -28,9 +28,25 @@ sealed interface TransferState {
         val retryCount: Int = 0,
         val isMinimized: Boolean = false,
         val transferId: Int = 0,
+        val bytesTransferred: Long = 0L,
+        val speedBytesPerSec: Double = 0.0,
+        val isGzip: Boolean = false,
+        val passNumber: Int = 1,
+        val statusMessage: String = "",
     ) : TransferState {
         val progress: Float
             get() = if (totalChunks > 0) currentChunk.toFloat() / totalChunks else 0f
+
+        val percent: Int
+            get() = (progress * 100).toInt().coerceIn(0, 100)
+
+        val etaSeconds: Long?
+            get() =
+                if (speedBytesPerSec > 5.0 && fileSize > bytesTransferred) {
+                    ((fileSize - bytesTransferred) / speedBytesPerSec).toLong()
+                } else {
+                    null
+                }
     }
 
     data class Receiving(
@@ -40,12 +56,47 @@ sealed interface TransferState {
         val receivedChunks: Int,
         val isMinimized: Boolean = false,
         val transferId: Int = 0,
+        val bytesTransferred: Long = 0L,
+        val speedBytesPerSec: Double = 0.0,
+        val isGzip: Boolean = false,
+        val passNumber: Int = 1,
+        val statusMessage: String = "",
     ) : TransferState {
         val progress: Float
             get() = if (totalChunks > 0) receivedChunks.toFloat() / totalChunks else 0f
+
+        val percent: Int
+            get() = (progress * 100).toInt().coerceIn(0, 100)
+
+        val etaSeconds: Long?
+            get() =
+                if (speedBytesPerSec > 5.0 && fileSize > bytesTransferred) {
+                    ((fileSize - bytesTransferred) / speedBytesPerSec).toLong()
+                } else {
+                    null
+                }
     }
 
-    data class Completed(val fileName: String, val savedPath: String?) : TransferState
+    data class Completed(val fileName: String, val savedPath: String?, val statusMessage: String = "") : TransferState
 
-    data class Failed(val fileName: String, val reason: String) : TransferState
+    data class Failed(val fileName: String, val reason: String, val canRetry: Boolean = false) : TransferState
+}
+
+@Suppress("MagicNumber")
+fun formatSpeed(bytesPerSec: Double): String = when {
+    bytesPerSec >= 1024.0 -> {
+        val kb = bytesPerSec / 1024.0
+        "${((kb * 10).toInt() / 10.0)} КБ/с"
+    }
+
+    bytesPerSec > 0.0 -> "${bytesPerSec.toInt()} Б/с"
+
+    else -> "—"
+}
+
+@Suppress("MagicNumber")
+fun formatEta(seconds: Long): String {
+    val m = seconds / 60
+    val s = seconds % 60
+    return if (m > 0) "~$m мин $s сек" else "~$s сек"
 }

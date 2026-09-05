@@ -28,7 +28,14 @@ class MftProtocolTest {
     @Test
     fun isMftPacket_identifiesValidMagic() {
         val start =
-            MftStart(transferId = 123, fileSize = 1000L, totalChunks = 5, crc32 = 0x12345678L, fileName = "test.txt")
+            MftStart(
+                transferId = 123,
+                fileSize = 1000L,
+                totalChunks = 5,
+                crc32 = 0x12345678L,
+                fileName = "test.txt",
+                isGzip = true,
+            )
         val encoded = start.encode()
 
         assertTrue(MftProtocol.isMftPacket(encoded))
@@ -51,6 +58,7 @@ class MftProtocolTest {
                 totalChunks = 62,
                 crc32 = 0xCAFEBABE,
                 fileName = "document.pdf",
+                isGzip = true,
             )
 
         val encoded = original.encode()
@@ -62,6 +70,7 @@ class MftProtocolTest {
         assertEquals(original.totalChunks, decoded.totalChunks)
         assertEquals(original.crc32, decoded.crc32)
         assertEquals(original.fileName, decoded.fileName)
+        assertEquals(original.isGzip, decoded.isGzip)
     }
 
     @Test
@@ -84,16 +93,53 @@ class MftProtocolTest {
     }
 
     @Test
-    fun mftAck_encodeAndDecodeRoundTrip() {
-        val original = MftAck(transferId = 999, chunkIndex = 14, status = MftProtocol.ACK_OK)
+    fun mftStartAck_encodeAndDecodeRoundTrip() {
+        val original = MftStartAck(transferId = 123, cachedChunksCount = 15)
 
         val encoded = original.encode()
-        val decoded = MftAck.decode(encoded)
+        val decoded = MftStartAck.decode(encoded)
 
         assertNotNull(decoded)
         assertEquals(original.transferId, decoded.transferId)
-        assertEquals(original.chunkIndex, decoded.chunkIndex)
-        assertEquals(original.status, decoded.status)
+        assertEquals(original.cachedChunksCount, decoded.cachedChunksCount)
+    }
+
+    @Test
+    fun mftPassEnd_encodeAndDecodeRoundTrip() {
+        val original = MftPassEnd(transferId = 456, passNumber = 2)
+
+        val encoded = original.encode()
+        val decoded = MftPassEnd.decode(encoded)
+
+        assertNotNull(decoded)
+        assertEquals(original.transferId, decoded.transferId)
+        assertEquals(original.passNumber, decoded.passNumber)
+    }
+
+    @Test
+    fun mftMissing_encodeAndDecodeRoundTrip() {
+        val missing = listOf(3, 7, 15, 42, 99)
+        val original = MftMissing(transferId = 789, passNumber = 2, totalMissing = 5, missingIndices = missing)
+
+        val encoded = original.encode()
+        val decoded = MftMissing.decode(encoded)
+
+        assertNotNull(decoded)
+        assertEquals(original.transferId, decoded.transferId)
+        assertEquals(original.passNumber, decoded.passNumber)
+        assertEquals(original.totalMissing, decoded.totalMissing)
+        assertEquals(original.missingIndices, decoded.missingIndices)
+    }
+
+    @Test
+    fun mftComplete_encodeAndDecodeRoundTrip() {
+        val original = MftComplete(transferId = 999)
+
+        val encoded = original.encode()
+        val decoded = MftComplete.decode(encoded)
+
+        assertNotNull(decoded)
+        assertEquals(original.transferId, decoded.transferId)
     }
 
     @Test
@@ -113,5 +159,45 @@ class MftProtocolTest {
         val testData = "123456789".encodeToByteArray()
         val crc = computeCrc32(testData)
         assertEquals(0xCBF43926L, crc)
+    }
+
+    @Test
+    fun mftCompression_roundTripAndEfficiency() {
+        val text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. ".repeat(20)
+        val rawBytes = text.encodeToByteArray()
+
+        val (compressed, isCompressed) = MftCompression.compress(rawBytes)
+        assertTrue(isCompressed)
+        assertTrue(compressed.size < rawBytes.size)
+
+        val decompressed = MftCompression.decompress(compressed)
+        assertEquals(rawBytes.toList(), decompressed.toList())
+    }
+
+    @Test
+    fun mftProgress_encodeAndDecodeRoundTrip() {
+        val original = MftProgress(transferId = 1234, receivedChunks = 45, totalChunks = 60)
+
+        val encoded = original.encode()
+        val decoded = MftProgress.decode(encoded)
+
+        assertNotNull(decoded)
+        assertEquals(original.transferId, decoded.transferId)
+        assertEquals(original.receivedChunks, decoded.receivedChunks)
+        assertEquals(original.totalChunks, decoded.totalChunks)
+
+        // General MftPacket decode
+        val packet = MftPacket.decode(encoded)
+        assertTrue(packet is MftProgress)
+        assertEquals(45, packet.receivedChunks)
+    }
+
+    @Test
+    fun progressReportInterval_calculatesCorrectIntervals() {
+        assertEquals(0, MftProtocol.progressReportInterval(5))
+        assertEquals(5, MftProtocol.progressReportInterval(15))
+        assertEquals(10, MftProtocol.progressReportInterval(40))
+        assertEquals(15, MftProtocol.progressReportInterval(80))
+        assertEquals(20, MftProtocol.progressReportInterval(150))
     }
 }

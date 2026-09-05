@@ -38,6 +38,7 @@ import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.MyNodeInfo
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeListDensity
+import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.repository.FileService
 import org.meshtastic.core.repository.MeshLogPrefs
 import org.meshtastic.core.repository.NodeRepository
@@ -167,6 +168,30 @@ class SettingsViewModel(
 
     fun setTextCompressionEnabled(enabled: Boolean) {
         uiPrefs.setTextCompressionEnabled(enabled)
+    }
+
+    val pixelArtEnabled = uiPrefs.pixelArtEnabled
+
+    fun setPixelArtEnabled(enabled: Boolean) {
+        uiPrefs.setPixelArtEnabled(enabled)
+    }
+
+    val fileTransferEnabled = uiPrefs.fileTransferEnabled
+
+    fun setFileTransferEnabled(enabled: Boolean) {
+        uiPrefs.setFileTransferEnabled(enabled)
+    }
+
+    val photoHostingEnabled = uiPrefs.photoHostingEnabled
+
+    fun setPhotoHostingEnabled(enabled: Boolean) {
+        uiPrefs.setPhotoHostingEnabled(enabled)
+    }
+
+    val photoHostingProvider = uiPrefs.photoHostingProvider
+
+    fun setPhotoHostingProvider(provider: PhotoHostingProvider) {
+        uiPrefs.setPhotoHostingProvider(provider)
     }
 
     /** Set the application locale. Empty string means system default. */

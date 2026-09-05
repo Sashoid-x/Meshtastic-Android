@@ -153,4 +153,46 @@ class UiPrefsImplTest {
             prefs.firmwareUpdateNotificationKeys.value,
         )
     }
+
+    @Test
+    fun `adv preferences default to true`() = testScope.runTest {
+        assertTrue(prefs.pixelArtEnabled.value)
+        assertTrue(prefs.fileTransferEnabled.value)
+        assertTrue(prefs.photoHostingEnabled.value)
+    }
+
+    @Test
+    fun `adv preferences persist when toggled`() = testScope.runTest {
+        prefs.setPixelArtEnabled(false)
+        prefs.setFileTransferEnabled(false)
+        prefs.setPhotoHostingEnabled(false)
+
+        assertFalse(prefs.pixelArtEnabled.value)
+        assertFalse(prefs.fileTransferEnabled.value)
+        assertFalse(prefs.photoHostingEnabled.value)
+
+        val stored =
+            dataStore.data.first {
+                it[UiPrefsImpl.KEY_PIXEL_ART_ENABLED] == false &&
+                    it[UiPrefsImpl.KEY_FILE_TRANSFER_ENABLED] == false &&
+                    it[UiPrefsImpl.KEY_PHOTO_HOSTING_ENABLED] == false
+            }
+        assertEquals(false, stored[UiPrefsImpl.KEY_PIXEL_ART_ENABLED])
+        assertEquals(false, stored[UiPrefsImpl.KEY_FILE_TRANSFER_ENABLED])
+        assertEquals(false, stored[UiPrefsImpl.KEY_PHOTO_HOSTING_ENABLED])
+    }
+
+    @Test
+    fun `photo hosting provider defaults and persists correctly`() = testScope.runTest {
+        assertEquals(org.meshtastic.core.model.PhotoHostingProvider.MESHPIC, prefs.photoHostingProvider.value)
+        assertTrue(prefs.photoHostingEnabled.value)
+
+        prefs.setPhotoHostingProvider(org.meshtastic.core.model.PhotoHostingProvider.MESHAPP)
+        assertEquals(org.meshtastic.core.model.PhotoHostingProvider.MESHAPP, prefs.photoHostingProvider.value)
+        assertTrue(prefs.photoHostingEnabled.value)
+
+        prefs.setPhotoHostingProvider(org.meshtastic.core.model.PhotoHostingProvider.DISABLED)
+        assertEquals(org.meshtastic.core.model.PhotoHostingProvider.DISABLED, prefs.photoHostingProvider.value)
+        assertFalse(prefs.photoHostingEnabled.value)
+    }
 }

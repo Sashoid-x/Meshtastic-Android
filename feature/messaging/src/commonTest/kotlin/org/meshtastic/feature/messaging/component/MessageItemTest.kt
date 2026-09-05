@@ -386,6 +386,18 @@ class MessageItemTest {
         onNodeWithText("compact", useUnmergedTree = true).assertDoesNotExist()
     }
 
+    @Test
+    fun testFindImageUrl() {
+        assertEquals("https://meshpic.org/image/abc123xyz", findImageUrl("Check https://meshpic.org/image/abc123xyz"))
+        assertEquals("https://meshpic.org/image/short", findImageUrl("https://meshpic.org/i/short"))
+        assertEquals("https://meshpic.org/image/short", findImageUrl("https://meshpic.org/short"))
+        assertEquals("https://example.com/cat.jpg", findImageUrl("Photo: https://example.com/cat.jpg."))
+        assertEquals("https://example.com/dog.PNG?w=800", findImageUrl("Look: https://example.com/dog.PNG?w=800!"))
+        assertEquals("https://cdn.site.org/pic.webp", findImageUrl("https://cdn.site.org/pic.webp"))
+        assertEquals(null, findImageUrl("https://google.com"))
+        assertEquals(null, findImageUrl("Visit https://meshtastic.org for info"))
+    }
+
     private fun localMessage(node: Node, status: MessageStatus, routingError: Int = 0) = Message(
         text = "Local message",
         time = "10:00",

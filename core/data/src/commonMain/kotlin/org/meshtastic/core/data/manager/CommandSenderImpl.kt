@@ -181,6 +181,7 @@ class CommandSenderImpl(
                     reply_id = p.replyId ?: 0,
                     emoji = p.emoji,
                 ),
+                priority = MeshPacket.Priority.fromValue(p.priority) ?: MeshPacket.Priority.UNSET,
                 isDirectOnly = p.isDirectOnly,
             )
         return packetHandler.sendToRadio(meshPacket)

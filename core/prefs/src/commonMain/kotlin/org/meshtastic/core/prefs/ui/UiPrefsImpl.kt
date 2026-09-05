@@ -33,6 +33,7 @@ import kotlinx.coroutines.launch
 import org.koin.core.annotation.Single
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.DeviceType
+import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.prefs.cachedFlow
 import org.meshtastic.core.prefs.di.UiDataStore
 import org.meshtastic.core.repository.UiPrefs
@@ -146,6 +147,58 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
 
     override fun setTextCompressionEnabled(enabled: Boolean) {
         scope.launch { dataStore.edit { it[KEY_TEXT_COMPRESSION_ENABLED] = enabled } }
+    }
+
+    override val pixelArtEnabled: StateFlow<Boolean> =
+        dataStore.data.map { it[KEY_PIXEL_ART_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
+
+    override fun setPixelArtEnabled(enabled: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_PIXEL_ART_ENABLED] = enabled } }
+    }
+
+    override val fileTransferEnabled: StateFlow<Boolean> =
+        dataStore.data.map { it[KEY_FILE_TRANSFER_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
+
+    override fun setFileTransferEnabled(enabled: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_FILE_TRANSFER_ENABLED] = enabled } }
+    }
+
+    override val photoHostingProvider: StateFlow<PhotoHostingProvider> =
+        dataStore.data
+            .map { prefs ->
+                val providerStr = prefs[KEY_PHOTO_HOSTING_PROVIDER]
+                if (providerStr != null) {
+                    PhotoHostingProvider.fromId(providerStr)
+                } else {
+                    val legacy = prefs[KEY_PHOTO_HOSTING_ENABLED]
+                    if (legacy == false) PhotoHostingProvider.DISABLED else PhotoHostingProvider.MESHPIC
+                }
+            }
+            .stateIn(scope, SharingStarted.Eagerly, PhotoHostingProvider.MESHPIC)
+
+    override fun setPhotoHostingProvider(provider: PhotoHostingProvider) {
+        scope.launch {
+            dataStore.edit {
+                it[KEY_PHOTO_HOSTING_PROVIDER] = provider.id
+                it[KEY_PHOTO_HOSTING_ENABLED] = provider.isEnabled
+            }
+        }
+    }
+
+    override val photoHostingEnabled: StateFlow<Boolean> =
+        dataStore.data
+            .map { prefs ->
+                val providerStr = prefs[KEY_PHOTO_HOSTING_PROVIDER]
+                if (providerStr != null) {
+                    PhotoHostingProvider.fromId(providerStr).isEnabled
+                } else {
+                    prefs[KEY_PHOTO_HOSTING_ENABLED] ?: true
+                }
+            }
+            .stateIn(scope, SharingStarted.Eagerly, true)
+
+    override fun setPhotoHostingEnabled(enabled: Boolean) {
+        setPhotoHostingProvider(if (enabled) PhotoHostingProvider.MESHPIC else PhotoHostingProvider.DISABLED)
     }
 
     override val eventThemeEnabled: StateFlow<Boolean> =
@@ -314,6 +367,10 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         val KEY_SHOW_QUICK_CHAT_PREF = booleanPreferencesKey("show-quick-chat")
         val KEY_SHOW_FULL_MESSAGE_TIMESTAMPS = booleanPreferencesKey("show-full-message-timestamps")
         val KEY_TEXT_COMPRESSION_ENABLED = booleanPreferencesKey("text-compression-enabled")
+        val KEY_PIXEL_ART_ENABLED = booleanPreferencesKey("pixel-art-enabled")
+        val KEY_FILE_TRANSFER_ENABLED = booleanPreferencesKey("file-transfer-enabled")
+        val KEY_PHOTO_HOSTING_ENABLED = booleanPreferencesKey("photo-hosting-enabled")
+        val KEY_PHOTO_HOSTING_PROVIDER = stringPreferencesKey("photo-hosting-provider")
         val KEY_EVENT_THEME_ENABLED = booleanPreferencesKey("event-theme-enabled")
 
         val KEY_APP_INTRO_COMPLETED = booleanPreferencesKey("app_intro_completed")

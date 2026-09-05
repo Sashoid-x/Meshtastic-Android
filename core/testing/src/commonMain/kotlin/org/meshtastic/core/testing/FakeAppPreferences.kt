@@ -19,6 +19,7 @@ package org.meshtastic.core.testing
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.meshtastic.core.model.DeviceType
+import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.repository.AnalyticsPrefs
 import org.meshtastic.core.repository.AppFunctionsPrefs
 import org.meshtastic.core.repository.AppPreferences
@@ -162,6 +163,32 @@ class FakeUiPrefs : UiPrefs {
 
     override fun setTextCompressionEnabled(enabled: Boolean) {
         textCompressionEnabled.value = enabled
+    }
+
+    override val pixelArtEnabled = MutableStateFlow(true)
+
+    override fun setPixelArtEnabled(enabled: Boolean) {
+        pixelArtEnabled.value = enabled
+    }
+
+    override val fileTransferEnabled = MutableStateFlow(true)
+
+    override fun setFileTransferEnabled(enabled: Boolean) {
+        fileTransferEnabled.value = enabled
+    }
+
+    override val photoHostingProvider = MutableStateFlow(PhotoHostingProvider.MESHPIC)
+
+    override fun setPhotoHostingProvider(provider: PhotoHostingProvider) {
+        photoHostingProvider.value = provider
+        photoHostingEnabled.value = provider.isEnabled
+    }
+
+    override val photoHostingEnabled = MutableStateFlow(true)
+
+    override fun setPhotoHostingEnabled(enabled: Boolean) {
+        photoHostingEnabled.value = enabled
+        photoHostingProvider.value = if (enabled) PhotoHostingProvider.MESHPIC else PhotoHostingProvider.DISABLED
     }
 
     override val eventThemeEnabled = MutableStateFlow(true)

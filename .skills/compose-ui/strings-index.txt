@@ -17,7 +17,10 @@ acknowledgements
 ### ACTION ###
 action_copy_message
 action_delete_message
+action_file
 action_more_message_actions
+action_photo_hosting
+action_pixel_art
 action_react_with_emoji
 action_select_device
 action_select_message
@@ -45,6 +48,8 @@ address
 admin_key
 admin_keys
 administration
+adv_settings
+adv_settings_summary
 advanced
 advanced_device_gps
 advanced_title
@@ -648,6 +653,8 @@ file_transfer_receiving
 file_transfer_saved
 file_transfer_select_file
 file_transfer_sending
+file_transfer_setting
+file_transfer_setting_summary
 file_transfer_size_limit
 file_transfer_warning_body
 file_transfer_warning_title
@@ -882,6 +889,7 @@ ignore_add
 ignore_incoming
 ignore_mqtt
 ignore_remove
+image_loading_error
 ### IMPORT ###
 import_configuration
 import_export_label
@@ -1444,7 +1452,15 @@ permissions_nothing_needed
 permissions_show
 phone_location
 phone_location_description
+### PHOTO ###
+photo_hosting_provider_disabled
+photo_hosting_provider_meshapp
+photo_hosting_provider_meshpic
+photo_hosting_setting
+photo_hosting_setting_summary
 pin_selected
+pixel_art_messaging
+pixel_art_messaging_summary
 play
 plurals_hours
 plurals_minutes
@@ -1936,6 +1952,8 @@ update_interval_seconds
 updated
 uplink_enabled
 uplink_feature_description
+upload_photo_failed
+uploading_photo
 uptime
 ### URL ###
 url

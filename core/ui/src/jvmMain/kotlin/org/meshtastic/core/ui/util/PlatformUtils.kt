@@ -14,11 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-@file:Suppress("TooManyFunctions")
+@file:Suppress("TooManyFunctions", "MagicNumber")
 
 package org.meshtastic.core.ui.util
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.StringResource
@@ -300,4 +301,56 @@ actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? = try
 } catch (e: Exception) {
     Logger.e(e) { "Failed to save file to Downloads/Meshtastic: $fileName" }
     null
+}
+
+@Composable
+actual fun rememberOpenFile(): (filePath: String) -> Unit = remember {
+    { filePath: String ->
+        try {
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(File(filePath))
+            }
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            Logger.e(e) { "Failed to open file: $filePath" }
+        }
+    }
+}
+
+private fun getLocalImageTargetFileJvm(url: String): File {
+    val dir = File(System.getProperty("java.io.tmpdir"), "meshtastic_shared_images").apply { mkdirs() }
+    val hash = (url.hashCode().toLong() and 0xFFFFFFFFL).toString(16)
+    val ext =
+        when {
+            url.contains(".png", ignoreCase = true) -> "png"
+            url.contains(".webp", ignoreCase = true) -> "webp"
+            url.contains(".gif", ignoreCase = true) -> "gif"
+            url.contains(".bmp", ignoreCase = true) -> "bmp"
+            else -> "jpg"
+        }
+    return File(dir, "img_$hash.$ext")
+}
+
+@Composable
+actual fun rememberGetLocalImageFile(): (url: String) -> String? = remember {
+    { url ->
+        val target = getLocalImageTargetFileJvm(url)
+        if (target.exists() && target.length() > 0L) target.absolutePath else null
+    }
+}
+
+@Composable
+actual fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> String? = remember {
+    { url, _ ->
+        try {
+            val target = getLocalImageTargetFileJvm(url)
+            if (target.exists() && target.length() > 0L) {
+                target.absolutePath
+            } else {
+                target.absolutePath
+            }
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            Logger.w(e) { "Failed to save local image for $url" }
+            null
+        }
+    }
 }

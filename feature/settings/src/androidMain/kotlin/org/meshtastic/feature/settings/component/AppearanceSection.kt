@@ -43,8 +43,6 @@ import org.meshtastic.core.ui.theme.AppTheme
 internal fun ColumnScope.AppearanceSettingsContent(
     showFullMessageTimestamps: Boolean,
     onShowFullMessageTimestampsChange: (Boolean) -> Unit,
-    textCompressionEnabled: Boolean,
-    onTextCompressionEnabledChange: (Boolean) -> Unit,
     onShowLanguagePicker: () -> Unit,
     onShowThemePicker: () -> Unit,
 ) {
@@ -82,8 +80,6 @@ internal fun ColumnScope.AppearanceSettingsContent(
         checked = showFullMessageTimestamps,
         onCheckedChange = onShowFullMessageTimestampsChange,
     )
-
-    TextCompressionSetting(checked = textCompressionEnabled, onCheckedChange = onTextCompressionEnabledChange)
 }
 
 @Preview(showBackground = true)
@@ -94,8 +90,6 @@ fun AppearanceSectionPreview() {
             AppearanceSettingsContent(
                 showFullMessageTimestamps = false,
                 onShowFullMessageTimestampsChange = {},
-                textCompressionEnabled = false,
-                onTextCompressionEnabledChange = {},
                 onShowLanguagePicker = {},
                 onShowThemePicker = {},
             )

@@ -171,3 +171,18 @@ data class FileInfo(val name: String, val size: Long)
  * non-Composable code (background services / managers). Returns the saved file path on success, or `null` on failure.
  */
 expect fun saveFileToDownloads(fileName: String, data: ByteArray): String?
+
+/** Returns a function that opens the file at [filePath] using an appropriate system viewer or external application. */
+@Composable expect fun rememberOpenFile(): (filePath: String) -> Unit
+
+/**
+ * Returns a function that checks if a local cache file exists for the given image [url]. Returns the local file path if
+ * present, or `null` if not yet cached.
+ */
+@Composable expect fun rememberGetLocalImageFile(): (url: String) -> String?
+
+/**
+ * Returns a function that saves or copies the loaded [image] for [url] into local cache. Returns the local file path on
+ * success, or `null` on failure.
+ */
+@Composable expect fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> String?

@@ -32,14 +32,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -66,10 +69,12 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsPropertyKey
@@ -82,6 +87,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import coil3.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.common.util.DateFormatter
@@ -89,10 +95,12 @@ import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.Reaction
+import org.meshtastic.core.network.service.ImageUrlResolver
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.a11y_message_from
 import org.meshtastic.core.resources.action_show_message_status
 import org.meshtastic.core.resources.filter_message_label
+import org.meshtastic.core.resources.image_loading_error
 import org.meshtastic.core.resources.message_translated_label
 import org.meshtastic.core.resources.reply
 import org.meshtastic.core.resources.security_signed_verified
@@ -110,12 +118,16 @@ import org.meshtastic.core.ui.component.nodeTintedContainer
 import org.meshtastic.core.ui.emoji.EmojiPickerDialog
 import org.meshtastic.core.ui.icon.FormatQuote
 import org.meshtastic.core.ui.icon.HopCount
+import org.meshtastic.core.ui.icon.Image
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Reply
 import org.meshtastic.core.ui.icon.ShieldCheck
 import org.meshtastic.core.ui.theme.MessageItemColors
 import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
 import org.meshtastic.core.ui.util.createClipEntry
+import org.meshtastic.core.ui.util.rememberGetLocalImageFile
+import org.meshtastic.core.ui.util.rememberOpenFile
+import org.meshtastic.core.ui.util.rememberSaveImageLocally
 import org.meshtastic.feature.messaging.compress.MeshTextCompressor
 import org.meshtastic.feature.messaging.image.MonochromeImageCodec
 
@@ -169,6 +181,8 @@ fun MessageItem(
     searchQuery: String = "",
     translationAvailable: Boolean = false,
     textCompressionEnabled: Boolean = false,
+    pixelArtEnabled: Boolean = true,
+    photoHostingEnabled: Boolean = true,
     isDirectMessage: Boolean = false,
     onTranslate: () -> Unit = {},
     onToggleTranslation: () -> Unit = {},
@@ -467,15 +481,38 @@ fun MessageItem(
 
                 Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
                     val monoImage =
-                        remember(message.rawBytes, message.portNum) {
+                        remember(message.rawBytes, message.portNum, pixelArtEnabled) {
                             val rawBytes = message.rawBytes
                             if (
+                                pixelArtEnabled &&
                                 message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value &&
                                 rawBytes != null
                             ) {
                                 MonochromeImageCodec.decode(rawBytes)
                             } else {
                                 null
+                            }
+                        }
+                    val rawUrl =
+                        remember(bodyText, photoHostingEnabled) {
+                            if (photoHostingEnabled) {
+                                ImageUrlResolver.extractFirstUrl(bodyText)
+                            } else {
+                                null
+                            }
+                        }
+                    val fastPathUrl = remember(rawUrl) { rawUrl?.let { ImageUrlResolver.getFastPathImageUrl(it) } }
+                    val imageUrl by
+                        produceState(initialValue = fastPathUrl, rawUrl) {
+                            if (rawUrl != null) {
+                                val fast = ImageUrlResolver.getFastPathImageUrl(rawUrl)
+                                if (fast != null) {
+                                    value = fast
+                                } else {
+                                    value = ImageUrlResolver.resolveImageUrl(rawUrl)
+                                }
+                            } else {
+                                value = null
                             }
                         }
                     if (monoImage != null) {
@@ -508,6 +545,88 @@ fun MessageItem(
                                         }
                                     }
                                 }
+                            }
+                        }
+                    } else if (imageUrl != null && searchQuery.isEmpty()) {
+                        val resolvedImageUrl = imageUrl!!
+                        val uriHandler = LocalUriHandler.current
+                        val openFile = rememberOpenFile()
+                        val getLocalImageFile = rememberGetLocalImageFile()
+                        val saveImageLocally = rememberSaveImageLocally()
+                        var localFilePath by
+                            remember(resolvedImageUrl) { mutableStateOf(getLocalImageFile(resolvedImageUrl)) }
+                        Column {
+                            SubcomposeAsyncImage(
+                                model = resolvedImageUrl,
+                                contentDescription = null,
+                                modifier =
+                                Modifier.size(220.dp).clip(RoundedCornerShape(8.dp)).clickable {
+                                    val path = localFilePath ?: getLocalImageFile(resolvedImageUrl)
+                                    if (path != null) {
+                                        openFile(path)
+                                    } else {
+                                        uriHandler.openUri(rawUrl ?: resolvedImageUrl)
+                                    }
+                                },
+                                contentScale = ContentScale.Crop,
+                                onSuccess = { state ->
+                                    localFilePath = saveImageLocally(resolvedImageUrl, state.result.image)
+                                },
+                                loading = {
+                                    Box(
+                                        modifier =
+                                        Modifier.fillMaxSize()
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        CircularProgressIndicator(modifier = Modifier.size(28.dp))
+                                    }
+                                },
+                                error = {
+                                    Column(
+                                        modifier =
+                                        Modifier.fillMaxSize()
+                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .clickable { uriHandler.openUri(rawUrl ?: resolvedImageUrl) }
+                                            .padding(8.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center,
+                                    ) {
+                                        Icon(
+                                            imageVector = MeshtasticIcons.Image,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.error,
+                                        )
+                                        Spacer(Modifier.height(4.dp))
+                                        Text(
+                                            text = stringResource(Res.string.image_loading_error),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.error,
+                                        )
+                                    }
+                                },
+                            )
+                            val remainingText =
+                                remember(bodyText, rawUrl) {
+                                    if (rawUrl != null) bodyText.replace(rawUrl, "").trim() else ""
+                                }
+                            if (remainingText.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(4.dp))
+                                val mentionDisplayName =
+                                    remember(resolveMention) {
+                                        { id: String ->
+                                            resolveMention(id)?.let {
+                                                it.user.long_name.ifEmpty { it.user.short_name }
+                                            }
+                                        }
+                                    }
+                                AutoLinkText(
+                                    text = remainingText,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = contentColor,
+                                    mentionName = mentionDisplayName,
+                                    onMentionClick = { id -> resolveMention(id)?.let(onClickChip) },
+                                )
                             }
                         }
                     } else if (searchQuery.isNotEmpty()) {
@@ -771,4 +890,9 @@ private fun OriginalMessageSnippet(
             }
         }
     }
+}
+
+internal fun findImageUrl(text: String): String? {
+    val url = ImageUrlResolver.extractFirstUrl(text) ?: return null
+    return ImageUrlResolver.getFastPathImageUrl(url)
 }

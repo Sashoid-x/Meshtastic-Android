@@ -67,6 +67,8 @@ data class DataPacket(
     var xeddsaSigned: Boolean = false,
     /** When true, forces 0 hops (direct-link only, no mesh relaying). */
     var isDirectOnly: Boolean = false,
+    /** Wire MeshPacket.Priority value (e.g. 127 = MAX, 120 = ACK, 70 = RELIABLE, 0 = UNSET). */
+    var priority: Int = 0,
 ) {
 
     /** If there was an error with this message, this string describes what was wrong. */
