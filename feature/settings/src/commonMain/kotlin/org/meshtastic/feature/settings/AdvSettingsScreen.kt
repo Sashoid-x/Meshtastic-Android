@@ -29,17 +29,37 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.model.PhotoHostingProvider
+import org.meshtastic.core.model.ReactionNotificationMode
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.adv_section_advanced
+import org.meshtastic.core.resources.adv_section_media
+import org.meshtastic.core.resources.adv_section_messaging
+import org.meshtastic.core.resources.adv_section_notifications
 import org.meshtastic.core.resources.adv_settings
+import org.meshtastic.core.resources.built_in_image_viewer
+import org.meshtastic.core.resources.built_in_image_viewer_summary
 import org.meshtastic.core.resources.file_transfer_setting
 import org.meshtastic.core.resources.file_transfer_setting_summary
+import org.meshtastic.core.resources.insert_photo_link
+import org.meshtastic.core.resources.insert_photo_link_summary
 import org.meshtastic.core.resources.photo_hosting_provider_disabled
 import org.meshtastic.core.resources.photo_hosting_provider_meshapp
 import org.meshtastic.core.resources.photo_hosting_provider_meshpic
 import org.meshtastic.core.resources.photo_hosting_setting
 import org.meshtastic.core.resources.photo_hosting_setting_summary
+import org.meshtastic.core.resources.pinned_messages
+import org.meshtastic.core.resources.pinned_messages_summary
 import org.meshtastic.core.resources.pixel_art_messaging
 import org.meshtastic.core.resources.pixel_art_messaging_summary
+import org.meshtastic.core.resources.reaction_mode_all
+import org.meshtastic.core.resources.reaction_mode_disabled
+import org.meshtastic.core.resources.reaction_mode_private_only
+import org.meshtastic.core.resources.reaction_notifications
+import org.meshtastic.core.resources.reaction_notifications_summary
+import org.meshtastic.core.resources.send_on_enter
+import org.meshtastic.core.resources.send_on_enter_summary
+import org.meshtastic.core.resources.show_bell_button
+import org.meshtastic.core.resources.show_bell_button_summary
 import org.meshtastic.core.resources.text_compression
 import org.meshtastic.core.resources.text_compression_summary
 import org.meshtastic.core.ui.component.DropDownPreference
@@ -53,6 +73,12 @@ fun AdvSettingsScreen(settingsViewModel: SettingsViewModel, onNavigateUp: () -> 
     val pixelArtEnabled by settingsViewModel.pixelArtEnabled.collectAsStateWithLifecycle()
     val fileTransferEnabled by settingsViewModel.fileTransferEnabled.collectAsStateWithLifecycle()
     val photoHostingProvider by settingsViewModel.photoHostingProvider.collectAsStateWithLifecycle()
+    val builtInImageViewerEnabled by settingsViewModel.builtInImageViewerEnabled.collectAsStateWithLifecycle()
+    val insertPhotoLinkEnabled by settingsViewModel.insertPhotoLinkEnabled.collectAsStateWithLifecycle()
+    val sendOnEnterEnabled by settingsViewModel.sendOnEnterEnabled.collectAsStateWithLifecycle()
+    val showBellButton by settingsViewModel.showBellButton.collectAsStateWithLifecycle()
+    val reactionNotificationMode by settingsViewModel.reactionNotificationMode.collectAsStateWithLifecycle()
+    val pinnedMessagesEnabled by settingsViewModel.pinnedMessagesEnabled.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier,
@@ -71,34 +97,59 @@ fun AdvSettingsScreen(settingsViewModel: SettingsViewModel, onNavigateUp: () -> 
         AdvSettingsContent(
             modifier = Modifier.padding(paddingValues),
             textCompressionEnabled = textCompressionEnabled,
-            fileTransferEnabled = fileTransferEnabled,
-            pixelArtEnabled = pixelArtEnabled,
+            sendOnEnterEnabled = sendOnEnterEnabled,
+            insertPhotoLinkEnabled = insertPhotoLinkEnabled,
+            showBellButton = showBellButton,
+            builtInImageViewerEnabled = builtInImageViewerEnabled,
             photoHostingProvider = photoHostingProvider,
+            pixelArtEnabled = pixelArtEnabled,
+            fileTransferEnabled = fileTransferEnabled,
+            reactionNotificationMode = reactionNotificationMode,
+            pinnedMessagesEnabled = pinnedMessagesEnabled,
             onTextCompressionChange = settingsViewModel::setTextCompressionEnabled,
-            onFileTransferChange = settingsViewModel::setFileTransferEnabled,
-            onPixelArtChange = settingsViewModel::setPixelArtEnabled,
+            onSendOnEnterChange = settingsViewModel::setSendOnEnterEnabled,
+            onInsertPhotoLinkChange = settingsViewModel::setInsertPhotoLinkEnabled,
+            onShowBellButtonChange = settingsViewModel::setShowBellButton,
+            onBuiltInImageViewerChange = settingsViewModel::setBuiltInImageViewerEnabled,
             onPhotoHostingChange = settingsViewModel::setPhotoHostingProvider,
+            onPixelArtChange = settingsViewModel::setPixelArtEnabled,
+            onFileTransferChange = settingsViewModel::setFileTransferEnabled,
+            onReactionNotificationModeChange = settingsViewModel::setReactionNotificationMode,
+            onPinnedMessagesChange = settingsViewModel::setPinnedMessagesEnabled,
         )
     }
 }
 
+@Suppress("LongParameterList", "LongMethod")
 @Composable
 private fun AdvSettingsContent(
     textCompressionEnabled: Boolean,
-    fileTransferEnabled: Boolean,
-    pixelArtEnabled: Boolean,
+    sendOnEnterEnabled: Boolean,
+    insertPhotoLinkEnabled: Boolean,
+    showBellButton: Boolean,
+    builtInImageViewerEnabled: Boolean,
     photoHostingProvider: PhotoHostingProvider,
+    pixelArtEnabled: Boolean,
+    fileTransferEnabled: Boolean,
+    reactionNotificationMode: ReactionNotificationMode,
+    pinnedMessagesEnabled: Boolean,
     onTextCompressionChange: (Boolean) -> Unit,
-    onFileTransferChange: (Boolean) -> Unit,
-    onPixelArtChange: (Boolean) -> Unit,
+    onSendOnEnterChange: (Boolean) -> Unit,
+    onInsertPhotoLinkChange: (Boolean) -> Unit,
+    onShowBellButtonChange: (Boolean) -> Unit,
+    onBuiltInImageViewerChange: (Boolean) -> Unit,
     onPhotoHostingChange: (PhotoHostingProvider) -> Unit,
+    onPixelArtChange: (Boolean) -> Unit,
+    onFileTransferChange: (Boolean) -> Unit,
+    onReactionNotificationModeChange: (ReactionNotificationMode) -> Unit,
+    onPinnedMessagesChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        ExpressiveSection(title = stringResource(Res.string.adv_settings)) {
+        ExpressiveSection(title = stringResource(Res.string.adv_section_messaging)) {
             SwitchPreference(
                 title = stringResource(Res.string.text_compression),
                 summary = stringResource(Res.string.text_compression_summary),
@@ -107,18 +158,35 @@ private fun AdvSettingsContent(
                 onCheckedChange = onTextCompressionChange,
             )
             SwitchPreference(
-                title = stringResource(Res.string.file_transfer_setting),
-                summary = stringResource(Res.string.file_transfer_setting_summary),
-                checked = fileTransferEnabled,
+                title = stringResource(Res.string.send_on_enter),
+                summary = stringResource(Res.string.send_on_enter_summary),
+                checked = sendOnEnterEnabled,
                 enabled = true,
-                onCheckedChange = onFileTransferChange,
+                onCheckedChange = onSendOnEnterChange,
             )
             SwitchPreference(
-                title = stringResource(Res.string.pixel_art_messaging),
-                summary = stringResource(Res.string.pixel_art_messaging_summary),
-                checked = pixelArtEnabled,
+                title = stringResource(Res.string.insert_photo_link),
+                summary = stringResource(Res.string.insert_photo_link_summary),
+                checked = insertPhotoLinkEnabled,
                 enabled = true,
-                onCheckedChange = onPixelArtChange,
+                onCheckedChange = onInsertPhotoLinkChange,
+            )
+            SwitchPreference(
+                title = stringResource(Res.string.show_bell_button),
+                summary = stringResource(Res.string.show_bell_button_summary),
+                checked = showBellButton,
+                enabled = true,
+                onCheckedChange = onShowBellButtonChange,
+            )
+        }
+
+        ExpressiveSection(title = stringResource(Res.string.adv_section_media)) {
+            SwitchPreference(
+                title = stringResource(Res.string.built_in_image_viewer),
+                summary = stringResource(Res.string.built_in_image_viewer_summary),
+                checked = builtInImageViewerEnabled,
+                enabled = true,
+                onCheckedChange = onBuiltInImageViewerChange,
             )
             DropDownPreference(
                 title = stringResource(Res.string.photo_hosting_setting),
@@ -133,6 +201,47 @@ private fun AdvSettingsContent(
                         PhotoHostingProvider.MESHAPP -> stringResource(Res.string.photo_hosting_provider_meshapp)
                     }
                 },
+            )
+            SwitchPreference(
+                title = stringResource(Res.string.pixel_art_messaging),
+                summary = stringResource(Res.string.pixel_art_messaging_summary),
+                checked = pixelArtEnabled,
+                enabled = true,
+                onCheckedChange = onPixelArtChange,
+            )
+            SwitchPreference(
+                title = stringResource(Res.string.file_transfer_setting),
+                summary = stringResource(Res.string.file_transfer_setting_summary),
+                checked = fileTransferEnabled,
+                enabled = true,
+                onCheckedChange = onFileTransferChange,
+            )
+        }
+
+        ExpressiveSection(title = stringResource(Res.string.adv_section_notifications)) {
+            DropDownPreference(
+                title = stringResource(Res.string.reaction_notifications),
+                summary = stringResource(Res.string.reaction_notifications_summary),
+                selectedItem = reactionNotificationMode,
+                onItemSelected = onReactionNotificationModeChange,
+                enabled = true,
+                itemLabel = { mode ->
+                    when (mode) {
+                        ReactionNotificationMode.ALL -> stringResource(Res.string.reaction_mode_all)
+                        ReactionNotificationMode.PRIVATE_ONLY -> stringResource(Res.string.reaction_mode_private_only)
+                        ReactionNotificationMode.DISABLED -> stringResource(Res.string.reaction_mode_disabled)
+                    }
+                },
+            )
+        }
+
+        ExpressiveSection(title = stringResource(Res.string.adv_section_advanced)) {
+            SwitchPreference(
+                title = stringResource(Res.string.pinned_messages),
+                summary = stringResource(Res.string.pinned_messages_summary),
+                checked = pinnedMessagesEnabled,
+                enabled = true,
+                onCheckedChange = onPinnedMessagesChange,
             )
         }
     }

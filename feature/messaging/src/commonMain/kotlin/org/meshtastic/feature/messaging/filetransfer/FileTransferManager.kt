@@ -41,6 +41,7 @@ import org.meshtastic.core.ui.util.saveFileToDownloads
 import org.meshtastic.proto.Config.LoRaConfig.ModemPreset
 import org.meshtastic.proto.MeshPacket
 import org.meshtastic.proto.PortNum
+import kotlin.concurrent.Volatile
 import kotlin.random.Random
 
 /**

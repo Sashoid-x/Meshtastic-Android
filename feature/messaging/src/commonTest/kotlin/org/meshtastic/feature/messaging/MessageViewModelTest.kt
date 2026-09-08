@@ -103,6 +103,11 @@ class MessageViewModelTest {
     private val fileTransferEnabledFlow = MutableStateFlow(true)
     private val photoHostingEnabledFlow = MutableStateFlow(true)
     private val photoHostingProviderFlow = MutableStateFlow(PhotoHostingProvider.MESHPIC)
+    private val sendOnEnterEnabledFlow = MutableStateFlow(true)
+    private val showBellButtonFlow = MutableStateFlow(true)
+    private val insertPhotoLinkEnabledFlow = MutableStateFlow(false)
+    private val builtInImageViewerEnabledFlow = MutableStateFlow(true)
+    private val pinnedMessagesEnabledFlow = MutableStateFlow(true)
 
     @BeforeTest
     fun setUp() {
@@ -117,6 +122,11 @@ class MessageViewModelTest {
         fileTransferEnabledFlow.value = true
         photoHostingEnabledFlow.value = true
         photoHostingProviderFlow.value = PhotoHostingProvider.MESHPIC
+        sendOnEnterEnabledFlow.value = true
+        showBellButtonFlow.value = true
+        insertPhotoLinkEnabledFlow.value = false
+        builtInImageViewerEnabledFlow.value = true
+        pinnedMessagesEnabledFlow.value = true
         customEmojiFrequencyFlow.value = null
         contactSettingsFlow.value = emptyMap()
 
@@ -138,10 +148,20 @@ class MessageViewModelTest {
         every { uiPrefs.fileTransferEnabled } returns fileTransferEnabledFlow
         every { uiPrefs.photoHostingEnabled } returns photoHostingEnabledFlow
         every { uiPrefs.photoHostingProvider } returns photoHostingProviderFlow
+        every { uiPrefs.sendOnEnterEnabled } returns sendOnEnterEnabledFlow
+        every { uiPrefs.showBellButton } returns showBellButtonFlow
+        every { uiPrefs.insertPhotoLinkEnabled } returns insertPhotoLinkEnabledFlow
+        every { uiPrefs.builtInImageViewerEnabled } returns builtInImageViewerEnabledFlow
+        every { uiPrefs.pinnedMessagesEnabled } returns pinnedMessagesEnabledFlow
         every { uiPrefs.setPixelArtEnabled(any()) } returns Unit
         every { uiPrefs.setFileTransferEnabled(any()) } returns Unit
         every { uiPrefs.setPhotoHostingEnabled(any()) } returns Unit
         every { uiPrefs.setPhotoHostingProvider(any()) } returns Unit
+        every { uiPrefs.setSendOnEnterEnabled(any()) } returns Unit
+        every { uiPrefs.setShowBellButton(any()) } returns Unit
+        every { uiPrefs.setInsertPhotoLinkEnabled(any()) } returns Unit
+        every { uiPrefs.setBuiltInImageViewerEnabled(any()) } returns Unit
+        every { uiPrefs.setPinnedMessagesEnabled(any()) } returns Unit
 
         every { packetRepository.getContactSettings() } returns contactSettingsFlow
         every { packetRepository.getFirstUnreadMessageUuid(any<String>()) } returns MutableStateFlow(null)
@@ -458,14 +478,74 @@ class MessageViewModelTest {
         assertTrue(viewModel.pixelArtEnabled.value)
         assertTrue(viewModel.fileTransferEnabled.value)
         assertTrue(viewModel.photoHostingEnabled.value)
+        assertTrue(viewModel.sendOnEnterEnabled.value)
+        assertTrue(viewModel.showBellButton.value)
+        assertFalse(viewModel.insertPhotoLinkEnabled.value)
+        assertTrue(viewModel.builtInImageViewerEnabled.value)
+        assertTrue(viewModel.pinnedMessagesEnabled.value)
 
         pixelArtEnabledFlow.value = false
         fileTransferEnabledFlow.value = false
         photoHostingEnabledFlow.value = false
+        sendOnEnterEnabledFlow.value = false
+        showBellButtonFlow.value = false
+        insertPhotoLinkEnabledFlow.value = true
+        builtInImageViewerEnabledFlow.value = false
+        pinnedMessagesEnabledFlow.value = false
 
         assertFalse(viewModel.pixelArtEnabled.value)
         assertFalse(viewModel.fileTransferEnabled.value)
         assertFalse(viewModel.photoHostingEnabled.value)
+        assertFalse(viewModel.sendOnEnterEnabled.value)
+        assertFalse(viewModel.showBellButton.value)
+        assertTrue(viewModel.insertPhotoLinkEnabled.value)
+        assertFalse(viewModel.builtInImageViewerEnabled.value)
+        assertFalse(viewModel.pinnedMessagesEnabled.value)
+    }
+
+    @Test
+    fun testUploadAndSendPhotoEmitsWhenInsertLinkEnabled() = runTest {
+        insertPhotoLinkEnabledFlow.value = true
+        val fakeService =
+            object : org.meshtastic.core.network.service.MeshPicService {
+                override suspend fun uploadImage(imageBytes: ByteArray, filename: String): Result<String> =
+                    Result.success("abc123xyz")
+            }
+        val vm =
+            MessageViewModel(
+                savedStateHandle = savedStateHandle,
+                nodeRepository = nodeRepository,
+                radioConfigRepository = radioConfigRepository,
+                quickChatActionRepository = quickChatActionRepository,
+                connectionStateProvider = connectionStateProvider,
+                messagingController = messagingController,
+                packetRepository = packetRepository,
+                sendMessageUseCase = sendMessageUseCase,
+                customEmojiPrefs = customEmojiPrefs,
+                homoglyphEncodingPrefs = homoglyphPrefs,
+                uiPrefs = uiPrefs,
+                meshNotificationManager = meshNotificationManager,
+                activeConversationTracker = activeConversationTracker,
+                messageTranslationService = messageTranslationService,
+                snackbarManager = snackbarManager,
+                adminController = adminController,
+                meshPicService = fakeService,
+            )
+
+        vm.photoLinkReady.test {
+            vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
+            val link = awaitItem()
+            assertEquals("https://meshpic.org/image/abc123xyz", link)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun testTogglePinMessage() = runTest {
+        everySuspend { packetRepository.setPinnedMessage(any(), any()) } returns Unit
+        viewModel.togglePinMessage(123L, currentlyPinned = false)
+        advanceUntilIdle()
+        verifySuspend { packetRepository.setPinnedMessage(123L, true) }
     }
 
     @Test

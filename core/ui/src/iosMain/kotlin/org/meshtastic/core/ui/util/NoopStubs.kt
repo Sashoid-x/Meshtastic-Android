@@ -107,3 +107,5 @@ actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? = nul
 
 @Composable
 actual fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> String? = remember { { _, _ -> null } }
+
+@Composable actual fun rememberShareFileOrUrl(): (filePath: String?, url: String) -> Unit = remember { { _, _ -> } }

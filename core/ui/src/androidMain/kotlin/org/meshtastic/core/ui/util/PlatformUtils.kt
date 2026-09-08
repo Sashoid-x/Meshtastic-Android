@@ -860,3 +860,43 @@ actual fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> Stri
         }
     }
 }
+
+@Composable
+actual fun rememberShareFileOrUrl(): (filePath: String?, url: String) -> Unit {
+    val context = LocalContext.current
+    return remember(context) {
+        { filePath: String?, url: String ->
+            try {
+                val intent = Intent(Intent.ACTION_SEND)
+                if (filePath != null) {
+                    val file = java.io.File(filePath)
+                    if (file.exists()) {
+                        val uri =
+                            androidx.core.content.FileProvider.getUriForFile(
+                                context,
+                                "${context.packageName}.provider",
+                                file,
+                            )
+                        val mimeType =
+                            android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(file.extension)
+                                ?: "image/*"
+                        intent.type = mimeType
+                        intent.putExtra(Intent.EXTRA_STREAM, uri)
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    } else {
+                        intent.type = "text/plain"
+                        intent.putExtra(Intent.EXTRA_TEXT, url)
+                    }
+                } else {
+                    intent.type = "text/plain"
+                    intent.putExtra(Intent.EXTRA_TEXT, url)
+                }
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                val chooser = Intent.createChooser(intent, null).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
+                context.startActivity(chooser)
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                Logger.e(e) { "Failed to share: $url" }
+            }
+        }
+    }
+}

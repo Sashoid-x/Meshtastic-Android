@@ -402,5 +402,35 @@ abstract class CommonPacketRepositoryTest {
         assertNull(pagedCandidates.singleOrNull())
     }
 
+    @Test
+    fun `setPinnedMessage persists and getPinnedMessages retrieves pinned messages`() = runTest(testDispatcher) {
+        val contact = "test-contact"
+        val packet =
+            DataPacket(
+                from = "!aaaa0001",
+                to = "^all",
+                bytes = "pinned text".encodeToByteArray().toByteString(),
+                dataType = PortNum.TEXT_MESSAGE_APP.value,
+                id = 101,
+                status = MessageStatus.RECEIVED,
+            )
+        repository.savePacket(0, contact, packet, 1000L)
+
+        val messages = repository.getMessagesFrom(contact, getNode = ::testNode).first()
+        val saved = messages.single { it.packetId == 101 }
+        assertFalse(saved.pinnedMessage)
+
+        repository.setPinnedMessage(saved.uuid, true)
+
+        val pinnedList = repository.getPinnedMessages(contact, getNode = ::testNode).first()
+        assertEquals(1, pinnedList.size)
+        assertEquals(101, pinnedList.first().packetId)
+        assertTrue(pinnedList.first().pinnedMessage)
+
+        repository.setPinnedMessage(saved.uuid, false)
+        val unpinnedList = repository.getPinnedMessages(contact, getNode = ::testNode).first()
+        assertTrue(unpinnedList.isEmpty())
+    }
+
     private fun testNode(id: String?): Node = Node(num = 0, user = User(id = id.orEmpty()))
 }

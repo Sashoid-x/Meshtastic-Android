@@ -65,6 +65,7 @@ import org.meshtastic.core.repository.ServiceRepository
 import org.meshtastic.core.repository.StoreForwardPacketHandler
 import org.meshtastic.core.repository.TelemetryPacketHandler
 import org.meshtastic.core.repository.TracerouteHandler
+import org.meshtastic.core.testing.FakeAppPreferences
 import org.meshtastic.core.testing.FakeNotificationPrefs
 import org.meshtastic.proto.ChannelSet
 import org.meshtastic.proto.ChannelSettings
@@ -142,6 +143,8 @@ class MeshDataHandlerTest {
     // Backgrounded by default, so existing expectations about notifications firing are unchanged.
     private val activeConversationTracker = ActiveConversationTracker()
 
+    private val fakeAppPreferences = FakeAppPreferences()
+
     @AfterTest
     fun tearDown() {
         geofenceScope.cancel()
@@ -182,6 +185,7 @@ class MeshDataHandlerTest {
                 meshBeaconRepository = meshBeaconRepository,
                 radioInterfaceService = radioInterfaceService,
                 activeConversationTracker = activeConversationTracker,
+                uiPrefs = fakeAppPreferences.ui,
                 scope = testScope.asServiceScope(),
             )
 

@@ -354,3 +354,16 @@ actual fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> Stri
         }
     }
 }
+
+@Composable
+actual fun rememberShareFileOrUrl(): (filePath: String?, url: String) -> Unit = remember {
+    { filePath: String?, url: String ->
+        try {
+            val toCopy = filePath ?: url
+            val selection = java.awt.datatransfer.StringSelection(toCopy)
+            java.awt.Toolkit.getDefaultToolkit().systemClipboard.setContents(selection, selection)
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+            Logger.e(e) { "Failed to share to clipboard: $url" }
+        }
+    }
+}

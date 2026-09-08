@@ -120,10 +120,12 @@ import org.meshtastic.core.ui.util.rememberReadBytesFromUri
 import org.meshtastic.feature.messaging.component.ActionModeTopBar
 import org.meshtastic.feature.messaging.component.DeleteMessageDialog
 import org.meshtastic.feature.messaging.component.FormattingToolbar
+import org.meshtastic.feature.messaging.component.FullScreenImageViewer
 import org.meshtastic.feature.messaging.component.MESSAGE_CHARACTER_LIMIT_BYTES
 import org.meshtastic.feature.messaging.component.MessageMenuAction
 import org.meshtastic.feature.messaging.component.MessageSearchBar
 import org.meshtastic.feature.messaging.component.MessageTopBar
+import org.meshtastic.feature.messaging.component.PinnedMessagesSheet
 import org.meshtastic.feature.messaging.component.QuickChatRow
 import org.meshtastic.feature.messaging.component.ReplySnippet
 import org.meshtastic.feature.messaging.component.ScrollToBottomFab
@@ -261,6 +263,14 @@ fun MessageScreen(
     val pixelArtEnabled by viewModel.pixelArtEnabled.collectAsStateWithLifecycle()
     val fileTransferEnabled by viewModel.fileTransferEnabled.collectAsStateWithLifecycle()
     val photoHostingEnabled by viewModel.photoHostingEnabled.collectAsStateWithLifecycle()
+    val sendOnEnterEnabled by viewModel.sendOnEnterEnabled.collectAsStateWithLifecycle()
+    val showBellButton by viewModel.showBellButton.collectAsStateWithLifecycle()
+    val insertPhotoLinkEnabled by viewModel.insertPhotoLinkEnabled.collectAsStateWithLifecycle()
+    val builtInImageViewerEnabled by viewModel.builtInImageViewerEnabled.collectAsStateWithLifecycle()
+    val pinnedMessagesEnabled by viewModel.pinnedMessagesEnabled.collectAsStateWithLifecycle()
+    val pinnedMessages by viewModel.getPinnedMessages(contactKey).collectAsStateWithLifecycle(emptyList())
+    var showPinnedSheet by rememberSaveable { mutableStateOf(false) }
+    var fullScreenImage by remember { mutableStateOf<Triple<String, String?, String?>?>(null) }
     val okToMqtt by viewModel.okToMqtt.collectAsStateWithLifecycle()
     val filteredCount by viewModel.filteredCount.collectAsStateWithLifecycle()
     val showFiltered by viewModel.showFiltered.collectAsStateWithLifecycle()
@@ -283,6 +293,21 @@ fun MessageScreen(
         val draft = storedDraft
         if (!draft.isNullOrEmpty() && messageInputState.text.isEmpty()) {
             messageInputState.setTextAndPlaceCursorAtEnd(draft)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.photoLinkReady.collect { link ->
+            val currentText = messageInputState.text.toString()
+            val newText =
+                if (currentText.isEmpty()) {
+                    "$link "
+                } else if (currentText.endsWith(" ")) {
+                    "$currentText$link "
+                } else {
+                    "$currentText $link "
+                }
+            messageInputState.setTextAndPlaceCursorAtEnd(newText)
         }
     }
 
@@ -553,6 +578,13 @@ fun MessageScreen(
                     fileTransferEnabled = fileTransferEnabled,
                     pixelArtEnabled = pixelArtEnabled,
                     photoHostingEnabled = photoHostingEnabled,
+                    pinnedMessagesCount = if (pinnedMessagesEnabled) pinnedMessages.size else 0,
+                    onPinnedMessagesClick =
+                    if (pinnedMessagesEnabled) {
+                        { showPinnedSheet = true }
+                    } else {
+                        null
+                    },
                     onFileTransferClick = { showFileTransferWarning = true },
                     onPixelArtClick = {
                         rawImageGrayValues = null
@@ -569,6 +601,7 @@ fun MessageScreen(
                     QuickChatRow(
                         enabled = connectionState is ConnectionState.Connected,
                         actions = quickChatActions,
+                        showBellButton = showBellButton,
                         onClick = { action ->
                             handleQuickChatAction(
                                 action = action,
@@ -590,6 +623,7 @@ fun MessageScreen(
                     mentionCandidates = mentionCandidates,
                     textCompressionEnabled = textCompressionEnabled,
                     isOkToMqtt = okToMqtt,
+                    sendOnEnterEnabled = sendOnEnterEnabled,
                     onToggleOkToMqtt = viewModel::toggleOkToMqtt,
                     onSendMessage = { compress ->
                         val messageText = messageInputState.text.toString().trim { it.isWhitespace() }
@@ -682,6 +716,33 @@ fun MessageScreen(
             )
         }
 
+        if (showPinnedSheet) {
+            PinnedMessagesSheet(
+                pinnedMessages = pinnedMessages,
+                onDismiss = { showPinnedSheet = false },
+                onUnpinMessage = { message -> viewModel.togglePinMessage(message.uuid, true) },
+                onJumpToMessage = { message ->
+                    showPinnedSheet = false
+                    coroutineScope.launch {
+                        val targetIndex =
+                            pagedMessages.itemSnapshotList.indexOfFirst { it?.uuid == message.uuid }.takeIf { it != -1 }
+                        if (targetIndex != null) {
+                            listState.animateScrollToItem(index = targetIndex)
+                        }
+                    }
+                },
+            )
+        }
+
+        fullScreenImage?.let { (imageUrl, localPath, rawUrl) ->
+            FullScreenImageViewer(
+                imageUrl = imageUrl,
+                onDismiss = { fullScreenImage = null },
+                rawUrl = rawUrl,
+                initialLocalFilePath = localPath,
+            )
+        }
+
         Box(Modifier.fillMaxSize().padding(paddingValues).focusable()) {
             Column(Modifier.fillMaxSize()) {
                 val activeMinimizedState =
@@ -733,6 +794,8 @@ fun MessageScreen(
                             textCompressionEnabled = textCompressionEnabled,
                             pixelArtEnabled = pixelArtEnabled,
                             photoHostingEnabled = photoHostingEnabled,
+                            builtInImageViewerEnabled = builtInImageViewerEnabled,
+                            pinnedMessagesEnabled = pinnedMessagesEnabled,
                         ),
                         handlers =
                         MessageListHandlers(
@@ -747,6 +810,12 @@ fun MessageScreen(
                             onReply = { message -> replyingToPacketId = message?.packetId },
                             onTranslate = { onEvent(MessageScreenEvent.TranslateMessage(it)) },
                             onToggleTranslation = { onEvent(MessageScreenEvent.ToggleShowTranslated(it)) },
+                            onOpenImageViewer = { resolvedUrl, localPath, rawUrl ->
+                                fullScreenImage = Triple(resolvedUrl, localPath, rawUrl)
+                            },
+                            onTogglePin = { message ->
+                                viewModel.togglePinMessage(message.uuid, message.pinnedMessage)
+                            },
                         ),
                         quickEmojis = viewModel.frequentEmojis,
                     )
@@ -983,6 +1052,7 @@ private fun MessageInput(
     maxByteSize: Int = MESSAGE_CHARACTER_LIMIT_BYTES,
     textCompressionEnabled: Boolean = false,
     isOkToMqtt: Boolean = false,
+    sendOnEnterEnabled: Boolean = true,
     onToggleOkToMqtt: () -> Unit = {},
     onSendMessage: (compress: Boolean) -> Unit = {},
 ) {
@@ -1066,7 +1136,7 @@ private fun MessageInput(
                 .onFocusChanged { isFocused = it.isFocused }
                 .onKeyEvent { keyEvent ->
                     val isEnterNoShift = keyEvent.key == Key.Enter && !keyEvent.isShiftPressed
-                    if (isEnterNoShift) {
+                    if (sendOnEnterEnabled && isEnterNoShift) {
                         if (keyEvent.type == KeyEventType.KeyUp) onSendAction()
                         true // consume both KeyDown and KeyUp to prevent newline insertion
                     } else {
@@ -1081,8 +1151,15 @@ private fun MessageInput(
             isError = isOverLimit,
             placeholder = { Text(stringResource(Res.string.type_a_message)) },
             keyboardOptions =
-            KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Send),
-            onKeyboardAction = { onSendAction() },
+            KeyboardOptions(
+                capitalization = KeyboardCapitalization.Sentences,
+                imeAction = if (sendOnEnterEnabled) ImeAction.Send else ImeAction.Default,
+            ),
+            onKeyboardAction = {
+                if (sendOnEnterEnabled) {
+                    onSendAction()
+                }
+            },
             supportingText = {
                 // The counter is only useful as the limit approaches or when compression is active and saving space
                 val isCompressedEffective =

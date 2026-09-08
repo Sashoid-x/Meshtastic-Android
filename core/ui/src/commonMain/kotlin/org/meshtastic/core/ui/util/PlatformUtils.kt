@@ -186,3 +186,6 @@ expect fun saveFileToDownloads(fileName: String, data: ByteArray): String?
  * success, or `null` on failure.
  */
 @Composable expect fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> String?
+
+/** Returns a function to share a file or URL via the system share sheet. */
+@Composable expect fun rememberShareFileOrUrl(): (filePath: String?, url: String) -> Unit

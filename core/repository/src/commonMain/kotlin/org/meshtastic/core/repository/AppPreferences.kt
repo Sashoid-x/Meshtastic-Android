@@ -18,6 +18,7 @@ package org.meshtastic.core.repository
 
 import kotlinx.coroutines.flow.StateFlow
 import org.meshtastic.core.model.DeviceType
+import org.meshtastic.core.model.ReactionNotificationMode
 
 /** Reactive interface for analytics-related preferences. */
 interface AnalyticsPrefs {
@@ -166,6 +167,36 @@ interface UiPrefs {
     val photoHostingEnabled: StateFlow<Boolean>
 
     fun setPhotoHostingEnabled(enabled: Boolean)
+
+    /** Whether the built-in full-screen image viewer with zoom/pan is enabled. */
+    val builtInImageViewerEnabled: StateFlow<Boolean>
+
+    fun setBuiltInImageViewerEnabled(enabled: Boolean)
+
+    /** Whether to insert the uploaded photo link into the message field instead of sending immediately. */
+    val insertPhotoLinkEnabled: StateFlow<Boolean>
+
+    fun setInsertPhotoLinkEnabled(enabled: Boolean)
+
+    /** Whether pressing Enter (without Shift) sends the message. */
+    val sendOnEnterEnabled: StateFlow<Boolean>
+
+    fun setSendOnEnterEnabled(enabled: Boolean)
+
+    /** Whether to show the alert bell button in the quick chat bar. */
+    val showBellButton: StateFlow<Boolean>
+
+    fun setShowBellButton(show: Boolean)
+
+    /** Emoji reaction notifications mode (ALL, PRIVATE_ONLY, DISABLED). */
+    val reactionNotificationMode: StateFlow<ReactionNotificationMode>
+
+    fun setReactionNotificationMode(mode: ReactionNotificationMode)
+
+    /** Whether pinned messages feature is enabled. */
+    val pinnedMessagesEnabled: StateFlow<Boolean>
+
+    fun setPinnedMessagesEnabled(enabled: Boolean)
 
     /**
      * Whether to apply an event edition's ambient theme (accent wash + custom typeface) app-wide (opt-out; default on).

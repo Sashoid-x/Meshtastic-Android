@@ -48,6 +48,11 @@ address
 admin_key
 admin_keys
 administration
+### ADV ###
+adv_section_advanced
+adv_section_media
+adv_section_messaging
+adv_section_notifications
 adv_settings
 adv_settings_summary
 advanced
@@ -165,6 +170,8 @@ boot_reconnect_blocked_message
 boot_reconnect_blocked_title
 bottom_nav_settings
 broadcast_interval
+built_in_image_viewer
+built_in_image_viewer_summary
 busy_noise_floor
 button_gpio
 buzzer_gpio
@@ -884,7 +891,12 @@ ignore_add
 ignore_incoming
 ignore_mqtt
 ignore_remove
+### IMAGE ###
 image_loading_error
+image_viewer_open_system
+image_viewer_save
+image_viewer_saved_success
+image_viewer_share
 ### IMPORT ###
 import_configuration
 import_export_label
@@ -898,10 +910,13 @@ indoor_air_quality_iaq
 info
 input_channel_url
 input_shared_contact_url
+### INSERT ###
 insert
 insert_link_message
 insert_link_title
 insert_link_url_hint
+insert_photo_link
+insert_photo_link_summary
 installed_firmware_version
 internal
 interval_always_on
@@ -915,6 +930,7 @@ ipv4_mode
 json_output_enabled
 jump_to_latest_from
 jump_to_latest_from_and_more
+jump_to_message
 ### KEY ###
 key_backup_deleted
 key_backup_not_found
@@ -1290,6 +1306,7 @@ no_network_devices_found
 no_network_devices_hint
 no_network_devices_seen
 no_pax_metrics_logs
+no_pinned_messages
 no_usb_devices_found
 no_usb_devices_hint
 no_usb_devices_seen
@@ -1476,7 +1493,11 @@ photo_hosting_provider_meshapp
 photo_hosting_provider_meshpic
 photo_hosting_setting
 photo_hosting_setting_summary
+pin_message
 pin_selected
+pinned_messages
+pinned_messages_summary
+pinned_messages_title
 pixel_art_messaging
 pixel_art_messaging_summary
 play
@@ -1549,6 +1570,12 @@ range_test
 range_test_config
 range_test_enabled
 react
+### REACTION ###
+reaction_mode_all
+reaction_mode_disabled
+reaction_mode_private_only
+reaction_notifications
+reaction_notifications_summary
 reboot
 ### REBROADCAST ###
 rebroadcast_mode
@@ -1716,9 +1743,12 @@ select
 select_all
 selected
 selected_map_type
+### SEND ###
 send
 send_bell
 send_bell_with_alert_message
+send_on_enter
+send_on_enter_summary
 sender_message_interval_seconds
 ### SERIAL ###
 serial
@@ -1750,6 +1780,8 @@ should_update
 should_update_firmware
 ### SHOW ###
 show_all_key_title
+show_bell_button
+show_bell_button_summary
 show_full_message_timestamps
 show_full_message_timestamps_summary
 show_iaq_legend
@@ -1982,6 +2014,7 @@ unmessageable
 unmonitored_or_infrastructure
 unmute
 unmute_selected
+unpin_message
 unpin_selected
 unrecognized
 unset

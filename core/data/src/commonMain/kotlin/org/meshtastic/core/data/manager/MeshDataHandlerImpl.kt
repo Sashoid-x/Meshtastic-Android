@@ -33,6 +33,7 @@ import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.Reaction
+import org.meshtastic.core.model.ReactionNotificationMode
 import org.meshtastic.core.model.destination
 import org.meshtastic.core.model.geofence.activeWaypointPackets
 import org.meshtastic.core.model.isBroadcast
@@ -69,6 +70,7 @@ import org.meshtastic.core.repository.ServiceStateWriter
 import org.meshtastic.core.repository.StoreForwardPacketHandler
 import org.meshtastic.core.repository.TelemetryPacketHandler
 import org.meshtastic.core.repository.TracerouteHandler
+import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.critical_alert
 import org.meshtastic.core.resources.error_duty_cycle
@@ -119,6 +121,7 @@ class MeshDataHandlerImpl(
     private val meshBeaconRepository: MeshBeaconRepository,
     private val radioInterfaceService: RadioInterfaceService,
     private val activeConversationTracker: ActiveConversationTracker,
+    private val uiPrefs: UiPrefs,
     private val scope: ServiceScope,
 ) : MeshDataHandler {
 
@@ -665,9 +668,17 @@ class MeshDataHandlerImpl(
                     val nodeMuted = nodeManager.getNodeById(fromId)?.isMuted == true
                     val muted = conversationMuted || nodeMuted
                     val announcement = activeConversationTracker.announcementFor(contactKey)
+                    val isBroadcast = originalPacket.destination is NodeAddress.Broadcast
 
-                    if (!muted && announcement != MessageAnnouncement.Suppress) {
-                        val isBroadcast = originalPacket.destination is NodeAddress.Broadcast
+                    val reactionMode = uiPrefs.reactionNotificationMode.value
+                    val allowReactionNotification =
+                        when (reactionMode) {
+                            ReactionNotificationMode.ALL -> true
+                            ReactionNotificationMode.PRIVATE_ONLY -> !isBroadcast
+                            ReactionNotificationMode.DISABLED -> false
+                        }
+
+                    if (!muted && announcement != MessageAnnouncement.Suppress && allowReactionNotification) {
                         val channelName =
                             if (isBroadcast) {
                                 radioConfigRepository.channelSetFlow

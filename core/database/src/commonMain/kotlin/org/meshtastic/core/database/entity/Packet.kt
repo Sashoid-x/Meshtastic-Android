@@ -77,6 +77,7 @@ data class PacketEntity(
             showTranslated = showTranslated,
             portNum = port_num,
             rawBytes = data.bytes?.toByteArray(),
+            pinnedMessage = pinnedMessage,
         )
     }
 }
@@ -143,6 +144,7 @@ data class Packet(
     @ColumnInfo(name = "message_text", defaultValue = "") val messageText: String = "",
     @ColumnInfo(name = "translated_text") val translatedText: String? = null,
     @ColumnInfo(name = "show_translated", defaultValue = "0") val showTranslated: Boolean = false,
+    @ColumnInfo(name = "pinned_message", defaultValue = "0") val pinnedMessage: Boolean = false,
 ) {
     companion object {
         const val RELAY_NODE_SUFFIX_MASK = 0xFF

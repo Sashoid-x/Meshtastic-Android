@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.meshtastic.core.model.DeviceType
 import org.meshtastic.core.model.PhotoHostingProvider
+import org.meshtastic.core.model.ReactionNotificationMode
 import org.meshtastic.core.repository.AnalyticsPrefs
 import org.meshtastic.core.repository.AppFunctionsPrefs
 import org.meshtastic.core.repository.AppPreferences
@@ -195,6 +196,42 @@ class FakeUiPrefs : UiPrefs {
     override fun setPhotoHostingEnabled(enabled: Boolean) {
         photoHostingEnabled.value = enabled
         photoHostingProvider.value = if (enabled) PhotoHostingProvider.MESHPIC else PhotoHostingProvider.DISABLED
+    }
+
+    override val builtInImageViewerEnabled = MutableStateFlow(true)
+
+    override fun setBuiltInImageViewerEnabled(enabled: Boolean) {
+        builtInImageViewerEnabled.value = enabled
+    }
+
+    override val insertPhotoLinkEnabled = MutableStateFlow(true)
+
+    override fun setInsertPhotoLinkEnabled(enabled: Boolean) {
+        insertPhotoLinkEnabled.value = enabled
+    }
+
+    override val sendOnEnterEnabled = MutableStateFlow(true)
+
+    override fun setSendOnEnterEnabled(enabled: Boolean) {
+        sendOnEnterEnabled.value = enabled
+    }
+
+    override val showBellButton = MutableStateFlow(true)
+
+    override fun setShowBellButton(show: Boolean) {
+        showBellButton.value = show
+    }
+
+    override val reactionNotificationMode = MutableStateFlow(ReactionNotificationMode.ALL)
+
+    override fun setReactionNotificationMode(mode: ReactionNotificationMode) {
+        reactionNotificationMode.value = mode
+    }
+
+    override val pinnedMessagesEnabled = MutableStateFlow(true)
+
+    override fun setPinnedMessagesEnabled(enabled: Boolean) {
+        pinnedMessagesEnabled.value = enabled
     }
 
     override val eventThemeEnabled = MutableStateFlow(true)

@@ -20,6 +20,7 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -612,6 +613,25 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
                         )
                     },
                 )
+            }
+        }
+    }
+
+    override suspend fun setPinnedMessage(uuid: Long, pinned: Boolean) =
+        withContext(dispatchers.io) { dbManager.currentDb.value.packetDao().setPinnedMessage(uuid, pinned) }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun getPinnedMessages(contactKey: String, getNode: suspend (String?) -> Node): Flow<List<Message>> {
+        val dao = dbManager.currentDb.value.packetDao()
+        return dao.getPinnedMessages(contactKey).mapLatest { packets ->
+            val cachedGetNode = memoize(getNode)
+            val replyIds = packets.mapNotNull { it.packet.data.replyId?.takeIf { id -> id != 0 } }.distinct()
+            val replyMap = batchGetReplyParents(replyIds, contactKey)
+            packets.map { packet ->
+                val message = packet.toMessage(cachedGetNode)
+                val replyId = message.replyId?.takeIf { it != 0 }
+                val originalMessage = replyId?.let { replyMap[it] }?.toMessage(cachedGetNode)
+                if (originalMessage != null) message.copy(originalMessage = originalMessage) else message
             }
         }
     }

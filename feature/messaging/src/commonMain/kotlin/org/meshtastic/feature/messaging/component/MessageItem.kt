@@ -102,6 +102,7 @@ import org.meshtastic.core.resources.action_show_message_status
 import org.meshtastic.core.resources.filter_message_label
 import org.meshtastic.core.resources.image_loading_error
 import org.meshtastic.core.resources.message_translated_label
+import org.meshtastic.core.resources.pinned_messages
 import org.meshtastic.core.resources.reply
 import org.meshtastic.core.resources.security_signed_verified
 import org.meshtastic.core.ui.component.AutoLinkText
@@ -119,6 +120,7 @@ import org.meshtastic.core.ui.emoji.EmojiPickerDialog
 import org.meshtastic.core.ui.icon.FormatQuote
 import org.meshtastic.core.ui.icon.HopCount
 import org.meshtastic.core.ui.icon.Image
+import org.meshtastic.core.ui.icon.Keep
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Reply
 import org.meshtastic.core.ui.icon.ShieldCheck
@@ -183,9 +185,13 @@ fun MessageItem(
     textCompressionEnabled: Boolean = false,
     pixelArtEnabled: Boolean = true,
     photoHostingEnabled: Boolean = true,
+    builtInImageViewerEnabled: Boolean = true,
+    pinnedMessagesEnabled: Boolean = true,
     isDirectMessage: Boolean = false,
     onTranslate: () -> Unit = {},
     onToggleTranslation: () -> Unit = {},
+    onOpenImageViewer: (String, String?, String?) -> Unit = { _, _, _ -> },
+    onTogglePin: () -> Unit = {},
 ) = Column(
     modifier =
     modifier
@@ -279,6 +285,12 @@ fun MessageItem(
                         onToggleTranslation = {
                             activeSheet = null
                             onToggleTranslation()
+                        },
+                        pinnedMessagesEnabled = pinnedMessagesEnabled,
+                        isPinned = message.pinnedMessage,
+                        onTogglePin = {
+                            activeSheet = null
+                            onTogglePin()
                         },
                     )
                 }
@@ -562,10 +574,14 @@ fun MessageItem(
                                 modifier =
                                 Modifier.size(220.dp).clip(RoundedCornerShape(8.dp)).clickable {
                                     val path = localFilePath ?: getLocalImageFile(resolvedImageUrl)
-                                    if (path != null) {
-                                        openFile(path)
+                                    if (builtInImageViewerEnabled) {
+                                        onOpenImageViewer(resolvedImageUrl, path, rawUrl)
                                     } else {
-                                        uriHandler.openUri(rawUrl ?: resolvedImageUrl)
+                                        if (path != null) {
+                                            openFile(path)
+                                        } else {
+                                            uriHandler.openUri(rawUrl ?: resolvedImageUrl)
+                                        }
                                     }
                                 },
                                 contentScale = ContentScale.Crop,
@@ -697,6 +713,14 @@ fun MessageItem(
                         }
                         if (containsBel) {
                             Text(text = "\uD83D\uDD14")
+                        }
+                        if (message.pinnedMessage && pinnedMessagesEnabled) {
+                            Icon(
+                                imageVector = MeshtasticIcons.Keep,
+                                contentDescription = stringResource(Res.string.pinned_messages),
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                         if (isCompressedMessage && textCompressionEnabled) {
                             Text(text = "\uD83D\uDDDC\uFE0F", style = metadataStyle)

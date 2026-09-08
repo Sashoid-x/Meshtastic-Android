@@ -1078,6 +1078,25 @@ interface PacketDao {
     suspend fun rebuildFtsIndex()
 
     // endregion
+
+    // region ── Pinned Messages ──
+
+    @Query("UPDATE packet SET pinned_message = :pinned WHERE uuid = :uuid")
+    suspend fun setPinnedMessage(uuid: Long, pinned: Boolean)
+
+    @Transaction
+    @Query(
+        """
+        SELECT * FROM packet
+        WHERE (myNodeNum = 0 OR myNodeNum = (SELECT myNodeNum FROM my_node))
+            AND contact_key = :contactKey
+            AND pinned_message = 1
+        ORDER BY received_time DESC
+        """,
+    )
+    fun getPinnedMessages(contactKey: String): Flow<List<PacketEntity>>
+
+    // endregion
 }
 
 private fun String?.matchesNodeNum(nodeNum: Int, localNodeNum: Int): Boolean =

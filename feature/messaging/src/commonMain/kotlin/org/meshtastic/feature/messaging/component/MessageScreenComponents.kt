@@ -100,6 +100,7 @@ import org.meshtastic.core.resources.jump_to_latest_from_and_more
 import org.meshtastic.core.resources.navigate_back
 import org.meshtastic.core.resources.new_messages_below
 import org.meshtastic.core.resources.overflow_menu
+import org.meshtastic.core.resources.pinned_messages
 import org.meshtastic.core.resources.quick_chat
 import org.meshtastic.core.resources.quick_chat_hide
 import org.meshtastic.core.resources.quick_chat_show
@@ -126,6 +127,7 @@ import org.meshtastic.core.ui.icon.Delete
 import org.meshtastic.core.ui.icon.FilterList
 import org.meshtastic.core.ui.icon.FilterListOff
 import org.meshtastic.core.ui.icon.Image
+import org.meshtastic.core.ui.icon.Keep
 import org.meshtastic.core.ui.icon.KeyboardArrowDown
 import org.meshtastic.core.ui.icon.KeyboardArrowUp
 import org.meshtastic.core.ui.icon.MeshtasticIcons
@@ -406,6 +408,7 @@ fun ActionModeTopBar(selectedCount: Int, onAction: (MessageMenuAction) -> Unit) 
  * @param channelIndexParam The specific channel index for the [SecurityIcon].
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("LongMethod")
 @Composable
 fun MessageTopBar(
     title: String,
@@ -416,6 +419,7 @@ fun MessageTopBar(
     channelIndexParam: Int?,
     showQuickChat: Boolean,
     onToggleQuickChat: () -> Unit,
+    modifier: Modifier = Modifier,
     onNavigateToQuickChatOptions: () -> Unit = {},
     filteringDisabled: Boolean = false,
     onToggleFilteringDisabled: () -> Unit = {},
@@ -428,10 +432,13 @@ fun MessageTopBar(
     fileTransferEnabled: Boolean = false,
     pixelArtEnabled: Boolean = false,
     photoHostingEnabled: Boolean = false,
+    pinnedMessagesCount: Int = 0,
+    onPinnedMessagesClick: (() -> Unit)? = null,
     onFileTransferClick: (() -> Unit)? = null,
     onPixelArtClick: (() -> Unit)? = null,
     onPhotoHostingClick: (() -> Unit)? = null,
 ) = TopAppBar(
+    modifier = modifier,
     title = {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(text = title, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -451,6 +458,22 @@ fun MessageTopBar(
         }
     },
     actions = {
+        if (onPinnedMessagesClick != null) {
+            IconButton(onClick = onPinnedMessagesClick) {
+                BadgedBox(
+                    badge = {
+                        if (pinnedMessagesCount > 0) {
+                            Badge { Text(pinnedMessagesCount.toString()) }
+                        }
+                    },
+                ) {
+                    Icon(
+                        imageVector = MeshtasticIcons.Keep,
+                        contentDescription = stringResource(Res.string.pinned_messages),
+                    )
+                }
+            }
+        }
         val showAttachButton =
             (fileTransferEnabled && onFileTransferClick != null) ||
                 (pixelArtEnabled && onPixelArtClick != null) ||
@@ -711,6 +734,7 @@ fun QuickChatRow(
     enabled: Boolean,
     actions: List<QuickChatAction>,
     onClick: (QuickChatAction) -> Unit,
+    showBellButton: Boolean = true,
 ) {
     val alertActionMessage = stringResource(Res.string.alert_bell_text)
     val alertAction =
@@ -723,7 +747,10 @@ fun QuickChatRow(
             )
         }
 
-    val allActions = remember(alertAction, actions) { listOf(alertAction) + actions }
+    val allActions =
+        remember(alertAction, actions, showBellButton) {
+            if (showBellButton) listOf(alertAction) + actions else actions
+        }
 
     LazyRow(modifier = modifier.padding(vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         items(allActions, key = { it.uuid }) { action ->

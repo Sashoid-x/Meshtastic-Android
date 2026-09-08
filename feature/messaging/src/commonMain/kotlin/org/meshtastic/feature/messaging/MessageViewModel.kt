@@ -26,8 +26,11 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
@@ -252,6 +255,16 @@ class MessageViewModel(
     val fileTransferEnabled: StateFlow<Boolean> = uiPrefs.fileTransferEnabled
 
     val photoHostingEnabled: StateFlow<Boolean> = uiPrefs.photoHostingEnabled
+
+    val sendOnEnterEnabled: StateFlow<Boolean> = uiPrefs.sendOnEnterEnabled
+
+    val showBellButton: StateFlow<Boolean> = uiPrefs.showBellButton
+
+    val insertPhotoLinkEnabled: StateFlow<Boolean> = uiPrefs.insertPhotoLinkEnabled
+
+    val builtInImageViewerEnabled: StateFlow<Boolean> = uiPrefs.builtInImageViewerEnabled
+
+    val pinnedMessagesEnabled: StateFlow<Boolean> = uiPrefs.pinnedMessagesEnabled
 
     val okToMqtt: StateFlow<Boolean> =
         radioConfigRepository.channelSetFlow
@@ -520,6 +533,9 @@ class MessageViewModel(
     private val _isUploadingPhoto = MutableStateFlow(false)
     val isUploadingPhoto: StateFlow<Boolean> = _isUploadingPhoto.asStateFlow()
 
+    private val _photoLinkReady = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val photoLinkReady: SharedFlow<String> = _photoLinkReady.asSharedFlow()
+
     fun uploadAndSendPhoto(
         imageBytes: ByteArray,
         contactKey: String = "0${NodeAddress.ID_BROADCAST}",
@@ -548,7 +564,11 @@ class MessageViewModel(
                             PhotoHostingProvider.DISABLED -> ""
                         }
                     if (link.isNotEmpty()) {
-                        sendMessage(str = link, contactKey = contactKey, replyId = null, compress = false)
+                        if (uiPrefs.insertPhotoLinkEnabled.value) {
+                            _photoLinkReady.emit(link)
+                        } else {
+                            sendMessage(str = link, contactKey = contactKey, replyId = null, compress = false)
+                        }
                     }
                 }
                 .onFailure {
@@ -556,6 +576,15 @@ class MessageViewModel(
                         MessagingUiTextResolver.resolve(UiText.Resource(Res.string.upload_photo_failed)),
                     )
                 }
+        }
+    }
+
+    fun getPinnedMessages(contactKey: String): Flow<List<Message>> =
+        packetRepository.getPinnedMessages(contactKey) { userId -> getNode(userId) }
+
+    fun togglePinMessage(uuid: Long, currentlyPinned: Boolean) {
+        safeLaunch(context = ioDispatcher, tag = "togglePinMessage") {
+            packetRepository.setPinnedMessage(uuid, !currentlyPinned)
         }
     }
 

@@ -324,4 +324,10 @@ interface PacketRepository {
      * @return Flow emitting matching messages.
      */
     fun searchMessages(query: String, contactKey: String? = null, getNode: (String?) -> Node): Flow<List<Message>>
+
+    /** Pins or unpins a message by its UUID. */
+    suspend fun setPinnedMessage(uuid: Long, pinned: Boolean)
+
+    /** Returns a reactive flow of pinned messages for a conversation. */
+    fun getPinnedMessages(contactKey: String, getNode: suspend (String?) -> Node): Flow<List<Message>>
 }

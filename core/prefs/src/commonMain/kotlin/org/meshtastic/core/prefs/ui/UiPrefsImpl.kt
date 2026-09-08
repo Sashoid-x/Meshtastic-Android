@@ -34,6 +34,7 @@ import org.koin.core.annotation.Single
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.DeviceType
 import org.meshtastic.core.model.PhotoHostingProvider
+import org.meshtastic.core.model.ReactionNotificationMode
 import org.meshtastic.core.prefs.cachedFlow
 import org.meshtastic.core.prefs.di.UiDataStore
 import org.meshtastic.core.repository.UiPrefs
@@ -210,6 +211,52 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         setPhotoHostingProvider(if (enabled) PhotoHostingProvider.MESHPIC else PhotoHostingProvider.DISABLED)
     }
 
+    override val builtInImageViewerEnabled: StateFlow<Boolean> =
+        dataStore.data
+            .map { it[KEY_BUILT_IN_IMAGE_VIEWER_ENABLED] ?: true }
+            .stateIn(scope, SharingStarted.Eagerly, true)
+
+    override fun setBuiltInImageViewerEnabled(enabled: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_BUILT_IN_IMAGE_VIEWER_ENABLED] = enabled } }
+    }
+
+    override val insertPhotoLinkEnabled: StateFlow<Boolean> =
+        dataStore.data.map { it[KEY_INSERT_PHOTO_LINK_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
+
+    override fun setInsertPhotoLinkEnabled(enabled: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_INSERT_PHOTO_LINK_ENABLED] = enabled } }
+    }
+
+    override val sendOnEnterEnabled: StateFlow<Boolean> =
+        dataStore.data.map { it[KEY_SEND_ON_ENTER_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
+
+    override fun setSendOnEnterEnabled(enabled: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_SEND_ON_ENTER_ENABLED] = enabled } }
+    }
+
+    override val showBellButton: StateFlow<Boolean> =
+        dataStore.data.map { it[KEY_SHOW_BELL_BUTTON] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
+
+    override fun setShowBellButton(show: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_SHOW_BELL_BUTTON] = show } }
+    }
+
+    override val reactionNotificationMode: StateFlow<ReactionNotificationMode> =
+        dataStore.data
+            .map { prefs -> ReactionNotificationMode.fromId(prefs[KEY_REACTION_NOTIFICATION_MODE]) }
+            .stateIn(scope, SharingStarted.Eagerly, ReactionNotificationMode.ALL)
+
+    override fun setReactionNotificationMode(mode: ReactionNotificationMode) {
+        scope.launch { dataStore.edit { it[KEY_REACTION_NOTIFICATION_MODE] = mode.id } }
+    }
+
+    override val pinnedMessagesEnabled: StateFlow<Boolean> =
+        dataStore.data.map { it[KEY_PINNED_MESSAGES_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
+
+    override fun setPinnedMessagesEnabled(enabled: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_PINNED_MESSAGES_ENABLED] = enabled } }
+    }
+
     override val eventThemeEnabled: StateFlow<Boolean> =
         dataStore.data.map { it[KEY_EVENT_THEME_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
 
@@ -380,6 +427,12 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         val KEY_FILE_TRANSFER_ENABLED = booleanPreferencesKey("file-transfer-enabled")
         val KEY_PHOTO_HOSTING_ENABLED = booleanPreferencesKey("photo-hosting-enabled")
         val KEY_PHOTO_HOSTING_PROVIDER = stringPreferencesKey("photo-hosting-provider")
+        val KEY_BUILT_IN_IMAGE_VIEWER_ENABLED = booleanPreferencesKey("built-in-image-viewer")
+        val KEY_INSERT_PHOTO_LINK_ENABLED = booleanPreferencesKey("insert-photo-link")
+        val KEY_SEND_ON_ENTER_ENABLED = booleanPreferencesKey("send-on-enter")
+        val KEY_SHOW_BELL_BUTTON = booleanPreferencesKey("show-bell-button")
+        val KEY_REACTION_NOTIFICATION_MODE = stringPreferencesKey("reaction-notification-mode")
+        val KEY_PINNED_MESSAGES_ENABLED = booleanPreferencesKey("pinned-messages-enabled")
         val KEY_EVENT_THEME_ENABLED = booleanPreferencesKey("event-theme-enabled")
 
         val KEY_APP_INTRO_COMPLETED = booleanPreferencesKey("app_intro_completed")

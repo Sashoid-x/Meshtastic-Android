@@ -66,6 +66,11 @@
     <string name="admin_key">Admin Key</string>
     <string name="admin_keys">Admin Keys</string>
     <string name="administration">Administration</string>
+    <!-- ADV -->
+    <string name="adv_section_advanced">Advanced</string>
+    <string name="adv_section_media">Media &amp; Files</string>
+    <string name="adv_section_messaging">Messaging</string>
+    <string name="adv_section_notifications">Notifications</string>
     <string name="adv_settings">ADV Settings</string>
     <string name="adv_settings_summary">Manage extended and experimental mod features</string>
     <string name="advanced">Advanced</string>
@@ -186,6 +191,8 @@
     <string name="boot_reconnect_blocked_title">Meshtastic can't reconnect</string>
     <string name="bottom_nav_settings">Settings</string>
     <string name="broadcast_interval">Broadcast Interval</string>
+    <string name="built_in_image_viewer">Built-in Image Viewer</string>
+    <string name="built_in_image_viewer_summary">Open images in the app with zoom and pan support</string>
     <string name="busy_noise_floor">Busy floor</string>
     <string name="button_gpio">Button GPIO</string>
     <string name="buzzer_gpio">Buzzer GPIO</string>
@@ -914,7 +921,12 @@
     <string name="ignore_incoming">Ignore incoming</string>
     <string name="ignore_mqtt">Ignore MQTT</string>
     <string name="ignore_remove">Remove '%1$s' from ignore list?</string>
+    <!-- IMAGE -->
     <string name="image_loading_error">Image unavailable</string>
+    <string name="image_viewer_open_system">Open in System</string>
+    <string name="image_viewer_save">Save</string>
+    <string name="image_viewer_saved_success">Image saved to Downloads</string>
+    <string name="image_viewer_share">Share</string>
     <!-- IMPORT -->
     <string name="import_configuration">Import configuration</string>
     <string name="import_export_label">Import/Export</string>
@@ -928,10 +940,13 @@
     <string name="info">Information</string>
     <string name="input_channel_url">Input Shared Channels URL</string>
     <string name="input_shared_contact_url">Input Shared Contact URL</string>
+    <!-- INSERT -->
     <string name="insert">Insert</string>
     <string name="insert_link_message">Enter the URL for the selected text</string>
     <string name="insert_link_title">Insert Link</string>
     <string name="insert_link_url_hint">https://</string>
+    <string name="insert_photo_link">Insert Photo Link</string>
+    <string name="insert_photo_link_summary">Insert uploaded photo link into input field instead of auto-sending</string>
     <string name="installed_firmware_version">Currently Installed</string>
     <string name="internal">Internal</string>
     <string name="interval_always_on">Always On</string>
@@ -945,6 +960,7 @@
     <string name="json_output_enabled">JSON output enabled</string>
     <string name="jump_to_latest_from">%1$s</string>
     <string name="jump_to_latest_from_and_more">%1$s +%2$d</string>
+    <string name="jump_to_message">Jump to message</string>
     <!-- KEY -->
     <string name="key_backup_deleted">Key backup deleted</string>
     <string name="key_backup_not_found">No key backup found for this node</string>
@@ -1326,6 +1342,7 @@
     <string name="no_network_devices_hint">Ensure you're connected to the same network as the device.</string>
     <string name="no_network_devices_seen">No network devices seen</string>
     <string name="no_pax_metrics_logs">No PAX metrics available.</string>
+    <string name="no_pinned_messages">No pinned messages</string>
     <string name="no_usb_devices_found">No USB devices found</string>
     <string name="no_usb_devices_hint">Connect a device with a USB data cable to use serial.</string>
     <string name="no_usb_devices_seen">No USB devices detected</string>
@@ -1515,7 +1532,11 @@
     <string name="photo_hosting_provider_meshpic">Meshpic</string>
     <string name="photo_hosting_setting">Photo Hosting</string>
     <string name="photo_hosting_setting_summary">Upload photos to hosting service and share links in chat</string>
+    <string name="pin_message">Pin</string>
     <string name="pin_selected">Pin</string>
+    <string name="pinned_messages">Pinned Messages</string>
+    <string name="pinned_messages_summary">Pin important messages in chat for quick access</string>
+    <string name="pinned_messages_title">Pinned Messages</string>
     <string name="pixel_art_messaging">Pixel Art</string>
     <string name="pixel_art_messaging_summary">Monochrome pixel art editor and chat rendering</string>
     <string name="play">Play</string>
@@ -1597,6 +1618,12 @@
     <string name="range_test_config">Range Test Config</string>
     <string name="range_test_enabled">Range test enabled</string>
     <string name="react">React</string>
+    <!-- REACTION -->
+    <string name="reaction_mode_all">All reactions</string>
+    <string name="reaction_mode_disabled">Disabled</string>
+    <string name="reaction_mode_private_only">Private chats only</string>
+    <string name="reaction_notifications">Reaction Notifications</string>
+    <string name="reaction_notifications_summary">Configure notifications for emoji reactions</string>
     <string name="reboot">Reboot</string>
     <!-- REBROADCAST -->
     <string name="rebroadcast_mode">Rebroadcast Mode</string>
@@ -1767,9 +1794,12 @@
     <string name="select_all">Select all</string>
     <string name="selected">Selected</string>
     <string name="selected_map_type">Selected Map Type</string>
+    <!-- SEND -->
     <string name="send">Send</string>
     <string name="send_bell">Send bell</string>
     <string name="send_bell_with_alert_message">Send bell with alert message</string>
+    <string name="send_on_enter">Send on Enter</string>
+    <string name="send_on_enter_summary">Send message by pressing Enter. When disabled, Enter inserts a new line</string>
     <string name="sender_message_interval_seconds">Sender message interval (seconds)</string>
     <!-- SERIAL -->
     <string name="serial">Serial</string>
@@ -1801,6 +1831,8 @@
     <string name="should_update_firmware">Firmware Update Recommended.</string>
     <!-- SHOW -->
     <string name="show_all_key_title">Encryption Key Meanings</string>
+    <string name="show_bell_button">Quick Chat Bell Button</string>
+    <string name="show_bell_button_summary">Show the alert bell button in the quick chat bar</string>
     <string name="show_full_message_timestamps">Show full message timestamps</string>
     <string name="show_full_message_timestamps_summary">Always show the date and time in conversation headers and message actions</string>
     <string name="show_iaq_legend">Show air quality legend</string>
@@ -2039,6 +2071,7 @@
     <string name="unmonitored_or_infrastructure">Unmonitored or Infrastructure</string>
     <string name="unmute">Unmute</string>
     <string name="unmute_selected">Unmute selected</string>
+    <string name="unpin_message">Unpin</string>
     <string name="unpin_selected">Unpin</string>
     <string name="unrecognized">Unrecognized</string>
     <string name="unset">Unset - 0</string>

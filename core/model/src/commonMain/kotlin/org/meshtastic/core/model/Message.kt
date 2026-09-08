@@ -268,6 +268,8 @@ data class Message(
     val portNum: Int = 1,
     /** Raw packet bytes when payload is binary (e.g. encoded monochrome image). */
     val rawBytes: ByteArray? = null,
+    /** Whether this message is pinned in the conversation. */
+    val pinnedMessage: Boolean = false,
 ) {
     /**
      * Epoch millis behind the displayed [time]: mesh time when the radio stamped one, otherwise the local

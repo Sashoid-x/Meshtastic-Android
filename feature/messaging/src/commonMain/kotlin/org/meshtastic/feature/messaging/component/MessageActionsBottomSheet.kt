@@ -59,6 +59,7 @@ import org.meshtastic.core.resources.delete
 import org.meshtastic.core.resources.device_metrics_label_value
 import org.meshtastic.core.resources.message_delivery_status
 import org.meshtastic.core.resources.more_reactions
+import org.meshtastic.core.resources.pin_message
 import org.meshtastic.core.resources.reply
 import org.meshtastic.core.resources.security_signed_message_info
 import org.meshtastic.core.resources.security_signed_verified
@@ -67,10 +68,12 @@ import org.meshtastic.core.resources.show_original
 import org.meshtastic.core.resources.show_translation
 import org.meshtastic.core.resources.timestamp
 import org.meshtastic.core.resources.translate
+import org.meshtastic.core.resources.unpin_message
 import org.meshtastic.core.ui.icon.AddReaction
 import org.meshtastic.core.ui.icon.Copy
 import org.meshtastic.core.ui.icon.Delete
 import org.meshtastic.core.ui.icon.History
+import org.meshtastic.core.ui.icon.Keep
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.More
 import org.meshtastic.core.ui.icon.Reply
@@ -78,7 +81,7 @@ import org.meshtastic.core.ui.icon.SelectAll
 import org.meshtastic.core.ui.icon.ShieldCheck
 import org.meshtastic.core.ui.icon.Translate
 
-@Suppress("LongMethod")
+@Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
 fun MessageActionsContent(
     quickEmojis: List<String>,
@@ -89,6 +92,7 @@ fun MessageActionsContent(
     onSelect: () -> Unit,
     onDelete: () -> Unit,
     onStatus: () -> Unit,
+    modifier: Modifier = Modifier,
     statusString: Pair<StringResource, StringResource>? = null,
     status: MessageStatus? = null,
     timestamp: String? = null,
@@ -96,8 +100,11 @@ fun MessageActionsContent(
     translationRowState: TranslationRowState? = null,
     onTranslate: () -> Unit = {},
     onToggleTranslation: () -> Unit = {},
+    pinnedMessagesEnabled: Boolean = false,
+    isPinned: Boolean = false,
+    onTogglePin: () -> Unit = {},
 ) {
-    Column {
+    Column(modifier = modifier) {
         QuickEmojiRow(quickEmojis = quickEmojis, onReact = onReact, onMoreReactions = onMoreReactions)
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -172,6 +179,20 @@ fun MessageActionsContent(
                 onClick = onCopy,
             ),
         )
+
+        if (pinnedMessagesEnabled) {
+            val pinText =
+                if (isPinned) {
+                    stringResource(Res.string.unpin_message)
+                } else {
+                    stringResource(Res.string.pin_message)
+                }
+            ListItem(
+                headlineContent = { Text(pinText) },
+                leadingContent = { Icon(MeshtasticIcons.Keep, contentDescription = pinText) },
+                modifier = Modifier.clickable(onClickLabel = pinText, role = Role.Button, onClick = onTogglePin),
+            )
+        }
 
         if (translationRowState != null) {
             val headline =

@@ -40,6 +40,7 @@ import org.meshtastic.core.model.MyNodeInfo
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeListDensity
 import org.meshtastic.core.model.PhotoHostingProvider
+import org.meshtastic.core.model.ReactionNotificationMode
 import org.meshtastic.core.repository.FileService
 import org.meshtastic.core.repository.MeshLogPrefs
 import org.meshtastic.core.repository.NodeRepository
@@ -199,6 +200,42 @@ class SettingsViewModel(
 
     fun setPhotoHostingProvider(provider: PhotoHostingProvider) {
         uiPrefs.setPhotoHostingProvider(provider)
+    }
+
+    val builtInImageViewerEnabled = uiPrefs.builtInImageViewerEnabled
+
+    fun setBuiltInImageViewerEnabled(enabled: Boolean) {
+        uiPrefs.setBuiltInImageViewerEnabled(enabled)
+    }
+
+    val insertPhotoLinkEnabled = uiPrefs.insertPhotoLinkEnabled
+
+    fun setInsertPhotoLinkEnabled(enabled: Boolean) {
+        uiPrefs.setInsertPhotoLinkEnabled(enabled)
+    }
+
+    val sendOnEnterEnabled = uiPrefs.sendOnEnterEnabled
+
+    fun setSendOnEnterEnabled(enabled: Boolean) {
+        uiPrefs.setSendOnEnterEnabled(enabled)
+    }
+
+    val showBellButton = uiPrefs.showBellButton
+
+    fun setShowBellButton(show: Boolean) {
+        uiPrefs.setShowBellButton(show)
+    }
+
+    val reactionNotificationMode = uiPrefs.reactionNotificationMode
+
+    fun setReactionNotificationMode(mode: ReactionNotificationMode) {
+        uiPrefs.setReactionNotificationMode(mode)
+    }
+
+    val pinnedMessagesEnabled = uiPrefs.pinnedMessagesEnabled
+
+    fun setPinnedMessagesEnabled(enabled: Boolean) {
+        uiPrefs.setPinnedMessagesEnabled(enabled)
     }
 
     /** Set the application locale. Empty string means system default. */
