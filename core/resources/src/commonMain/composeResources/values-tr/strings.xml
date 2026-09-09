@@ -193,7 +193,6 @@
     <string name="encryption_enabled">Şifreleme etkin</string>
     <string name="encryption_error">Genel Anahtar Uyuşmazlığı</string>
     <string name="encryption_pkc">Genel Anahtar Şifrelemesi</string>
-    <string name="encryption_psk">Paylaşılan Anahtar</string>
     <!-- ENVIRONMENT -->
     <string name="environment">Çevre</string>
     <string name="environment_metrics_module_enabled">Çevre metrikleri modülü etkin</string>
@@ -397,6 +396,7 @@
     <string name="nodeinfo_broadcast_interval">Node Bilgisi Yayın Aralığı</string>
     <!-- NODES -->
     <string name="nodes">Düğümler</string>
+    <string name="nodes_unheard_remove">Kaldır</string>
     <string name="none">Hiçbiri (kapat)</string>
     <string name="none_quality">Yok</string>
     <string name="not_connected">Bağlı değil</string>

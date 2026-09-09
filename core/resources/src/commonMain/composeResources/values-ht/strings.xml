@@ -87,7 +87,6 @@
     <!-- ENCRYPTION -->
     <string name="encryption_error">Pa matche kle piblik</string>
     <string name="encryption_pkc">Chifreman Kle Piblik</string>
-    <string name="encryption_psk">Kle Pataje</string>
     <!-- ENVIRONMENT -->
     <string name="error">Erè</string>
     <string name="error_duty_cycle">Limit sik devwa rive. Pa ka voye mesaj kounye a, tanpri eseye ankò pita.</string>
@@ -181,6 +180,7 @@
     <string name="node_sort_via_mqtt">atravè MQTT</string>
     <string name="nodedb_reset">Reyajiste NodeDB</string>
     <!-- NODES -->
+    <string name="nodes_unheard_remove">Retire</string>
     <string name="none">Okenn (enfim)</string>
     <string name="none_quality">Pa gen</string>
     <string name="not_connected">Pa konekte</string>

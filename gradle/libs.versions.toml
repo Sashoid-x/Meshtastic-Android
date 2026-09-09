@@ -86,14 +86,14 @@ ktor = "3.5.2"
 aboutlibraries = "15.2.0"
 jserialcomm = "2.11.4"
 coil = "3.6.2"
-datadog-gradle = "1.30.0"
+datadog-gradle = "1.31.0"
 dd-sdk-android = "3.13.1"
 detekt = "2.0.0-alpha.6"
 dokka = "2.2.0"
 devtools-ksp = "2.3.11"
 firebase-crashlytics-gradle = "3.0.8"
 google-services-gradle = "4.5.0"
-markdown = "0.7.11"
+markdown = "0.7.12"
 markdownRenderer = "0.45.0"
 okio = "3.18.2"
 uri-kmp = "0.0.21"
@@ -104,11 +104,11 @@ mqttastic = "0.8.1"
 jmdns = "3.6.3"
 qrcode-kotlin = "4.5.0"
 takpacket-sdk = "0.9.1"
-meshtastic-protobufs = "2.8.0"
+meshtastic-protobufs = "2.8.0.23-gca2cb1a-SNAPSHOT"
 
 # Gradle Plugins
 ccud = "2.8.0"
-develocity = "4.5.0"
+develocity = "4.5.1"
 foojay-resolver = "1.0.0"
 
 
@@ -311,7 +311,7 @@ jserialcomm = { module = "com.fazecast:jSerialComm", version.ref = "jserialcomm"
 okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 okio-fakefilesystem = { module = "com.squareup.okio:okio-fakefilesystem", version.ref = "okio" }
 uri-kmp = { module = "com.eygraber:uri-kmp", version.ref = "uri-kmp" }
-kermit = { module = "co.touchlab:kermit", version = "2.1.0" }
+kermit = { module = "co.touchlab:kermit", version = "2.2.0" }
 # Debug-only leak/GC-thrash detector -- see feature/settings/.../debugging/DebugViewModel.kt and
 # core/data/.../manager/MeshMessageProcessorImpl.kt for the adversarial-mesh-fuzz bugs this class of
 # tooling is meant to catch going forward. Stable release (not the 3.0-alpha line).

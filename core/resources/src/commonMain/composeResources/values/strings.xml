@@ -441,6 +441,7 @@
     <string name="device_db_cache_limit_summary">Max device databases to keep on this phone</string>
     <string name="device_gps">Device GPS</string>
     <string name="device_links">Device Links</string>
+    <string name="device_links_affiliate_disclosure">Product links may be affiliate links — purchases may earn Meshtastic a commission.</string>
     <string name="device_links_i_want_one">I want one</string>
     <string name="device_links_open_in_browser">Open in browser</string>
     <string name="device_metrics_label_value">%1$s: %2$s</string>
@@ -636,8 +637,6 @@
     <string name="encryption_error_text">The public key does not match the recorded key. You may remove the node and let it exchange keys again, but this may indicate a more security problem. Contact the user through another trusted channel, to determine if the key change was due to a factory reset or other intentional action.</string>
     <string name="encryption_pkc">Public Key Encryption</string>
     <string name="encryption_pkc_text">Direct messages are using the new public key infrastructure for encryption.</string>
-    <string name="encryption_psk">Shared Key</string>
-    <string name="encryption_psk_text">Only channel messages can be sent/received. Direct Messages require the Public Key Infrastructure feature in 2.5+ firmware.</string>
     <string name="env_metrics_log">Environment Metrics</string>
     <!-- ENVIRONMENT -->
     <string name="environment">Environment</string>
@@ -1343,6 +1342,8 @@
     <string name="no_network_devices_seen">No network devices seen</string>
     <string name="no_pax_metrics_logs">No PAX metrics available.</string>
     <string name="no_pinned_messages">No pinned messages</string>
+    <string name="no_public_key">No public key</string>
+    <string name="no_public_key_text">This node has not shared a public key, so direct messages to it cannot be sent. Request User Info to ask for one.</string>
     <string name="no_usb_devices_found">No USB devices found</string>
     <string name="no_usb_devices_hint">Connect a device with a USB data cable to use serial.</string>
     <string name="no_usb_devices_seen">No USB devices detected</string>
@@ -1353,6 +1354,7 @@
     <string name="node_count_total">%1$d total</string>
     <string name="node_filter_exclude_infrastructure">Exclude infrastructure</string>
     <string name="node_filter_exclude_mqtt">Exclude MQTT</string>
+    <string name="node_filter_exclude_unheard">Hide unheard nodes</string>
     <string name="node_filter_ignored">You are viewing ignored nodes,\nPress to return to the node list.</string>
     <string name="node_filter_include_unknown">Include unknown</string>
     <string name="node_filter_only_direct">Only show direct nodes</string>
@@ -1389,6 +1391,7 @@
     <string name="node_list_help_node_details">Node Details</string>
     <string name="node_list_help_title">Node List Help</string>
     <string name="node_list_long_click_label">Node options</string>
+    <string name="node_not_heard_on_current_lora">Not heard since you changed settings</string>
     <string name="node_number">Node Number</string>
     <string name="node_request_send_failed">Couldn't send request. Try again.</string>
     <string name="node_restarting">Restarting…</string>
@@ -1411,6 +1414,10 @@
     <string name="nodes_empty_searching_hint">Nearby nodes will appear here as they're discovered.</string>
     <string name="nodes_empty_searching_title">Searching for nodes</string>
     <string name="nodes_queued_for_deletion">%1$d nodes queued for deletion:</string>
+    <string name="nodes_unheard_banner">%1$d nodes not heard since you changed settings</string>
+    <string name="nodes_unheard_banner_one">1 node not heard since you changed settings</string>
+    <string name="nodes_unheard_keep">Keep</string>
+    <string name="nodes_unheard_remove">Remove</string>
     <string name="noise_floor">Noise Floor</string>
     <string name="noise_floor_definition">The background RF noise measured by the radio receiver. Lower values usually indicate a quieter receiver environment; -85 dBm is a busy reference point, not a hard failure threshold.</string>
     <string name="noise_floor_no_reading">Noise Floor: No reading</string>
@@ -1677,6 +1684,7 @@
     <string name="request_pax_metrics">Pax Metrics</string>
     <string name="request_power_metrics">Power Metrics</string>
     <string name="request_telemetry">Request Telemetry</string>
+    <string name="request_user_info">Request User Info</string>
     <string name="requesting_from">Requesting %1$s from %2$s</string>
     <string name="resend">Resend</string>
     <string name="reset">Reset</string>
@@ -1826,6 +1834,7 @@
     <string name="share_location_description">Use your phone GPS to send locations to your node instead of using a hardware GPS on your node.</string>
     <string name="share_to">Share to…</string>
     <string name="share_your_location_in_real_time">Share your location in real-time and keep your group coordinated with integrated GPS features.</string>
+    <string name="shared_contact_no_public_key">This contact has no public key, so it cannot be imported. A contact without one clears any key your radio already holds for that node. Ask the sender to share it again once their node has exchanged keys.</string>
     <string name="short_name">Short Name</string>
     <string name="should_update">To benefit from the latest fixes and features, please update your node firmware.\n\nLatest stable firmware version: %1$s</string>
     <string name="should_update_firmware">Firmware Update Recommended.</string>

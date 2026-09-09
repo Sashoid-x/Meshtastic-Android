@@ -265,8 +265,6 @@
     <string name="encryption_error_text">Klucz publiczny nie pasuje do zapisanego klucza. Możesz usunąć węzeł i pozwolić mu na ponowną wymianę kluczy, ale może to oznaczać poważniejszy problem z bezpieczeństwem. Skontaktuj się z użytkownikiem przez inny zaufany kanał, żeby sprawdzić, czy zmiana klucza była spowodowana przywróceniem ustawień fabrycznych lub innym celowym działaniem.</string>
     <string name="encryption_pkc">Szyfrowanie klucza publicznego</string>
     <string name="encryption_pkc_text">Bezpośrednie wiadomości wykorzystują nową infrastrukturę klucza publicznego do szyfrowania.</string>
-    <string name="encryption_psk">Klucz współdzielony</string>
-    <string name="encryption_psk_text">Tylko wiadomości kanału mogą być wysyłane/odbierane. Bezpośrednie wiadomości wymagają funkcji infrastruktury klucza publicznego w oprogramowaniu 2.5+.</string>
     <string name="env_metrics_log">Metryki środowiskowe</string>
     <!-- ENVIRONMENT -->
     <string name="environment">Środowisko</string>
@@ -551,6 +549,7 @@
     <string name="nodes">Węzły</string>
     <string name="nodes_at_this_location">Węzły w tej lokalizacji</string>
     <string name="nodes_empty_disconnected_title">Brak podłączonych urządzeń</string>
+    <string name="nodes_unheard_remove">Usuń</string>
     <string name="none">Brak (wyłącz)</string>
     <string name="none_quality">brak</string>
     <string name="not_connected">Nie połączono</string>

@@ -535,8 +535,6 @@
     <string name="encryption_error_text">Der öffentliche Schlüssel stimmt nicht mit dem gespeicherten Schlüssel überein. Sie können den Knoten entfernen und den Schlüsselaustausch erneut durchführen lassen. Dies könnte jedoch auf ein schwerwiegenderes Sicherheitsproblem hindeuten. Kontaktieren Sie den Benutzer über einen anderen vertrauenswürdigen Kanal, um zu klären, ob die Schlüsseländerung auf ein Zurücksetzen auf Werkseinstellungen oder eine andere absichtliche Handlung zurückzuführen ist.</string>
     <string name="encryption_pkc">Verschlüsselung mit öffentlichen Schlüssel</string>
     <string name="encryption_pkc_text">Direktnachrichten verwenden zur den öffentlichen Knotenschlüssel zur Verschlüsselung.</string>
-    <string name="encryption_psk">Geteilter Schlüssel</string>
-    <string name="encryption_psk_text">Es können nur Kanalnachrichten gesendet/empfangen werden. Direktnachrichten erfordern die Verschlüsselung mit öffentlichem Knotenschlüssel seit Firmware 2.5+.</string>
     <string name="env_metrics_log">Umweltdaten</string>
     <!-- ENVIRONMENT -->
     <string name="environment">Umgebung</string>
@@ -1089,6 +1087,7 @@
     <string name="nodes_empty_searching_hint">Knoten in der Nähe erscheinen hier, sobald sie erreicht wurden.</string>
     <string name="nodes_empty_searching_title">Suche nach Knoten</string>
     <string name="nodes_queued_for_deletion">%1$d Knoten in der Warteschlange zum Löschen:</string>
+    <string name="nodes_unheard_remove">Entfernen</string>
     <string name="noise_floor">Lärmboden</string>
     <string name="noise_floor_definition">Das vom Funkempfänger gemessene HF-Hintergrundrauschen. Niedrigere Werte deuten in der Regel auf eine störungsärmere Empfangsumgebung hin; -85 dBm ist ein Referenzwert für eine hohe Auslastung, kein fester Schwellenwert für einen Ausfall.</string>
     <string name="noise_floor_no_reading">Lärmboden: kein Wert</string>

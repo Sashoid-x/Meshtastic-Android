@@ -572,8 +572,6 @@
     <string name="encryption_error_text">公钥与输入的密钥不匹配。 您可以移除该节点并让它再次交换密钥，但这可能会出现密钥泄露问题。 请通过另一个受信任的频道来联系用户，以确定密钥更改是否由于出厂重置或其他故意操作。</string>
     <string name="encryption_pkc">公钥加密</string>
     <string name="encryption_pkc_text">私信消息正在使用新的公用钥匙加密。</string>
-    <string name="encryption_psk">共享密钥</string>
-    <string name="encryption_psk_text">只能发送/接收频道消息。私信需要2.5及以上版本固件中的公钥加密。</string>
     <string name="env_metrics_log">传感器指标</string>
     <!-- ENVIRONMENT -->
     <string name="environment">环境</string>
@@ -1195,6 +1193,7 @@
     <string name="nodes_empty_searching_hint">附近节点在被发现后将显示在这里。</string>
     <string name="nodes_empty_searching_title">正在搜索节点</string>
     <string name="nodes_queued_for_deletion">%1$d 节点待删除：</string>
+    <string name="nodes_unheard_remove">移除</string>
     <string name="noise_floor">底噪</string>
     <string name="noise_floor_definition">无线电接收器测量到的背景射频噪声。较低的数值通常表示接收环境较为安静; -85 dBm 是一个表示环境繁忙的参考基准，而非硬性故障阈值。</string>
     <string name="noise_floor_no_reading">底噪:未获取到数据</string>

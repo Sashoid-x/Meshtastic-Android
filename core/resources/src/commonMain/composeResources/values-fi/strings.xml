@@ -621,8 +621,6 @@
     <string name="encryption_error_text">Julkinen avain ei vastaa tallennettua avainta. Voit poistaa laitteen ja antaa sen vaihtaa avaimet uudelleen, mutta tämä saattaa viitata vakavampaan tietoturvaongelmaan. Ota yhteyttä käyttäjään toista luotettua kanavaa pitkin selvittääksesi, johtuuko avaimen vaihtuminen tehdasasetusten palautuksesta tai muusta tarkoituksellisesta toimenpiteestä.</string>
     <string name="encryption_pkc">Julkisen avaimen salaus</string>
     <string name="encryption_pkc_text">Yksityisviesteissä käytetään uutta julkisen avaimen infrastruktuuria salaukseen.</string>
-    <string name="encryption_psk">Jaettu avain</string>
-    <string name="encryption_psk_text">Voit lähettää ja vastaanottaa vain kanavaviestejä. Yksityisviestit toimivat vasta, kun käytössä on ohjelmistoversio 2.5+ tai uudempi, jossa on tuki salausavaimille.</string>
     <string name="env_metrics_log">Ympäristöarvot</string>
     <!-- ENVIRONMENT -->
     <string name="environment">Ympäristö</string>
@@ -1336,6 +1334,7 @@
     <string name="nodes_empty_searching_hint">Lähistön radiot ilmestyvät tähän sitä mukaa kun niitä havaitaan.</string>
     <string name="nodes_empty_searching_title">Etsitään radioita</string>
     <string name="nodes_queued_for_deletion">%1$d laitetta jonossa poistettavaksi:</string>
+    <string name="nodes_unheard_remove">Poista</string>
     <string name="noise_floor">Kohinataso</string>
     <string name="noise_floor_definition">Radion vastaanottimen mittaama taustakohinan taso. Mitä pienempi arvo, sitä vähemmän radiotaustakohinaa ympäristössä yleensä on. Arvoa -85 dBm pidetään vilkkaan radiokanavan viitearvona, mutta se ei tarkoita automaattisesti yhteysongelmaa tai toimintahäiriötä.</string>
     <string name="noise_floor_no_reading">Kohinataso: Ei mittaustulosta</string>

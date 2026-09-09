@@ -290,8 +290,6 @@
     <string name="encryption_error">Publikus kulcs nem egyezik</string>
     <string name="encryption_pkc">Publikus Kulcs Titkosítás</string>
     <string name="encryption_pkc_text">A közvetlen üzenetek az új nyilvános kulcsú infrastruktúrát használják titkosításhoz.</string>
-    <string name="encryption_psk">Megosztott kulcs</string>
-    <string name="encryption_psk_text">Csak csatornaüzenetek küldhetők/fogadhatók. Közvetlen üzenetekhez a 2.5+ firmware PKI funkciója szükséges.</string>
     <string name="env_metrics_log">Környezeti metrikák</string>
     <!-- ENVIRONMENT -->
     <string name="environment">Környezet</string>
@@ -578,6 +576,7 @@
     <string name="nodes">Csomópontok</string>
     <string name="nodes_at_this_location">Csomópontok ezen a helyen</string>
     <string name="nodes_queued_for_deletion">%1$d csomópont vár törlésre:</string>
+    <string name="nodes_unheard_remove">Törlés</string>
     <string name="none">Egyik sem (letiltás)</string>
     <string name="none_quality">Semmi</string>
     <string name="not_connected">Nincs kapcsolat</string>

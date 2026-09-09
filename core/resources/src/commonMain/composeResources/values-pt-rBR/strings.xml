@@ -255,7 +255,6 @@
     <string name="encryption_enabled">Criptografia ativada</string>
     <string name="encryption_error">Chave pública não confere</string>
     <string name="encryption_pkc">Criptografia de Chave Pública</string>
-    <string name="encryption_psk">Chave Compartilhada</string>
     <!-- ENVIRONMENT -->
     <string name="environment">Ambiente</string>
     <string name="environment_metrics_module_enabled">Módulo de métricas do ambiente ativado</string>
@@ -496,6 +495,7 @@
     <string name="nodes">Nós</string>
     <string name="nodes_at_this_location">Nós neste local</string>
     <string name="nodes_queued_for_deletion">%1$d nós na fila para exclusão:</string>
+    <string name="nodes_unheard_remove">Excluir</string>
     <string name="none">Nenhum (desabilitado)</string>
     <string name="none_quality">Nenhum</string>
     <string name="not_connected">Não conectado</string>
