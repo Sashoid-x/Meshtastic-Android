@@ -27,8 +27,20 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.okio.decodeFromBufferedSource
+import kotlinx.serialization.json.okio.encodeToBufferedSink
+import okio.BufferedSink
+import okio.BufferedSource
 import okio.ByteString.Companion.toByteString
 import org.koin.core.annotation.Single
+import org.meshtastic.core.common.util.nowMillis
+import org.meshtastic.core.data.model.MessagesExport
+import org.meshtastic.core.data.model.fingerprint
+import org.meshtastic.core.data.model.toContactSettings
+import org.meshtastic.core.data.model.toExport
+import org.meshtastic.core.data.model.toPacket
+import org.meshtastic.core.data.model.toReactionEntity
 import org.meshtastic.core.database.DatabaseProvider
 import org.meshtastic.core.database.dao.NodeInfoDao
 import org.meshtastic.core.database.entity.PacketEntity
@@ -37,6 +49,7 @@ import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.Message
+import org.meshtastic.core.model.MessageImportResult
 import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
@@ -48,6 +61,7 @@ import org.meshtastic.core.repository.PersistedReactionId
 import org.meshtastic.proto.ChannelSettings
 import org.meshtastic.proto.MeshPacket
 import org.meshtastic.proto.PortNum
+import kotlin.time.Instant
 import org.meshtastic.core.database.entity.ContactSettings as ContactSettingsEntity
 import org.meshtastic.core.database.entity.Packet as RoomPacket
 import org.meshtastic.core.database.entity.ReactionEntity as RoomReaction
@@ -642,6 +656,85 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
      */
     private fun sanitizeFtsQuery(query: String): String =
         query.split("\\s+".toRegex()).filter { it.isNotBlank() }.joinToString(" ") { "\"${it.replace("\"", "")}\"" }
+
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    override suspend fun exportMessagesToJson(sink: BufferedSink): Int = withContext(dispatchers.io) {
+        val (packets, reactions, contactSettings) =
+            dbManager.withReadDb { db ->
+                val pDao = db.packetDao()
+                Triple(
+                    pDao.getAllPacketsSnapshot(),
+                    pDao.getAllReactionsSnapshot(),
+                    pDao.getAllContactSettingsSnapshot(),
+                )
+            }
+
+        val export =
+            MessagesExport(
+                schemaVersion = 1,
+                exportedAt = Instant.fromEpochMilliseconds(nowMillis).toString(),
+                packets = packets.map { it.toExport() },
+                reactions = reactions.map { it.toExport() },
+                contactSettings = contactSettings.map { it.toExport() },
+            )
+
+        val json = Json {
+            prettyPrint = true
+            explicitNulls = false
+        }
+        json.encodeToBufferedSink(export, sink)
+        sink.flush()
+        packets.size
+    }
+
+    @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
+    override suspend fun importMessagesFromJson(source: BufferedSource): MessageImportResult =
+        withContext(dispatchers.io) {
+            val json = Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            }
+            val export: MessagesExport = json.decodeFromBufferedSource(source)
+
+            dbManager.withDb { db ->
+                val pDao = db.packetDao()
+                val existingPackets = pDao.getAllPacketsSnapshot()
+                val existingFingerprints = existingPackets.mapTo(HashSet(existingPackets.size)) { it.fingerprint() }
+
+                var importedCount = 0
+                var skippedCount = 0
+
+                for (packetDto in export.packets) {
+                    val fp = packetDto.fingerprint()
+                    if (fp in existingFingerprints) {
+                        skippedCount++
+                    } else {
+                        pDao.insertPacketForMerge(packetDto.toPacket())
+                        existingFingerprints.add(fp)
+                        importedCount++
+                    }
+                }
+
+                if (export.reactions.isNotEmpty()) {
+                    pDao.insertReactionsIgnore(export.reactions.map { it.toReactionEntity() })
+                }
+
+                if (export.contactSettings.isNotEmpty()) {
+                    pDao.insertContactSettingsIgnore(export.contactSettings.map { it.toContactSettings() })
+                }
+
+                if (importedCount > 0) {
+                    pDao.rebuildFtsIndex()
+                }
+
+                MessageImportResult(
+                    importedPackets = importedCount,
+                    skippedPackets = skippedCount,
+                    importedReactions = export.reactions.size,
+                    totalPackets = export.packets.size,
+                )
+            } ?: MessageImportResult(0, 0, 0, 0)
+        }
 
     companion object {
         private const val CONTACTS_PAGE_SIZE = 30

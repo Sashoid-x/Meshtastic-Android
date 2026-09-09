@@ -21,6 +21,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
 import org.meshtastic.core.ui.theme.AppTheme
 import kotlin.test.Test
@@ -47,6 +48,9 @@ class AboutScreenTest {
         // Top app bar
         onNodeWithText("About").assertIsDisplayed()
 
+        // Mod description section
+        onNodeWithText("Meshtastic Advanced Mod").assertIsDisplayed()
+
         // What is Meshtastic section
         onNodeWithText("What is Meshtastic?").assertIsDisplayed()
         onNodeWithText(
@@ -55,27 +59,34 @@ class AboutScreenTest {
             .assertIsDisplayed()
 
         // Apps section
-        onNodeWithText("Apps").assertIsDisplayed()
-        onNodeWithText("Need Hardware?").assertIsDisplayed()
+        onNodeWithText("Apps").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Need Hardware?").performScrollTo().assertIsDisplayed()
         onNodeWithText(
             "Meshtastic requires a compatible device. Our backers and partners offer ready-to-use hardware. " +
                 "Here are some of the most popular options.",
         )
+            .performScrollTo()
             .assertIsDisplayed()
-        onNodeWithText("GitHub Repository").assertIsDisplayed()
-        onNodeWithText("Version").assertIsDisplayed()
-        onNodeWithText("2.5.0").assertIsDisplayed()
-        onNodeWithText("Acknowledgements").assertIsDisplayed()
+        onNodeWithText("GitHub Repository").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Version").performScrollTo().assertIsDisplayed()
+        onNodeWithText("2.5.0-adv").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Acknowledgements").performScrollTo().assertIsDisplayed()
 
         // Project information section
-        onNodeWithText("Project information").assertIsDisplayed()
-        onNodeWithText("Website").assertIsDisplayed()
-        onNodeWithText("Documentation").assertIsDisplayed()
+        onNodeWithText("Project information").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Website").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Documentation").performScrollTo().assertIsDisplayed()
 
         // Copyright footer
-        onNodeWithText("Meshtastic® Copyright Meshtastic LLC").assertIsDisplayed()
+        onNodeWithText("Meshtastic® Copyright Meshtastic LLC").performScrollTo().assertIsDisplayed()
 
-        onNodeWithText("Acknowledgements").performClick()
+        // 5-tap on version opens testers dialog
+        onNodeWithText("2.5.0-adv").performScrollTo()
+        repeat(5) { onNodeWithText("2.5.0-adv").performClick() }
+        onNodeWithText("Beta Testers & Contributors").assertIsDisplayed()
+        onNodeWithText("Close").performClick()
+
+        onNodeWithText("Acknowledgements").performScrollTo().performClick()
         assertTrue(navigatedToAcknowledgements)
 
         onNodeWithContentDescription("Navigate Back").performClick()

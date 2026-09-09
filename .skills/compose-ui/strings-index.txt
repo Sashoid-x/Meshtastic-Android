@@ -11,7 +11,12 @@ a11y_node_online
 a11y_node_role
 a11y_node_signal
 a11y_nodes_at_hop
+### ABOUT ###
 about
+about_mod_description
+about_mod_testers_content
+about_mod_testers_title
+about_mod_title
 accept
 acknowledgements
 ### ACTION ###
@@ -49,10 +54,22 @@ admin_key
 admin_keys
 administration
 ### ADV ###
+adv_export_messages
+adv_export_messages_error
+adv_export_messages_success
+adv_export_messages_summary
+adv_import_messages
+adv_import_messages_confirm_message
+adv_import_messages_confirm_title
+adv_import_messages_error
+adv_import_messages_success
+adv_import_messages_summary
 adv_section_advanced
+adv_section_backup
 adv_section_media
 adv_section_messaging
 adv_section_notifications
+adv_section_photos
 adv_settings
 adv_settings_summary
 advanced

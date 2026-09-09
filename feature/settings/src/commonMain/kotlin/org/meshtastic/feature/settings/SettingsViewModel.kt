@@ -32,10 +32,13 @@ import org.meshtastic.core.common.state.HiddenFeaturesUnlock
 import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.common.util.UnitsOverride
 import org.meshtastic.core.domain.usecase.settings.ExportDataUseCase
+import org.meshtastic.core.domain.usecase.settings.ExportMessagesUseCase
 import org.meshtastic.core.domain.usecase.settings.ExportNodeDatabaseUseCase
+import org.meshtastic.core.domain.usecase.settings.ImportMessagesUseCase
 import org.meshtastic.core.domain.usecase.settings.IsOtaCapableUseCase
 import org.meshtastic.core.domain.usecase.settings.SetMeshLogSettingsUseCase
 import org.meshtastic.core.model.ConnectionState
+import org.meshtastic.core.model.MessageImportResult
 import org.meshtastic.core.model.MyNodeInfo
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeListDensity
@@ -66,6 +69,8 @@ class SettingsViewModel(
     private val setMeshLogSettingsUseCase: SetMeshLogSettingsUseCase,
     private val exportDataUseCase: ExportDataUseCase,
     private val exportNodeDatabaseUseCase: ExportNodeDatabaseUseCase,
+    private val exportMessagesUseCase: ExportMessagesUseCase,
+    private val importMessagesUseCase: ImportMessagesUseCase,
     private val isOtaCapableUseCase: IsOtaCapableUseCase,
     private val fileService: FileService,
     private val hiddenFeaturesUnlock: HiddenFeaturesUnlock,
@@ -271,6 +276,24 @@ class SettingsViewModel(
     /** Export the current device's node database as a JSON file at the given URI. */
     fun saveNodeDbJson(uri: CommonUri) {
         safeLaunch(tag = "saveNodeDbJson") { fileService.write(uri) { sink -> exportNodeDatabaseUseCase(sink) } }
+    }
+
+    /** Export all chat messages, reactions, and conversation settings to a JSON file at the given URI. */
+    fun exportMessages(uri: CommonUri, onResult: (Boolean, Int) -> Unit) {
+        safeLaunch(tag = "exportMessages") {
+            var count = 0
+            val success = fileService.write(uri) { sink -> count = exportMessagesUseCase(sink) }
+            onResult(success, count)
+        }
+    }
+
+    /** Import chat messages, reactions, and conversation settings from a JSON file at the given URI. */
+    fun importMessages(uri: CommonUri, onResult: (Boolean, MessageImportResult?) -> Unit) {
+        safeLaunch(tag = "importMessages") {
+            var result: MessageImportResult? = null
+            val success = fileService.read(uri) { source -> result = importMessagesUseCase(source) }
+            onResult(success && result != null, result)
+        }
     }
 
     // Node list layout preferences

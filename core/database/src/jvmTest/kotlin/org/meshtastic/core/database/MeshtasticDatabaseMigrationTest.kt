@@ -64,8 +64,13 @@ class MeshtasticDatabaseMigrationTest {
     @Test
     fun migrateAll() = runTest {
         helper.createDatabase(EARLIEST_SCHEMA_VERSION).close()
-        // Every bump through 52 is an @AutoMigration; 52→53 is the manual FTS-rebuild migration.
-        helper.runMigrationsAndValidate(latestSchemaVersion(), listOf(MeshtasticDatabase.MIGRATION_52_53)).close()
+        // 52→53 is manual FTS-rebuild; 58→59 is manual idempotent migration.
+        helper
+            .runMigrationsAndValidate(
+                latestSchemaVersion(),
+                listOf(MeshtasticDatabase.MIGRATION_52_53, MeshtasticDatabase.MIGRATION_58_59),
+            )
+            .close()
     }
 
     /**
@@ -377,6 +382,37 @@ class MeshtasticDatabaseMigrationTest {
             assertEquals(listOf("keep me"), queryColumn(connection, "SELECT notes FROM nodes WHERE num = 42"))
             assertEquals(listOf("1"), queryColumn(connection, "SELECT is_favorite FROM nodes WHERE num = 42"))
             assertEquals(listOf("1000"), queryColumn(connection, "SELECT last_heard FROM nodes WHERE num = 42"))
+        }
+    }
+
+    @Test
+    fun migration58to59AddsPinnedMessage() = runTest {
+        helper.createDatabase(58).use { connection ->
+            connection.execSQL(
+                "INSERT INTO packet (uuid, myNodeNum, port_num, contact_key, received_time, read, data, snr, rssi) " +
+                    "VALUES (1, 42, 1, '0^all', 1000, 1, '{}', 5.0, 0)",
+            )
+        }
+
+        helper.runMigrationsAndValidate(59, listOf(MeshtasticDatabase.MIGRATION_58_59)).use { connection ->
+            assertEquals(listOf("0"), queryColumn(connection, "SELECT pinned_message FROM packet WHERE uuid = 1"))
+            connection.execSQL("UPDATE packet SET pinned_message = 1 WHERE uuid = 1")
+            assertEquals(listOf("1"), queryColumn(connection, "SELECT pinned_message FROM packet WHERE uuid = 1"))
+        }
+    }
+
+    @Test
+    fun migration58to59HandlesPreExistingPinnedMessage() = runTest {
+        helper.createDatabase(58).use { connection ->
+            connection.execSQL("ALTER TABLE packet ADD COLUMN pinned_message INTEGER NOT NULL DEFAULT 0")
+            connection.execSQL(
+                "INSERT INTO packet (uuid, myNodeNum, port_num, contact_key, received_time, read, data, snr, " +
+                    "rssi, pinned_message) VALUES (1, 42, 1, '0^all', 1000, 1, '{}', 5.0, 0, 1)",
+            )
+        }
+
+        helper.runMigrationsAndValidate(59, listOf(MeshtasticDatabase.MIGRATION_58_59)).use { connection ->
+            assertEquals(listOf("1"), queryColumn(connection, "SELECT pinned_message FROM packet WHERE uuid = 1"))
         }
     }
 

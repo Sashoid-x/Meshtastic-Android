@@ -18,9 +18,12 @@ package org.meshtastic.core.repository
 
 import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
+import okio.BufferedSink
+import okio.BufferedSource
 import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.Message
+import org.meshtastic.core.model.MessageImportResult
 import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.Reaction
@@ -330,4 +333,12 @@ interface PacketRepository {
 
     /** Returns a reactive flow of pinned messages for a conversation. */
     fun getPinnedMessages(contactKey: String, getNode: suspend (String?) -> Node): Flow<List<Message>>
+
+    /**
+     * Exports all messages, reactions, and contact settings to a JSON stream. Returns the number of packets exported.
+     */
+    suspend fun exportMessagesToJson(sink: BufferedSink): Int
+
+    /** Imports messages, reactions, and contact settings from a JSON stream, deduplicating existing messages. */
+    suspend fun importMessagesFromJson(source: BufferedSource): MessageImportResult
 }

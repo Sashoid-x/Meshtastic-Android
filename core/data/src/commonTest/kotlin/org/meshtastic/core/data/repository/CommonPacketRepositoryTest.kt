@@ -432,5 +432,43 @@ abstract class CommonPacketRepositoryTest {
         assertTrue(unpinnedList.isEmpty())
     }
 
+    @Test
+    fun testExportAndImportMessagesRoundTrip() = runTest {
+        val contact = "0^all"
+        val packet =
+            DataPacket(
+                from = "!aaaa0001",
+                to = "^all",
+                bytes = "backup message".encodeToByteArray().toByteString(),
+                dataType = PortNum.TEXT_MESSAGE_APP.value,
+                id = 202,
+                status = MessageStatus.RECEIVED,
+            )
+        repository.savePacket(0, contact, packet, 1000L)
+
+        val buffer = okio.Buffer()
+        val count = repository.exportMessagesToJson(buffer)
+        assertEquals(1, count)
+        assertTrue(buffer.size > 0)
+
+        dbProvider.switchToNewDatabase()
+
+        val messagesBefore = repository.getMessagesFrom(contact, getNode = ::testNode).first()
+        assertTrue(messagesBefore.isEmpty())
+
+        val result = repository.importMessagesFromJson(buffer.copy())
+        assertEquals(1, result.importedPackets)
+        assertEquals(0, result.skippedPackets)
+        assertEquals(1, result.totalPackets)
+
+        val messagesAfter = repository.getMessagesFrom(contact, getNode = ::testNode).first()
+        assertEquals(1, messagesAfter.size)
+        assertEquals(202, messagesAfter.first().packetId)
+
+        val duplicateResult = repository.importMessagesFromJson(buffer.copy())
+        assertEquals(0, duplicateResult.importedPackets)
+        assertEquals(1, duplicateResult.skippedPackets)
+    }
+
     private fun testNode(id: String?): Node = Node(num = 0, user = User(id = id.orEmpty()))
 }

@@ -30,13 +30,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -54,9 +57,14 @@ import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.about
+import org.meshtastic.core.resources.about_mod_description
+import org.meshtastic.core.resources.about_mod_testers_content
+import org.meshtastic.core.resources.about_mod_testers_title
+import org.meshtastic.core.resources.about_mod_title
 import org.meshtastic.core.resources.acknowledgements
 import org.meshtastic.core.resources.app_version
 import org.meshtastic.core.resources.apps
+import org.meshtastic.core.resources.close
 import org.meshtastic.core.resources.copyright_notice
 import org.meshtastic.core.resources.documentation
 import org.meshtastic.core.resources.github_repository
@@ -77,14 +85,17 @@ import org.meshtastic.core.ui.icon.Memory
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.theme.AppTheme
 import org.meshtastic.feature.settings.component.ExpressiveSection
+import kotlin.time.Duration.Companion.seconds
 
 private const val CAROUSEL_INTERVAL_MS = 3000L
 private const val CROSSFADE_DURATION_MS = 500
 private val CAROUSEL_IMAGE_WIDTH = 110.dp
 private val CAROUSEL_IMAGE_HEIGHT = 130.dp
+private const val TESTERS_CLICK_COUNT = 5
+private const val TESTERS_TIMEOUT_SECONDS = 1
 
 private const val HARDWARE_URL = "https://meshtastic.org/#hardware"
-private const val GITHUB_REPO_URL = "https://github.com/meshtastic/Meshtastic-Android"
+private const val GITHUB_REPO_URL = "https://github.com/Sashoid-x/Meshtastic-Android"
 private const val WEBSITE_URL = "https://meshtastic.org"
 private const val DOCS_URL = "https://meshtastic.org/docs/getting-started"
 
@@ -136,6 +147,7 @@ fun AboutScreen(
                 .padding(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            ModDescriptionSection()
             WhatIsMeshtasticSection()
             AppsSection(
                 appVersionName = appVersionName,
@@ -149,6 +161,18 @@ fun AboutScreen(
             )
             CopyrightFooter()
         }
+    }
+}
+
+@Composable
+private fun ModDescriptionSection(modifier: Modifier = Modifier) {
+    ExpressiveSection(title = stringResource(Res.string.about_mod_title), modifier = modifier) {
+        Text(
+            text = stringResource(Res.string.about_mod_description),
+            modifier = Modifier.padding(16.dp),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
     }
 }
 
@@ -172,6 +196,25 @@ private fun AppsSection(
     onOpenRepoLink: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var clickCount by remember { mutableIntStateOf(0) }
+    var showTestersDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(clickCount) {
+        if (clickCount in 1..<TESTERS_CLICK_COUNT) {
+            delay(TESTERS_TIMEOUT_SECONDS.seconds)
+            clickCount = 0
+        }
+    }
+
+    val modVersionName =
+        remember(appVersionName) {
+            if (appVersionName.contains("adv", ignoreCase = true)) {
+                appVersionName
+            } else {
+                "$appVersionName-adv"
+            }
+        }
+
     ExpressiveSection(title = stringResource(Res.string.apps), modifier = modifier) {
         NeedHardwareRow(onOpenHardwareLink = onOpenHardwareLink)
         ListItem(
@@ -183,14 +226,32 @@ private fun AppsSection(
         ListItem(
             text = stringResource(Res.string.app_version),
             leadingIcon = MeshtasticIcons.Memory,
-            supportingText = appVersionName,
+            supportingText = modVersionName,
             trailingIcon = null,
+            onClick = {
+                clickCount = clickCount.inc().coerceIn(0, TESTERS_CLICK_COUNT)
+                if (clickCount == TESTERS_CLICK_COUNT) {
+                    clickCount = 0
+                    showTestersDialog = true
+                }
+            },
         )
         ListItem(
             text = stringResource(Res.string.acknowledgements),
             leadingIcon = MeshtasticIcons.Info,
             trailingIcon = MeshtasticIcons.ChevronRight,
             onClick = onNavigateToAcknowledgements,
+        )
+    }
+
+    if (showTestersDialog) {
+        AlertDialog(
+            onDismissRequest = { showTestersDialog = false },
+            title = { Text(text = stringResource(Res.string.about_mod_testers_title)) },
+            text = { Text(text = stringResource(Res.string.about_mod_testers_content)) },
+            confirmButton = {
+                TextButton(onClick = { showTestersDialog = false }) { Text(text = stringResource(Res.string.close)) }
+            },
         )
     }
 }

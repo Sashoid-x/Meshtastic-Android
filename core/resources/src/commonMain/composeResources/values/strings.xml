@@ -29,7 +29,12 @@
     <string name="a11y_node_role">role %1$s</string>
     <string name="a11y_node_signal">signal %1$s</string>
     <string name="a11y_nodes_at_hop">Hop %1$d: %2$d nodes</string>
+    <!-- ABOUT -->
     <string name="about">About</string>
+    <string name="about_mod_description">Extended modification of Meshtastic-Android with advanced features:\n• AI text compression\n• Send on Enter\n• Photo hosting (meshpic.org, MeshFiles)\n• Built-in image viewer with zoom &amp; pan\n• LoRa file transfer (MFT) &amp; Pixel art messaging\n• Pinned messages\n• Message database backup &amp; restore (JSON)</string>
+    <string name="about_mod_testers_content">Huge thanks for testing and improving Meshtastic Advanced:\n\n• art58\n• GRUZ 800\n• egare\n\nSpecial thanks to Vergeon for motivational criticism 😀</string>
+    <string name="about_mod_testers_title">Beta Testers &amp; Contributors</string>
+    <string name="about_mod_title">Meshtastic Advanced Mod</string>
     <string name="accept">Accept</string>
     <string name="acknowledgements">Acknowledgements</string>
     <!-- ACTION -->
@@ -67,10 +72,22 @@
     <string name="admin_keys">Admin Keys</string>
     <string name="administration">Administration</string>
     <!-- ADV -->
+    <string name="adv_export_messages">Export messages</string>
+    <string name="adv_export_messages_error">Failed to export messages</string>
+    <string name="adv_export_messages_success">Exported %1$d messages</string>
+    <string name="adv_export_messages_summary">Export all messages and reactions to a JSON file</string>
+    <string name="adv_import_messages">Import messages</string>
+    <string name="adv_import_messages_confirm_message">Do you want to import messages from this file? Existing messages will not be duplicated.</string>
+    <string name="adv_import_messages_confirm_title">Import messages</string>
+    <string name="adv_import_messages_error">Failed to import messages from file</string>
+    <string name="adv_import_messages_success">Imported %1$d messages (skipped duplicates: %2$d)</string>
+    <string name="adv_import_messages_summary">Restore messages and reactions from a JSON file</string>
     <string name="adv_section_advanced">Advanced</string>
+    <string name="adv_section_backup">Message Backup &amp; Restore</string>
     <string name="adv_section_media">Media &amp; Files</string>
     <string name="adv_section_messaging">Messaging</string>
     <string name="adv_section_notifications">Notifications</string>
+    <string name="adv_section_photos">Photos &amp; Images</string>
     <string name="adv_settings">ADV Settings</string>
     <string name="adv_settings_summary">Manage extended and experimental mod features</string>
     <string name="advanced">Advanced</string>

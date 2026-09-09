@@ -46,7 +46,9 @@ import org.meshtastic.core.common.BuildConfigProvider
 import org.meshtastic.core.common.state.HiddenFeaturesUnlock
 import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.domain.usecase.settings.ExportDataUseCase
+import org.meshtastic.core.domain.usecase.settings.ExportMessagesUseCase
 import org.meshtastic.core.domain.usecase.settings.ExportNodeDatabaseUseCase
+import org.meshtastic.core.domain.usecase.settings.ImportMessagesUseCase
 import org.meshtastic.core.domain.usecase.settings.IsOtaCapableUseCase
 import org.meshtastic.core.domain.usecase.settings.SetMeshLogSettingsUseCase
 import org.meshtastic.core.model.ConnectionState
@@ -108,6 +110,8 @@ class SettingsViewModelTest {
         val setMeshLogSettingsUseCase = SetMeshLogSettingsUseCase(meshLogRepository, appPreferences.meshLog)
         val exportDataUseCase = ExportDataUseCase(nodeRepository, meshLogRepository)
         val exportNodeDatabaseUseCase = ExportNodeDatabaseUseCase(nodeRepository)
+        val exportMessagesUseCase: ExportMessagesUseCase = mock(MockMode.autofill)
+        val importMessagesUseCase: ImportMessagesUseCase = mock(MockMode.autofill)
 
         viewModel =
             SettingsViewModel(
@@ -122,6 +126,8 @@ class SettingsViewModelTest {
                 setMeshLogSettingsUseCase = setMeshLogSettingsUseCase,
                 exportDataUseCase = exportDataUseCase,
                 exportNodeDatabaseUseCase = exportNodeDatabaseUseCase,
+                exportMessagesUseCase = exportMessagesUseCase,
+                importMessagesUseCase = importMessagesUseCase,
                 isOtaCapableUseCase = isOtaCapableUseCase,
                 fileService = fileService,
                 hiddenFeaturesUnlock = HiddenFeaturesUnlock(),
