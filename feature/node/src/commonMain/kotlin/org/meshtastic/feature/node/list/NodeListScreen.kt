@@ -320,6 +320,7 @@ fun NodeListScreen(
                                     thatNode = node,
                                     distanceUnits = state.distanceUnits,
                                     tempInFahrenheit = state.tempInFahrenheit,
+                                    pressureInMmHg = state.pressureInMmHg,
                                     onClick = { navigateToNodeDetails(node.num) },
                                     onLongClick = longClick,
                                     connectionState = connectionState,
@@ -348,6 +349,7 @@ fun NodeListScreen(
                                     showRole = showRole,
                                     showTelemetry = showTelemetry,
                                     tempInFahrenheit = state.tempInFahrenheit,
+                                    pressureInMmHg = state.pressureInMmHg,
                                     deviceImageUrl = deviceImageUrls[node.user.hw_model.value],
                                 )
                         }

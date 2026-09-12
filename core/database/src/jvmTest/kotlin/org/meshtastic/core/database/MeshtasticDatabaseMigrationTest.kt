@@ -64,11 +64,11 @@ class MeshtasticDatabaseMigrationTest {
     @Test
     fun migrateAll() = runTest {
         helper.createDatabase(EARLIEST_SCHEMA_VERSION).close()
-        // 52→53 is manual FTS-rebuild; 58→59 is manual idempotent migration.
+        // 52→53 is manual FTS-rebuild; 59→60 is manual idempotent migration.
         helper
             .runMigrationsAndValidate(
                 latestSchemaVersion(),
-                listOf(MeshtasticDatabase.MIGRATION_52_53, MeshtasticDatabase.MIGRATION_58_59),
+                listOf(MeshtasticDatabase.MIGRATION_52_53, MeshtasticDatabase.MIGRATION_59_60),
             )
             .close()
     }
@@ -441,7 +441,10 @@ class MeshtasticDatabaseMigrationTest {
             )
         }
 
-        helper.runMigrationsAndValidate(PINNED_MESSAGE_TO_VERSION, listOf(MeshtasticDatabase.MIGRATION_59_60)).use { connection ->
+        helper.runMigrationsAndValidate(
+            PINNED_MESSAGE_TO_VERSION,
+            listOf(MeshtasticDatabase.MIGRATION_59_60),
+        ).use { connection ->
             assertEquals(listOf("0"), queryColumn(connection, "SELECT pinned_message FROM packet WHERE uuid = 1"))
             connection.execSQL("UPDATE packet SET pinned_message = 1 WHERE uuid = 1")
             assertEquals(listOf("1"), queryColumn(connection, "SELECT pinned_message FROM packet WHERE uuid = 1"))
@@ -458,7 +461,10 @@ class MeshtasticDatabaseMigrationTest {
             )
         }
 
-        helper.runMigrationsAndValidate(PINNED_MESSAGE_TO_VERSION, listOf(MeshtasticDatabase.MIGRATION_59_60)).use { connection ->
+        helper.runMigrationsAndValidate(
+            PINNED_MESSAGE_TO_VERSION,
+            listOf(MeshtasticDatabase.MIGRATION_59_60),
+        ).use { connection ->
             assertEquals(listOf("1"), queryColumn(connection, "SELECT pinned_message FROM packet WHERE uuid = 1"))
         }
     }

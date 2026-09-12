@@ -44,12 +44,15 @@ import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.cancel
+import org.meshtastic.core.resources.file_transfer_action_open
+import org.meshtastic.core.resources.file_transfer_action_retry
 import org.meshtastic.core.resources.file_transfer_cancel
 import org.meshtastic.core.resources.file_transfer_chunk_progress
 import org.meshtastic.core.resources.file_transfer_complete
 import org.meshtastic.core.resources.file_transfer_error
 import org.meshtastic.core.resources.file_transfer_minimize
 import org.meshtastic.core.resources.file_transfer_receiving
+import org.meshtastic.core.resources.file_transfer_resend_pass
 import org.meshtastic.core.resources.file_transfer_saved
 import org.meshtastic.core.resources.file_transfer_select_file
 import org.meshtastic.core.resources.file_transfer_sending
@@ -210,7 +213,7 @@ private fun SendingProgressContent(state: TransferState.Sending) {
         }
         if (state.passNumber > 1) {
             Text(
-                text = "Досыл чанков (проход ${state.passNumber})",
+                text = stringResource(Res.string.file_transfer_resend_pass, state.passNumber),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -277,7 +280,7 @@ private fun ReceivingProgressContent(state: TransferState.Receiving) {
         }
         if (state.passNumber > 1) {
             Text(
-                text = "Досыл чанков (проход ${state.passNumber})",
+                text = stringResource(Res.string.file_transfer_resend_pass, state.passNumber),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -312,7 +315,7 @@ private fun TransferProgressButtons(
         is TransferState.Failed -> {
             Row {
                 if (state.canRetry && onRetry != null) {
-                    TextButton(onClick = onRetry) { Text(text = "Повторить") }
+                    TextButton(onClick = onRetry) { Text(text = stringResource(Res.string.file_transfer_action_retry)) }
                 }
                 TextButton(onClick = onDismiss) { Text(text = "OK") }
             }
@@ -321,7 +324,9 @@ private fun TransferProgressButtons(
         is TransferState.Completed -> {
             Row {
                 if (state.savedPath != null && onOpenFile != null) {
-                    TextButton(onClick = { onOpenFile(state.savedPath) }) { Text(text = "Открыть") }
+                    TextButton(onClick = { onOpenFile(state.savedPath) }) {
+                        Text(text = stringResource(Res.string.file_transfer_action_open))
+                    }
                 }
                 TextButton(onClick = onDismiss) { Text(text = "OK") }
             }

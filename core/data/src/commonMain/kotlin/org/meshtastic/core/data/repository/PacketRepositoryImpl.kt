@@ -23,6 +23,7 @@ import androidx.paging.map
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
@@ -39,6 +40,7 @@ import org.meshtastic.core.data.model.MessagesExport
 import org.meshtastic.core.data.model.fingerprint
 import org.meshtastic.core.data.model.toContactSettings
 import org.meshtastic.core.data.model.toExport
+import org.meshtastic.core.data.model.toMeshLog
 import org.meshtastic.core.data.model.toPacket
 import org.meshtastic.core.data.model.toReactionEntity
 import org.meshtastic.core.database.DatabaseProvider
@@ -658,37 +660,58 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
     private fun sanitizeFtsQuery(query: String): String =
         query.split("\\s+".toRegex()).filter { it.isNotBlank() }.joinToString(" ") { "\"${it.replace("\"", "")}\"" }
 
+    private fun packetMatchesType(portNum: Int, types: Set<BackupPacketType>): Boolean = when (portNum) {
+        PortNum.TEXT_MESSAGE_APP.value -> BackupPacketType.MESSAGES in types
+        PortNum.WAYPOINT_APP.value -> BackupPacketType.WAYPOINTS in types
+        PortNum.TELEMETRY_APP.value -> BackupPacketType.TELEMETRY in types
+        PortNum.POSITION_APP.value -> BackupPacketType.POSITIONS in types
+        PortNum.NODEINFO_APP.value -> BackupPacketType.NODE_INFO in types
+        PortNum.TRACEROUTE_APP.value -> BackupPacketType.TRACEROUTE in types
+        PortNum.PRIVATE_APP.value -> BackupPacketType.PRIVATE_APP in types
+        else -> BackupPacketType.OTHER in types
+    }
+
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
     override suspend fun exportMessagesToJson(sink: BufferedSink, types: Set<BackupPacketType>): Int =
         withContext(dispatchers.io) {
-            val (packets, reactions, contactSettings) =
-                dbManager.withReadDb { db ->
-                    val pDao = db.packetDao()
-                    Triple(
-                        pDao.getAllPacketsSnapshot(),
-                        pDao.getAllReactionsSnapshot(),
-                        pDao.getAllContactSettingsSnapshot(),
-                    )
-                }
+            val shouldExportLogs =
+                BackupPacketType.TELEMETRY in types ||
+                    BackupPacketType.POSITIONS in types ||
+                    BackupPacketType.NODE_INFO in types ||
+                    BackupPacketType.TRACEROUTE in types ||
+                    BackupPacketType.OTHER in types
 
-            val filteredPackets =
-                packets.filter { packet ->
-                    when (packet.port_num) {
-                        PortNum.WAYPOINT_APP.value -> BackupPacketType.WAYPOINTS in types
-                        else -> BackupPacketType.MESSAGES in types
-                    }
-                }
+            var packets: List<RoomPacket> = emptyList()
+            var reactions: List<RoomReaction> = emptyList()
+            var contactSettings: List<ContactSettingsEntity> = emptyList()
+            var meshLogs: List<org.meshtastic.core.database.entity.MeshLog> = emptyList()
+            var myNodeNum = 0
 
+            dbManager.withReadDb { db ->
+                val pDao = db.packetDao()
+                packets = pDao.getAllPacketsSnapshot()
+                reactions = pDao.getAllReactionsSnapshot()
+                contactSettings = pDao.getAllContactSettingsSnapshot()
+                if (shouldExportLogs) {
+                    meshLogs = db.meshLogDao().getAllLogsSnapshot()
+                }
+                myNodeNum = db.nodeInfoDao().getMyNodeInfo().firstOrNull()?.myNodeNum ?: 0
+            }
+
+            val filteredPackets = packets.filter { packetMatchesType(it.port_num, types) }
             val filteredReactions = if (BackupPacketType.REACTIONS in types) reactions else emptyList()
             val filteredSettings = if (BackupPacketType.CONTACT_SETTINGS in types) contactSettings else emptyList()
+            val filteredLogs = meshLogs.filter { packetMatchesType(it.portNum, types) }
 
             val export =
                 MessagesExport(
                     schemaVersion = 1,
                     exportedAt = Instant.fromEpochMilliseconds(nowMillis).toString(),
+                    myNodeNum = myNodeNum.toLong(),
                     packets = filteredPackets.map { it.toExport() },
                     reactions = filteredReactions.map { it.toExport() },
                     contactSettings = filteredSettings.map { it.toExport() },
+                    logs = filteredLogs.map { it.toExport() },
                 )
 
             val json = Json {
@@ -706,19 +729,18 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
     ): MessageImportResult = withContext(dispatchers.io) {
         val export: MessagesExport = decodeMessagesExport(source)
 
-        val packetsToImport =
-            export.packets.filter { dto ->
-                when (dto.portNum) {
-                    PortNum.WAYPOINT_APP.value -> BackupPacketType.WAYPOINTS in types
-                    else -> BackupPacketType.MESSAGES in types
-                }
-            }
+        val packetsToImport = export.packets.filter { packetMatchesType(it.portNum, types) }
         val reactionsToImport = if (BackupPacketType.REACTIONS in types) export.reactions else emptyList()
         val contactSettingsToImport =
             if (BackupPacketType.CONTACT_SETTINGS in types) export.contactSettings else emptyList()
+        val logsToImport = export.logs.filter { packetMatchesType(it.portNum, types) }
 
         dbManager.withDb { db ->
             val pDao = db.packetDao()
+            val mLogDao = db.meshLogDao()
+            val currentMyNodeNum = db.nodeInfoDao().getMyNodeInfo().firstOrNull()?.myNodeNum ?: 0
+            val defaultMyNodeNum = export.myNodeNum?.toInt()?.takeIf { it != 0 } ?: currentMyNodeNum
+
             val existingPackets = pDao.getAllPacketsSnapshot()
             val existingFingerprints = existingPackets.mapTo(HashSet(existingPackets.size)) { it.fingerprint() }
 
@@ -731,7 +753,7 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
                 if (fp in existingFingerprints) {
                     skippedCount++
                 } else {
-                    toInsert.add(packetDto.toPacket())
+                    toInsert.add(packetDto.toPacket(defaultMyNodeNum = defaultMyNodeNum))
                     existingFingerprints.add(fp)
                     importedCount++
                 }
@@ -742,6 +764,17 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
                 reactionsToImport = reactionsToImport.map { it.toReactionEntity() },
                 contactSettingsToImport = contactSettingsToImport.map { it.toContactSettings() },
             )
+
+            if (logsToImport.isNotEmpty()) {
+                val meshLogs = logsToImport.map { it.toMeshLog() }
+                for (chunk in meshLogs.chunked(BATCH_CHUNK_SIZE)) {
+                    mLogDao.insertIgnore(chunk)
+                }
+            }
+
+            if (defaultMyNodeNum != 0) {
+                pDao.updateZeroMyNodeNum(defaultMyNodeNum)
+            }
 
             if (importedCount > 0) {
                 pDao.rebuildFtsIndex()
@@ -797,6 +830,7 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
         }
         dbManager.withDb { db ->
             val pDao = db.packetDao()
+            val currentMyNodeNum = db.nodeInfoDao().getMyNodeInfo().firstOrNull()?.myNodeNum ?: 0
             val existingPackets = pDao.getAllPacketsSnapshot()
             val existingFingerprints = existingPackets.mapTo(HashSet(existingPackets.size)) { it.fingerprint() }
 
@@ -855,65 +889,69 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
                 val deterministicPacketId = (timestamp.hashCode() xor fromAddress.hashCode() xor payload.hashCode())
 
                 if (isReaction) {
-                    val reactionChar = payload.substringAfter("reaction_for_id:").substringAfter(':')
-                    val reactionEntity =
-                        RoomReaction(
-                            myNodeNum = 0,
-                            replyId = deterministicPacketId,
-                            userId = fromAddress,
-                            emoji = reactionChar,
-                            timestamp = timestamp,
-                            snr = snr,
-                            hopsAway = hopsAway,
-                            packetId = deterministicPacketId,
-                            relayNode = relayNode,
-                            to = "^all",
-                        )
-                    reactionsToInsert.add(reactionEntity)
+                    if (BackupPacketType.REACTIONS in types) {
+                        val reactionChar = payload.substringAfter("reaction_for_id:").substringAfter(':')
+                        val reactionEntity =
+                            RoomReaction(
+                                myNodeNum = currentMyNodeNum,
+                                replyId = deterministicPacketId,
+                                userId = fromAddress,
+                                emoji = reactionChar,
+                                timestamp = timestamp,
+                                snr = snr,
+                                hopsAway = hopsAway,
+                                packetId = deterministicPacketId,
+                                relayNode = relayNode,
+                                to = "^all",
+                            )
+                        reactionsToInsert.add(reactionEntity)
+                    }
                 } else {
-                    val dataPacket =
-                        DataPacket(
-                            to = "^all",
-                            bytes = payload.encodeToByteArray().toByteString(),
-                            dataType =
-                            if (isWaypoint) PortNum.WAYPOINT_APP.value else PortNum.TEXT_MESSAGE_APP.value,
-                            from = fromAddress,
-                            time = timestamp,
-                            id = deterministicPacketId,
-                            status = MessageStatus.RECEIVED,
-                            hopLimit = hopLimit,
-                            hopStart = hopStart,
-                            snr = snr,
-                            relayNode = relayNode,
-                        )
-                    val packet =
-                        RoomPacket(
-                            uuid = 0L,
-                            myNodeNum = 0,
-                            port_num = dataPacket.dataType,
-                            contact_key = "0^all",
-                            received_time = timestamp,
-                            read = true,
-                            data = dataPacket,
-                            packetId = deterministicPacketId,
-                            routingError = -1,
-                            snr = snr,
-                            rssi = null,
-                            hopsAway = hopsAway,
-                            sfpp_hash = null,
-                            filtered = false,
-                            messageText = payload,
-                            translatedText = null,
-                            showTranslated = false,
-                            pinnedMessage = false,
-                        )
-                    val fp = packet.fingerprint()
-                    if (fp in existingFingerprints) {
-                        skippedCount++
-                    } else {
-                        toInsert.add(packet)
-                        existingFingerprints.add(fp)
-                        importedCount++
+                    val port = if (isWaypoint) PortNum.WAYPOINT_APP.value else PortNum.TEXT_MESSAGE_APP.value
+                    if (packetMatchesType(port, types)) {
+                        val dataPacket =
+                            DataPacket(
+                                to = "^all",
+                                bytes = payload.encodeToByteArray().toByteString(),
+                                dataType = port,
+                                from = fromAddress,
+                                time = timestamp,
+                                id = deterministicPacketId,
+                                status = MessageStatus.RECEIVED,
+                                hopLimit = hopLimit,
+                                hopStart = hopStart,
+                                snr = snr,
+                                relayNode = relayNode,
+                            )
+                        val packet =
+                            RoomPacket(
+                                uuid = 0L,
+                                myNodeNum = currentMyNodeNum,
+                                port_num = dataPacket.dataType,
+                                contact_key = "0^all",
+                                received_time = timestamp,
+                                read = true,
+                                data = dataPacket,
+                                packetId = deterministicPacketId,
+                                routingError = -1,
+                                snr = snr,
+                                rssi = null,
+                                hopsAway = hopsAway,
+                                sfpp_hash = null,
+                                filtered = false,
+                                messageText = payload,
+                                translatedText = null,
+                                showTranslated = false,
+                                pinnedMessage = false,
+                            )
+                        val fp = packet.fingerprint()
+                        if (fp in existingFingerprints) {
+                            skippedCount++
+                        } else {
+                            toInsert.add(packet)
+                            existingFingerprints.add(fp)
+                            importedCount++
+                        }
                     }
                 }
             }
@@ -924,6 +962,10 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
                     reactionsToImport = reactionsToInsert,
                     contactSettingsToImport = emptyList<ContactSettingsEntity>(),
                 )
+            }
+
+            if (currentMyNodeNum != 0) {
+                pDao.updateZeroMyNodeNum(currentMyNodeNum)
             }
 
             if (importedCount > 0) {
@@ -940,6 +982,7 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
     }
 
     companion object {
+        private const val BATCH_CHUNK_SIZE = 50
         private const val CONTACTS_PAGE_SIZE = 30
         private const val MESSAGES_PAGE_SIZE = 50
         private const val CSV_COL_DATE = 0

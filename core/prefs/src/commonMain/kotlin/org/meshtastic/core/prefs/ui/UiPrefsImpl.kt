@@ -262,6 +262,13 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         scope.launch { dataStore.edit { it[KEY_REACTION_CHIP_SPACING] = spacing } }
     }
 
+    override val pressureInMmHg: StateFlow<Boolean> =
+        dataStore.data.map { it[KEY_PRESSURE_IN_MMHG] ?: false }.stateIn(scope, SharingStarted.Eagerly, false)
+
+    override fun setPressureInMmHg(enabled: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_PRESSURE_IN_MMHG] = enabled } }
+    }
+
     override val eventThemeEnabled: StateFlow<Boolean> =
         dataStore.data.map { it[KEY_EVENT_THEME_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
 
@@ -468,6 +475,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         val KEY_MESSAGE_BUBBLE_PADDING = intPreferencesKey("message-bubble-padding")
         val KEY_MESSAGE_FONT_SIZE_SCALE = floatPreferencesKey("message-font-size-scale")
         val KEY_REACTION_CHIP_SPACING = intPreferencesKey("reaction-chip-spacing")
+        val KEY_PRESSURE_IN_MMHG = booleanPreferencesKey("pressure-in-mm-hg")
 
         val KEY_APP_INTRO_COMPLETED = booleanPreferencesKey("app_intro_completed")
         val KEY_THEME = intPreferencesKey("theme")

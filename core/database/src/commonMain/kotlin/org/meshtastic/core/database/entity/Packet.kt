@@ -40,7 +40,15 @@ data class PacketEntity(
 ) {
     suspend fun toMessage(getNode: suspend (userId: String?) -> Node) = with(packet) {
         val node = getNode(data.from)
-        val isFromLocal = node.user.id == NodeAddress.ID_LOCAL || (myNodeNum != 0 && node.num == myNodeNum)
+        val isFromLocal =
+            data.from == NodeAddress.ID_LOCAL ||
+                node.user.id == NodeAddress.ID_LOCAL ||
+                (myNodeNum != 0 && node.num == myNodeNum) ||
+                (
+                    data.status != null &&
+                        data.status != MessageStatus.RECEIVED &&
+                        data.status != MessageStatus.UNKNOWN
+                    )
         Message(
             uuid = uuid,
             receivedTime = received_time,

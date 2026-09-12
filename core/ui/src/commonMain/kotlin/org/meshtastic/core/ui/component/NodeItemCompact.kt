@@ -113,6 +113,7 @@ fun NodeItemCompact(
     showRole: Boolean = true,
     showTelemetry: Boolean = true,
     tempInFahrenheit: Boolean = false,
+    pressureInMmHg: Boolean = false,
     deviceImageUrl: String? = null,
 ) {
     val longName = thatNode.user.long_name.ifEmpty { stringResource(Res.string.unknown_username) }
@@ -237,6 +238,7 @@ fun NodeItemCompact(
                     CompactMetricsRow(
                         thatNode = thatNode,
                         tempInFahrenheit = tempInFahrenheit,
+                        pressureInMmHg = pressureInMmHg,
                         contentColor = contentColor,
                     )
                 }
@@ -458,7 +460,7 @@ private fun CompactFooterRow(
 
 @Composable
 @Suppress("CyclomaticComplexMethod")
-private fun CompactMetricsRow(thatNode: Node, tempInFahrenheit: Boolean, contentColor: Color) {
+private fun CompactMetricsRow(thatNode: Node, tempInFahrenheit: Boolean, pressureInMmHg: Boolean, contentColor: Color) {
     val env = thatNode.environmentMetrics
     val segments =
         buildList<@Composable () -> Unit> {
@@ -491,7 +493,7 @@ private fun CompactMetricsRow(thatNode: Node, tempInFahrenheit: Boolean, content
                         icon = MeshtasticIcons.Pressure,
                         contentDescription = "Pressure",
                         contentColor = contentColor,
-                        text = MetricFormatter.pressure(env.barometric_pressure ?: 0f),
+                        text = MetricFormatter.pressure(env.barometric_pressure ?: 0f, inMmHg = pressureInMmHg),
                     )
                 }
             }

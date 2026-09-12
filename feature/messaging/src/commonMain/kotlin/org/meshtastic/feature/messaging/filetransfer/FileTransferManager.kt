@@ -37,6 +37,29 @@ import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.repository.CommandSender
 import org.meshtastic.core.repository.RadioConfigRepository
 import org.meshtastic.core.repository.ServiceRepository
+import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.file_transfer_assembling
+import org.meshtastic.core.resources.file_transfer_cancelled_receiver
+import org.meshtastic.core.resources.file_transfer_cancelled_sender
+import org.meshtastic.core.resources.file_transfer_file_saved
+import org.meshtastic.core.resources.file_transfer_receiver_requested
+import org.meshtastic.core.resources.file_transfer_receiving_file
+import org.meshtastic.core.resources.file_transfer_receiving_progress
+import org.meshtastic.core.resources.file_transfer_requesting_missing
+import org.meshtastic.core.resources.file_transfer_retry_request_report
+import org.meshtastic.core.resources.file_transfer_retry_request_start
+import org.meshtastic.core.resources.file_transfer_save_error
+import org.meshtastic.core.resources.file_transfer_state_cancelled
+import org.meshtastic.core.resources.file_transfer_state_completed
+import org.meshtastic.core.resources.file_transfer_state_error
+import org.meshtastic.core.resources.file_transfer_status_request_start
+import org.meshtastic.core.resources.file_transfer_status_resending_chunk
+import org.meshtastic.core.resources.file_transfer_status_sending_chunk
+import org.meshtastic.core.resources.file_transfer_status_waiting_report
+import org.meshtastic.core.resources.file_transfer_timeout_receiver
+import org.meshtastic.core.resources.file_transfer_unpack_error
+import org.meshtastic.core.resources.file_transfer_waiting_missing
+import org.meshtastic.core.resources.getString
 import org.meshtastic.core.ui.util.saveFileToDownloads
 import org.meshtastic.proto.Config.LoRaConfig.ModemPreset
 import org.meshtastic.proto.MeshPacket
@@ -177,14 +200,19 @@ class FileTransferManager(
                 try {
                     executeSend()
                 } catch (e: CancellationException) {
-                    _outgoingState.value = TransferState.Failed(outFileName, "Отменено", canRetry = true)
+                    _outgoingState.value =
+                        TransferState.Failed(
+                            outFileName,
+                            getString(Res.string.file_transfer_state_cancelled),
+                            canRetry = true,
+                        )
                     throw e
                 } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                     logger.e(e) { "send failed" }
                     _outgoingState.value =
                         TransferState.Failed(
                             fileName = outFileName,
-                            reason = e.message ?: "Ошибка передачи",
+                            reason = e.message ?: getString(Res.string.file_transfer_state_error),
                             canRetry = true,
                         )
                 }
@@ -214,7 +242,8 @@ class FileTransferManager(
                 }
             }
         }
-        _outgoingState.value = TransferState.Failed(outFileName, "Отменено", canRetry = true)
+        _outgoingState.value =
+            TransferState.Failed(outFileName, getString(Res.string.file_transfer_state_cancelled), canRetry = true)
     }
 
     fun cancelIncoming() {
@@ -231,7 +260,8 @@ class FileTransferManager(
                 }
             }
         }
-        _incomingState.value = TransferState.Failed(inFileName, "Отменено", canRetry = false)
+        _incomingState.value =
+            TransferState.Failed(inFileName, getString(Res.string.file_transfer_state_cancelled), canRetry = false)
         resetIncoming()
     }
 
@@ -291,7 +321,7 @@ class FileTransferManager(
                 currentChunk = 0,
                 transferId = outTransferId,
                 isGzip = outIsGzip,
-                statusMessage = "Запрос начала передачи...",
+                statusMessage = getString(Res.string.file_transfer_status_request_start),
             )
 
         sendAndWaitStartAck(startPacket.encode())
@@ -330,9 +360,14 @@ class FileTransferManager(
 
                 val status =
                     if (passNumber == 1) {
-                        "Отправка чанка $deliveredChunks из $total"
+                        getString(Res.string.file_transfer_status_sending_chunk, deliveredChunks, total)
                     } else {
-                        "Досыл чанка $sentInThisPass из ${pendingIndices.size} (проход $passNumber)"
+                        getString(
+                            Res.string.file_transfer_status_resending_chunk,
+                            sentInThisPass,
+                            pendingIndices.size,
+                            passNumber,
+                        )
                     }
 
                 _outgoingState.value =
@@ -368,13 +403,14 @@ class FileTransferManager(
             val wasMin = (_outgoingState.value as? TransferState.Sending)?.isMinimized ?: false
             _outgoingState.value =
                 (_outgoingState.value as? TransferState.Sending)?.copy(
-                    statusMessage = "Ожидание отчёта от получателя...",
+                    statusMessage = getString(Res.string.file_transfer_status_waiting_report),
                     isMinimized = wasMin,
                 ) ?: _outgoingState.value
             delay(drainDelayMs)
 
             if (latestComplete.value) {
-                _outgoingState.value = TransferState.Completed(outFileName, null, "Файл успешно передан!")
+                _outgoingState.value =
+                    TransferState.Completed(outFileName, null, getString(Res.string.file_transfer_state_completed))
                 logger.i { "send of '$outFileName' complete in $passNumber passes" }
                 return
             }
@@ -385,7 +421,8 @@ class FileTransferManager(
             if (isSendingCancelled) return
 
             if (latestComplete.value) {
-                _outgoingState.value = TransferState.Completed(outFileName, null, "Файл успешно передан!")
+                _outgoingState.value =
+                    TransferState.Completed(outFileName, null, getString(Res.string.file_transfer_state_completed))
                 logger.i { "send of '$outFileName' complete in $passNumber passes" }
                 return
             }
@@ -395,7 +432,7 @@ class FileTransferManager(
                 _outgoingState.value =
                     TransferState.Failed(
                         fileName = outFileName,
-                        reason = "Тайм-аут ожидания ответа приёмника",
+                        reason = getString(Res.string.file_transfer_timeout_receiver),
                         canRetry = true,
                     )
                 return
@@ -427,13 +464,14 @@ class FileTransferManager(
                         isGzip = outIsGzip,
                         passNumber = passNumber,
                         statusMessage =
-                        "Получатель запросил ${missing.missingIndices.size} чанков. Подготовка досыла...",
+                        getString(Res.string.file_transfer_receiver_requested, missing.missingIndices.size),
                     )
                 pendingIndices = missing.missingIndices.toMutableList()
             }
         }
 
-        _outgoingState.value = TransferState.Completed(outFileName, null, "Файл успешно передан!")
+        _outgoingState.value =
+            TransferState.Completed(outFileName, null, getString(Res.string.file_transfer_state_completed))
         logger.i { "send of '$outFileName' complete" }
     }
 
@@ -451,7 +489,7 @@ class FileTransferManager(
             val wasMinimized = (_outgoingState.value as? TransferState.Sending)?.isMinimized ?: false
             _outgoingState.value =
                 (_outgoingState.value as? TransferState.Sending)?.copy(
-                    statusMessage = "Повторный запрос начала (попытка $retries из $MAX_RETRIES)...",
+                    statusMessage = getString(Res.string.file_transfer_retry_request_start, retries, MAX_RETRIES),
                     isMinimized = wasMinimized,
                 ) ?: _outgoingState.value
             logger.w { "START ACK timeout, retry $retries/$MAX_RETRIES" }
@@ -488,9 +526,9 @@ class FileTransferManager(
         val wasMinimized = (_outgoingState.value as? TransferState.Sending)?.isMinimized ?: false
         val status =
             if (attempt == 1) {
-                "Ожидание отчёта от получателя..."
+                getString(Res.string.file_transfer_status_waiting_report)
             } else {
-                "Повторный запрос отчёта у получателя (попытка $attempt из $MAX_RETRIES)..."
+                getString(Res.string.file_transfer_retry_request_report, attempt, MAX_RETRIES)
             }
         _outgoingState.value =
             (_outgoingState.value as? TransferState.Sending)?.copy(
@@ -576,7 +614,7 @@ class FileTransferManager(
                 isMinimized = false,
                 transferId = start.transferId,
                 isGzip = start.isGzip,
-                statusMessage = "Приём файла '${start.fileName}'...",
+                statusMessage = getString(Res.string.file_transfer_receiving_file, start.fileName),
             )
 
         if (isResume) {
@@ -619,7 +657,12 @@ class FileTransferManager(
                 speedBytesPerSec = speed,
                 isGzip = inIsGzip,
                 passNumber = inCurrentPassNumber,
-                statusMessage = "Приём: $received из $inTotalChunks чанков ($percent%)",
+                statusMessage = getString(
+                    Res.string.file_transfer_receiving_progress,
+                    received,
+                    inTotalChunks,
+                    percent,
+                ),
             )
 
         if (received >= inTotalChunks) {
@@ -672,7 +715,7 @@ class FileTransferManager(
             logger.i { "all chunks received, assembling and verifying..." }
             _incomingState.value =
                 (_incomingState.value as? TransferState.Receiving)?.copy(
-                    statusMessage = "Сборка файла и проверка CRC32...",
+                    statusMessage = getString(Res.string.file_transfer_assembling),
                     isMinimized = wasMinimized,
                 ) ?: _incomingState.value
 
@@ -703,7 +746,7 @@ class FileTransferManager(
         }
         _incomingState.value =
             (_incomingState.value as? TransferState.Receiving)?.copy(
-                statusMessage = "Запрос досыла ${missing.size} недостающих чанков...",
+                statusMessage = getString(Res.string.file_transfer_requesting_missing, missing.size),
                 isMinimized = wasMinimized,
             ) ?: _incomingState.value
 
@@ -721,7 +764,7 @@ class FileTransferManager(
 
         _incomingState.value =
             (_incomingState.value as? TransferState.Receiving)?.copy(
-                statusMessage = "Ожидание досыла ${missing.size} чанков от отправителя...",
+                statusMessage = getString(Res.string.file_transfer_waiting_missing, missing.size),
                 isMinimized = wasMinimized,
             ) ?: _incomingState.value
 
@@ -756,7 +799,8 @@ class FileTransferManager(
     private fun handleIncomingComplete(complete: MftComplete) {
         if (complete.transferId == outTransferId) {
             latestComplete.value = true
-            _outgoingState.value = TransferState.Completed(outFileName, null, "Файл успешно передан!")
+            _outgoingState.value =
+                TransferState.Completed(outFileName, null, getString(Res.string.file_transfer_state_completed))
         }
     }
 
@@ -767,7 +811,8 @@ class FileTransferManager(
             idleCheckJob?.cancel()
             idleCheckJob = null
             lastCancelledTransferId = cancel.transferId
-            _incomingState.value = TransferState.Failed(inFileName, "Отменено отправителем", canRetry = false)
+            _incomingState.value =
+                TransferState.Failed(inFileName, getString(Res.string.file_transfer_cancelled_sender), canRetry = false)
             resetIncoming()
         }
         if (cancel.transferId == outTransferId) {
@@ -776,7 +821,12 @@ class FileTransferManager(
             isSendingCancelled = true
             sendJob?.cancel()
             sendJob = null
-            _outgoingState.value = TransferState.Failed(outFileName, "Отменено получателем", canRetry = false)
+            _outgoingState.value =
+                TransferState.Failed(
+                    outFileName,
+                    getString(Res.string.file_transfer_cancelled_receiver),
+                    canRetry = false,
+                )
         }
     }
 
@@ -837,7 +887,7 @@ class FileTransferManager(
                     _incomingState.value =
                         TransferState.Failed(
                             fileName = inFileName,
-                            reason = "Ошибка распаковки: ${e.message}",
+                            reason = getString(Res.string.file_transfer_unpack_error, e.message ?: ""),
                             canRetry = false,
                         )
                     resetIncoming()
@@ -857,7 +907,12 @@ class FileTransferManager(
 
         val savedPath = onFileSaved(inFileName, finalBytes)
         lastCompletedTransferId = inTransferId
-        val statusMsg = if (savedPath != null) "Файл успешно сохранён: $inFileName" else "Ошибка сохранения файла"
+        val statusMsg =
+            if (savedPath != null) {
+                getString(Res.string.file_transfer_file_saved, inFileName)
+            } else {
+                getString(Res.string.file_transfer_save_error)
+            }
         _incomingState.value = TransferState.Completed(inFileName, savedPath, statusMsg)
         resetIncoming()
         return true

@@ -78,7 +78,27 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.common.util.NumberFormatter
+import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.cancel
+import org.meshtastic.core.resources.image_editor_apply
+import org.meshtastic.core.resources.image_editor_brightness
+import org.meshtastic.core.resources.image_editor_bytes
+import org.meshtastic.core.resources.image_editor_clear
+import org.meshtastic.core.resources.image_editor_contrast
+import org.meshtastic.core.resources.image_editor_crop_title
+import org.meshtastic.core.resources.image_editor_dithering
+import org.meshtastic.core.resources.image_editor_draw_black
+import org.meshtastic.core.resources.image_editor_draw_white
+import org.meshtastic.core.resources.image_editor_erase_black
+import org.meshtastic.core.resources.image_editor_erase_white
+import org.meshtastic.core.resources.image_editor_hint_pan_zoom
+import org.meshtastic.core.resources.image_editor_import_photo
+import org.meshtastic.core.resources.image_editor_invert
+import org.meshtastic.core.resources.image_editor_resolution
+import org.meshtastic.core.resources.image_editor_title
+import org.meshtastic.core.resources.send
 import kotlin.math.min
 
 private enum class EditorMode {
@@ -89,9 +109,9 @@ private enum class EditorMode {
 /**
  * Unified monochrome image editor.
  *
- * Starts in [EditorMode.DRAW] (pixel-by-pixel drawing). Pressing "Импорт из фото" calls [onImportPhoto] which should
+ * Starts in [EditorMode.DRAW] (pixel-by-pixel drawing). Pressing "Import from photo" calls [onImportPhoto] which should
  * open a file picker; once the caller has [importedGrayValues], the editor switches to [EditorMode.PHOTO_CROP] where
- * the user can pan/zoom, then tap "Применить" to bake into the drawing grid.
+ * the user can pan/zoom, then tap "Apply" to bake into the drawing grid.
  */
 @Suppress("LongMethod")
 @Composable
@@ -220,9 +240,9 @@ fun MonochromeImageEditorDialog(
                 Text(
                     text =
                     if (editorMode == EditorMode.PHOTO_CROP) {
-                        "Выбор фрагмента"
+                        stringResource(Res.string.image_editor_crop_title)
                     } else {
-                        "Редактор изображения"
+                        stringResource(Res.string.image_editor_title)
                     },
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.padding(bottom = 12.dp),
@@ -230,7 +250,7 @@ fun MonochromeImageEditorDialog(
 
                 // Resolution chips
                 Text(
-                    "Разрешение (${preset.name}):",
+                    stringResource(Res.string.image_editor_resolution, preset.name),
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -262,10 +282,22 @@ fun MonochromeImageEditorDialog(
                     // Brush buttons
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                         Button(onClick = { brushColorBlack = true }, enabled = !brushColorBlack) {
-                            Text(if (invert) "Рисовать (Белый)" else "Рисовать (Чёрный)")
+                            Text(
+                                if (invert) {
+                                    stringResource(Res.string.image_editor_draw_white)
+                                } else {
+                                    stringResource(Res.string.image_editor_draw_black)
+                                },
+                            )
                         }
                         Button(onClick = { brushColorBlack = false }, enabled = brushColorBlack) {
-                            Text(if (invert) "Ластик (Чёрный)" else "Ластик (Белый)")
+                            Text(
+                                if (invert) {
+                                    stringResource(Res.string.image_editor_erase_black)
+                                } else {
+                                    stringResource(Res.string.image_editor_erase_white)
+                                },
+                            )
                         }
                     }
                     Spacer(Modifier.height(8.dp))
@@ -276,7 +308,10 @@ fun MonochromeImageEditorDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("Негатив (инверсия)", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            stringResource(Res.string.image_editor_invert),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
                         Switch(checked = invert, onCheckedChange = { invert = it })
                     }
                     Spacer(Modifier.height(8.dp))
@@ -289,10 +324,10 @@ fun MonochromeImageEditorDialog(
                             },
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text("Очистить")
+                            Text(stringResource(Res.string.image_editor_clear))
                         }
                         OutlinedButton(onClick = onImportPhoto, modifier = Modifier.weight(1f)) {
-                            Text("Импорт из фото")
+                            Text(stringResource(Res.string.image_editor_import_photo))
                         }
                     }
                     Spacer(Modifier.height(16.dp))
@@ -300,7 +335,7 @@ fun MonochromeImageEditorDialog(
                     // Action row
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                            Text("Отмена")
+                            Text(stringResource(Res.string.cancel))
                         }
                         Button(
                             onClick = {
@@ -309,7 +344,7 @@ fun MonochromeImageEditorDialog(
                             },
                             modifier = Modifier.weight(1f).padding(start = 8.dp),
                         ) {
-                            Text("Отправить")
+                            Text(stringResource(Res.string.send))
                         }
                     }
                 } else {
@@ -345,7 +380,7 @@ fun MonochromeImageEditorDialog(
                     )
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        text = "Масштабируйте и перемещайте, " + "затем нажмите «Применить»",
+                        text = stringResource(Res.string.image_editor_hint_pan_zoom),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.fillMaxWidth(),
@@ -358,14 +393,17 @@ fun MonochromeImageEditorDialog(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text("Негатив (инверсия)", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            stringResource(Res.string.image_editor_invert),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
                         Switch(checked = invert, onCheckedChange = { invert = it })
                     }
                     Spacer(Modifier.height(8.dp))
 
                     // Sliders
                     Text(
-                        "Яркость: ${(brightness * 100).toInt()}%",
+                        stringResource(Res.string.image_editor_brightness, (brightness * 100).toInt()),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -376,7 +414,7 @@ fun MonochromeImageEditorDialog(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Text(
-                        "Контрастность: ${NumberFormatter.format(contrast, 1)}x",
+                        stringResource(Res.string.image_editor_contrast, NumberFormatter.format(contrast, 1)),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -387,7 +425,7 @@ fun MonochromeImageEditorDialog(
                         modifier = Modifier.fillMaxWidth(),
                     )
                     Text(
-                        "Дизеринг: ${(ditherAmount * 100).toInt()}%",
+                        stringResource(Res.string.image_editor_dithering, (ditherAmount * 100).toInt()),
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -401,7 +439,7 @@ fun MonochromeImageEditorDialog(
 
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(onClick = { editorMode = EditorMode.DRAW }, modifier = Modifier.weight(1f)) {
-                            Text("Отмена")
+                            Text(stringResource(Res.string.cancel))
                         }
                         Button(
                             onClick = {
@@ -419,7 +457,7 @@ fun MonochromeImageEditorDialog(
                             },
                             modifier = Modifier.weight(1f),
                         ) {
-                            Text("Применить")
+                            Text(stringResource(Res.string.image_editor_apply))
                         }
                     }
                 }
@@ -502,7 +540,11 @@ private fun DrawCanvas(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(text = "байт", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text(
+                    text = stringResource(Res.string.image_editor_bytes),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                )
             }
         }
     }
@@ -562,7 +604,11 @@ private fun PhotoCropCanvas(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                Text(text = "байт", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                Text(
+                    text = stringResource(Res.string.image_editor_bytes),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                )
             }
         }
     }

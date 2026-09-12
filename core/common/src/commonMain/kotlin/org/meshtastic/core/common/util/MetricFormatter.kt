@@ -55,7 +55,18 @@ object MetricFormatter {
 
     fun humidity(value: Float): String = percent(value, 0)
 
-    fun pressure(hPa: Float, decimalPlaces: Int = 1): String = "${NumberFormatter.format(hPa, decimalPlaces)} hPa"
+    const val MMHG_PER_HPA = 0.750062f
+    const val MMHG_SYMBOL = "mmHg"
+    const val HPA_SYMBOL = "hPa"
+
+    fun pressureSymbol(inMmHg: Boolean = false): String = if (inMmHg) MMHG_SYMBOL else HPA_SYMBOL
+
+    fun pressure(hPa: Float, inMmHg: Boolean = false, decimalPlaces: Int = 1): String {
+        val value = if (inMmHg) hPa * MMHG_PER_HPA else hPa
+        return "${NumberFormatter.format(value, decimalPlaces)} ${pressureSymbol(inMmHg)}"
+    }
+
+    fun pressure(hPa: Float, decimalPlaces: Int): String = pressure(hPa, inMmHg = false, decimalPlaces = decimalPlaces)
 
     /**
      * Formats a signal-to-noise ratio, or [UNKNOWN_VALUE] when the packet carried no measurement. 0 dB is a legitimate

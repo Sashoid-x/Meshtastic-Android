@@ -76,6 +76,7 @@ fun DeviceActions(
     modifier: Modifier = Modifier,
     isLocal: Boolean = false,
     hasConversation: Boolean = false,
+    pressureInMmHg: Boolean = false,
     airQualityHistory: List<Telemetry> = emptyList(),
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -98,6 +99,7 @@ fun DeviceActions(
             isFahrenheit = isFahrenheit,
             onAction = onAction,
             isLocal = isLocal,
+            pressureInMmHg = pressureInMmHg,
             airQualityHistory = airQualityHistory,
         )
     }

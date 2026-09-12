@@ -42,6 +42,7 @@ import org.meshtastic.core.repository.FirmwareReleaseRepository
 import org.meshtastic.core.repository.MeshLogRepository
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.RadioConfigRepository
+import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.UiText
 import org.meshtastic.core.resources.fallback_node_name
@@ -68,6 +69,7 @@ constructor(
     private val firmwareReleaseRepository: FirmwareReleaseRepository,
     private val nodeRequestActions: NodeRequestActions,
     private val localeUnitsProvider: LocaleUnitsProvider,
+    private val uiPrefs: UiPrefs,
 ) : GetNodeDetailsUseCase {
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -169,8 +171,12 @@ constructor(
         // Units are a flow, not a read inside the combine: the combine only re-runs when node data changes, so a
         // read there would keep stale units after the user edits their regional preferences.
         val localeUnitsFlow =
-            combine(localeUnitsProvider.measurementSystem, localeUnitsProvider.temperatureUnit) { system, temperature ->
-                system to temperature
+            combine(
+                localeUnitsProvider.measurementSystem,
+                localeUnitsProvider.temperatureUnit,
+                uiPrefs.pressureInMmHg,
+            ) { system, temperature, pressureInMmHg ->
+                Triple(system, temperature, pressureInMmHg)
             }
 
         // Assemble final UI state
@@ -201,8 +207,8 @@ constructor(
             val pioEnv = if (isLocal) identity.myInfo?.pioEnv else null
 
             @Suppress("UNCHECKED_CAST")
-            val localeUnits = args[LOCALE_UNITS_INDEX] as Pair<MeasurementSystem, TemperatureUnit>
-            val (displayUnits, temperatureUnit) = localeUnits
+            val localeUnits = args[LOCALE_UNITS_INDEX] as Triple<MeasurementSystem, TemperatureUnit, Boolean>
+            val (displayUnits, temperatureUnit, pressureInMmHg) = localeUnits
 
             val metricsState =
                 MetricsState(
@@ -213,6 +219,7 @@ constructor(
                     reportedTarget = pioEnv,
                     isManaged = identity.profile.config?.security?.is_managed ?: false,
                     isFahrenheit = temperatureUnit == TemperatureUnit.FAHRENHEIT,
+                    pressureInMmHg = pressureInMmHg,
                     displayUnits = displayUnits,
                     deviceMetrics = logs.telemetry.filter { it.device_metrics != null },
                     localStats = logs.telemetry.filter { it.local_stats != null },

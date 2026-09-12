@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -35,17 +37,56 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.model.BackupPacketType
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.adv_backup_type_contact_settings
 import org.meshtastic.core.resources.adv_backup_type_messages
+import org.meshtastic.core.resources.adv_backup_type_node_info
+import org.meshtastic.core.resources.adv_backup_type_other
+import org.meshtastic.core.resources.adv_backup_type_positions
+import org.meshtastic.core.resources.adv_backup_type_private_app
 import org.meshtastic.core.resources.adv_backup_type_reactions
 import org.meshtastic.core.resources.adv_backup_type_select_all
+import org.meshtastic.core.resources.adv_backup_type_telemetry
+import org.meshtastic.core.resources.adv_backup_type_traceroute
 import org.meshtastic.core.resources.adv_backup_type_waypoints
 import org.meshtastic.core.resources.adv_backup_types_title
 import org.meshtastic.core.resources.cancel
 import org.meshtastic.core.ui.component.MeshtasticDialog
+
+private val BackupPacketType.labelRes: StringResource
+    get() =
+        when (this) {
+            BackupPacketType.MESSAGES -> Res.string.adv_backup_type_messages
+            BackupPacketType.REACTIONS -> Res.string.adv_backup_type_reactions
+            BackupPacketType.WAYPOINTS -> Res.string.adv_backup_type_waypoints
+            BackupPacketType.TELEMETRY -> Res.string.adv_backup_type_telemetry
+            BackupPacketType.POSITIONS -> Res.string.adv_backup_type_positions
+            BackupPacketType.NODE_INFO -> Res.string.adv_backup_type_node_info
+            BackupPacketType.TRACEROUTE -> Res.string.adv_backup_type_traceroute
+            BackupPacketType.PRIVATE_APP -> Res.string.adv_backup_type_private_app
+            BackupPacketType.CONTACT_SETTINGS -> Res.string.adv_backup_type_contact_settings
+            BackupPacketType.OTHER -> Res.string.adv_backup_type_other
+        }
+
+@Composable
+private fun PacketTypeRow(
+    type: BackupPacketType,
+    isChecked: Boolean,
+    onToggle: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().clickable { onToggle() }.padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Checkbox(checked = isChecked, onCheckedChange = { onToggle() })
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text = stringResource(type.labelRes), style = MaterialTheme.typography.bodyMedium)
+    }
+}
 
 @Suppress("LongMethod")
 @Composable
@@ -71,7 +112,7 @@ fun PacketTypePickerDialog(
         },
         dismissTextRes = Res.string.cancel,
         text = {
-            Column(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 Row(
                     modifier =
                     Modifier.fillMaxWidth()
@@ -108,41 +149,18 @@ fun PacketTypePickerDialog(
 
                 BackupPacketType.entries.forEach { type ->
                     val isChecked = type in selectedTypes
-                    val labelRes =
-                        when (type) {
-                            BackupPacketType.MESSAGES -> Res.string.adv_backup_type_messages
-                            BackupPacketType.REACTIONS -> Res.string.adv_backup_type_reactions
-                            BackupPacketType.WAYPOINTS -> Res.string.adv_backup_type_waypoints
-                            BackupPacketType.CONTACT_SETTINGS -> Res.string.adv_backup_type_contact_settings
-                        }
-                    Row(
-                        modifier =
-                        Modifier.fillMaxWidth()
-                            .clickable {
-                                selectedTypes =
-                                    if (isChecked) {
-                                        selectedTypes - type
-                                    } else {
-                                        selectedTypes + type
-                                    }
-                            }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(
-                            checked = isChecked,
-                            onCheckedChange = { checked ->
-                                selectedTypes =
-                                    if (checked) {
-                                        selectedTypes + type
-                                    } else {
-                                        selectedTypes - type
-                                    }
-                            },
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = stringResource(labelRes), style = MaterialTheme.typography.bodyMedium)
-                    }
+                    PacketTypeRow(
+                        type = type,
+                        isChecked = isChecked,
+                        onToggle = {
+                            selectedTypes =
+                                if (isChecked) {
+                                    selectedTypes - type
+                                } else {
+                                    selectedTypes + type
+                                }
+                        },
+                    )
                 }
             }
         },

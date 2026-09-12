@@ -19,6 +19,7 @@
 package org.meshtastic.core.ui.util
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalClipboard
 import co.touchlab.kermit.Logger
@@ -183,3 +184,48 @@ actual fun rememberOpenAppSettings(): () -> Unit = { Logger.w { "App settings no
 
 /** JVM — Desktop does not gate the camera behind a runtime permission. */
 @Composable actual fun rememberCameraPermissionState(): PermissionUiState = grantedPermissionUiState()
+
+@Composable
+actual fun rememberReadImageGrayValuesFromUri():
+    suspend (uri: CommonUri, reqWidth: Int, reqHeight: Int) -> FloatArray? =
+    { _, _, _ -> null }
+
+@Composable actual fun rememberReadBytesFromUri(): suspend (uri: CommonUri) -> ByteArray? = { null }
+
+@Composable actual fun rememberGetFileInfo(): suspend (uri: CommonUri) -> FileInfo? = { null }
+
+@Composable
+actual fun rememberSaveToDownloads(): suspend (fileName: String, data: ByteArray) -> String? = { fileName, data ->
+    saveFileToDownloads(fileName, data)
+}
+
+actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? = try {
+    val userHome = System.getProperty("user.home")
+    val dir = File(userHome, "Downloads/Meshtastic").apply { mkdirs() }
+    val destFile = File(dir, fileName)
+    destFile.writeBytes(data)
+    destFile.absolutePath
+} catch (e: Exception) {
+    Logger.e(e) { "Failed to save file to downloads" }
+    null
+}
+
+@Composable
+actual fun rememberOpenFile(): (filePath: String) -> Unit = remember {
+    { filePath ->
+        try {
+            if (Desktop.isDesktopSupported()) {
+                Desktop.getDesktop().open(File(filePath))
+            }
+        } catch (e: Exception) {
+            Logger.e(e) { "Failed to open file: $filePath" }
+        }
+    }
+}
+
+@Composable actual fun rememberGetLocalImageFile(): (url: String) -> String? = remember { { null } }
+
+@Composable
+actual fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> String? = remember { { _, _ -> null } }
+
+@Composable actual fun rememberShareFileOrUrl(): (filePath: String?, url: String) -> Unit = remember { { _, _ -> } }

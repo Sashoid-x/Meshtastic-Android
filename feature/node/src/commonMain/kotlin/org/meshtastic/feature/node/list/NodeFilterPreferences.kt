@@ -38,6 +38,7 @@ open class NodeFilterPreferences constructor(private val uiPrefs: UiPrefs) {
     open val shouldShowChannel = uiPrefs.shouldShowChannel
     open val shouldShowRole = uiPrefs.shouldShowRole
     open val shouldShowTelemetry = uiPrefs.shouldShowTelemetry
+    open val pressureInMmHg = uiPrefs.pressureInMmHg
 
     open val nodeSortOption =
         uiPrefs.nodeSort.map { NodeSortOption.entries.getOrElse(it) { NodeSortOption.VIA_FAVORITE } }

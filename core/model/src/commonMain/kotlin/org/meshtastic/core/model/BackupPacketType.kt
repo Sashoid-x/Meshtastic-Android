@@ -21,5 +21,11 @@ enum class BackupPacketType {
     MESSAGES,
     REACTIONS,
     WAYPOINTS,
+    TELEMETRY,
+    POSITIONS,
+    NODE_INFO,
+    TRACEROUTE,
+    PRIVATE_APP,
     CONTACT_SETTINGS,
+    OTHER,
 }

@@ -140,23 +140,33 @@ private val LEGEND_DATA_5 =
         )
     }
 
-private const val PRESSURE_DEFAULT_MIN = 950.0
-private const val PRESSURE_DEFAULT_MAX = 1050.0
-private const val PRESSURE_WINDOW_HPA = PRESSURE_DEFAULT_MAX - PRESSURE_DEFAULT_MIN
+private const val PRESSURE_DEFAULT_MIN_HPA = 950.0
+private const val PRESSURE_DEFAULT_MAX_HPA = 1050.0
+private const val PRESSURE_WINDOW_HPA = PRESSURE_DEFAULT_MAX_HPA - PRESSURE_DEFAULT_MIN_HPA
+
+private const val PRESSURE_DEFAULT_MIN_MMHG = PRESSURE_DEFAULT_MIN_HPA * MetricFormatter.MMHG_PER_HPA
+private const val PRESSURE_DEFAULT_MAX_MMHG = PRESSURE_DEFAULT_MAX_HPA * MetricFormatter.MMHG_PER_HPA
+private const val PRESSURE_WINDOW_MMHG = PRESSURE_WINDOW_HPA * MetricFormatter.MMHG_PER_HPA
 
 /**
  * Y-axis bounds for the barometric-pressure layer, given the plotted data's [dataMin]/[dataMax].
  *
  * Uses a fixed [PRESSURE_WINDOW_HPA]-wide window so a given pressure change is always the same visual size (design#53's
- * "consistent scale"). Near sea level this is the standard [PRESSURE_DEFAULT_MIN]–[PRESSURE_DEFAULT_MAX]; for a node at
- * altitude (lower station pressure) the same-width window slides down so readings aren't clipped. It only widens past
- * the fixed width if a single node's readings genuinely span more than the window.
+ * "consistent scale"). Near sea level this is the standard [PRESSURE_DEFAULT_MIN_HPA]–[PRESSURE_DEFAULT_MAX_HPA]; for a
+ * node at altitude (lower station pressure) the same-width window slides down so readings aren't clipped. It only
+ * widens past the fixed width if a single node's readings genuinely span more than the window.
  */
-internal fun pressureAxisRange(dataMin: Double, dataMax: Double): Pair<Double, Double> = when {
-    dataMax - dataMin > PRESSURE_WINDOW_HPA -> dataMin to dataMax
-    dataMin < PRESSURE_DEFAULT_MIN -> dataMin to (dataMin + PRESSURE_WINDOW_HPA)
-    dataMax > PRESSURE_DEFAULT_MAX -> (dataMax - PRESSURE_WINDOW_HPA) to dataMax
-    else -> PRESSURE_DEFAULT_MIN to PRESSURE_DEFAULT_MAX
+internal fun pressureAxisRange(dataMin: Double, dataMax: Double, inMmHg: Boolean = false): Pair<Double, Double> {
+    val defaultMin = if (inMmHg) PRESSURE_DEFAULT_MIN_MMHG else PRESSURE_DEFAULT_MIN_HPA
+    val defaultMax = if (inMmHg) PRESSURE_DEFAULT_MAX_MMHG else PRESSURE_DEFAULT_MAX_HPA
+    val window = if (inMmHg) PRESSURE_WINDOW_MMHG else PRESSURE_WINDOW_HPA
+
+    return when {
+        dataMax - dataMin > window -> dataMin to dataMax
+        dataMin < defaultMin -> dataMin to (dataMin + window)
+        dataMax > defaultMax -> (dataMax - window) to dataMax
+        else -> defaultMin to defaultMax
+    }
 }
 
 /**
@@ -178,10 +188,17 @@ internal fun chartValue(metric: Environment, telemetry: Telemetry, isImperial: B
  * Unit suffix for a plotted metric's axis and marker labels, in the user's display units, or "" for metrics whose unit
  * would be noise on a shared axis. Includes any leading space, so it appends directly to a formatted value.
  */
-internal fun unitSuffix(metric: Environment, isFahrenheit: Boolean, isImperial: Boolean): String = when {
+internal fun unitSuffix(
+    metric: Environment,
+    isFahrenheit: Boolean,
+    isImperial: Boolean,
+    pressureInMmHg: Boolean = false,
+): String = when {
     metric == Environment.TEMPERATURE ||
         metric == Environment.SOIL_TEMPERATURE ||
         metric in Environment.oneWireTemperatures -> MetricFormatter.degreeSymbol(isFahrenheit)
+
+    metric == Environment.BAROMETRIC_PRESSURE -> " " + MetricFormatter.pressureSymbol(pressureInMmHg)
 
     metric in Environment.adcVoltages -> " $VOLT_SYMBOL"
 
@@ -201,6 +218,7 @@ fun EnvironmentMetricsChart(
     graphData: EnvironmentGraphingData,
     isFahrenheit: Boolean,
     isImperial: Boolean,
+    pressureInMmHg: Boolean = false,
     vicoScrollState: VicoScrollState,
     selectedX: Double?,
     onPointSelected: (Double) -> Unit,
@@ -230,7 +248,7 @@ fun EnvironmentMetricsChart(
         val colorToUnit =
             allLegendData.associate { legend ->
                 val metric = legend.metricKey as? Environment
-                legend.color to (metric?.let { unitSuffix(it, isFahrenheit, isImperial) } ?: "")
+                legend.color to (metric?.let { unitSuffix(it, isFahrenheit, isImperial, pressureInMmHg) } ?: "")
             }
 
         val showPressure =
@@ -267,14 +285,18 @@ fun EnvironmentMetricsChart(
                 }
             }
 
-        LaunchedEffect(pressureData, otherMetricsData, isImperial) {
+        LaunchedEffect(pressureData, otherMetricsData, isImperial, pressureInMmHg) {
             modelProducer.runTransaction {
                 /* Pressure on its own layer/axis */
                 if (showPressure && pressureData.isNotEmpty()) {
                     lineModel {
                         series(
                             x = pressureData.map { it.time },
-                            y = pressureData.map { Environment.BAROMETRIC_PRESSURE.getValue(it)!! },
+                            y =
+                            pressureData.map {
+                                val raw = Environment.BAROMETRIC_PRESSURE.getValue(it)!!
+                                if (pressureInMmHg) raw * MetricFormatter.MMHG_PER_HPA else raw
+                            },
                         )
                     }
                 }
@@ -304,15 +326,16 @@ fun EnvironmentMetricsChart(
 
         // Fixed-width pressure window (design#53) so a given change is always the same visual size,
         // sliding to the node's elevation so high-altitude readings aren't clipped. See [pressureAxisRange].
-        val pressureRangeProvider = remember {
-            object : CartesianLayerRangeProvider {
-                override fun getMinY(minY: Double, maxY: Double, extraStore: ExtraStore) =
-                    pressureAxisRange(minY, maxY).first
+        val pressureRangeProvider =
+            remember(pressureInMmHg) {
+                object : CartesianLayerRangeProvider {
+                    override fun getMinY(minY: Double, maxY: Double, extraStore: ExtraStore) =
+                        pressureAxisRange(minY, maxY, pressureInMmHg).first
 
-                override fun getMaxY(minY: Double, maxY: Double, extraStore: ExtraStore) =
-                    pressureAxisRange(minY, maxY).second
+                    override fun getMaxY(minY: Double, maxY: Double, extraStore: ExtraStore) =
+                        pressureAxisRange(minY, maxY, pressureInMmHg).second
+                }
             }
-        }
         val layers = mutableListOf<LineCartesianLayer>()
         if (showPressure && pressureData.isNotEmpty()) {
             layers.add(
@@ -364,7 +387,9 @@ fun EnvironmentMetricsChart(
                 if (showPressure && pressureData.isNotEmpty()) {
                     VerticalAxis.rememberStart(
                         label = ChartStyling.rememberAxisLabel(color = Environment.BAROMETRIC_PRESSURE.color),
-                        valueFormatter = { _, value, _ -> formatString("%.0f hPa", value) },
+                        valueFormatter = { _, value, _ ->
+                            formatString("%.0f %s", value, MetricFormatter.pressureSymbol(pressureInMmHg))
+                        },
                     )
                 } else {
                     null
@@ -374,8 +399,10 @@ fun EnvironmentMetricsChart(
                     // The end axis is shared, so it can only carry a unit when every metric on it uses the same
                     // one.
                     val endAxisUnit =
-                        otherMetrics.map { unitSuffix(it, isFahrenheit, isImperial) }.distinct().singleOrNull()
-                            ?: ""
+                        otherMetrics
+                            .map { unitSuffix(it, isFahrenheit, isImperial, pressureInMmHg) }
+                            .distinct()
+                            .singleOrNull() ?: ""
                     VerticalAxis.rememberEnd(
                         label = ChartStyling.rememberAxisLabel(color = endAxisColor),
                         valueFormatter = { _, value, _ -> formatString("%.0f", value) + endAxisUnit },

@@ -16,6 +16,7 @@
  */
 package org.meshtastic.feature.node.metrics
 
+import org.meshtastic.core.common.util.MetricFormatter
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -59,5 +60,14 @@ class PressureAxisRangeTest {
     @Test
     fun singleReadingStillGetsTheStandardWindow() {
         assertEquals(950.0 to 1050.0, pressureAxisRange(dataMin = 1013.0, dataMax = 1013.0))
+    }
+
+    @Test
+    fun inMmHgModeScalesDefaultWindowAndMaintainsWidth() {
+        val (lo, hi) = pressureAxisRange(dataMin = 750.0, dataMax = 760.0, inMmHg = true)
+        val expectedMin = 950.0 * MetricFormatter.MMHG_PER_HPA
+        val expectedMax = 1050.0 * MetricFormatter.MMHG_PER_HPA
+        assertEquals(expectedMin to expectedMax, lo to hi)
+        assertEquals(100.0 * MetricFormatter.MMHG_PER_HPA, hi - lo, 1e-4)
     }
 }

@@ -210,6 +210,11 @@ interface UiPrefs {
 
     fun setReactionChipSpacing(spacing: Int)
 
+    /** Whether atmospheric pressure is displayed in mmHg instead of hPa. */
+    val pressureInMmHg: StateFlow<Boolean>
+
+    fun setPressureInMmHg(enabled: Boolean)
+
     /**
      * Whether to apply an event edition's ambient theme (accent wash + custom typeface) app-wide (opt-out; default on).
      */

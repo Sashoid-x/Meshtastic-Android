@@ -17,11 +17,15 @@
 package org.meshtastic.core.data.model
 
 import kotlinx.serialization.Serializable
+import okio.ByteString.Companion.decodeBase64
+import okio.ByteString.Companion.toByteString
 import org.meshtastic.core.database.entity.ContactSettings
+import org.meshtastic.core.database.entity.MeshLog
 import org.meshtastic.core.database.entity.Packet
 import org.meshtastic.core.database.entity.ReactionEntity
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.MessageStatus
+import org.meshtastic.proto.FromRadio
 
 /**
  * Root serializable container for exporting and importing Meshtastic chat message history, reactions, and conversation
@@ -35,10 +39,12 @@ data class MessagesExport(
     val packets: List<PacketExport> = emptyList(),
     val reactions: List<ReactionExport> = emptyList(),
     val contactSettings: List<ContactSettingsExport> = emptyList(),
+    val logs: List<MeshLogExport> = emptyList(),
 )
 
 @Serializable
 data class PacketExport(
+    val myNodeNum: Int = 0,
     val portNum: Int,
     val contactKey: String,
     val receivedTime: Long,
@@ -54,6 +60,17 @@ data class PacketExport(
     val translatedText: String? = null,
     val showTranslated: Boolean = false,
     val pinnedMessage: Boolean = false,
+)
+
+@Serializable
+data class MeshLogExport(
+    val uuid: String,
+    val messageType: String,
+    val receivedDate: Long,
+    val rawMessage: String,
+    val fromNum: Int = 0,
+    val portNum: Int = 0,
+    val fromRadioBase64: String = "",
 )
 
 @Serializable
@@ -86,6 +103,7 @@ data class ContactSettingsExport(
 )
 
 fun Packet.toExport(): PacketExport = PacketExport(
+    myNodeNum = myNodeNum,
     portNum = port_num,
     contactKey = contact_key,
     receivedTime = received_time,
@@ -103,9 +121,9 @@ fun Packet.toExport(): PacketExport = PacketExport(
     pinnedMessage = pinnedMessage,
 )
 
-fun PacketExport.toPacket(): Packet = Packet(
+fun PacketExport.toPacket(defaultMyNodeNum: Int = 0): Packet = Packet(
     uuid = 0L,
-    myNodeNum = 0,
+    myNodeNum = if (this.myNodeNum != 0) this.myNodeNum else defaultMyNodeNum,
     port_num = portNum,
     contact_key = contactKey,
     received_time = receivedTime,
@@ -123,6 +141,39 @@ fun PacketExport.toPacket(): Packet = Packet(
     showTranslated = showTranslated,
     pinnedMessage = pinnedMessage,
 )
+
+fun MeshLog.toExport(): MeshLogExport = MeshLogExport(
+    uuid = uuid,
+    messageType = message_type,
+    receivedDate = received_date,
+    rawMessage = raw_message,
+    fromNum = fromNum,
+    portNum = portNum,
+    fromRadioBase64 = fromRadio.encode().toByteString().base64(),
+)
+
+fun MeshLogExport.toMeshLog(): MeshLog {
+    val decodedFromRadio =
+        try {
+            if (fromRadioBase64.isNotEmpty()) {
+                val bytes = fromRadioBase64.decodeBase64()?.toByteArray()
+                if (bytes != null) FromRadio.ADAPTER.decode(bytes) else FromRadio()
+            } else {
+                FromRadio()
+            }
+        } catch (_: Exception) {
+            FromRadio()
+        }
+    return MeshLog(
+        uuid = uuid,
+        message_type = messageType,
+        received_date = receivedDate,
+        raw_message = rawMessage,
+        fromNum = fromNum,
+        portNum = portNum,
+        fromRadio = decodedFromRadio,
+    )
+}
 
 fun ReactionEntity.toExport(): ReactionExport = ReactionExport(
     myNodeNum = myNodeNum,

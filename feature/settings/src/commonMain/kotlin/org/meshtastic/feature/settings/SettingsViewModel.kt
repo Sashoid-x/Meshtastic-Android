@@ -281,6 +281,12 @@ class SettingsViewModel(
         uiPrefs.setReactionChipSpacing(spacing)
     }
 
+    val pressureInMmHg = uiPrefs.pressureInMmHg
+
+    fun setPressureInMmHg(enabled: Boolean) {
+        uiPrefs.setPressureInMmHg(enabled)
+    }
+
     /** Set the application locale. Empty string means system default. */
     fun setLocale(languageTag: String) {
         uiPrefs.setLocale(languageTag)

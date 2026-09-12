@@ -97,6 +97,7 @@ import org.meshtastic.core.resources.filter_settings
 import org.meshtastic.core.resources.filter_show_count
 import org.meshtastic.core.resources.jump_to_latest_from
 import org.meshtastic.core.resources.jump_to_latest_from_and_more
+import org.meshtastic.core.resources.message_image_preview
 import org.meshtastic.core.resources.navigate_back
 import org.meshtastic.core.resources.new_messages_below
 import org.meshtastic.core.resources.overflow_menu
@@ -245,7 +246,7 @@ fun ReplySnippet(originalMessage: Message?, onClearReply: () -> Unit, ourNode: N
                 )
                 val snippetText =
                     if (message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
-                        "\uD83D\uDCF7 Изображение"
+                        stringResource(Res.string.message_image_preview)
                     } else {
                         val raw = message.text
                         val textToEllipsize =

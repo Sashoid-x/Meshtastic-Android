@@ -449,11 +449,11 @@ class FileTransferManagerTest {
         manager.onMftPacketReceived("!sender", start.encode())
 
         val receivingState = manager.incomingState.value as TransferState.Receiving
-        assertTrue(receivingState.statusMessage.contains("Приём файла"))
+        assertTrue(receivingState.statusMessage.contains("doc.pdf"))
 
         manager.onMftPacketReceived("!sender", MftData(transferId, 0, chunk0).encode())
         val dataState = manager.incomingState.value as TransferState.Receiving
-        assertTrue(dataState.statusMessage.contains("Приём: 1 из 2"))
+        assertTrue(dataState.statusMessage.contains("1") && dataState.statusMessage.contains("2"))
 
         manager.onMftPacketReceived("!sender", MftData(transferId, 1, chunk1).encode())
         val completedState = manager.incomingState.value as TransferState.Completed

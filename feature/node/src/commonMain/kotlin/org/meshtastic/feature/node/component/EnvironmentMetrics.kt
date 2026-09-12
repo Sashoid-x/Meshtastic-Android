@@ -75,7 +75,12 @@ import org.meshtastic.feature.node.model.VectorMetricInfo
  */
 @Suppress("CyclomaticComplexMethod", "LongMethod")
 @Composable
-internal fun EnvironmentMetrics(node: Node, displayUnits: MeasurementSystem, isFahrenheit: Boolean = false) {
+internal fun EnvironmentMetrics(
+    node: Node,
+    displayUnits: MeasurementSystem,
+    isFahrenheit: Boolean = false,
+    pressureInMmHg: Boolean = false,
+) {
     val groups: List<MetricGroup> = buildList {
         with(node.environmentMetrics) {
             val temperatureCard =
@@ -115,7 +120,7 @@ internal fun EnvironmentMetrics(node: Node, displayUnits: MeasurementSystem, isF
                 add(
                     VectorMetricInfo(
                         label = Res.string.pressure,
-                        value = "${NumberFormatter.format(bp, 0)} hPa",
+                        value = MetricFormatter.pressure(bp, inMmHg = pressureInMmHg, decimalPlaces = 0),
                         icon = MeshtasticIcons.Pressure,
                     )
                         .asGroup(),

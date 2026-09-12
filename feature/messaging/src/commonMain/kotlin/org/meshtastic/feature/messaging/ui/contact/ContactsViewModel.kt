@@ -38,6 +38,9 @@ import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.PacketRepository
 import org.meshtastic.core.repository.RadioConfigRepository
 import org.meshtastic.core.repository.UiPrefs
+import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.getString
+import org.meshtastic.core.resources.message_image_preview
 import org.meshtastic.core.ui.util.SnackbarManager
 import org.meshtastic.core.ui.viewmodel.safeLaunch
 import org.meshtastic.core.ui.viewmodel.stateInWhileSubscribed
@@ -153,7 +156,7 @@ class ContactsViewModel(
                     lastMessageTime = if (packetData.time != 0L) packetData.time else null,
                     lastMessageText =
                     if (packetData.dataType == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
-                        "\uD83D\uDCF7 Изображение"
+                        getString(Res.string.message_image_preview)
                     } else if (fromLocal) {
                         decodedText
                     } else {

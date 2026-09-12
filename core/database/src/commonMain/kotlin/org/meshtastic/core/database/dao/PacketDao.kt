@@ -761,6 +761,9 @@ interface PacketDao {
         }
     }
 
+    @Query("UPDATE packet SET myNodeNum = :myNodeNum WHERE myNodeNum = 0")
+    suspend fun updateZeroMyNodeNum(myNodeNum: Int): Int
+
     // endregion
 
     /**

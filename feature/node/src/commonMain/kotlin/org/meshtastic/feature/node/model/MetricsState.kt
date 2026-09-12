@@ -32,6 +32,7 @@ data class MetricsState(
     val isLocal: Boolean = false,
     val isManaged: Boolean = true,
     val isFahrenheit: Boolean = false,
+    val pressureInMmHg: Boolean = false,
     val displayUnits: MeasurementSystem = MeasurementSystem.METRIC,
     val node: Node? = null,
     val deviceMetrics: List<Telemetry> = emptyList(),

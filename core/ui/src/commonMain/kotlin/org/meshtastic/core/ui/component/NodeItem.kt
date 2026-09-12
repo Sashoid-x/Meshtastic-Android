@@ -96,6 +96,7 @@ fun NodeItem(
     deviceType: DeviceType? = null,
     isActive: Boolean = false,
     showTelemetry: Boolean = true,
+    pressureInMmHg: Boolean = false,
     deviceImageUrl: String? = null,
 ) {
     val originalLongName = thatNode.user.long_name.ifEmpty { stringResource(Res.string.unknown_username) }
@@ -226,7 +227,7 @@ fun NodeItem(
             NodeSignalRow(thatNode = thatNode, isThisNode = isThisNode, contentColor = contentColor)
 
             if (showTelemetry) {
-                val sensorItems = gatherSensors(thatNode, tempInFahrenheit, contentColor)
+                val sensorItems = gatherSensors(thatNode, tempInFahrenheit, pressureInMmHg, contentColor)
                 if (sensorItems.isNotEmpty()) {
                     MetricsGrid(sensorItems)
                 }
@@ -356,7 +357,12 @@ private fun NodeSignalRow(thatNode: Node, isThisNode: Boolean, contentColor: Col
 
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
-private fun gatherSensors(node: Node, tempInFahrenheit: Boolean, contentColor: Color): List<@Composable () -> Unit> {
+private fun gatherSensors(
+    node: Node,
+    tempInFahrenheit: Boolean,
+    pressureInMmHg: Boolean,
+    contentColor: Color,
+): List<@Composable () -> Unit> {
     val items = mutableListOf<@Composable () -> Unit>()
     val env = node.environmentMetrics
     val aq = node.airQualityMetrics
@@ -387,7 +393,7 @@ private fun gatherSensors(node: Node, tempInFahrenheit: Boolean, contentColor: C
     if ((env.barometric_pressure ?: 0f) != 0f) {
         items.add {
             PressureInfo(
-                pressure = MetricFormatter.pressure(env.barometric_pressure ?: 0f),
+                pressure = MetricFormatter.pressure(env.barometric_pressure ?: 0f, inMmHg = pressureInMmHg),
                 contentColor = contentColor,
             )
         }

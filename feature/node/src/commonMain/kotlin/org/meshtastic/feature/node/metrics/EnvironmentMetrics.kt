@@ -93,8 +93,9 @@ private const val LABELLED_VALUE = "%s %s"
  */
 private fun degreeUnit(isFahrenheit: Boolean) = MetricFormatter.degreeSymbol(isFahrenheit)
 
+@Suppress("LongMethod")
 @Composable
-fun EnvironmentMetricsScreen(viewModel: MetricsViewModel, onNavigateUp: () -> Unit) {
+fun EnvironmentMetricsScreen(viewModel: MetricsViewModel, onNavigateUp: () -> Unit, modifier: Modifier = Modifier) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val graphData by viewModel.environmentGraphingData.collectAsStateWithLifecycle()
     val filteredTelemetries by viewModel.filteredEnvironmentMetrics.collectAsStateWithLifecycle()
@@ -108,6 +109,7 @@ fun EnvironmentMetricsScreen(viewModel: MetricsViewModel, onNavigateUp: () -> Un
     val isImperial = state.displayUnits == MeasurementSystem.IMPERIAL
 
     BaseMetricScreen(
+        modifier = modifier,
         onNavigateUp = onNavigateUp,
         telemetryType = TelemetryType.ENVIRONMENT,
         titleRes = Res.string.env_metrics_log,
@@ -132,6 +134,7 @@ fun EnvironmentMetricsScreen(viewModel: MetricsViewModel, onNavigateUp: () -> Un
                 graphData = graphData,
                 isFahrenheit = state.isFahrenheit,
                 isImperial = isImperial,
+                pressureInMmHg = state.pressureInMmHg,
                 vicoScrollState = vicoScrollState,
                 selectedX = selectedX,
                 onPointSelected = onPointSelected,
@@ -148,6 +151,7 @@ fun EnvironmentMetricsScreen(viewModel: MetricsViewModel, onNavigateUp: () -> Un
                         telemetry = telemetry,
                         environmentDisplayFahrenheit = state.isFahrenheit,
                         isImperial = isImperial,
+                        pressureInMmHg = state.pressureInMmHg,
                         isSelected = telemetry.time.toDouble() == selectedX,
                         onClick = { onCardClick(telemetry.time.toDouble()) },
                     )
@@ -184,7 +188,10 @@ private fun TemperatureDisplay(
 }
 
 @Composable
-private fun HumidityAndBarometricPressureDisplay(envMetrics: org.meshtastic.proto.EnvironmentMetrics) {
+private fun HumidityAndBarometricPressureDisplay(
+    envMetrics: org.meshtastic.proto.EnvironmentMetrics,
+    pressureInMmHg: Boolean = false,
+) {
     val hasHumidity = envMetrics.relative_humidity?.let { !it.isNaN() } == true
     val hasPressure = envMetrics.barometric_pressure?.let { !it.isNaN() && it > 0 } == true
 
@@ -215,7 +222,7 @@ private fun HumidityAndBarometricPressureDisplay(envMetrics: org.meshtastic.prot
                     MetricIndicator(Environment.BAROMETRIC_PRESSURE.color)
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = MetricFormatter.pressure(pressure, decimalPlaces = 2),
+                        text = MetricFormatter.pressure(pressure, inMmHg = pressureInMmHg, decimalPlaces = 2),
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(vertical = 0.dp),
@@ -565,10 +572,11 @@ private fun EnvironmentMetricsCard(
     environmentDisplayFahrenheit: Boolean,
     isImperial: Boolean,
     isSelected: Boolean,
+    pressureInMmHg: Boolean = false,
     onClick: () -> Unit,
 ) {
     SelectableMetricCard(isSelected = isSelected, onClick = onClick) {
-        EnvironmentMetricsContent(telemetry, environmentDisplayFahrenheit, isImperial)
+        EnvironmentMetricsContent(telemetry, environmentDisplayFahrenheit, isImperial, pressureInMmHg = pressureInMmHg)
     }
 }
 
@@ -577,6 +585,7 @@ private fun EnvironmentMetricsContent(
     telemetry: Telemetry,
     environmentDisplayFahrenheit: Boolean,
     isImperial: Boolean,
+    pressureInMmHg: Boolean = false,
     timeTextOverride: String? = null,
 ) {
     val envMetrics = telemetry.environment_metrics ?: org.meshtastic.proto.EnvironmentMetrics()
@@ -594,7 +603,7 @@ private fun EnvironmentMetricsContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        HumidityAndBarometricPressureDisplay(envMetrics)
+        HumidityAndBarometricPressureDisplay(envMetrics, pressureInMmHg = pressureInMmHg)
 
         SoilMetricsDisplay(envMetrics, environmentDisplayFahrenheit)
 

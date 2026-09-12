@@ -88,6 +88,7 @@ internal fun TelemetricActionsSection(
     isFahrenheit: Boolean,
     onAction: (NodeDetailAction) -> Unit,
     isLocal: Boolean = false,
+    pressureInMmHg: Boolean = false,
     airQualityHistory: List<Telemetry> = emptyList(),
 ) {
     val features =
@@ -99,6 +100,7 @@ internal fun TelemetricActionsSection(
             displayUnits,
             isFahrenheit,
             isLocal,
+            pressureInMmHg,
             airQualityHistory,
         )
 
@@ -131,6 +133,7 @@ private fun rememberTelemetricFeatures(
     displayUnits: MeasurementSystem,
     isFahrenheit: Boolean,
     isLocal: Boolean,
+    pressureInMmHg: Boolean,
     airQualityHistory: List<Telemetry>,
 ): List<TelemetricFeature> = remember(
     node,
@@ -140,6 +143,7 @@ private fun rememberTelemetricFeatures(
     displayUnits,
     isFahrenheit,
     isLocal,
+    pressureInMmHg,
     airQualityHistory,
 ) {
     listOf(
@@ -183,7 +187,7 @@ private fun rememberTelemetricFeatures(
             icon = Res.drawable.ic_thermostat,
             requestAction = { NodeMenuAction.RequestTelemetry(it, TelemetryType.ENVIRONMENT) },
             logsType = LogsType.ENVIRONMENT,
-            content = { node, _ -> EnvironmentMetrics(node, displayUnits, isFahrenheit) },
+            content = { node, _ -> EnvironmentMetrics(node, displayUnits, isFahrenheit, pressureInMmHg) },
             hasContent = { it.hasEnvironmentMetrics },
         ),
         TelemetricFeature(

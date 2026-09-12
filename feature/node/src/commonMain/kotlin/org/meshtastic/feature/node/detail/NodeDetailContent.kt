@@ -130,6 +130,7 @@ fun NodeDetailList(
                 isFahrenheit = uiState.metricsState.isFahrenheit,
                 isLocal = uiState.metricsState.isLocal,
                 hasConversation = uiState.hasConversation,
+                pressureInMmHg = uiState.metricsState.pressureInMmHg,
                 airQualityHistory = uiState.metricsState.airQualityMetrics,
             )
         }

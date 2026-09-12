@@ -75,6 +75,7 @@ class NodeListViewModelTest {
 
         every { nodeFilterPreferences.nodeSortOption } returns MutableStateFlow(NodeSortOption.LAST_HEARD)
         every { nodeFilterPreferences.filters } returns MutableStateFlow(NodeFilterPrefs())
+        every { nodeFilterPreferences.pressureInMmHg } returns MutableStateFlow(false)
         every { nodeManager.reportsHeardOnCurrentLora } returns MutableStateFlow(true)
         every { nodeManager.isNodeDbReady } returns MutableStateFlow(true)
 
@@ -129,11 +130,15 @@ class NodeListViewModelTest {
      */
     @Test
     fun `nodesUiState follows a mid-session units change`() = runTest {
+        val pressureFlow = MutableStateFlow(false)
+        every { nodeFilterPreferences.pressureInMmHg } returns pressureFlow
+
         val vm = createViewModel()
         vm.nodesUiState.test {
             val initial = awaitItem()
             assertEquals(MeasurementSystem.METRIC, initial.distanceUnits)
             assertEquals(false, initial.tempInFahrenheit)
+            assertEquals(false, initial.pressureInMmHg)
 
             // The provider exposes these as independent flows, so verify each transition without assuming atomicity.
             localeUnitsProvider.set(system = MeasurementSystem.IMPERIAL)
@@ -147,6 +152,10 @@ class NodeListViewModelTest {
             val temperatureUpdated = awaitItem()
             assertEquals(MeasurementSystem.IMPERIAL, temperatureUpdated.distanceUnits)
             assertEquals(true, temperatureUpdated.tempInFahrenheit)
+
+            pressureFlow.value = true
+            val pressureUpdated = awaitItem()
+            assertEquals(true, pressureUpdated.pressureInMmHg)
 
             cancelAndIgnoreRemainingEvents()
         }

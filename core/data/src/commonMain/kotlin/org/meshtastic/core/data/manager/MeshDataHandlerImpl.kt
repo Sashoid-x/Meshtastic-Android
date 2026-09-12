@@ -77,6 +77,7 @@ import org.meshtastic.core.resources.error_duty_cycle
 import org.meshtastic.core.resources.getStringSuspend
 import org.meshtastic.core.resources.mesh_beacon_notification_body
 import org.meshtastic.core.resources.mesh_beacon_notification_title
+import org.meshtastic.core.resources.message_image_preview
 import org.meshtastic.core.resources.unknown_username
 import org.meshtastic.core.resources.waypoint_received
 import org.meshtastic.proto.MeshBeacon
@@ -576,7 +577,7 @@ class MeshDataHandlerImpl(
             PortNum.PRIVATE_APP.value,
             -> {
                 val isImage = dataPacket.dataType == PortNum.PRIVATE_APP.value
-                val message = if (isImage) "\uD83D\uDCF7 Изображение" else dataPacket.text!!
+                val message = if (isImage) getStringSuspend(Res.string.message_image_preview) else dataPacket.text!!
                 val isBroadcast = dataPacket.destination is NodeAddress.Broadcast
                 val channelName =
                     if (isBroadcast) {

@@ -239,6 +239,12 @@ class FakeUiPrefs : UiPrefs {
         reactionChipSpacing.value = spacing
     }
 
+    override val pressureInMmHg = MutableStateFlow(false)
+
+    override fun setPressureInMmHg(enabled: Boolean) {
+        pressureInMmHg.value = enabled
+    }
+
     override val eventThemeEnabled = MutableStateFlow(true)
 
     override fun setEventThemeEnabled(enabled: Boolean) {

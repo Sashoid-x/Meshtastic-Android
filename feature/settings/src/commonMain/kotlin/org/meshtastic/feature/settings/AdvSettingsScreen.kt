@@ -67,6 +67,8 @@ import org.meshtastic.core.resources.adv_import_result_summary
 import org.meshtastic.core.resources.adv_import_result_title
 import org.meshtastic.core.resources.adv_importing_messages_desc
 import org.meshtastic.core.resources.adv_importing_messages_title
+import org.meshtastic.core.resources.adv_pressure_in_mm_hg
+import org.meshtastic.core.resources.adv_pressure_in_mm_hg_summary
 import org.meshtastic.core.resources.adv_section_appearance
 import org.meshtastic.core.resources.adv_section_backup
 import org.meshtastic.core.resources.adv_section_media
@@ -147,6 +149,7 @@ fun AdvSettingsScreen(
     val showBellButton by settingsViewModel.showBellButton.collectAsStateWithLifecycle()
     val reactionNotificationMode by settingsViewModel.reactionNotificationMode.collectAsStateWithLifecycle()
     val pinnedMessagesEnabled by settingsViewModel.pinnedMessagesEnabled.collectAsStateWithLifecycle()
+    val pressureInMmHg by settingsViewModel.pressureInMmHg.collectAsStateWithLifecycle()
 
     val isImporting by settingsViewModel.isImporting.collectAsStateWithLifecycle()
     val isExporting by settingsViewModel.isExporting.collectAsStateWithLifecycle()
@@ -346,6 +349,7 @@ fun AdvSettingsScreen(
             fileTransferEnabled = fileTransferEnabled,
             reactionNotificationMode = reactionNotificationMode,
             pinnedMessagesEnabled = pinnedMessagesEnabled,
+            pressureInMmHg = pressureInMmHg,
             onTextCompressionChange = settingsViewModel::setTextCompressionEnabled,
             onSendOnEnterChange = settingsViewModel::setSendOnEnterEnabled,
             onInsertPhotoLinkChange = settingsViewModel::setInsertPhotoLinkEnabled,
@@ -356,6 +360,7 @@ fun AdvSettingsScreen(
             onFileTransferChange = settingsViewModel::setFileTransferEnabled,
             onReactionNotificationModeChange = settingsViewModel::setReactionNotificationMode,
             onPinnedMessagesChange = settingsViewModel::setPinnedMessagesEnabled,
+            onPressureInMmHgChange = settingsViewModel::setPressureInMmHg,
             onNavigateToAppearance = onNavigateToAppearance,
             onExportMessages = { showExportTypeDialog = true },
             onImportMessages = { importMessagesLauncher("*/*") },
@@ -376,6 +381,7 @@ private fun AdvSettingsContent(
     fileTransferEnabled: Boolean,
     reactionNotificationMode: ReactionNotificationMode,
     pinnedMessagesEnabled: Boolean,
+    pressureInMmHg: Boolean,
     onTextCompressionChange: (Boolean) -> Unit,
     onSendOnEnterChange: (Boolean) -> Unit,
     onInsertPhotoLinkChange: (Boolean) -> Unit,
@@ -386,6 +392,7 @@ private fun AdvSettingsContent(
     onFileTransferChange: (Boolean) -> Unit,
     onReactionNotificationModeChange: (ReactionNotificationMode) -> Unit,
     onPinnedMessagesChange: (Boolean) -> Unit,
+    onPressureInMmHgChange: (Boolean) -> Unit,
     onNavigateToAppearance: () -> Unit,
     onExportMessages: () -> Unit,
     onImportMessages: () -> Unit,
@@ -402,6 +409,13 @@ private fun AdvSettingsContent(
                 leadingIcon = MeshtasticIcons.FormatPaint,
                 trailingIcon = null,
                 onClick = onNavigateToAppearance,
+            )
+            SwitchPreference(
+                title = stringResource(Res.string.adv_pressure_in_mm_hg),
+                summary = stringResource(Res.string.adv_pressure_in_mm_hg_summary),
+                checked = pressureInMmHg,
+                enabled = true,
+                onCheckedChange = onPressureInMmHgChange,
             )
         }
 

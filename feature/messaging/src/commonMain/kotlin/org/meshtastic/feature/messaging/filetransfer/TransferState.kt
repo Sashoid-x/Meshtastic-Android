@@ -16,6 +16,13 @@
  */
 package org.meshtastic.feature.messaging.filetransfer
 
+import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.file_transfer_speed_b_s
+import org.meshtastic.core.resources.file_transfer_speed_kb_s
+import org.meshtastic.core.resources.file_transfer_time_min_sec
+import org.meshtastic.core.resources.file_transfer_time_sec
+import org.meshtastic.core.resources.getString
+
 /** Observable state of a file transfer (send or receive). */
 sealed interface TransferState {
     data object Idle : TransferState
@@ -86,10 +93,10 @@ sealed interface TransferState {
 fun formatSpeed(bytesPerSec: Double): String = when {
     bytesPerSec >= 1024.0 -> {
         val kb = bytesPerSec / 1024.0
-        "${((kb * 10).toInt() / 10.0)} КБ/с"
+        getString(Res.string.file_transfer_speed_kb_s, "${((kb * 10).toInt() / 10.0)}")
     }
 
-    bytesPerSec > 0.0 -> "${bytesPerSec.toInt()} Б/с"
+    bytesPerSec > 0.0 -> getString(Res.string.file_transfer_speed_b_s, bytesPerSec.toInt())
 
     else -> "—"
 }
@@ -98,5 +105,9 @@ fun formatSpeed(bytesPerSec: Double): String = when {
 fun formatEta(seconds: Long): String {
     val m = seconds / 60
     val s = seconds % 60
-    return if (m > 0) "~$m мин $s сек" else "~$s сек"
+    return if (m > 0) {
+        getString(Res.string.file_transfer_time_min_sec, m, s)
+    } else {
+        getString(Res.string.file_transfer_time_sec, s)
+    }
 }

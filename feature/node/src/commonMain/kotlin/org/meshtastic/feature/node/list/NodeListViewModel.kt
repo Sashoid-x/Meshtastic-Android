@@ -132,8 +132,16 @@ class NodeListViewModel(
     // Re-read on every locale change: this ViewModel survives the configuration change one triggers, so a value
     // snapshotted at construction would keep showing the old units until the screen is rebuilt.
     private val localeUnits: Flow<LocaleUnits> =
-        combine(localeUnitsProvider.measurementSystem, localeUnitsProvider.temperatureUnit) { system, temperature ->
-            LocaleUnits(distanceUnits = system, tempInFahrenheit = temperature == TemperatureUnit.FAHRENHEIT)
+        combine(
+            localeUnitsProvider.measurementSystem,
+            localeUnitsProvider.temperatureUnit,
+            nodeFilterPreferences.pressureInMmHg,
+        ) { system, temperature, pressureInMmHg ->
+            LocaleUnits(
+                distanceUnits = system,
+                tempInFahrenheit = temperature == TemperatureUnit.FAHRENHEIT,
+                pressureInMmHg = pressureInMmHg,
+            )
         }
 
     val nodesUiState: StateFlow<NodesUiState> =
@@ -143,6 +151,7 @@ class NodeListViewModel(
                 filter = nodeFilter,
                 distanceUnits = units.distanceUnits,
                 tempInFahrenheit = units.tempInFahrenheit,
+                pressureInMmHg = units.pressureInMmHg,
             )
         }
             .stateInWhileSubscribed(initialValue = NodesUiState())
@@ -240,13 +249,18 @@ class NodeListViewModel(
 }
 
 /** The locale-derived display units, re-read together whenever the OS reports a locale change. */
-private data class LocaleUnits(val distanceUnits: MeasurementSystem, val tempInFahrenheit: Boolean)
+private data class LocaleUnits(
+    val distanceUnits: MeasurementSystem,
+    val tempInFahrenheit: Boolean,
+    val pressureInMmHg: Boolean,
+)
 
 data class NodesUiState(
     val sort: NodeSortOption = NodeSortOption.LAST_HEARD,
     val filter: NodeFilterState = NodeFilterState(),
     val distanceUnits: MeasurementSystem = MeasurementSystem.METRIC,
     val tempInFahrenheit: Boolean = false,
+    val pressureInMmHg: Boolean = false,
 )
 
 data class NodeFilterState(

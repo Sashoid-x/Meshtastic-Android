@@ -221,8 +221,7 @@ abstract class MeshtasticDatabase : RoomDatabase() {
         /**
          * Idempotent migration from schema 59 to 60.
          *
-         * Upstream 59 added `nodes.key_match` and `nodes.new_public_key`.
-         * Advanced mod adds `packet.pinned_message`.
+         * Upstream 59 added `nodes.key_match` and `nodes.new_public_key`. Advanced mod adds `packet.pinned_message`.
          * When upgrading from either upstream 59 or previous advanced mod (which may already have `pinned_message` or
          * lacks `key_match`/`new_public_key`), this migration safely inspects table info to avoid duplicate column
          * errors and ensure both tables match schema 60.
@@ -236,14 +235,10 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                         )
                     }
                     if (!connection.hasColumn("nodes", "key_match")) {
-                        connection.execSQL(
-                            "ALTER TABLE `nodes` ADD COLUMN `key_match` INTEGER NOT NULL DEFAULT 1",
-                        )
+                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `key_match` INTEGER NOT NULL DEFAULT 1")
                     }
                     if (!connection.hasColumn("nodes", "new_public_key")) {
-                        connection.execSQL(
-                            "ALTER TABLE `nodes` ADD COLUMN `new_public_key` BLOB",
-                        )
+                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `new_public_key` BLOB")
                     }
                 }
             }

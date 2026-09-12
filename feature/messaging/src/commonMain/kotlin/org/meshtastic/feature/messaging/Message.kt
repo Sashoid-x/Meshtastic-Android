@@ -103,8 +103,10 @@ import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.util.getChannel
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.byte_unit_symbol
 import org.meshtastic.core.resources.file_transfer
 import org.meshtastic.core.resources.file_transfer_size_limit
+import org.meshtastic.core.resources.message_estimated_time
 import org.meshtastic.core.resources.send
 import org.meshtastic.core.resources.type_a_message
 import org.meshtastic.core.resources.unknown_channel
@@ -663,7 +665,7 @@ fun MessageScreen(
         }
         if (showFileTransferWarning) {
             FileTransferWarningDialog(
-                estimatedTime = "5–15 мин",
+                estimatedTime = stringResource(Res.string.message_estimated_time),
                 onSelectFile = {
                     showFileTransferWarning = false
                     openFileLauncher("*/*")
@@ -1189,7 +1191,8 @@ internal fun MessageInput(
                 ) {
                     val counterText =
                         if (isCompressedEffective) {
-                            "\uD83D\uDDDC\uFE0F $compressedByteLength/$maxByteSize ($currentByteLength Б)"
+                            val bUnit = stringResource(Res.string.byte_unit_symbol)
+                            "\uD83D\uDDDC\uFE0F $compressedByteLength/$maxByteSize ($currentByteLength $bUnit)"
                         } else if (isCompressionActive && textCompressionEnabled && currentText.isNotEmpty()) {
                             "\uD83D\uDDDC\uFE0F $effectiveByteLength/$maxByteSize"
                         } else {
