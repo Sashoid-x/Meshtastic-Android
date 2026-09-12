@@ -240,6 +240,36 @@ class FakeUiPrefs : UiPrefs {
         pinnedMessagesEnabled.value = enabled
     }
 
+    override val advThemeColorsJson = MutableStateFlow("")
+
+    override fun setAdvThemeColorsJson(json: String) {
+        advThemeColorsJson.value = json
+    }
+
+    override val messageBubbleSpacing = MutableStateFlow(2)
+
+    override fun setMessageBubbleSpacing(spacing: Int) {
+        messageBubbleSpacing.value = spacing
+    }
+
+    override val messageBubblePadding = MutableStateFlow(8)
+
+    override fun setMessageBubblePadding(padding: Int) {
+        messageBubblePadding.value = padding
+    }
+
+    override val messageFontSizeScale = MutableStateFlow(1.0f)
+
+    override fun setMessageFontSizeScale(scale: Float) {
+        messageFontSizeScale.value = scale
+    }
+
+    override val reactionChipSpacing = MutableStateFlow(4)
+
+    override fun setReactionChipSpacing(spacing: Int) {
+        reactionChipSpacing.value = spacing
+    }
+
     override val eventThemeEnabled = MutableStateFlow(true)
 
     override fun setEventThemeEnabled(enabled: Boolean) {

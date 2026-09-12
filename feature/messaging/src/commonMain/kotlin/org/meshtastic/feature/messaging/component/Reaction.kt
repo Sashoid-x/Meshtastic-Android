@@ -41,7 +41,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -89,10 +88,7 @@ internal fun ReactionItem(
     Surface(
         modifier =
         modifier
-            // Clickable wraps the M3 touch-target expansion, so the hit area meets the 44dp
-            // minimum while the drawn pill stays compact.
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .minimumInteractiveComponentSize()
             .then(if (isSending) Modifier.graphicsLayer(alpha = 0.5f) else Modifier),
         color =
         when {
@@ -139,9 +135,13 @@ internal fun ReactionRow(
     onShowReactions: () -> Unit = {},
 ) {
     val emojiGroups = reactions.groupBy { it.emoji }
+    val bubbleStyle = org.meshtastic.core.ui.theme.LocalMessageBubbleStyle.current
 
     AnimatedVisibility(emojiGroups.isNotEmpty(), modifier = modifier) {
-        LazyRow(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        LazyRow(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(bubbleStyle.reactionSpacing),
+        ) {
             items(emojiGroups.entries.toList(), key = { it.key }) { entry ->
                 val emoji = entry.key
                 val reactions = entry.value
@@ -172,8 +172,7 @@ internal fun AddReactionButton(modifier: Modifier = Modifier, onSendReaction: (S
         )
     }
     Surface(
-        onClick = { showEmojiPickerDialog = true },
-        modifier = modifier.size(28.dp),
+        modifier = modifier.size(28.dp).clip(CircleShape).clickable { showEmojiPickerDialog = true },
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         shape = CircleShape,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f)),

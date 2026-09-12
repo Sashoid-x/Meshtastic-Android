@@ -20,6 +20,7 @@ import androidx.paging.PagingData
 import kotlinx.coroutines.flow.Flow
 import okio.BufferedSink
 import okio.BufferedSource
+import org.meshtastic.core.model.BackupPacketType
 import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.Message
@@ -335,10 +336,23 @@ interface PacketRepository {
     fun getPinnedMessages(contactKey: String, getNode: suspend (String?) -> Node): Flow<List<Message>>
 
     /**
-     * Exports all messages, reactions, and contact settings to a JSON stream. Returns the number of packets exported.
+     * Exports messages, reactions, and contact settings to a JSON stream, filtered by types. Returns the number of
+     * packets exported.
      */
-    suspend fun exportMessagesToJson(sink: BufferedSink): Int
+    suspend fun exportMessagesToJson(
+        sink: BufferedSink,
+        types: Set<BackupPacketType> = BackupPacketType.entries.toSet(),
+    ): Int
 
     /** Imports messages, reactions, and contact settings from a JSON stream, deduplicating existing messages. */
-    suspend fun importMessagesFromJson(source: BufferedSource): MessageImportResult
+    suspend fun importMessagesFromJson(
+        source: BufferedSource,
+        types: Set<BackupPacketType> = BackupPacketType.entries.toSet(),
+    ): MessageImportResult
+
+    /** Imports messages and reactions from an upstream CSV traffic log, deduplicating existing messages. */
+    suspend fun importMessagesFromCsv(
+        source: BufferedSource,
+        types: Set<BackupPacketType> = BackupPacketType.entries.toSet(),
+    ): MessageImportResult
 }

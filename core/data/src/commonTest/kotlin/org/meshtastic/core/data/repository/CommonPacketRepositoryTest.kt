@@ -24,7 +24,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.encodeToString
 import okio.ByteString.Companion.toByteString
+import org.meshtastic.core.data.model.toExport
 import org.meshtastic.core.database.entity.MyNodeEntity
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.DataPacket
@@ -468,6 +470,72 @@ abstract class CommonPacketRepositoryTest {
         val duplicateResult = repository.importMessagesFromJson(buffer.copy())
         assertEquals(0, duplicateResult.importedPackets)
         assertEquals(1, duplicateResult.skippedPackets)
+    }
+
+    @Test
+    fun testImportMessagesFromJsonWithBomAndFlatArray() = runTest {
+        val contact = "0^all"
+        val packet =
+            DataPacket(
+                from = "!11111111",
+                to = "^all",
+                bytes = "Test bom".encodeToByteArray().toByteString(),
+                dataType = PortNum.TEXT_MESSAGE_APP.value,
+                id = 901,
+                status = MessageStatus.RECEIVED,
+            )
+        val exportPacket =
+            org.meshtastic.core.database.entity
+                .Packet(
+                    uuid = 0L,
+                    myNodeNum = 0,
+                    port_num = PortNum.TEXT_MESSAGE_APP.value,
+                    contact_key = contact,
+                    received_time = 1725555555000L,
+                    read = true,
+                    data = packet,
+                    packetId = 901,
+                    routingError = -1,
+                    messageText = "Test bom",
+                )
+                .toExport()
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val jsonArrayData = json.encodeToString(listOf(exportPacket))
+        val buffer = okio.Buffer()
+        buffer.writeByte(0xEF)
+        buffer.writeByte(0xBB)
+        buffer.writeByte(0xBF)
+        buffer.writeUtf8(jsonArrayData)
+
+        val result = repository.importMessagesFromJson(buffer)
+        assertEquals(1, result.importedPackets)
+        assertEquals(0, result.skippedPackets)
+
+        val messages = repository.getMessagesFrom(contact, getNode = ::testNode).first()
+        assertTrue(messages.any { it.text == "Test bom" })
+    }
+
+    @Test
+    fun testImportMessagesFromCsv() = runTest {
+        val contact = "0^all"
+        val csvData =
+            "\"date\",\"time\",\"from\",\"sender name\",\"sender lat\",\"sender long\",\"rx lat\"," +
+                "\"rx long\",\"rx elevation\",\"rx snr\",\"distance(m)\",\"hop limit\"," +
+                "\"hop start\",\"relay node\",\"payload\"\n" +
+                "\"2026-09-05\",\"19:36:58\",\"2658568832\",\"komsa\",\"\",\"\",\"\",\"\",\"\",\"5.5\"," +
+                "\"\",\"3\",\"7\",\"4b\",\"Hello from CSV\"\n" +
+                "\"2026-09-05\",\"19:44:30\",\"1770165160\",\"Nova Gateway\",\"\",\"\",\"\",\"\",\"\",\"6.0\"," +
+                "\"\",\"6\",\"7\",\"4b\",\"✅\"\n"
+        val buffer = okio.Buffer().writeUtf8(csvData)
+
+        val result = repository.importMessagesFromCsv(buffer)
+        assertEquals(2, result.importedPackets)
+        assertEquals(0, result.skippedPackets)
+
+        val messages = repository.getMessagesFrom(contact, getNode = ::testNode).first()
+        assertEquals(2, messages.size)
+        assertTrue(messages.any { it.text == "Hello from CSV" })
+        assertTrue(messages.any { it.text == "✅" })
     }
 
     private fun testNode(id: String?): Node = Node(num = 0, user = User(id = id.orEmpty()))

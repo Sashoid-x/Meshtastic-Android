@@ -20,6 +20,7 @@
 package org.meshtastic.core.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MotionScheme.Companion.expressive
@@ -34,7 +35,7 @@ import androidx.compose.ui.platform.LocalFontFamilyResolver
 import co.touchlab.kermit.Logger
 import kotlin.coroutines.cancellation.CancellationException
 
-private val lightScheme =
+internal val lightScheme =
     lightColorScheme(
         primary = primaryLight,
         onPrimary = onPrimaryLight,
@@ -73,7 +74,7 @@ private val lightScheme =
         surfaceContainerHighest = surfaceContainerHighestLight,
     )
 
-private val darkScheme =
+internal val darkScheme =
     darkColorScheme(
         primary = primaryDark,
         onPrimary = onPrimaryDark,
@@ -122,16 +123,17 @@ val unspecified_scheme = ColorFamily(Color.Unspecified, Color.Unspecified, Color
 fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
-    content:
-    @Composable()
-    () -> Unit,
+    customColorScheme: ColorScheme? = null,
+    content: @Composable () -> Unit,
 ) {
     val colorScheme =
-        if (dynamicColor) {
-            dynamicColorScheme(darkTheme)
-        } else {
-            null
-        } ?: if (darkTheme) darkScheme else lightScheme
+        customColorScheme
+            ?: if (dynamicColor) {
+                dynamicColorScheme(darkTheme)
+            } else {
+                null
+            }
+            ?: if (darkTheme) darkScheme else lightScheme
 
     // When a device is on event firmware (and the event theme isn't opted out), swap the whole typescale to the event
     // typeface. Null everywhere else (desktop, F-Droid, non-event, opted out) → default typography.

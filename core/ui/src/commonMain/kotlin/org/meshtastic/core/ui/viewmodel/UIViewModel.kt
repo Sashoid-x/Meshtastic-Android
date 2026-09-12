@@ -169,6 +169,12 @@ class UIViewModel(
 
     val theme: StateFlow<Int> = uiPrefs.theme
 
+    val advThemeColorsJson: StateFlow<String> = uiPrefs.advThemeColorsJson
+    val messageBubbleSpacing: StateFlow<Int> = uiPrefs.messageBubbleSpacing
+    val messageBubblePadding: StateFlow<Int> = uiPrefs.messageBubblePadding
+    val messageFontSizeScale: StateFlow<Float> = uiPrefs.messageFontSizeScale
+    val reactionChipSpacing: StateFlow<Int> = uiPrefs.reactionChipSpacing
+
     /** Opt-out for applying an event edition's ambient theme (accent + typeface) app-wide. */
     val eventThemeEnabled: StateFlow<Boolean> = uiPrefs.eventThemeEnabled
 

@@ -203,6 +203,31 @@ interface UiPrefs {
 
     fun setPinnedMessagesEnabled(enabled: Boolean)
 
+    /** Serialized JSON representation of custom ADV theme color overrides. */
+    val advThemeColorsJson: StateFlow<String>
+
+    fun setAdvThemeColorsJson(json: String)
+
+    /** Vertical spacing between message items in dp. */
+    val messageBubbleSpacing: StateFlow<Int>
+
+    fun setMessageBubbleSpacing(spacing: Int)
+
+    /** Internal padding of message bubbles in dp. */
+    val messageBubblePadding: StateFlow<Int>
+
+    fun setMessageBubblePadding(padding: Int)
+
+    /** Font size scale multiplier for message text (1.0 = normal). */
+    val messageFontSizeScale: StateFlow<Float>
+
+    fun setMessageFontSizeScale(scale: Float)
+
+    /** Spacing between reaction chips in dp. */
+    val reactionChipSpacing: StateFlow<Int>
+
+    fun setReactionChipSpacing(spacing: Int)
+
     /**
      * Whether to apply an event edition's ambient theme (accent wash + custom typeface) app-wide (opt-out; default on).
      */

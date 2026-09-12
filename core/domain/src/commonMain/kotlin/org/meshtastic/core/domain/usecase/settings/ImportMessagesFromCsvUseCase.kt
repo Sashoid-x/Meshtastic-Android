@@ -23,13 +23,13 @@ import org.meshtastic.core.model.MessageImportResult
 import org.meshtastic.core.repository.PacketRepository
 
 /**
- * Use case to import messages, reactions, and conversation settings from a JSON backup, deduplicating existing messages
- * and rebuilding the FTS search index.
+ * Use case to import messages and reactions from an upstream CSV traffic log, deduplicating existing messages and
+ * rebuilding the FTS search index.
  */
 @Single
-open class ImportMessagesUseCase(private val packetRepository: PacketRepository) {
+open class ImportMessagesFromCsvUseCase(private val packetRepository: PacketRepository) {
     open suspend operator fun invoke(
         source: BufferedSource,
         types: Set<BackupPacketType> = BackupPacketType.entries.toSet(),
-    ): MessageImportResult = packetRepository.importMessagesFromJson(source, types)
+    ): MessageImportResult = packetRepository.importMessagesFromCsv(source, types)
 }

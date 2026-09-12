@@ -43,6 +43,7 @@ import org.meshtastic.feature.settings.AboutScreen
 import org.meshtastic.feature.settings.AcknowledgementsScreen
 import org.meshtastic.feature.settings.AdministrationScreen
 import org.meshtastic.feature.settings.AdvSettingsScreen
+import org.meshtastic.feature.settings.AppearanceSettingsScreen
 import org.meshtastic.feature.settings.DeviceConfigurationScreen
 import org.meshtastic.feature.settings.DeviceLinkDirectoryScreen
 import org.meshtastic.feature.settings.ModuleConfigurationScreen
@@ -456,6 +457,14 @@ fun EntryProviderScope<NavKey>.settingsGraph(
     entry<SettingsRoute.AdvSettings> {
         val settingsViewModel: SettingsViewModel = koinViewModel()
         AdvSettingsScreen(
+            settingsViewModel = settingsViewModel,
+            onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },
+            onNavigateToAppearance = dropUnlessResumed { backStack.add(SettingsRoute.AppearanceSettings) },
+        )
+    }
+    entry<SettingsRoute.AppearanceSettings> {
+        val settingsViewModel: SettingsViewModel = koinViewModel()
+        AppearanceSettingsScreen(
             settingsViewModel = settingsViewModel,
             onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },
         )

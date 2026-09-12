@@ -58,7 +58,7 @@ data class PacketEntity(
             packetId = packetId,
             emojis =
             reactions
-                .filter { it.myNodeNum == myNodeNum || it.myNodeNum == 0 }
+                .filter { myNodeNum == 0 || it.myNodeNum == myNodeNum || it.myNodeNum == 0 }
                 .filter { it.belongsTo(packet) }
                 // myNodeNum is part of the reactions primary key, so the legacy 0 bucket can hold the same
                 // (user, emoji) as this node's. The UI keys reaction rows on that pair, so keep one — the

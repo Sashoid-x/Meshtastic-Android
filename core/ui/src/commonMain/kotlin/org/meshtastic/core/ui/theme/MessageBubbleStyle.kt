@@ -14,21 +14,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.meshtastic.core.domain.usecase.settings
+package org.meshtastic.core.ui.theme
 
-import okio.BufferedSink
-import org.koin.core.annotation.Single
-import org.meshtastic.core.model.BackupPacketType
-import org.meshtastic.core.repository.PacketRepository
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
-/**
- * Use case to export message history, reactions, and conversation settings into a schema-independent JSON document
- * stream.
- */
-@Single
-open class ExportMessagesUseCase(private val packetRepository: PacketRepository) {
-    open suspend operator fun invoke(
-        sink: BufferedSink,
-        types: Set<BackupPacketType> = BackupPacketType.entries.toSet(),
-    ): Int = packetRepository.exportMessagesToJson(sink, types)
-}
+/** Styling and spacing preferences for message bubbles and reaction chips. */
+data class MessageBubbleStyle(
+    val bubbleSpacing: Dp = 2.dp,
+    val bubblePadding: Dp = 8.dp,
+    val fontScale: Float = 1.0f,
+    val reactionSpacing: Dp = 4.dp,
+)
+
+@Suppress("CompositionLocalAllowlist")
+val LocalMessageBubbleStyle = compositionLocalOf { MessageBubbleStyle() }

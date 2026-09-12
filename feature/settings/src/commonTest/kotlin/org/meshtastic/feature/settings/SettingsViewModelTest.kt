@@ -41,6 +41,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import okio.Buffer
 import okio.BufferedSink
+import okio.BufferedSource
 import okio.ByteString.Companion.encodeUtf8
 import org.meshtastic.core.common.BuildConfigProvider
 import org.meshtastic.core.common.state.HiddenFeaturesUnlock
@@ -48,11 +49,13 @@ import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.domain.usecase.settings.ExportDataUseCase
 import org.meshtastic.core.domain.usecase.settings.ExportMessagesUseCase
 import org.meshtastic.core.domain.usecase.settings.ExportNodeDatabaseUseCase
+import org.meshtastic.core.domain.usecase.settings.ImportMessagesFromCsvUseCase
 import org.meshtastic.core.domain.usecase.settings.ImportMessagesUseCase
 import org.meshtastic.core.domain.usecase.settings.IsOtaCapableUseCase
 import org.meshtastic.core.domain.usecase.settings.SetMeshLogSettingsUseCase
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.MeshLog
+import org.meshtastic.core.model.MessageImportResult
 import org.meshtastic.core.repository.FileService
 import org.meshtastic.core.repository.RadioConfigRepository
 import org.meshtastic.core.testing.FakeAppPreferences
@@ -89,6 +92,9 @@ class SettingsViewModelTest {
     private val radioConfigRepository: RadioConfigRepository = mock(MockMode.autofill)
     private val buildConfigProvider: BuildConfigProvider = mock(MockMode.autofill)
     private val fileService: FileService = mock(MockMode.autofill)
+    private val exportMessagesUseCase: ExportMessagesUseCase = mock(MockMode.autofill)
+    private val importMessagesUseCase: ImportMessagesUseCase = mock(MockMode.autofill)
+    private val importMessagesFromCsvUseCase: ImportMessagesFromCsvUseCase = mock(MockMode.autofill)
 
     @BeforeTest
     fun setUp() {
@@ -110,8 +116,6 @@ class SettingsViewModelTest {
         val setMeshLogSettingsUseCase = SetMeshLogSettingsUseCase(meshLogRepository, appPreferences.meshLog)
         val exportDataUseCase = ExportDataUseCase(nodeRepository, meshLogRepository)
         val exportNodeDatabaseUseCase = ExportNodeDatabaseUseCase(nodeRepository)
-        val exportMessagesUseCase: ExportMessagesUseCase = mock(MockMode.autofill)
-        val importMessagesUseCase: ImportMessagesUseCase = mock(MockMode.autofill)
 
         viewModel =
             SettingsViewModel(
@@ -128,6 +132,7 @@ class SettingsViewModelTest {
                 exportNodeDatabaseUseCase = exportNodeDatabaseUseCase,
                 exportMessagesUseCase = exportMessagesUseCase,
                 importMessagesUseCase = importMessagesUseCase,
+                importMessagesFromCsvUseCase = importMessagesFromCsvUseCase,
                 isOtaCapableUseCase = isOtaCapableUseCase,
                 fileService = fileService,
                 hiddenFeaturesUnlock = HiddenFeaturesUnlock(),
@@ -248,6 +253,24 @@ class SettingsViewModelTest {
         viewModel.setTextCompressionEnabled(true)
 
         appPreferences.ui.textCompressionEnabled.value shouldBe true
+    }
+
+    @Test
+    fun `appearance preferences update prefs`() = runTest {
+        viewModel.setAdvThemeColorsJson("{\"primary\":123}")
+        appPreferences.ui.advThemeColorsJson.value shouldBe "{\"primary\":123}"
+
+        viewModel.setMessageBubbleSpacing(8)
+        appPreferences.ui.messageBubbleSpacing.value shouldBe 8
+
+        viewModel.setMessageBubblePadding(12)
+        appPreferences.ui.messageBubblePadding.value shouldBe 12
+
+        viewModel.setMessageFontSizeScale(1.2f)
+        appPreferences.ui.messageFontSizeScale.value shouldBe 1.2f
+
+        viewModel.setReactionChipSpacing(6)
+        appPreferences.ui.reactionChipSpacing.value shouldBe 6
     }
 
     @Test
@@ -393,5 +416,112 @@ class SettingsViewModelTest {
     fun `cachedDeviceCountExceeding counts devices past the new limit`() = runTest {
         databaseManager.existingDatabases.addAll(listOf("a", "b", "c", "d", "e"))
         viewModel.cachedDeviceCountExceeding(2) shouldBe 3
+    }
+
+    @Test
+    fun `exportMessages writes via fileService and invokes callback`() = runTest {
+        everySuspend { fileService.write(any(), any()) } calls
+            { args ->
+                val block = args.arg<suspend (BufferedSink) -> Unit>(1)
+                val buffer = Buffer()
+                block(buffer)
+                true
+            }
+        everySuspend { exportMessagesUseCase(any(), any()) } returns 42
+
+        var reportedSuccess = false
+        var reportedCount = 0
+        val uri = CommonUri.parse("content://test/backup.json")
+        viewModel.exportMessages(uri) { success, count ->
+            reportedSuccess = success
+            reportedCount = count
+        }
+        runCurrent()
+
+        assertTrue(reportedSuccess)
+        assertEquals(42, reportedCount)
+    }
+
+    @Test
+    fun `importMessages routes JSON to importMessagesUseCase`() = runTest {
+        val jsonContent = "{\"messages\":[]}"
+        everySuspend { fileService.read(any(), any()) } calls
+            { args ->
+                val block = args.arg<suspend (BufferedSource) -> Unit>(1)
+                val buffer = Buffer().writeUtf8(jsonContent)
+                block(buffer)
+                true
+            }
+        val expectedResult =
+            MessageImportResult(importedPackets = 5, skippedPackets = 1, importedReactions = 2, totalPackets = 6)
+        everySuspend { importMessagesUseCase(any(), any()) } returns expectedResult
+
+        var result: MessageImportResult? = null
+        val uri = CommonUri.parse("content://test/backup.json")
+        viewModel.importMessages(uri) { success, res, _ -> if (success) result = res }
+        runCurrent()
+
+        assertEquals(expectedResult, result)
+    }
+
+    @Test
+    fun `importMessages routes CSV to importMessagesFromCsvUseCase`() = runTest {
+        val csvContent = "packet_id,sender\n1,alice"
+        everySuspend { fileService.read(any(), any()) } calls
+            { args ->
+                val block = args.arg<suspend (BufferedSource) -> Unit>(1)
+                val buffer = Buffer().writeUtf8(csvContent)
+                block(buffer)
+                true
+            }
+        val expectedResult =
+            MessageImportResult(importedPackets = 3, skippedPackets = 0, importedReactions = 1, totalPackets = 3)
+        everySuspend { importMessagesFromCsvUseCase(any(), any()) } returns expectedResult
+
+        var result: MessageImportResult? = null
+        val uri = CommonUri.parse("content://test/backup.csv")
+        viewModel.importMessages(uri) { success, res, _ -> if (success) result = res }
+        runCurrent()
+
+        assertEquals(expectedResult, result)
+    }
+
+    @Test
+    fun `importMessages routes JSON with UTF-8 BOM to importMessagesUseCase`() = runTest {
+        val jsonContent = "{\"messages\":[]}"
+        everySuspend { fileService.read(any(), any()) } calls
+            { args ->
+                val block = args.arg<suspend (BufferedSource) -> Unit>(1)
+                val buffer = Buffer()
+                buffer.writeByte(0xEF)
+                buffer.writeByte(0xBB)
+                buffer.writeByte(0xBF)
+                buffer.writeUtf8(jsonContent)
+                block(buffer)
+                true
+            }
+        val expectedResult =
+            MessageImportResult(importedPackets = 10, skippedPackets = 0, importedReactions = 0, totalPackets = 10)
+        everySuspend { importMessagesUseCase(any(), any()) } returns expectedResult
+
+        var result: MessageImportResult? = null
+        val uri = CommonUri.parse("content://test/backup_bom.json")
+        viewModel.importMessages(uri) { success, res, _ -> if (success) result = res }
+        runCurrent()
+
+        assertEquals(expectedResult, result)
+        assertEquals(false, viewModel.isImporting.value)
+    }
+
+    @Test
+    fun `exportMessages updates isExporting state`() = runTest {
+        everySuspend { fileService.write(any(), any()) } returns true
+        everySuspend { exportMessagesUseCase(any(), any()) } returns 5
+
+        val uri = CommonUri.parse("content://test/export.json")
+        viewModel.exportMessages(uri) { _, _ -> }
+        runCurrent()
+
+        assertEquals(false, viewModel.isExporting.value)
     }
 }

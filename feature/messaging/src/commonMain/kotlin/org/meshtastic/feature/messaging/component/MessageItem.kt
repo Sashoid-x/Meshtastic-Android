@@ -124,6 +124,7 @@ import org.meshtastic.core.ui.icon.Keep
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Reply
 import org.meshtastic.core.ui.icon.ShieldCheck
+import org.meshtastic.core.ui.theme.LocalMessageBubbleStyle
 import org.meshtastic.core.ui.theme.MessageItemColors
 import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
 import org.meshtastic.core.ui.util.createClipEntry
@@ -200,12 +201,13 @@ fun MessageItem(
         .padding(
             top =
             if (hasSamePrev) {
-                2.dp
+                (LocalMessageBubbleStyle.current.bubbleSpacing / 4).coerceAtLeast(1.dp)
             } else {
-                10.dp
+                LocalMessageBubbleStyle.current.bubbleSpacing
             },
         ),
 ) {
+    val bubbleStyle = LocalMessageBubbleStyle.current
     var activeSheet by remember { mutableStateOf<ActiveSheet?>(null) }
     val clipboardManager = LocalClipboard.current
     val coroutineScope = rememberCoroutineScope()
@@ -491,7 +493,13 @@ fun MessageItem(
                     onNavigateToOriginalMessage = onNavigateToOriginalMessage,
                 )
 
-                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Column(
+                    modifier =
+                    Modifier.padding(
+                        horizontal = bubbleStyle.bubblePadding,
+                        vertical = (bubbleStyle.bubblePadding * 0.67f).coerceAtLeast(4.dp),
+                    ),
+                ) {
                     val monoImage =
                         remember(message.rawBytes, message.portNum, pixelArtEnabled) {
                             val rawBytes = message.rawBytes
@@ -626,6 +634,14 @@ fun MessageItem(
                                 remember(bodyText, rawUrl) {
                                     if (rawUrl != null) bodyText.replace(rawUrl, "").trim() else ""
                                 }
+                            val bodyStyle =
+                                MaterialTheme.typography.bodyLarge.let { base ->
+                                    if (bubbleStyle.fontScale != 1.0f) {
+                                        base.copy(fontSize = base.fontSize * bubbleStyle.fontScale)
+                                    } else {
+                                        base
+                                    }
+                                }
                             if (remainingText.isNotEmpty()) {
                                 Spacer(modifier = Modifier.height(4.dp))
                                 val mentionDisplayName =
@@ -638,7 +654,7 @@ fun MessageItem(
                                     }
                                 AutoLinkText(
                                     text = remainingText,
-                                    style = MaterialTheme.typography.bodyLarge,
+                                    style = bodyStyle,
                                     color = contentColor,
                                     mentionName = mentionDisplayName,
                                     onMentionClick = { id -> resolveMention(id)?.let(onClickChip) },
@@ -646,13 +662,29 @@ fun MessageItem(
                             }
                         }
                     } else if (searchQuery.isNotEmpty()) {
+                        val bodyStyle =
+                            MaterialTheme.typography.bodyLarge.let { base ->
+                                if (bubbleStyle.fontScale != 1.0f) {
+                                    base.copy(fontSize = base.fontSize * bubbleStyle.fontScale)
+                                } else {
+                                    base
+                                }
+                            }
                         HighlightedText(
                             text = message.text,
                             query = searchQuery,
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = bodyStyle,
                             color = contentColor,
                         )
                     } else {
+                        val bodyStyle =
+                            MaterialTheme.typography.bodyLarge.let { base ->
+                                if (bubbleStyle.fontScale != 1.0f) {
+                                    base.copy(fontSize = base.fontSize * bubbleStyle.fontScale)
+                                } else {
+                                    base
+                                }
+                            }
                         val mentionDisplayName =
                             remember(resolveMention) {
                                 { id: String ->
@@ -661,7 +693,7 @@ fun MessageItem(
                             }
                         AutoLinkText(
                             text = bodyText,
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = bodyStyle,
                             color = contentColor,
                             mentionName = mentionDisplayName,
                             onMentionClick = { id -> resolveMention(id)?.let(onClickChip) },

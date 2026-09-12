@@ -23,6 +23,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -49,6 +50,7 @@ class BubbleActivity : AppCompatActivity() {
     private val model: UIViewModel by viewModel()
     private val messageViewModel: MessageViewModel by viewModel()
 
+    @Suppress("LongMethod")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -67,18 +69,38 @@ class BubbleActivity : AppCompatActivity() {
                     AppCompatDelegate.MODE_NIGHT_NO -> false
                     else -> isSystemInDarkTheme()
                 }
-            AppTheme(dynamicColor = theme == MODE_DYNAMIC, darkTheme = dark) {
-                MessageScreen(
-                    contactKey = contactKey,
-                    message = "",
-                    viewModel = messageViewModel,
-                    navigateToNodeDetails = { nodeNum -> openInApp("nodes/$nodeNum") },
-                    // Quick chat and message filters have no deep link of their own, so the full app opens on this
-                    // conversation — the screen those menu items live on.
-                    navigateToQuickChatOptions = { openInApp("messages/$contactKey") },
-                    navigateToFilterSettings = { openInApp("messages/$contactKey") },
-                    onNavigateBack = { finish() },
-                )
+
+            val bubbleSpacing by model.messageBubbleSpacing.collectAsStateWithLifecycle()
+            val bubblePadding by model.messageBubblePadding.collectAsStateWithLifecycle()
+            val fontScale by model.messageFontSizeScale.collectAsStateWithLifecycle()
+            val reactionSpacing by model.reactionChipSpacing.collectAsStateWithLifecycle()
+
+            val bubbleStyle =
+                androidx.compose.runtime.remember(bubbleSpacing, bubblePadding, fontScale, reactionSpacing) {
+                    org.meshtastic.core.ui.theme.MessageBubbleStyle(
+                        bubbleSpacing = bubbleSpacing.dp,
+                        bubblePadding = bubblePadding.dp,
+                        fontScale = fontScale,
+                        reactionSpacing = reactionSpacing.dp,
+                    )
+                }
+
+            androidx.compose.runtime.CompositionLocalProvider(
+                org.meshtastic.core.ui.theme.LocalMessageBubbleStyle provides bubbleStyle,
+            ) {
+                AppTheme(dynamicColor = theme == MODE_DYNAMIC, darkTheme = dark) {
+                    MessageScreen(
+                        contactKey = contactKey,
+                        message = "",
+                        viewModel = messageViewModel,
+                        navigateToNodeDetails = { nodeNum -> openInApp("nodes/$nodeNum") },
+                        // Quick chat and message filters have no deep link of their own, so the full app opens on this
+                        // conversation — the screen those menu items live on.
+                        navigateToQuickChatOptions = { openInApp("messages/$contactKey") },
+                        navigateToFilterSettings = { openInApp("messages/$contactKey") },
+                        onNavigateBack = { finish() },
+                    )
+                }
             }
         }
     }

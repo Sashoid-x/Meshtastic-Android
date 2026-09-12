@@ -740,6 +740,27 @@ interface PacketDao {
     @Query("SELECT * FROM contact_settings")
     suspend fun getAllContactSettingsSnapshot(): List<ContactSettings>
 
+    /**
+     * Atomically batch-import packets, reactions, and contact settings within a single SQLite transaction, chunking
+     * multi-row inserts to prevent hitting Android's 999 SQLite bind variable limit.
+     */
+    @Transaction
+    suspend fun importPacketsAndReactions(
+        packetsToImport: List<Packet>,
+        reactionsToImport: List<ReactionEntity>,
+        contactSettingsToImport: List<ContactSettings>,
+    ) {
+        for (packet in packetsToImport) {
+            insertPacketForMerge(packet)
+        }
+        for (chunk in reactionsToImport.chunked(BATCH_CHUNK_SIZE)) {
+            insertReactionsIgnore(chunk)
+        }
+        for (chunk in contactSettingsToImport.chunked(BATCH_CHUNK_SIZE)) {
+            insertContactSettingsIgnore(chunk)
+        }
+    }
+
     // endregion
 
     /**
@@ -1026,6 +1047,7 @@ interface PacketDao {
 
     companion object {
         private const val MILLIS_PER_SECOND = 1000L
+        private const val BATCH_CHUNK_SIZE = 50
     }
 
     // region ── FTS5 Search ──

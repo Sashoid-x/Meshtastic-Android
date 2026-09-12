@@ -17,6 +17,7 @@
 package org.meshtastic.feature.settings
 
 import androidx.lifecycle.ViewModel
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,9 +35,11 @@ import org.meshtastic.core.common.util.UnitsOverride
 import org.meshtastic.core.domain.usecase.settings.ExportDataUseCase
 import org.meshtastic.core.domain.usecase.settings.ExportMessagesUseCase
 import org.meshtastic.core.domain.usecase.settings.ExportNodeDatabaseUseCase
+import org.meshtastic.core.domain.usecase.settings.ImportMessagesFromCsvUseCase
 import org.meshtastic.core.domain.usecase.settings.ImportMessagesUseCase
 import org.meshtastic.core.domain.usecase.settings.IsOtaCapableUseCase
 import org.meshtastic.core.domain.usecase.settings.SetMeshLogSettingsUseCase
+import org.meshtastic.core.model.BackupPacketType
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.MessageImportResult
 import org.meshtastic.core.model.MyNodeInfo
@@ -55,6 +58,10 @@ import org.meshtastic.core.ui.viewmodel.safeLaunch
 import org.meshtastic.core.ui.viewmodel.stateInWhileSubscribed
 import org.meshtastic.proto.LocalConfig
 
+private const val PEEK_SAMPLE_SIZE_BYTES = 1024L
+private const val UTF8_BOM_SIZE = 3L
+private val UTF8_BOM = okio.ByteString.of(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
+
 @KoinViewModel
 @Suppress("LongParameterList", "TooManyFunctions")
 class SettingsViewModel(
@@ -71,6 +78,7 @@ class SettingsViewModel(
     private val exportNodeDatabaseUseCase: ExportNodeDatabaseUseCase,
     private val exportMessagesUseCase: ExportMessagesUseCase,
     private val importMessagesUseCase: ImportMessagesUseCase,
+    private val importMessagesFromCsvUseCase: ImportMessagesFromCsvUseCase,
     private val isOtaCapableUseCase: IsOtaCapableUseCase,
     private val fileService: FileService,
     private val hiddenFeaturesUnlock: HiddenFeaturesUnlock,
@@ -243,6 +251,36 @@ class SettingsViewModel(
         uiPrefs.setPinnedMessagesEnabled(enabled)
     }
 
+    val advThemeColorsJson = uiPrefs.advThemeColorsJson
+
+    fun setAdvThemeColorsJson(json: String) {
+        uiPrefs.setAdvThemeColorsJson(json)
+    }
+
+    val messageBubbleSpacing = uiPrefs.messageBubbleSpacing
+
+    fun setMessageBubbleSpacing(spacing: Int) {
+        uiPrefs.setMessageBubbleSpacing(spacing)
+    }
+
+    val messageBubblePadding = uiPrefs.messageBubblePadding
+
+    fun setMessageBubblePadding(padding: Int) {
+        uiPrefs.setMessageBubblePadding(padding)
+    }
+
+    val messageFontSizeScale = uiPrefs.messageFontSizeScale
+
+    fun setMessageFontSizeScale(scale: Float) {
+        uiPrefs.setMessageFontSizeScale(scale)
+    }
+
+    val reactionChipSpacing = uiPrefs.reactionChipSpacing
+
+    fun setReactionChipSpacing(spacing: Int) {
+        uiPrefs.setReactionChipSpacing(spacing)
+    }
+
     /** Set the application locale. Empty string means system default. */
     fun setLocale(languageTag: String) {
         uiPrefs.setLocale(languageTag)
@@ -278,21 +316,71 @@ class SettingsViewModel(
         safeLaunch(tag = "saveNodeDbJson") { fileService.write(uri) { sink -> exportNodeDatabaseUseCase(sink) } }
     }
 
-    /** Export all chat messages, reactions, and conversation settings to a JSON file at the given URI. */
-    fun exportMessages(uri: CommonUri, onResult: (Boolean, Int) -> Unit) {
+    private val _isImporting = MutableStateFlow(false)
+    val isImporting: StateFlow<Boolean> = _isImporting.asStateFlow()
+
+    private val _isExporting = MutableStateFlow(false)
+    val isExporting: StateFlow<Boolean> = _isExporting.asStateFlow()
+
+    /** Export chat messages, reactions, and conversation settings to a JSON file at the given URI. */
+    fun exportMessages(
+        uri: CommonUri,
+        types: Set<BackupPacketType> = BackupPacketType.entries.toSet(),
+        onResult: (Boolean, Int) -> Unit,
+    ) {
+        _isExporting.value = true
         safeLaunch(tag = "exportMessages") {
-            var count = 0
-            val success = fileService.write(uri) { sink -> count = exportMessagesUseCase(sink) }
-            onResult(success, count)
+            try {
+                var count = 0
+                val success = fileService.write(uri) { sink -> count = exportMessagesUseCase(sink, types) }
+                onResult(success, count)
+            } finally {
+                _isExporting.value = false
+            }
         }
     }
 
-    /** Import chat messages, reactions, and conversation settings from a JSON file at the given URI. */
-    fun importMessages(uri: CommonUri, onResult: (Boolean, MessageImportResult?) -> Unit) {
+    /** Import chat messages, reactions, and conversation settings from a JSON or CSV file at the given URI. */
+    @Suppress("TooGenericExceptionCaught")
+    fun importMessages(
+        uri: CommonUri,
+        types: Set<BackupPacketType> = BackupPacketType.entries.toSet(),
+        onResult: (Boolean, MessageImportResult?, String?) -> Unit,
+    ) {
+        _isImporting.value = true
         safeLaunch(tag = "importMessages") {
             var result: MessageImportResult? = null
-            val success = fileService.read(uri) { source -> result = importMessagesUseCase(source) }
-            onResult(success && result != null, result)
+            var errorMsg: String? = null
+            try {
+                val success =
+                    fileService.read(uri) { source ->
+                        try {
+                            val peeked = source.peek()
+                            if (peeked.rangeEquals(0, UTF8_BOM)) {
+                                peeked.skip(UTF8_BOM_SIZE)
+                            }
+                            peeked.request(PEEK_SAMPLE_SIZE_BYTES)
+                            val sample = peeked.readUtf8(peeked.buffer.size).trim().trim('\uFEFF')
+                            val isJson = sample.startsWith("{") || sample.startsWith("[")
+                            result =
+                                if (isJson) {
+                                    importMessagesUseCase(source, types)
+                                } else {
+                                    importMessagesFromCsvUseCase(source, types)
+                                }
+                        } catch (e: Exception) {
+                            Logger.e(e) { "Error parsing import stream: ${e.message}" }
+                            errorMsg = e.message ?: e.toString()
+                            throw e
+                        }
+                    }
+                onResult(success && result != null, result, errorMsg)
+            } catch (e: Exception) {
+                Logger.e(e) { "Unhandled error during importMessages: ${e.message}" }
+                onResult(false, null, errorMsg ?: e.message ?: e.toString())
+            } finally {
+                _isImporting.value = false
+            }
         }
     }
 

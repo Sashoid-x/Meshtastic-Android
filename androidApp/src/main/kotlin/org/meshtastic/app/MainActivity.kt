@@ -38,6 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.dp
 import androidx.core.content.IntentCompat
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -112,6 +113,7 @@ class MainActivity : AppCompatActivity() {
     private val usbRepository: UsbRepository by inject()
     private val mapLayersManager: MapLayersManager by inject()
 
+    @Suppress("LongMethod")
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
 
@@ -144,6 +146,21 @@ class MainActivity : AppCompatActivity() {
                     else -> isSystemInDarkTheme()
                 }
 
+            val bubbleSpacing by model.messageBubbleSpacing.collectAsStateWithLifecycle()
+            val bubblePadding by model.messageBubblePadding.collectAsStateWithLifecycle()
+            val fontScale by model.messageFontSizeScale.collectAsStateWithLifecycle()
+            val reactionSpacing by model.reactionChipSpacing.collectAsStateWithLifecycle()
+
+            val bubbleStyle =
+                remember(bubbleSpacing, bubblePadding, fontScale, reactionSpacing) {
+                    org.meshtastic.core.ui.theme.MessageBubbleStyle(
+                        bubbleSpacing = bubbleSpacing.dp,
+                        bubblePadding = bubblePadding.dp,
+                        fontScale = fontScale,
+                        reactionSpacing = reactionSpacing.dp,
+                    )
+                }
+
             // Update system bar style when theme changes
             androidx.compose.runtime.SideEffect {
                 enableEdgeToEdge(
@@ -152,19 +169,23 @@ class MainActivity : AppCompatActivity() {
                 )
             }
 
-            AppCompositionLocals {
-                AppTheme(dynamicColor = dynamic, darkTheme = dark) {
-                    val appIntroCompleted by model.appIntroCompleted.collectAsStateWithLifecycle()
+            androidx.compose.runtime.CompositionLocalProvider(
+                org.meshtastic.core.ui.theme.LocalMessageBubbleStyle provides bubbleStyle,
+            ) {
+                AppCompositionLocals {
+                    AppTheme(dynamicColor = dynamic, darkTheme = dark) {
+                        val appIntroCompleted by model.appIntroCompleted.collectAsStateWithLifecycle()
 
-                    // Signal to the system that the initial UI is "fully drawn"
-                    // once we've decided whether to show the intro or the main screen.
-                    ReportDrawnWhen { true }
+                        // Signal to the system that the initial UI is "fully drawn"
+                        // once we've decided whether to show the intro or the main screen.
+                        ReportDrawnWhen { true }
 
-                    if (appIntroCompleted) {
-                        MainScreen()
-                    } else {
-                        val introViewModel = koinViewModel<IntroViewModel>()
-                        AppIntroductionScreen(onDone = { model.onAppIntroCompleted() }, viewModel = introViewModel)
+                        if (appIntroCompleted) {
+                            MainScreen()
+                        } else {
+                            val introViewModel = koinViewModel<IntroViewModel>()
+                            AppIntroductionScreen(onDone = { model.onAppIntroCompleted() }, viewModel = introViewModel)
+                        }
                     }
                 }
             }

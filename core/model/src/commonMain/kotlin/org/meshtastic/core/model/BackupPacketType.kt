@@ -14,21 +14,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.meshtastic.core.domain.usecase.settings
+package org.meshtastic.core.model
 
-import okio.BufferedSink
-import org.koin.core.annotation.Single
-import org.meshtastic.core.model.BackupPacketType
-import org.meshtastic.core.repository.PacketRepository
-
-/**
- * Use case to export message history, reactions, and conversation settings into a schema-independent JSON document
- * stream.
- */
-@Single
-open class ExportMessagesUseCase(private val packetRepository: PacketRepository) {
-    open suspend operator fun invoke(
-        sink: BufferedSink,
-        types: Set<BackupPacketType> = BackupPacketType.entries.toSet(),
-    ): Int = packetRepository.exportMessagesToJson(sink, types)
+/** Filterable packet and metadata types for message backup export and import. */
+enum class BackupPacketType {
+    MESSAGES,
+    REACTIONS,
+    WAYPOINTS,
+    CONTACT_SETTINGS,
 }

@@ -19,6 +19,7 @@ package org.meshtastic.core.prefs.ui
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.atomicfu.atomic
@@ -264,6 +265,41 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         scope.launch { dataStore.edit { it[KEY_PINNED_MESSAGES_ENABLED] = enabled } }
     }
 
+    override val advThemeColorsJson: StateFlow<String> =
+        dataStore.data.map { it[KEY_ADV_THEME_COLORS_JSON] ?: "" }.stateIn(scope, SharingStarted.Eagerly, "")
+
+    override fun setAdvThemeColorsJson(json: String) {
+        scope.launch { dataStore.edit { it[KEY_ADV_THEME_COLORS_JSON] = json } }
+    }
+
+    override val messageBubbleSpacing: StateFlow<Int> =
+        dataStore.data.map { it[KEY_MESSAGE_BUBBLE_SPACING] ?: 2 }.stateIn(scope, SharingStarted.Eagerly, 2)
+
+    override fun setMessageBubbleSpacing(spacing: Int) {
+        scope.launch { dataStore.edit { it[KEY_MESSAGE_BUBBLE_SPACING] = spacing } }
+    }
+
+    override val messageBubblePadding: StateFlow<Int> =
+        dataStore.data.map { it[KEY_MESSAGE_BUBBLE_PADDING] ?: 8 }.stateIn(scope, SharingStarted.Eagerly, 8)
+
+    override fun setMessageBubblePadding(padding: Int) {
+        scope.launch { dataStore.edit { it[KEY_MESSAGE_BUBBLE_PADDING] = padding } }
+    }
+
+    override val messageFontSizeScale: StateFlow<Float> =
+        dataStore.data.map { it[KEY_MESSAGE_FONT_SIZE_SCALE] ?: 1.0f }.stateIn(scope, SharingStarted.Eagerly, 1.0f)
+
+    override fun setMessageFontSizeScale(scale: Float) {
+        scope.launch { dataStore.edit { it[KEY_MESSAGE_FONT_SIZE_SCALE] = scale } }
+    }
+
+    override val reactionChipSpacing: StateFlow<Int> =
+        dataStore.data.map { it[KEY_REACTION_CHIP_SPACING] ?: 4 }.stateIn(scope, SharingStarted.Eagerly, 4)
+
+    override fun setReactionChipSpacing(spacing: Int) {
+        scope.launch { dataStore.edit { it[KEY_REACTION_CHIP_SPACING] = spacing } }
+    }
+
     override val eventThemeEnabled: StateFlow<Boolean> =
         dataStore.data.map { it[KEY_EVENT_THEME_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
 
@@ -441,6 +477,11 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         val KEY_REACTION_NOTIFICATION_MODE = stringPreferencesKey("reaction-notification-mode")
         val KEY_PINNED_MESSAGES_ENABLED = booleanPreferencesKey("pinned-messages-enabled")
         val KEY_EVENT_THEME_ENABLED = booleanPreferencesKey("event-theme-enabled")
+        val KEY_ADV_THEME_COLORS_JSON = stringPreferencesKey("adv-theme-colors-json")
+        val KEY_MESSAGE_BUBBLE_SPACING = intPreferencesKey("message-bubble-spacing")
+        val KEY_MESSAGE_BUBBLE_PADDING = intPreferencesKey("message-bubble-padding")
+        val KEY_MESSAGE_FONT_SIZE_SCALE = floatPreferencesKey("message-font-size-scale")
+        val KEY_REACTION_CHIP_SPACING = intPreferencesKey("reaction-chip-spacing")
 
         val KEY_APP_INTRO_COMPLETED = booleanPreferencesKey("app_intro_completed")
         val KEY_THEME = intPreferencesKey("theme")

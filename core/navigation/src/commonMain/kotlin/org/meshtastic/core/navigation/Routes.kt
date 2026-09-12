@@ -185,6 +185,8 @@ sealed interface SettingsRoute : Route {
 
     @Serializable data object AdvSettings : SettingsRoute
 
+    @Serializable data object AppearanceSettings : SettingsRoute
+
     // endregion
 
     // region help & documentation routes

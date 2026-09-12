@@ -377,7 +377,7 @@ private fun WindowBoundsManager(
 // ----- Main window with keyboard shortcuts and Coil -----
 
 /** Renders the main application window with keyboard shortcuts, Coil image loading, and the Compose UI tree. */
-@Suppress("ViewModelForwarding")
+@Suppress("ViewModelForwarding", "LongMethod")
 @Composable
 @OptIn(ExperimentalCoilApi::class)
 private fun ApplicationScope.MeshtasticWindow(
@@ -448,7 +448,25 @@ private fun ApplicationScope.MeshtasticWindow(
                         DesktopTracerouteMap(overlay, nodePositions, onMappableCountChanged, modifier)
                     },
             ) {
-                AppTheme(darkTheme = isDarkTheme) { DesktopMainScreen(uiViewModel, multiBackstack) }
+                val theme by uiViewModel.theme.collectAsState()
+                val bubbleSpacing by uiViewModel.messageBubbleSpacing.collectAsState()
+                val bubblePadding by uiViewModel.messageBubblePadding.collectAsState()
+                val fontScale by uiViewModel.messageFontSizeScale.collectAsState()
+                val reactionSpacing by uiViewModel.reactionChipSpacing.collectAsState()
+
+                val bubbleStyle =
+                    remember(bubbleSpacing, bubblePadding, fontScale, reactionSpacing) {
+                        org.meshtastic.core.ui.theme.MessageBubbleStyle(
+                            bubbleSpacing = bubbleSpacing.dp,
+                            bubblePadding = bubblePadding.dp,
+                            fontScale = fontScale,
+                            reactionSpacing = reactionSpacing.dp,
+                        )
+                    }
+
+                CompositionLocalProvider(org.meshtastic.core.ui.theme.LocalMessageBubbleStyle provides bubbleStyle) {
+                    AppTheme(darkTheme = isDarkTheme) { DesktopMainScreen(uiViewModel, multiBackstack) }
+                }
             }
         }
     }

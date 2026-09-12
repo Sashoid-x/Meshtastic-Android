@@ -74,6 +74,17 @@ class ReactionKeyTest {
     }
 
     @Test
+    fun `a legacy packet allows non-legacy reactions`() = runTest {
+        val entity =
+            packetEntity(reactions = listOf(reaction(myNodeNum = MY_NODE_NUM, userId = "!abcd1234", emoji = "👍")))
+                .let { it.copy(packet = it.packet.copy(myNodeNum = 0)) }
+
+        val emojis = entity.toMessage(getNode).emojis
+
+        assertEquals(1, emojis.size)
+    }
+
+    @Test
     fun `distinct users and distinct emoji stay distinct`() = runTest {
         val entity =
             packetEntity(

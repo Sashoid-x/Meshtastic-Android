@@ -46,6 +46,7 @@ import org.meshtastic.core.database.dao.NodeInfoDao
 import org.meshtastic.core.database.entity.PacketEntity
 import org.meshtastic.core.database.entity.toReaction
 import org.meshtastic.core.di.CoroutineDispatchers
+import org.meshtastic.core.model.BackupPacketType
 import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.Message
@@ -67,7 +68,7 @@ import org.meshtastic.core.database.entity.Packet as RoomPacket
 import org.meshtastic.core.database.entity.ReactionEntity as RoomReaction
 import org.meshtastic.core.repository.PacketRepository as SharedPacketRepository
 
-@Suppress("TooManyFunctions", "LongParameterList")
+@Suppress("TooManyFunctions", "LongParameterList", "LargeClass")
 @Single
 class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val dispatchers: CoroutineDispatchers) :
     SharedPacketRepository {
@@ -658,86 +659,363 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
         query.split("\\s+".toRegex()).filter { it.isNotBlank() }.joinToString(" ") { "\"${it.replace("\"", "")}\"" }
 
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
-    override suspend fun exportMessagesToJson(sink: BufferedSink): Int = withContext(dispatchers.io) {
-        val (packets, reactions, contactSettings) =
-            dbManager.withReadDb { db ->
-                val pDao = db.packetDao()
-                Triple(
-                    pDao.getAllPacketsSnapshot(),
-                    pDao.getAllReactionsSnapshot(),
-                    pDao.getAllContactSettingsSnapshot(),
+    override suspend fun exportMessagesToJson(sink: BufferedSink, types: Set<BackupPacketType>): Int =
+        withContext(dispatchers.io) {
+            val (packets, reactions, contactSettings) =
+                dbManager.withReadDb { db ->
+                    val pDao = db.packetDao()
+                    Triple(
+                        pDao.getAllPacketsSnapshot(),
+                        pDao.getAllReactionsSnapshot(),
+                        pDao.getAllContactSettingsSnapshot(),
+                    )
+                }
+
+            val filteredPackets =
+                packets.filter { packet ->
+                    when (packet.port_num) {
+                        PortNum.WAYPOINT_APP.value -> BackupPacketType.WAYPOINTS in types
+                        else -> BackupPacketType.MESSAGES in types
+                    }
+                }
+
+            val filteredReactions = if (BackupPacketType.REACTIONS in types) reactions else emptyList()
+            val filteredSettings = if (BackupPacketType.CONTACT_SETTINGS in types) contactSettings else emptyList()
+
+            val export =
+                MessagesExport(
+                    schemaVersion = 1,
+                    exportedAt = Instant.fromEpochMilliseconds(nowMillis).toString(),
+                    packets = filteredPackets.map { it.toExport() },
+                    reactions = filteredReactions.map { it.toExport() },
+                    contactSettings = filteredSettings.map { it.toExport() },
                 )
+
+            val json = Json {
+                prettyPrint = true
+                explicitNulls = false
+            }
+            json.encodeToBufferedSink(export, sink)
+            sink.flush()
+            filteredPackets.size
+        }
+
+    override suspend fun importMessagesFromJson(
+        source: BufferedSource,
+        types: Set<BackupPacketType>,
+    ): MessageImportResult = withContext(dispatchers.io) {
+        val export: MessagesExport = decodeMessagesExport(source)
+
+        val packetsToImport =
+            export.packets.filter { dto ->
+                when (dto.portNum) {
+                    PortNum.WAYPOINT_APP.value -> BackupPacketType.WAYPOINTS in types
+                    else -> BackupPacketType.MESSAGES in types
+                }
+            }
+        val reactionsToImport = if (BackupPacketType.REACTIONS in types) export.reactions else emptyList()
+        val contactSettingsToImport =
+            if (BackupPacketType.CONTACT_SETTINGS in types) export.contactSettings else emptyList()
+
+        dbManager.withDb { db ->
+            val pDao = db.packetDao()
+            val existingPackets = pDao.getAllPacketsSnapshot()
+            val existingFingerprints = existingPackets.mapTo(HashSet(existingPackets.size)) { it.fingerprint() }
+
+            var importedCount = 0
+            var skippedCount = 0
+            val toInsert = mutableListOf<RoomPacket>()
+
+            for (packetDto in packetsToImport) {
+                val fp = packetDto.fingerprint()
+                if (fp in existingFingerprints) {
+                    skippedCount++
+                } else {
+                    toInsert.add(packetDto.toPacket())
+                    existingFingerprints.add(fp)
+                    importedCount++
+                }
             }
 
-        val export =
-            MessagesExport(
-                schemaVersion = 1,
-                exportedAt = Instant.fromEpochMilliseconds(nowMillis).toString(),
-                packets = packets.map { it.toExport() },
-                reactions = reactions.map { it.toExport() },
-                contactSettings = contactSettings.map { it.toExport() },
+            pDao.importPacketsAndReactions(
+                packetsToImport = toInsert,
+                reactionsToImport = reactionsToImport.map { it.toReactionEntity() },
+                contactSettingsToImport = contactSettingsToImport.map { it.toContactSettings() },
             )
 
-        val json = Json {
-            prettyPrint = true
-            explicitNulls = false
-        }
-        json.encodeToBufferedSink(export, sink)
-        sink.flush()
-        packets.size
+            if (importedCount > 0) {
+                pDao.rebuildFtsIndex()
+            }
+
+            MessageImportResult(
+                importedPackets = importedCount,
+                skippedPackets = skippedCount,
+                importedReactions = reactionsToImport.size,
+                totalPackets = export.packets.size,
+            )
+        } ?: MessageImportResult(0, 0, 0, 0)
     }
 
     @OptIn(kotlinx.serialization.ExperimentalSerializationApi::class)
-    override suspend fun importMessagesFromJson(source: BufferedSource): MessageImportResult =
-        withContext(dispatchers.io) {
-            val json = Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-            }
-            val export: MessagesExport = json.decodeFromBufferedSource(source)
+    private fun decodeMessagesExport(source: BufferedSource): MessagesExport {
+        val json = Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
+        if (source.rangeEquals(0, UTF8_BOM)) {
+            source.skip(UTF8_BOM_SIZE)
+        }
+        val peeked = source.peek()
+        if (peeked.rangeEquals(0, UTF8_BOM)) {
+            peeked.skip(UTF8_BOM_SIZE)
+        }
+        peeked.request(PEEK_SAMPLE_SIZE_BYTES)
+        val sample = peeked.readUtf8(peeked.buffer.size).trim().trim('\uFEFF')
+        return if (sample.startsWith("[")) {
+            val packetList: List<org.meshtastic.core.data.model.PacketExport> = json.decodeFromBufferedSource(source)
+            MessagesExport(exportedAt = "", packets = packetList)
+        } else {
+            json.decodeFromBufferedSource(source)
+        }
+    }
 
-            dbManager.withDb { db ->
-                val pDao = db.packetDao()
-                val existingPackets = pDao.getAllPacketsSnapshot()
-                val existingFingerprints = existingPackets.mapTo(HashSet(existingPackets.size)) { it.fingerprint() }
+    @Suppress(
+        "detekt:CyclomaticComplexMethod",
+        "detekt:LongMethod",
+        "detekt:NestedBlockDepth",
+        "detekt:LoopWithTooManyJumpStatements",
+        "LoopWithTooManyJumpStatements",
+        "MagicNumber",
+        "detekt:MagicNumber",
+    )
+    override suspend fun importMessagesFromCsv(
+        source: BufferedSource,
+        types: Set<BackupPacketType>,
+    ): MessageImportResult = withContext(dispatchers.io) {
+        if (source.rangeEquals(0, UTF8_BOM)) {
+            source.skip(UTF8_BOM_SIZE)
+        }
+        dbManager.withDb { db ->
+            val pDao = db.packetDao()
+            val existingPackets = pDao.getAllPacketsSnapshot()
+            val existingFingerprints = existingPackets.mapTo(HashSet(existingPackets.size)) { it.fingerprint() }
 
-                var importedCount = 0
-                var skippedCount = 0
+            var importedCount = 0
+            var skippedCount = 0
+            var totalPacketsInCsv = 0
+            val toInsert = mutableListOf<RoomPacket>()
+            val reactionsToInsert = mutableListOf<RoomReaction>()
 
-                for (packetDto in export.packets) {
-                    val fp = packetDto.fingerprint()
+            while (true) {
+                val line = source.readUtf8Line() ?: break
+                if (line.isBlank()) continue
+                val tokens = parseCsvLine(line)
+                if (tokens.size <= CSV_COL_PAYLOAD) continue
+
+                if (
+                    tokens[CSV_COL_DATE].contains("date", ignoreCase = true) &&
+                    tokens[CSV_COL_PAYLOAD].contains("payload", ignoreCase = true)
+                ) {
+                    continue
+                }
+
+                val payload = tokens[CSV_COL_PAYLOAD].trim()
+                if (
+                    payload.isEmpty() ||
+                    (payload.startsWith("<") && payload.endsWith(">")) ||
+                    payload.endsWith("encrypted bytes")
+                ) {
+                    continue
+                }
+
+                totalPacketsInCsv++
+                val isReaction = payload.startsWith("reaction_for_id:")
+                val isWaypoint = payload.startsWith("waypoint:")
+
+                val fromHex = tokens[CSV_COL_FROM]
+                val fromNodeNum = fromHex.toLongOrNull() ?: fromHex.toLongOrNull(HEX_RADIX) ?: 0L
+                val fromAddress = "!${fromNodeNum.toUInt().toString(HEX_RADIX).padStart(8, '0')}"
+                val dateStr = tokens[CSV_COL_DATE]
+                val timeStr = if (tokens.size > CSV_COL_TIME) tokens[CSV_COL_TIME] else ""
+                val timestamp = parseDateTimeToMillis(dateStr, timeStr)
+                val snr = if (tokens.size > CSV_COL_SNR) tokens[CSV_COL_SNR].toFloatOrNull() else null
+                val hopLimit =
+                    if (tokens.size > CSV_COL_HOP_LIMIT) tokens[CSV_COL_HOP_LIMIT].toIntOrNull() ?: 0 else 0
+                val hopStart =
+                    if (tokens.size > CSV_COL_HOP_START) tokens[CSV_COL_HOP_START].toIntOrNull() ?: 0 else 0
+                val relayNode =
+                    if (tokens.size > CSV_COL_RELAY_NODE) {
+                        tokens[CSV_COL_RELAY_NODE].toIntOrNull(HEX_RADIX)
+                    } else {
+                        null
+                    }
+
+                val hopsAway =
+                    if (hopStart > 0 && hopLimit >= 0 && hopStart >= hopLimit) hopStart - hopLimit else -1
+                val deterministicPacketId = (timestamp.hashCode() xor fromAddress.hashCode() xor payload.hashCode())
+
+                if (isReaction) {
+                    val reactionChar = payload.substringAfter("reaction_for_id:").substringAfter(':')
+                    val reactionEntity =
+                        RoomReaction(
+                            myNodeNum = 0,
+                            replyId = deterministicPacketId,
+                            userId = fromAddress,
+                            emoji = reactionChar,
+                            timestamp = timestamp,
+                            snr = snr,
+                            hopsAway = hopsAway,
+                            packetId = deterministicPacketId,
+                            relayNode = relayNode,
+                            to = "^all",
+                        )
+                    reactionsToInsert.add(reactionEntity)
+                } else {
+                    val dataPacket =
+                        DataPacket(
+                            to = "^all",
+                            bytes = payload.encodeToByteArray().toByteString(),
+                            dataType =
+                            if (isWaypoint) PortNum.WAYPOINT_APP.value else PortNum.TEXT_MESSAGE_APP.value,
+                            from = fromAddress,
+                            time = timestamp,
+                            id = deterministicPacketId,
+                            status = MessageStatus.RECEIVED,
+                            hopLimit = hopLimit,
+                            hopStart = hopStart,
+                            snr = snr,
+                            relayNode = relayNode,
+                        )
+                    val packet =
+                        RoomPacket(
+                            uuid = 0L,
+                            myNodeNum = 0,
+                            port_num = dataPacket.dataType,
+                            contact_key = "0^all",
+                            received_time = timestamp,
+                            read = true,
+                            data = dataPacket,
+                            packetId = deterministicPacketId,
+                            routingError = -1,
+                            snr = snr,
+                            rssi = null,
+                            hopsAway = hopsAway,
+                            sfpp_hash = null,
+                            filtered = false,
+                            messageText = payload,
+                            translatedText = null,
+                            showTranslated = false,
+                            pinnedMessage = false,
+                        )
+                    val fp = packet.fingerprint()
                     if (fp in existingFingerprints) {
                         skippedCount++
                     } else {
-                        pDao.insertPacketForMerge(packetDto.toPacket())
+                        toInsert.add(packet)
                         existingFingerprints.add(fp)
                         importedCount++
                     }
                 }
+            }
 
-                if (export.reactions.isNotEmpty()) {
-                    pDao.insertReactionsIgnore(export.reactions.map { it.toReactionEntity() })
-                }
-
-                if (export.contactSettings.isNotEmpty()) {
-                    pDao.insertContactSettingsIgnore(export.contactSettings.map { it.toContactSettings() })
-                }
-
-                if (importedCount > 0) {
-                    pDao.rebuildFtsIndex()
-                }
-
-                MessageImportResult(
-                    importedPackets = importedCount,
-                    skippedPackets = skippedCount,
-                    importedReactions = export.reactions.size,
-                    totalPackets = export.packets.size,
+            if (toInsert.isNotEmpty() || reactionsToInsert.isNotEmpty()) {
+                pDao.importPacketsAndReactions(
+                    packetsToImport = toInsert,
+                    reactionsToImport = reactionsToInsert,
+                    contactSettingsToImport = emptyList<ContactSettingsEntity>(),
                 )
-            } ?: MessageImportResult(0, 0, 0, 0)
-        }
+            }
+
+            if (importedCount > 0) {
+                pDao.rebuildFtsIndex()
+            }
+
+            MessageImportResult(
+                importedPackets = importedCount,
+                skippedPackets = skippedCount,
+                importedReactions = reactionsToInsert.size,
+                totalPackets = totalPacketsInCsv,
+            )
+        } ?: MessageImportResult(0, 0, 0, 0)
+    }
 
     companion object {
         private const val CONTACTS_PAGE_SIZE = 30
         private const val MESSAGES_PAGE_SIZE = 50
+        private const val CSV_COL_DATE = 0
+        private const val CSV_COL_TIME = 1
+        private const val CSV_COL_FROM = 2
+        private const val CSV_COL_SNR = 9
+        private const val CSV_COL_HOP_LIMIT = 11
+        private const val CSV_COL_HOP_START = 12
+        private const val CSV_COL_RELAY_NODE = 13
+        private const val CSV_COL_PAYLOAD = 14
+        private const val HEX_RADIX = 16
+        private const val MILLIS_PER_SECOND = 1000L
+        private const val UTF8_BOM_SIZE = 3L
+        private const val PEEK_SAMPLE_SIZE_BYTES = 1024L
+        private val UTF8_BOM = okio.ByteString.of(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
     }
+}
+
+private fun parseCsvLine(line: String): List<String> {
+    val tokens = mutableListOf<String>()
+    val sb = StringBuilder()
+    var inQuotes = false
+    var i = 0
+    while (i < line.length) {
+        val c = line[i]
+        if (inQuotes) {
+            if (c == '"') {
+                if (i + 1 < line.length && line[i + 1] == '"') {
+                    sb.append('"')
+                    i++
+                } else {
+                    inQuotes = false
+                }
+            } else {
+                sb.append(c)
+            }
+        } else {
+            when (c) {
+                '"' -> inQuotes = true
+
+                ',' -> {
+                    tokens.add(sb.toString().trim())
+                    sb.clear()
+                }
+
+                else -> sb.append(c)
+            }
+        }
+        i++
+    }
+    tokens.add(sb.toString().trim())
+    return tokens
+}
+
+@Suppress("detekt:TooGenericExceptionCaught", "detekt:SwallowedException", "MagicNumber")
+private fun parseDateTimeToMillis(dateStr: String, timeStr: String): Long {
+    try {
+        val dateParts = dateStr.split("-")
+        val timeParts = timeStr.split(":")
+        if (dateParts.size == 3 && timeParts.size >= 2) {
+            val year = dateParts[0].toInt()
+            val month = dateParts[1].toInt()
+            val day = dateParts[2].toInt()
+            val hour = timeParts[0].toInt()
+            val min = timeParts[1].toInt()
+            val sec = timeParts[2].substringBefore('.').toInt()
+            val y = if (month <= 2) year - 1 else year
+            val m = if (month <= 2) month + 9 else month - 3
+            val era = (if (y >= 0) y else y - 399) / 400
+            val yoe = y - era * 400
+            val doy = (153 * m + 2) / 5 + day - 1
+            val doe = yoe * 365 + yoe / 4 - yoe / 100 + doy
+            val days = (era * 146097 + doe - 719468).toLong()
+            val seconds = days * 86400L + hour * 3600L + min * 60L + sec
+            return seconds * 1000L
+        }
+    } catch (_: Exception) {}
+    return nowMillis
 }

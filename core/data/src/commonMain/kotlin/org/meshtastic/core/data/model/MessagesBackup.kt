@@ -30,7 +30,7 @@ import org.meshtastic.core.model.MessageStatus
 @Serializable
 data class MessagesExport(
     val schemaVersion: Int = 1,
-    val exportedAt: String,
+    val exportedAt: String = "",
     val myNodeNum: Long? = null,
     val packets: List<PacketExport> = emptyList(),
     val reactions: List<ReactionExport> = emptyList(),

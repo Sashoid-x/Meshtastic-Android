@@ -18,19 +18,21 @@ package org.meshtastic.feature.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -44,19 +46,28 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.common.util.nowMillis
+import org.meshtastic.core.model.BackupPacketType
+import org.meshtastic.core.model.MessageImportResult
 import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.model.ReactionNotificationMode
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.adv_appearance_settings_summary
+import org.meshtastic.core.resources.adv_appearance_settings_title
 import org.meshtastic.core.resources.adv_export_messages
 import org.meshtastic.core.resources.adv_export_messages_error
 import org.meshtastic.core.resources.adv_export_messages_success
 import org.meshtastic.core.resources.adv_export_messages_summary
+import org.meshtastic.core.resources.adv_exporting_messages_desc
+import org.meshtastic.core.resources.adv_exporting_messages_title
 import org.meshtastic.core.resources.adv_import_messages
-import org.meshtastic.core.resources.adv_import_messages_confirm_message
-import org.meshtastic.core.resources.adv_import_messages_confirm_title
 import org.meshtastic.core.resources.adv_import_messages_error
-import org.meshtastic.core.resources.adv_import_messages_success
 import org.meshtastic.core.resources.adv_import_messages_summary
+import org.meshtastic.core.resources.adv_import_result_all_skipped
+import org.meshtastic.core.resources.adv_import_result_summary
+import org.meshtastic.core.resources.adv_import_result_title
+import org.meshtastic.core.resources.adv_importing_messages_desc
+import org.meshtastic.core.resources.adv_importing_messages_title
+import org.meshtastic.core.resources.adv_section_appearance
 import org.meshtastic.core.resources.adv_section_backup
 import org.meshtastic.core.resources.adv_section_media
 import org.meshtastic.core.resources.adv_section_messaging
@@ -65,11 +76,11 @@ import org.meshtastic.core.resources.adv_section_photos
 import org.meshtastic.core.resources.adv_settings
 import org.meshtastic.core.resources.built_in_image_viewer
 import org.meshtastic.core.resources.built_in_image_viewer_summary
-import org.meshtastic.core.resources.cancel
 import org.meshtastic.core.resources.file_transfer_setting
 import org.meshtastic.core.resources.file_transfer_setting_summary
 import org.meshtastic.core.resources.insert_photo_link
 import org.meshtastic.core.resources.insert_photo_link_summary
+import org.meshtastic.core.resources.okay
 import org.meshtastic.core.resources.photo_hosting_provider_disabled
 import org.meshtastic.core.resources.photo_hosting_provider_meshapp
 import org.meshtastic.core.resources.photo_hosting_provider_meshpic
@@ -93,14 +104,17 @@ import org.meshtastic.core.resources.text_compression_summary
 import org.meshtastic.core.ui.component.DropDownPreference
 import org.meshtastic.core.ui.component.ListItem
 import org.meshtastic.core.ui.component.MainAppBar
+import org.meshtastic.core.ui.component.MeshtasticDialog
 import org.meshtastic.core.ui.component.SwitchPreference
 import org.meshtastic.core.ui.icon.FileDownload
+import org.meshtastic.core.ui.icon.FormatPaint
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Upload
 import org.meshtastic.core.ui.util.rememberOpenFileLauncher
 import org.meshtastic.core.ui.util.rememberSaveFileLauncher
 import org.meshtastic.core.ui.util.rememberShowToast
 import org.meshtastic.feature.settings.component.ExpressiveSection
+import org.meshtastic.feature.settings.component.PacketTypePickerDialog
 import kotlin.time.Instant.Companion.fromEpochMilliseconds
 
 private val BACKUP_TIMESTAMP_FORMAT =
@@ -116,7 +130,12 @@ private val BACKUP_TIMESTAMP_FORMAT =
 
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
-fun AdvSettingsScreen(settingsViewModel: SettingsViewModel, onNavigateUp: () -> Unit, modifier: Modifier = Modifier) {
+fun AdvSettingsScreen(
+    settingsViewModel: SettingsViewModel,
+    onNavigateUp: () -> Unit,
+    onNavigateToAppearance: () -> Unit = {},
+    modifier: Modifier = Modifier,
+) {
     val ourNode by settingsViewModel.ourNodeInfo.collectAsStateWithLifecycle()
     val textCompressionEnabled by settingsViewModel.textCompressionEnabled.collectAsStateWithLifecycle()
     val pixelArtEnabled by settingsViewModel.pixelArtEnabled.collectAsStateWithLifecycle()
@@ -129,14 +148,22 @@ fun AdvSettingsScreen(settingsViewModel: SettingsViewModel, onNavigateUp: () -> 
     val reactionNotificationMode by settingsViewModel.reactionNotificationMode.collectAsStateWithLifecycle()
     val pinnedMessagesEnabled by settingsViewModel.pinnedMessagesEnabled.collectAsStateWithLifecycle()
 
+    val isImporting by settingsViewModel.isImporting.collectAsStateWithLifecycle()
+    val isExporting by settingsViewModel.isExporting.collectAsStateWithLifecycle()
+
     val coroutineScope = rememberCoroutineScope()
     val showToast = rememberShowToast()
 
     var pendingImportUri by remember { mutableStateOf<CommonUri?>(null) }
-    var showImportConfirmDialog by remember { mutableStateOf(false) }
+    var showImportTypeDialog by remember { mutableStateOf(false) }
+    var showExportTypeDialog by remember { mutableStateOf(false) }
+    var pendingExportTypes by remember { mutableStateOf(BackupPacketType.entries.toSet()) }
+    var importResult by remember { mutableStateOf<MessageImportResult?>(null) }
+    var importFailed by remember { mutableStateOf(false) }
+    var importErrorMessage by remember { mutableStateOf<String?>(null) }
 
     val exportMessagesLauncher = rememberSaveFileLauncher { uri ->
-        settingsViewModel.exportMessages(uri) { success, count ->
+        settingsViewModel.exportMessages(uri, pendingExportTypes) { success, count ->
             coroutineScope.launch {
                 if (success) {
                     showToast(getString(Res.string.adv_export_messages_success, count))
@@ -150,56 +177,146 @@ fun AdvSettingsScreen(settingsViewModel: SettingsViewModel, onNavigateUp: () -> 
     val importMessagesLauncher = rememberOpenFileLauncher { uri ->
         if (uri != null) {
             pendingImportUri = uri
-            showImportConfirmDialog = true
+            showImportTypeDialog = true
         }
     }
 
-    if (showImportConfirmDialog && pendingImportUri != null) {
-        AlertDialog(
-            onDismissRequest = {
-                showImportConfirmDialog = false
-                pendingImportUri = null
+    if (showExportTypeDialog) {
+        PacketTypePickerDialog(
+            title = stringResource(Res.string.adv_export_messages),
+            confirmText = stringResource(Res.string.adv_export_messages),
+            onConfirm = { types ->
+                pendingExportTypes = types
+                showExportTypeDialog = false
+                val nodeShortName = ourNode?.user?.short_name?.takeIf { it.isNotBlank() } ?: "meshtastic"
+                val timestamp =
+                    fromEpochMilliseconds(nowMillis)
+                        .toLocalDateTime(TimeZone.currentSystemDefault())
+                        .format(BACKUP_TIMESTAMP_FORMAT)
+                exportMessagesLauncher("Meshtastic_messages_${nodeShortName}_$timestamp.json", "application/json")
             },
-            title = { Text(text = stringResource(Res.string.adv_import_messages_confirm_title)) },
-            text = { Text(text = stringResource(Res.string.adv_import_messages_confirm_message)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        val uri = pendingImportUri
-                        showImportConfirmDialog = false
-                        pendingImportUri = null
-                        if (uri != null) {
-                            settingsViewModel.importMessages(uri) { success, result ->
-                                coroutineScope.launch {
-                                    if (success && result != null) {
-                                        showToast(
-                                            getString(
-                                                Res.string.adv_import_messages_success,
-                                                result.importedPackets,
-                                                result.skippedPackets,
-                                            ),
-                                        )
-                                    } else {
-                                        showToast(getString(Res.string.adv_import_messages_error))
-                                    }
-                                }
+            onDismiss = { showExportTypeDialog = false },
+        )
+    }
+
+    if (showImportTypeDialog && pendingImportUri != null) {
+        PacketTypePickerDialog(
+            title = stringResource(Res.string.adv_import_messages),
+            confirmText = stringResource(Res.string.adv_import_messages),
+            onConfirm = { types ->
+                val uri = pendingImportUri
+                showImportTypeDialog = false
+                pendingImportUri = null
+                if (uri != null) {
+                    settingsViewModel.importMessages(uri, types) { success, result, errorMsg ->
+                        coroutineScope.launch {
+                            if (success && result != null) {
+                                importResult = result
+                                importFailed = false
+                                importErrorMessage = null
+                            } else {
+                                importResult = null
+                                importFailed = true
+                                importErrorMessage = errorMsg
                             }
                         }
-                    },
-                ) {
-                    Text(text = stringResource(Res.string.adv_import_messages))
+                    }
                 }
             },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        showImportConfirmDialog = false
-                        pendingImportUri = null
-                    },
+            onDismiss = {
+                showImportTypeDialog = false
+                pendingImportUri = null
+            },
+        )
+    }
+
+    if (isImporting) {
+        MeshtasticDialog(
+            title = stringResource(Res.string.adv_importing_messages_title),
+            onDismiss = {},
+            confirmText = null,
+            dismissText = null,
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Text(text = stringResource(Res.string.cancel))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Text(
+                        text = stringResource(Res.string.adv_importing_messages_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
                 }
             },
+        )
+    }
+
+    if (isExporting) {
+        MeshtasticDialog(
+            title = stringResource(Res.string.adv_exporting_messages_title),
+            onDismiss = {},
+            confirmText = null,
+            dismissText = null,
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    Text(
+                        text = stringResource(Res.string.adv_exporting_messages_desc),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            },
+        )
+    }
+
+    val currentResult = importResult
+    if (currentResult != null) {
+        val resultMessage =
+            if (currentResult.importedPackets == 0 && currentResult.skippedPackets > 0) {
+                stringResource(Res.string.adv_import_result_all_skipped, currentResult.skippedPackets)
+            } else {
+                stringResource(
+                    Res.string.adv_import_result_summary,
+                    currentResult.importedPackets,
+                    currentResult.skippedPackets,
+                    currentResult.importedReactions,
+                    currentResult.totalPackets,
+                )
+            }
+        MeshtasticDialog(
+            title = stringResource(Res.string.adv_import_result_title),
+            onDismiss = { importResult = null },
+            confirmText = stringResource(Res.string.okay),
+            onConfirm = { importResult = null },
+            text = { Text(text = resultMessage, style = MaterialTheme.typography.bodyMedium) },
+        )
+    }
+
+    if (importFailed) {
+        val baseError = stringResource(Res.string.adv_import_messages_error)
+        val textToShow =
+            if (!importErrorMessage.isNullOrBlank()) {
+                "$baseError\n\n$importErrorMessage"
+            } else {
+                baseError
+            }
+        MeshtasticDialog(
+            title = stringResource(Res.string.adv_import_result_title),
+            onDismiss = {
+                importFailed = false
+                importErrorMessage = null
+            },
+            confirmText = stringResource(Res.string.okay),
+            onConfirm = {
+                importFailed = false
+                importErrorMessage = null
+            },
+            text = { Text(text = textToShow, style = MaterialTheme.typography.bodyMedium) },
         )
     }
 
@@ -239,14 +356,8 @@ fun AdvSettingsScreen(settingsViewModel: SettingsViewModel, onNavigateUp: () -> 
             onFileTransferChange = settingsViewModel::setFileTransferEnabled,
             onReactionNotificationModeChange = settingsViewModel::setReactionNotificationMode,
             onPinnedMessagesChange = settingsViewModel::setPinnedMessagesEnabled,
-            onExportMessages = {
-                val nodeShortName = ourNode?.user?.short_name?.takeIf { it.isNotBlank() } ?: "meshtastic"
-                val timestamp =
-                    fromEpochMilliseconds(nowMillis)
-                        .toLocalDateTime(TimeZone.currentSystemDefault())
-                        .format(BACKUP_TIMESTAMP_FORMAT)
-                exportMessagesLauncher("Meshtastic_messages_${nodeShortName}_$timestamp.json", "application/json")
-            },
+            onNavigateToAppearance = onNavigateToAppearance,
+            onExportMessages = { showExportTypeDialog = true },
             onImportMessages = { importMessagesLauncher("*/*") },
         )
     }
@@ -275,6 +386,7 @@ private fun AdvSettingsContent(
     onFileTransferChange: (Boolean) -> Unit,
     onReactionNotificationModeChange: (ReactionNotificationMode) -> Unit,
     onPinnedMessagesChange: (Boolean) -> Unit,
+    onNavigateToAppearance: () -> Unit,
     onExportMessages: () -> Unit,
     onImportMessages: () -> Unit,
     modifier: Modifier = Modifier,
@@ -283,6 +395,16 @@ private fun AdvSettingsContent(
         modifier = modifier.verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        ExpressiveSection(title = stringResource(Res.string.adv_section_appearance)) {
+            ListItem(
+                text = stringResource(Res.string.adv_appearance_settings_title),
+                supportingText = stringResource(Res.string.adv_appearance_settings_summary),
+                leadingIcon = MeshtasticIcons.FormatPaint,
+                trailingIcon = null,
+                onClick = onNavigateToAppearance,
+            )
+        }
+
         ExpressiveSection(title = stringResource(Res.string.adv_section_messaging)) {
             SwitchPreference(
                 title = stringResource(Res.string.pinned_messages),
