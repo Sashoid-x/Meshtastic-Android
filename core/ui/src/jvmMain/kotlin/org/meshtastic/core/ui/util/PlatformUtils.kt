@@ -14,13 +14,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-@file:Suppress("TooManyFunctions", "MagicNumber")
+@file:Suppress("TooManyFunctions")
 
 package org.meshtastic.core.ui.util
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalClipboard
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.StringResource
 import org.meshtastic.core.common.util.CommonUri
@@ -33,6 +35,14 @@ import java.net.URI
 import javax.swing.JFileChooser
 
 /** JVM stub — NFC settings are not available on Desktop. */
+@Composable
+actual fun rememberShareText(): (text: String, subject: String) -> Unit {
+    // Desktop has no share sheet. The clipboard is the honest equivalent, and the caller's UI says so.
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
+    return { text, _ -> scope.launch { clipboard.setClipEntry(createClipEntry(text, sensitive = true)) } }
+}
+
 @Composable
 actual fun rememberOpenNfcSettings(): () -> Unit = { Logger.w { "NFC settings not available on JVM/Desktop" } }
 
@@ -173,197 +183,3 @@ actual fun rememberOpenAppSettings(): () -> Unit = { Logger.w { "App settings no
 
 /** JVM — Desktop does not gate the camera behind a runtime permission. */
 @Composable actual fun rememberCameraPermissionState(): PermissionUiState = grantedPermissionUiState()
-
-/** JVM — Reads image, resizes, and converts to grayscale array for import. */
-@Suppress("LongMethod", "TooGenericExceptionCaught", "MagicNumber")
-@Composable
-actual fun rememberReadImageGrayValuesFromUri():
-    suspend (uri: CommonUri, reqWidth: Int, reqHeight: Int) -> FloatArray? =
-    { uri, reqWidth, reqHeight ->
-        withContext(ioDispatcher) {
-            try {
-                val file = File(URI(uri.toString()))
-                if (file.exists()) {
-                    val originalImage = javax.imageio.ImageIO.read(file)
-                    if (originalImage != null) {
-                        val origW = originalImage.width
-                        val origH = originalImage.height
-                        val aspect = origW.toFloat() / origH.toFloat()
-
-                        val targetWidth: Int
-                        val targetHeight: Int
-                        if (origW > origH) {
-                            targetWidth = reqWidth
-                            targetHeight = (reqWidth / aspect).toInt()
-                        } else {
-                            targetHeight = reqHeight
-                            targetWidth = (reqHeight * aspect).toInt()
-                        }
-
-                        val scaled =
-                            java.awt.image.BufferedImage(
-                                targetWidth.coerceAtLeast(1),
-                                targetHeight.coerceAtLeast(1),
-                                java.awt.image.BufferedImage.TYPE_INT_ARGB,
-                            )
-                        val g2d = scaled.createGraphics()
-                        g2d.setRenderingHint(
-                            java.awt.RenderingHints.KEY_INTERPOLATION,
-                            java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR,
-                        )
-                        g2d.drawImage(originalImage, 0, 0, targetWidth, targetHeight, null)
-                        g2d.dispose()
-
-                        val pixels = IntArray(targetWidth * targetHeight)
-                        scaled.getRGB(0, 0, targetWidth, targetHeight, pixels, 0, targetWidth)
-
-                        val grayValues = FloatArray(reqWidth * reqHeight)
-                        val startX = (reqWidth - targetWidth) / 2
-                        val startY = (reqHeight - targetHeight) / 2
-
-                        for (y in 0 until targetHeight) {
-                            for (x in 0 until targetWidth) {
-                                val color = pixels[y * targetWidth + x]
-                                val r = (color shr 16) and 0xFF
-                                val g = (color shr 8) and 0xFF
-                                val b = color and 0xFF
-                                val a = (color shr 24) and 0xFF
-
-                                val luminance =
-                                    if (a < 128) {
-                                        1f
-                                    } else {
-                                        (0.299f * r + 0.587f * g + 0.114f * b) / 255f
-                                    }
-
-                                val outIdx = (startY + y) * reqWidth + (startX + x)
-                                grayValues[outIdx] = luminance
-                            }
-                        }
-                        grayValues
-                    } else {
-                        null
-                    }
-                } else {
-                    null
-                }
-            } catch (e: Exception) {
-                Logger.e(e) { "Failed to read image from URI: $uri" }
-                null
-            }
-        }
-    }
-
-@Suppress("TooGenericExceptionCaught")
-@Composable
-actual fun rememberReadBytesFromUri(): suspend (uri: CommonUri) -> ByteArray? = { uri ->
-    withContext(ioDispatcher) {
-        try {
-            val file = File(URI(uri.toString()))
-            if (file.exists()) file.readBytes() else null
-        } catch (e: Exception) {
-            Logger.e(e) { "Failed to read bytes from URI: $uri" }
-            null
-        }
-    }
-}
-
-@Suppress("TooGenericExceptionCaught")
-@Composable
-actual fun rememberGetFileInfo(): suspend (uri: CommonUri) -> FileInfo? = { uri ->
-    withContext(ioDispatcher) {
-        try {
-            val file = File(URI(uri.toString()))
-            if (file.exists()) FileInfo(name = file.name, size = file.length()) else null
-        } catch (e: Exception) {
-            Logger.e(e) { "Failed to get file info from URI: $uri" }
-            null
-        }
-    }
-}
-
-@Composable
-actual fun rememberSaveToDownloads(): suspend (fileName: String, data: ByteArray) -> String? = { fileName, data ->
-    withContext(ioDispatcher) { saveFileToDownloads(fileName, data) }
-}
-
-@Suppress("TooGenericExceptionCaught")
-actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? = try {
-    val home = System.getProperty("user.home") ?: "."
-    val downloadsDir = File(home, "Downloads")
-    val meshtasticDir = File(downloadsDir, "Meshtastic")
-    if (!meshtasticDir.exists()) {
-        meshtasticDir.mkdirs()
-    }
-    val targetFile = File(meshtasticDir, fileName)
-    targetFile.writeBytes(data)
-    targetFile.absolutePath
-} catch (e: Exception) {
-    Logger.e(e) { "Failed to save file to Downloads/Meshtastic: $fileName" }
-    null
-}
-
-@Composable
-actual fun rememberOpenFile(): (filePath: String) -> Unit = remember {
-    { filePath: String ->
-        try {
-            if (Desktop.isDesktopSupported()) {
-                Desktop.getDesktop().open(File(filePath))
-            }
-        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-            Logger.e(e) { "Failed to open file: $filePath" }
-        }
-    }
-}
-
-private fun getLocalImageTargetFileJvm(url: String): File {
-    val dir = File(System.getProperty("java.io.tmpdir"), "meshtastic_shared_images").apply { mkdirs() }
-    val hash = (url.hashCode().toLong() and 0xFFFFFFFFL).toString(16)
-    val ext =
-        when {
-            url.contains(".png", ignoreCase = true) -> "png"
-            url.contains(".webp", ignoreCase = true) -> "webp"
-            url.contains(".gif", ignoreCase = true) -> "gif"
-            url.contains(".bmp", ignoreCase = true) -> "bmp"
-            else -> "jpg"
-        }
-    return File(dir, "img_$hash.$ext")
-}
-
-@Composable
-actual fun rememberGetLocalImageFile(): (url: String) -> String? = remember {
-    { url ->
-        val target = getLocalImageTargetFileJvm(url)
-        if (target.exists() && target.length() > 0L) target.absolutePath else null
-    }
-}
-
-@Composable
-actual fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> String? = remember {
-    { url, _ ->
-        try {
-            val target = getLocalImageTargetFileJvm(url)
-            if (target.exists() && target.length() > 0L) {
-                target.absolutePath
-            } else {
-                target.absolutePath
-            }
-        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-            Logger.w(e) { "Failed to save local image for $url" }
-            null
-        }
-    }
-}
-
-@Composable
-actual fun rememberShareFileOrUrl(): (filePath: String?, url: String) -> Unit = remember {
-    { filePath: String?, url: String ->
-        try {
-            val toCopy = filePath ?: url
-            val selection = java.awt.datatransfer.StringSelection(toCopy)
-            java.awt.Toolkit.getDefaultToolkit().systemClipboard.setContents(selection, selection)
-        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-            Logger.e(e) { "Failed to share to clipboard: $url" }
-        }
-    }
-}

@@ -146,9 +146,10 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         AutoMigration(from = 55, to = 56),
         AutoMigration(from = 56, to = 57),
         AutoMigration(from = 57, to = 58),
-        // 58 -> 59 is the manual MIGRATION_58_59, applied via configureCommon().
+        AutoMigration(from = 58, to = 59),
+        // 59 -> 60 is the manual MIGRATION_59_60, applied via configureCommon().
     ],
-    version = 59,
+    version = 60,
     exportSchema = true,
 )
 @androidx.room3.ConstructedBy(MeshtasticDatabaseConstructor::class)
@@ -218,24 +219,30 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             }
 
         /**
-         * Idempotent migration from schema 58 to 59.
+         * Idempotent migration from schema 59 to 60.
          *
-         * Upstream 58 added `nodes.heard_on_current_lora`. Advanced mod 58 previously added `packet.pinned_message`.
-         * When upgrading from either upstream 58 or the previous advanced mod 58, one of the columns is already present
-         * on disk and the other must be added. This migration safely inspects table info to avoid "duplicate column
-         * name" errors.
+         * Upstream 59 added `nodes.key_match` and `nodes.new_public_key`.
+         * Advanced mod adds `packet.pinned_message`.
+         * When upgrading from either upstream 59 or previous advanced mod (which may already have `pinned_message` or
+         * lacks `key_match`/`new_public_key`), this migration safely inspects table info to avoid duplicate column
+         * errors and ensure both tables match schema 60.
          */
-        internal val MIGRATION_58_59: Migration =
-            object : Migration(58, 59) {
+        internal val MIGRATION_59_60: Migration =
+            object : Migration(59, 60) {
                 override suspend fun migrate(connection: SQLiteConnection) {
                     if (!connection.hasColumn("packet", "pinned_message")) {
                         connection.execSQL(
                             "ALTER TABLE `packet` ADD COLUMN `pinned_message` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
-                    if (!connection.hasColumn("nodes", "heard_on_current_lora")) {
+                    if (!connection.hasColumn("nodes", "key_match")) {
                         connection.execSQL(
-                            "ALTER TABLE `nodes` ADD COLUMN `heard_on_current_lora` INTEGER NOT NULL DEFAULT 1",
+                            "ALTER TABLE `nodes` ADD COLUMN `key_match` INTEGER NOT NULL DEFAULT 1",
+                        )
+                    }
+                    if (!connection.hasColumn("nodes", "new_public_key")) {
+                        connection.execSQL(
+                            "ALTER TABLE `nodes` ADD COLUMN `new_public_key` BLOB",
                         )
                     }
                 }
@@ -257,7 +264,7 @@ abstract class MeshtasticDatabase : RoomDatabase() {
         @OptIn(ExperimentalCoroutinesApi::class)
         fun <T : RoomDatabase> RoomDatabase.Builder<T>.configureCommon(): RoomDatabase.Builder<T> =
             this.fallbackToDestructiveMigration(dropAllTables = false)
-                .addMigrations(MIGRATION_52_53, MIGRATION_58_59)
+                .addMigrations(MIGRATION_52_53, MIGRATION_59_60)
                 .setSingleConnectionPool()
                 .setQueryCoroutineContext(
                     // limitedParallelism(1) has the same throughput ceiling as the single-connection pool

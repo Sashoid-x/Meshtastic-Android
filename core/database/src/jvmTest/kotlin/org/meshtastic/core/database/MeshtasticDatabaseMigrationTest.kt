@@ -385,16 +385,63 @@ class MeshtasticDatabaseMigrationTest {
         }
     }
 
+    /**
+     * 58→59 adds `nodes.key_match` and `nodes.new_public_key`, the record of a refused key substitution. `key_match`
+     * defaults to 1 so rows written before the column existed are not read as mismatched on first launch; those rows
+     * recorded a mismatch the old way, as the zero sentinel in `public_key`, and have no refused key to report, so
+     * `new_public_key` stays null. This proves both defaults and that the stored key survives the addition byte for
+     * byte, which is the whole point of first-wins.
+     */
     @Test
-    fun migration58to59AddsPinnedMessage() = runTest {
-        helper.createDatabase(58).use { connection ->
+    fun keyMatchColumnsDefaultToMatchedAndPreserveNodes() = runTest {
+        val storedKeyHex = "01".repeat(PUBLIC_KEY_BYTES)
+        helper.createDatabase(KEY_MATCH_FROM_VERSION).use { connection ->
+            // Every NOT NULL column without a default in schema 58; the BLOBs are empty protos.
+            val columns =
+                "num, user, position, latitude, longitude, snr, rssi, last_heard, device_metrics, channel, " +
+                    "via_mqtt, hops_away, is_favorite, environment_metrics, power_metrics, paxcounter"
+            connection.execSQL(
+                "INSERT INTO nodes ($columns, long_name, public_key) VALUES " +
+                    "(42, x'', x'', 0.0, 0.0, 0.0, 0, 1000, x'', 0, 0, 1, 1, x'', x'', x'', " +
+                    "'Minnie Mouse', x'$storedKeyHex')",
+            )
+            connection.execSQL(
+                "INSERT INTO nodes ($columns, long_name) VALUES " +
+                    "(43, x'', x'', 0.0, 0.0, 0.0, 0, 2000, x'', 0, 0, 2, 0, x'', x'', x'', 'Mickey')",
+            )
+        }
+
+        helper.runMigrationsAndValidate(
+            KEY_MATCH_TO_VERSION,
+            listOf(MeshtasticDatabase.MIGRATION_52_53),
+        ).use { connection ->
+            // Both rows survive; neither reads as a mismatch, and neither has a refused key to report.
+            assertEquals(listOf("42", "43"), queryColumn(connection, "SELECT num FROM nodes ORDER BY num"))
+            assertEquals(listOf("1", "1"), queryColumn(connection, "SELECT key_match FROM nodes ORDER BY num"))
+            assertEquals(
+                listOf<String?>(null, null),
+                queryColumn(connection, "SELECT new_public_key FROM nodes ORDER BY num"),
+            )
+            // The stored key is exactly what was written; the column addition touched nothing.
+            assertEquals(
+                listOf(storedKeyHex.uppercase()),
+                queryColumn(connection, "SELECT hex(public_key) FROM nodes WHERE num = 42"),
+            )
+            assertEquals(listOf("Minnie Mouse"), queryColumn(connection, "SELECT long_name FROM nodes WHERE num = 42"))
+            assertEquals(listOf("1000"), queryColumn(connection, "SELECT last_heard FROM nodes WHERE num = 42"))
+        }
+    }
+
+    @Test
+    fun migration59to60AddsPinnedMessage() = runTest {
+        helper.createDatabase(PINNED_MESSAGE_FROM_VERSION).use { connection ->
             connection.execSQL(
                 "INSERT INTO packet (uuid, myNodeNum, port_num, contact_key, received_time, read, data, snr, rssi) " +
                     "VALUES (1, 42, 1, '0^all', 1000, 1, '{}', 5.0, 0)",
             )
         }
 
-        helper.runMigrationsAndValidate(59, listOf(MeshtasticDatabase.MIGRATION_58_59)).use { connection ->
+        helper.runMigrationsAndValidate(PINNED_MESSAGE_TO_VERSION, listOf(MeshtasticDatabase.MIGRATION_59_60)).use { connection ->
             assertEquals(listOf("0"), queryColumn(connection, "SELECT pinned_message FROM packet WHERE uuid = 1"))
             connection.execSQL("UPDATE packet SET pinned_message = 1 WHERE uuid = 1")
             assertEquals(listOf("1"), queryColumn(connection, "SELECT pinned_message FROM packet WHERE uuid = 1"))
@@ -402,8 +449,8 @@ class MeshtasticDatabaseMigrationTest {
     }
 
     @Test
-    fun migration58to59HandlesPreExistingPinnedMessage() = runTest {
-        helper.createDatabase(58).use { connection ->
+    fun migration59to60HandlesPreExistingPinnedMessage() = runTest {
+        helper.createDatabase(PINNED_MESSAGE_FROM_VERSION).use { connection ->
             connection.execSQL("ALTER TABLE packet ADD COLUMN pinned_message INTEGER NOT NULL DEFAULT 0")
             connection.execSQL(
                 "INSERT INTO packet (uuid, myNodeNum, port_num, contact_key, received_time, read, data, snr, " +
@@ -411,7 +458,7 @@ class MeshtasticDatabaseMigrationTest {
             )
         }
 
-        helper.runMigrationsAndValidate(59, listOf(MeshtasticDatabase.MIGRATION_58_59)).use { connection ->
+        helper.runMigrationsAndValidate(PINNED_MESSAGE_TO_VERSION, listOf(MeshtasticDatabase.MIGRATION_59_60)).use { connection ->
             assertEquals(listOf("1"), queryColumn(connection, "SELECT pinned_message FROM packet WHERE uuid = 1"))
         }
     }
@@ -444,6 +491,11 @@ class MeshtasticDatabaseMigrationTest {
         const val PINNED_COLUMN_TO_VERSION = 57
         const val HEARD_ON_LORA_FROM_VERSION = 57
         const val HEARD_ON_LORA_TO_VERSION = 58
+        const val KEY_MATCH_FROM_VERSION = 58
+        const val KEY_MATCH_TO_VERSION = 59
+        const val PINNED_MESSAGE_FROM_VERSION = 59
+        const val PINNED_MESSAGE_TO_VERSION = 60
+        const val PUBLIC_KEY_BYTES = 32
 
         /** Room's runtime FTS content-sync triggers, verbatim from the generated MeshtasticDatabase_Impl. */
         val FTS_SYNC_TRIGGERS =
