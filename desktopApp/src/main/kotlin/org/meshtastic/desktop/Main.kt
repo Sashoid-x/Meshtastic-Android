@@ -473,14 +473,16 @@ private fun ApplicationScope.MeshtasticWindow(
                     }
                 val bubbleSpacing by uiViewModel.messageBubbleSpacing.collectAsState()
                 val bubblePadding by uiViewModel.messageBubblePadding.collectAsState()
+                val bubbleCornerRadius by uiViewModel.messageBubbleCornerRadius.collectAsState()
                 val fontScale by uiViewModel.messageFontSizeScale.collectAsState()
                 val reactionSpacing by uiViewModel.reactionChipSpacing.collectAsState()
 
                 val bubbleStyle =
-                    remember(bubbleSpacing, bubblePadding, fontScale, reactionSpacing) {
+                    remember(bubbleSpacing, bubblePadding, bubbleCornerRadius, fontScale, reactionSpacing) {
                         org.meshtastic.core.ui.theme.MessageBubbleStyle(
                             bubbleSpacing = bubbleSpacing.dp,
                             bubblePadding = bubblePadding.dp,
+                            bubbleCornerRadius = bubbleCornerRadius.dp,
                             fontScale = fontScale,
                             reactionSpacing = reactionSpacing.dp,
                         )

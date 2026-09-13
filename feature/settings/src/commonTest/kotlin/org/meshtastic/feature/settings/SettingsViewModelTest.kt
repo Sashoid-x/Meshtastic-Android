@@ -275,6 +275,9 @@ class SettingsViewModelTest {
         viewModel.setMessageBubblePadding(12)
         appPreferences.ui.messageBubblePadding.value shouldBe 12
 
+        viewModel.setMessageBubbleCornerRadius(20)
+        appPreferences.ui.messageBubbleCornerRadius.value shouldBe 20
+
         viewModel.setMessageFontSizeScale(1.2f)
         appPreferences.ui.messageFontSizeScale.value shouldBe 1.2f
 

@@ -60,6 +60,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.model.AdvThemeColors
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.adv_appearance_base_color
+import org.meshtastic.core.resources.adv_appearance_bubble_corner_radius
 import org.meshtastic.core.resources.adv_appearance_bubble_padding
 import org.meshtastic.core.resources.adv_appearance_bubble_spacing
 import org.meshtastic.core.resources.adv_appearance_colors_hint
@@ -93,6 +94,7 @@ import kotlin.math.roundToInt
 
 private const val DEFAULT_BUBBLE_SPACING = 8
 private const val DEFAULT_BUBBLE_PADDING = 8
+private const val DEFAULT_BUBBLE_CORNER_RADIUS = 16
 private const val DEFAULT_FONT_SCALE = 1.0f
 private const val DEFAULT_REACTION_SPACING = 4
 
@@ -113,6 +115,7 @@ fun AppearanceSettingsScreen(
 ) {
     val bubbleSpacing by settingsViewModel.messageBubbleSpacing.collectAsStateWithLifecycle()
     val bubblePadding by settingsViewModel.messageBubblePadding.collectAsStateWithLifecycle()
+    val bubbleCornerRadius by settingsViewModel.messageBubbleCornerRadius.collectAsStateWithLifecycle()
     val fontScale by settingsViewModel.messageFontSizeScale.collectAsStateWithLifecycle()
     val reactionSpacing by settingsViewModel.reactionChipSpacing.collectAsStateWithLifecycle()
     val currentTheme by settingsViewModel.theme.collectAsStateWithLifecycle()
@@ -194,7 +197,7 @@ fun AppearanceSettingsScreen(
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
                                 Column(
                                     modifier =
-                                    Modifier.clip(RoundedCornerShape(16.dp))
+                                    Modifier.clip(RoundedCornerShape(bubbleCornerRadius.dp))
                                         .background(MaterialTheme.colorScheme.surfaceVariant)
                                         .padding(horizontal = (bubblePadding + 4).dp, vertical = bubblePadding.dp),
                                 ) {
@@ -249,7 +252,7 @@ fun AppearanceSettingsScreen(
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                                 Column(
                                     modifier =
-                                    Modifier.clip(RoundedCornerShape(16.dp))
+                                    Modifier.clip(RoundedCornerShape(bubbleCornerRadius.dp))
                                         .background(MaterialTheme.colorScheme.primaryContainer)
                                         .padding(horizontal = (bubblePadding + 4).dp, vertical = bubblePadding.dp),
                                 ) {
@@ -387,6 +390,20 @@ fun AppearanceSettingsScreen(
                     )
                 }
 
+                // Bubble Corner Radius
+                Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Text(
+                        text = stringResource(Res.string.adv_appearance_bubble_corner_radius, bubbleCornerRadius),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                    Slider(
+                        value = bubbleCornerRadius.toFloat(),
+                        onValueChange = { settingsViewModel.setMessageBubbleCornerRadius(it.roundToInt()) },
+                        valueRange = 0f..32f,
+                        steps = 31,
+                    )
+                }
+
                 // Font Size Scale
                 Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                     val formattedScale = ((fontScale * 100).roundToInt() / 100f).toString()
@@ -420,6 +437,7 @@ fun AppearanceSettingsScreen(
                     onClick = {
                         settingsViewModel.setMessageBubbleSpacing(DEFAULT_BUBBLE_SPACING)
                         settingsViewModel.setMessageBubblePadding(DEFAULT_BUBBLE_PADDING)
+                        settingsViewModel.setMessageBubbleCornerRadius(DEFAULT_BUBBLE_CORNER_RADIUS)
                         settingsViewModel.setMessageFontSizeScale(DEFAULT_FONT_SCALE)
                         settingsViewModel.setReactionChipSpacing(DEFAULT_REACTION_SPACING)
                     },

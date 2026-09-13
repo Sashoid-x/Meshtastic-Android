@@ -169,14 +169,16 @@ class MainActivity : AppCompatActivity() {
 
             val bubbleSpacing by model.messageBubbleSpacing.collectAsStateWithLifecycle()
             val bubblePadding by model.messageBubblePadding.collectAsStateWithLifecycle()
+            val bubbleCornerRadius by model.messageBubbleCornerRadius.collectAsStateWithLifecycle()
             val fontScale by model.messageFontSizeScale.collectAsStateWithLifecycle()
             val reactionSpacing by model.reactionChipSpacing.collectAsStateWithLifecycle()
 
             val bubbleStyle =
-                remember(bubbleSpacing, bubblePadding, fontScale, reactionSpacing) {
+                remember(bubbleSpacing, bubblePadding, bubbleCornerRadius, fontScale, reactionSpacing) {
                     org.meshtastic.core.ui.theme.MessageBubbleStyle(
                         bubbleSpacing = bubbleSpacing.dp,
                         bubblePadding = bubblePadding.dp,
+                        bubbleCornerRadius = bubbleCornerRadius.dp,
                         fontScale = fontScale,
                         reactionSpacing = reactionSpacing.dp,
                     )

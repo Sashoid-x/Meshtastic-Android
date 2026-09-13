@@ -64,6 +64,7 @@ admin_keys
 administration
 ### ADV ###
 adv_appearance_base_color
+adv_appearance_bubble_corner_radius
 adv_appearance_bubble_padding
 adv_appearance_bubble_spacing
 adv_appearance_colors_auto

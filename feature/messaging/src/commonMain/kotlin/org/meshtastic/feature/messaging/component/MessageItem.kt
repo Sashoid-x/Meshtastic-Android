@@ -329,7 +329,7 @@ fun MessageItem(
     val metadataStyle = MaterialTheme.typography.labelSmall
     val messageShape =
         getMessageBubbleShape(
-            cornerRadius = 18.dp,
+            cornerRadius = bubbleStyle.bubbleCornerRadius,
             isSender = message.fromLocal,
             hasSamePrev = hasSamePrev,
             hasSameNext = hasSameNext,

@@ -82,6 +82,7 @@
     <string name="administration">Administration</string>
     <!-- ADV -->
     <string name="adv_appearance_base_color">Base tone (Background)</string>
+    <string name="adv_appearance_bubble_corner_radius">Bubble corner radius: %1$d dp</string>
     <string name="adv_appearance_bubble_padding">Bubble padding: %1$d dp</string>
     <string name="adv_appearance_bubble_spacing">Message spacing: %1$d dp</string>
     <string name="adv_appearance_colors_auto">Auto</string>

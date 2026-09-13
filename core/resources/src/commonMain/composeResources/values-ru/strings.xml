@@ -76,6 +76,7 @@
     <string name="admin_key">Ключ администратора</string>
     <string name="admin_keys">Ключи администратора</string>
     <string name="administration">Администрирование</string>
+    <string name="adv_appearance_bubble_corner_radius">Скругление пузырьков: %1$d dp</string>
     <string name="adv_appearance_bubble_padding">Внутренний отступ: %1$d dp</string>
     <string name="adv_appearance_bubble_spacing">Отступ между сообщениями: %1$d dp</string>
     <string name="adv_appearance_font_scale">Масштаб шрифта: %1$s</string>

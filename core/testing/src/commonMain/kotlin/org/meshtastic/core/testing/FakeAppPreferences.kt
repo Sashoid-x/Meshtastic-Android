@@ -238,6 +238,12 @@ class FakeUiPrefs : UiPrefs {
         messageBubblePadding.value = padding
     }
 
+    override val messageBubbleCornerRadius = MutableStateFlow(16)
+
+    override fun setMessageBubbleCornerRadius(radius: Int) {
+        messageBubbleCornerRadius.value = radius
+    }
+
     override val messageFontSizeScale = MutableStateFlow(1.0f)
 
     override fun setMessageFontSizeScale(scale: Float) {

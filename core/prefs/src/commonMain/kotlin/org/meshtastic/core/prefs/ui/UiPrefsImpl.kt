@@ -301,6 +301,13 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         scope.launch { dataStore.edit { it[KEY_MESSAGE_BUBBLE_PADDING] = padding } }
     }
 
+    override val messageBubbleCornerRadius: StateFlow<Int> =
+        dataStore.data.map { it[KEY_MESSAGE_BUBBLE_CORNER_RADIUS] ?: 16 }.stateIn(scope, SharingStarted.Eagerly, 16)
+
+    override fun setMessageBubbleCornerRadius(radius: Int) {
+        scope.launch { dataStore.edit { it[KEY_MESSAGE_BUBBLE_CORNER_RADIUS] = radius } }
+    }
+
     override val messageFontSizeScale: StateFlow<Float> =
         dataStore.data.map { it[KEY_MESSAGE_FONT_SIZE_SCALE] ?: 1.0f }.stateIn(scope, SharingStarted.Eagerly, 1.0f)
 
@@ -527,6 +534,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         val KEY_CUSTOM_NODE_NAMES = stringPreferencesKey("custom-node-names")
         val KEY_MESSAGE_BUBBLE_SPACING = intPreferencesKey("message-bubble-spacing")
         val KEY_MESSAGE_BUBBLE_PADDING = intPreferencesKey("message-bubble-padding")
+        val KEY_MESSAGE_BUBBLE_CORNER_RADIUS = intPreferencesKey("message-bubble-corner-radius")
         val KEY_MESSAGE_FONT_SIZE_SCALE = floatPreferencesKey("message-font-size-scale")
         val KEY_REACTION_CHIP_SPACING = intPreferencesKey("reaction-chip-spacing")
         val KEY_PRESSURE_IN_MMHG = booleanPreferencesKey("pressure-in-mm-hg")

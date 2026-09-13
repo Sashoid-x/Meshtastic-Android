@@ -41,7 +41,7 @@ fun getMessageBubbleShape(
     groupedCornerRadius: Dp = 4.dp,
 ): CornerBasedShape {
     val round = cornerRadius
-    val grouped = groupedCornerRadius
+    val grouped = if (groupedCornerRadius < round) groupedCornerRadius else round
 
     return if (isSender) {
         // Sent messages are on the right; grouped corners flatten along the end edge.

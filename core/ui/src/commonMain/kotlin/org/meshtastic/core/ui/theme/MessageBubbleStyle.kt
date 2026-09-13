@@ -26,6 +26,7 @@ data class MessageBubbleStyle(
     val bubblePadding: Dp = 8.dp,
     val fontScale: Float = 1.0f,
     val reactionSpacing: Dp = 4.dp,
+    val bubbleCornerRadius: Dp = 16.dp,
 )
 
 @Suppress("CompositionLocalAllowlist")

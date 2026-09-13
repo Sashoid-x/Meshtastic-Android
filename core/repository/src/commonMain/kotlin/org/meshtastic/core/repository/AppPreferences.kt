@@ -208,6 +208,11 @@ interface UiPrefs {
 
     fun setMessageBubblePadding(padding: Int)
 
+    /** Base corner radius of message bubbles in dp. */
+    val messageBubbleCornerRadius: StateFlow<Int>
+
+    fun setMessageBubbleCornerRadius(radius: Int)
+
     /** Font size scale multiplier for message text (1.0 = normal). */
     val messageFontSizeScale: StateFlow<Float>
 

@@ -172,6 +172,7 @@ class UIViewModel(
     val advThemeColorsJson: StateFlow<String> = uiPrefs.advThemeColorsJson
     val messageBubbleSpacing: StateFlow<Int> = uiPrefs.messageBubbleSpacing
     val messageBubblePadding: StateFlow<Int> = uiPrefs.messageBubblePadding
+    val messageBubbleCornerRadius: StateFlow<Int> = uiPrefs.messageBubbleCornerRadius
     val messageFontSizeScale: StateFlow<Float> = uiPrefs.messageFontSizeScale
     val reactionChipSpacing: StateFlow<Int> = uiPrefs.reactionChipSpacing
 

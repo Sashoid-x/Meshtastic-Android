@@ -292,6 +292,12 @@ class SettingsViewModel(
         uiPrefs.setMessageBubblePadding(padding)
     }
 
+    val messageBubbleCornerRadius = uiPrefs.messageBubbleCornerRadius
+
+    fun setMessageBubbleCornerRadius(radius: Int) {
+        uiPrefs.setMessageBubbleCornerRadius(radius)
+    }
+
     val messageFontSizeScale = uiPrefs.messageFontSizeScale
 
     fun setMessageFontSizeScale(scale: Float) {
