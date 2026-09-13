@@ -192,7 +192,9 @@ open class MeshUtilApplication :
                     delay(12.hours)
                     appUpdateService.checkForUpdates(isManual = false)
                 }
-            } catch (e: Exception) {
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                 Logger.w(e) { "Periodic update check failed" }
             }
         }

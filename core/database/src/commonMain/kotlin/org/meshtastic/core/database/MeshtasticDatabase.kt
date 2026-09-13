@@ -222,9 +222,10 @@ abstract class MeshtasticDatabase : RoomDatabase() {
          * Idempotent migration from schema 59 to 60.
          *
          * Upstream 59 added `nodes.key_match` and `nodes.new_public_key`. Advanced mod adds `packet.pinned_message`.
+         * Additionally ensures `nodes.heard_on_current_lora` is present for databases upgrading from early mod builds.
          * When upgrading from either upstream 59 or previous advanced mod (which may already have `pinned_message` or
-         * lacks `key_match`/`new_public_key`), this migration safely inspects table info to avoid duplicate column
-         * errors and ensure both tables match schema 60.
+         * lacks `key_match`/`new_public_key`/`heard_on_current_lora`), this migration safely inspects table info to
+         * avoid duplicate column errors and ensure both tables match schema 60.
          */
         internal val MIGRATION_59_60: Migration =
             object : Migration(59, 60) {
@@ -232,6 +233,57 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     if (!connection.hasColumn("packet", "pinned_message")) {
                         connection.execSQL(
                             "ALTER TABLE `packet` ADD COLUMN `pinned_message` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
+                    if (!connection.hasColumn("nodes", "heard_on_current_lora")) {
+                        connection.execSQL(
+                            "ALTER TABLE `nodes` ADD COLUMN `heard_on_current_lora` INTEGER NOT NULL DEFAULT 1",
+                        )
+                    }
+                    if (!connection.hasColumn("nodes", "key_match")) {
+                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `key_match` INTEGER NOT NULL DEFAULT 1")
+                    }
+                    if (!connection.hasColumn("nodes", "new_public_key")) {
+                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `new_public_key` BLOB")
+                    }
+                }
+            }
+
+        /** Idempotent migration from schema 58 to 60. */
+        internal val MIGRATION_58_60: Migration =
+            object : Migration(58, 60) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    if (!connection.hasColumn("packet", "pinned_message")) {
+                        connection.execSQL(
+                            "ALTER TABLE `packet` ADD COLUMN `pinned_message` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
+                    if (!connection.hasColumn("nodes", "heard_on_current_lora")) {
+                        connection.execSQL(
+                            "ALTER TABLE `nodes` ADD COLUMN `heard_on_current_lora` INTEGER NOT NULL DEFAULT 1",
+                        )
+                    }
+                    if (!connection.hasColumn("nodes", "key_match")) {
+                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `key_match` INTEGER NOT NULL DEFAULT 1")
+                    }
+                    if (!connection.hasColumn("nodes", "new_public_key")) {
+                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `new_public_key` BLOB")
+                    }
+                }
+            }
+
+        /** Idempotent migration from schema 58 to 59. */
+        internal val MIGRATION_58_59: Migration =
+            object : Migration(58, 59) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    if (!connection.hasColumn("packet", "pinned_message")) {
+                        connection.execSQL(
+                            "ALTER TABLE `packet` ADD COLUMN `pinned_message` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
+                    if (!connection.hasColumn("nodes", "heard_on_current_lora")) {
+                        connection.execSQL(
+                            "ALTER TABLE `nodes` ADD COLUMN `heard_on_current_lora` INTEGER NOT NULL DEFAULT 1",
                         )
                     }
                     if (!connection.hasColumn("nodes", "key_match")) {
@@ -259,7 +311,7 @@ abstract class MeshtasticDatabase : RoomDatabase() {
         @OptIn(ExperimentalCoroutinesApi::class)
         fun <T : RoomDatabase> RoomDatabase.Builder<T>.configureCommon(): RoomDatabase.Builder<T> =
             this.fallbackToDestructiveMigration(dropAllTables = false)
-                .addMigrations(MIGRATION_52_53, MIGRATION_59_60)
+                .addMigrations(MIGRATION_52_53, MIGRATION_58_59, MIGRATION_58_60, MIGRATION_59_60)
                 .setSingleConnectionPool()
                 .setQueryCoroutineContext(
                     // limitedParallelism(1) has the same throughput ceiling as the single-connection pool
