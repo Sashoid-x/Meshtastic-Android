@@ -61,6 +61,7 @@ import org.meshtastic.app.node.component.InlineMap
 import org.meshtastic.app.node.metrics.getTracerouteMapOverlayInsets
 import org.meshtastic.app.ui.MainScreen
 import org.meshtastic.core.barcode.rememberBarcodeScanner
+import org.meshtastic.core.model.AdvThemeColors
 import org.meshtastic.core.navigation.DEEP_LINK_BASE_URI
 import org.meshtastic.core.network.repository.UsbRepository
 import org.meshtastic.core.nfc.NfcEmulatorEffect
@@ -71,12 +72,14 @@ import org.meshtastic.core.resources.channel_invalid
 import org.meshtastic.core.service.MeshService
 import org.meshtastic.core.service.ServiceStartTrigger
 import org.meshtastic.core.service.startService
+import org.meshtastic.core.ui.theme.AdvColorSchemeBuilder
 import org.meshtastic.core.ui.theme.AppTheme
 import org.meshtastic.core.ui.theme.EventFontResolver
 import org.meshtastic.core.ui.theme.EventTheme
 import org.meshtastic.core.ui.theme.EventThemeToggle
 import org.meshtastic.core.ui.theme.LocalEventTheme
 import org.meshtastic.core.ui.theme.LocalEventThemeToggle
+import org.meshtastic.core.ui.theme.MODE_ADV_THEME
 import org.meshtastic.core.ui.theme.MODE_DYNAMIC
 import org.meshtastic.core.ui.util.LocalAnalyticsIntroProvider
 import org.meshtastic.core.ui.util.LocalBarcodeScannerProvider
@@ -145,11 +148,23 @@ class MainActivity : AppCompatActivity() {
         setContent {
             val theme by model.theme.collectAsStateWithLifecycle()
             val dynamic = theme == MODE_DYNAMIC
-            val dark =
+            val systemDark =
                 when (theme) {
                     AppCompatDelegate.MODE_NIGHT_YES -> true
                     AppCompatDelegate.MODE_NIGHT_NO -> false
                     else -> isSystemInDarkTheme()
+                }
+
+            val advColorsJson by model.advThemeColorsJson.collectAsStateWithLifecycle()
+            val advColors = remember(advColorsJson) { AdvThemeColors.fromJson(advColorsJson) }
+            val effectiveDark = if (theme == MODE_ADV_THEME) advColors.darkBase else systemDark
+            val customColorScheme =
+                remember(theme, advColors) {
+                    if (theme == MODE_ADV_THEME) {
+                        AdvColorSchemeBuilder.build(advColors)
+                    } else {
+                        null
+                    }
                 }
 
             val bubbleSpacing by model.messageBubbleSpacing.collectAsStateWithLifecycle()
@@ -170,8 +185,8 @@ class MainActivity : AppCompatActivity() {
             // Update system bar style when theme changes
             androidx.compose.runtime.SideEffect {
                 enableEdgeToEdge(
-                    statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark },
-                    navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { dark },
+                    statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { effectiveDark },
+                    navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { effectiveDark },
                 )
             }
 
@@ -179,7 +194,7 @@ class MainActivity : AppCompatActivity() {
                 org.meshtastic.core.ui.theme.LocalMessageBubbleStyle provides bubbleStyle,
             ) {
                 AppCompositionLocals {
-                    AppTheme(dynamicColor = dynamic, darkTheme = dark) {
+                    AppTheme(dynamicColor = dynamic, darkTheme = effectiveDark, customColorScheme = customColorScheme) {
                         val appIntroCompleted by model.appIntroCompleted.collectAsStateWithLifecycle()
 
                         // Signal to the system that the initial UI is "fully drawn"

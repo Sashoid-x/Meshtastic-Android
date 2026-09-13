@@ -199,6 +199,7 @@ actual fun rememberSaveToDownloads(): suspend (fileName: String, data: ByteArray
     saveFileToDownloads(fileName, data)
 }
 
+@Suppress("TooGenericExceptionCaught")
 actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? = try {
     val userHome = System.getProperty("user.home")
     val dir = File(userHome, "Downloads/Meshtastic").apply { mkdirs() }
@@ -210,6 +211,7 @@ actual fun saveFileToDownloads(fileName: String, data: ByteArray): String? = try
     null
 }
 
+@Suppress("TooGenericExceptionCaught")
 @Composable
 actual fun rememberOpenFile(): (filePath: String) -> Unit = remember {
     { filePath ->

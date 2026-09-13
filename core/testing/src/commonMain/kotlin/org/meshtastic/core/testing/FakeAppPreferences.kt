@@ -19,6 +19,7 @@ package org.meshtastic.core.testing
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import org.meshtastic.core.model.CustomNodeName
 import org.meshtastic.core.model.DeviceType
 import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.model.ReactionNotificationMode
@@ -153,7 +154,7 @@ class FakeUiPrefs : UiPrefs {
         pixelArtEnabled.value = enabled
     }
 
-    override val fileTransferEnabled = MutableStateFlow(true)
+    override val fileTransferEnabled = MutableStateFlow(false)
 
     override fun setFileTransferEnabled(enabled: Boolean) {
         fileTransferEnabled.value = enabled
@@ -213,6 +214,16 @@ class FakeUiPrefs : UiPrefs {
 
     override fun setAdvThemeColorsJson(json: String) {
         advThemeColorsJson.value = json
+    }
+
+    override val customNodeNames = MutableStateFlow<Map<Int, CustomNodeName>>(emptyMap())
+
+    override fun setCustomNodeName(nodeNum: Int, customName: CustomNodeName) {
+        customNodeNames.value = customNodeNames.value + (nodeNum to customName)
+    }
+
+    override fun removeCustomNodeName(nodeNum: Int) {
+        customNodeNames.value = customNodeNames.value - nodeNum
     }
 
     override val messageBubbleSpacing = MutableStateFlow(2)

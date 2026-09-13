@@ -164,3 +164,4 @@ fun AppTheme(
 }
 
 const val MODE_DYNAMIC = 6969420
+const val MODE_ADV_THEME = 6969421

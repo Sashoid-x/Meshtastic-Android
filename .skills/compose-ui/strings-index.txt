@@ -13,10 +13,19 @@ a11y_node_signal
 a11y_nodes_at_hop
 ### ABOUT ###
 about
+about_app_up_to_date
+about_check_for_updates
+about_check_for_updates_summary
+about_checking_for_updates
 about_mod_description
 about_mod_testers_content
 about_mod_testers_title
 about_mod_title
+about_update_available
+about_update_check_error
+about_update_dialog_download
+about_update_dialog_later
+about_update_dialog_title
 accept
 acknowledgements
 ### ACTION ###
@@ -54,16 +63,31 @@ admin_key
 admin_keys
 administration
 ### ADV ###
+adv_appearance_base_color
 adv_appearance_bubble_padding
 adv_appearance_bubble_spacing
+adv_appearance_colors_auto
+adv_appearance_colors_custom
+adv_appearance_colors_hint
+adv_appearance_colors_preview
+adv_appearance_colors_reset
+adv_appearance_colors_section
+adv_appearance_dark_base
 adv_appearance_font_scale
+adv_appearance_hex_code
+adv_appearance_hue
+adv_appearance_lightness
 adv_appearance_preview_sample_received
 adv_appearance_preview_sample_sent
 adv_appearance_preview_title
+adv_appearance_primary_color
 adv_appearance_reaction_spacing
+adv_appearance_saturation
+adv_appearance_secondary_color
 adv_appearance_settings_summary
 adv_appearance_settings_title
 adv_appearance_spacing_section
+adv_appearance_tertiary_color
 adv_backup_type_contact_settings
 adv_backup_type_messages
 adv_backup_type_node_info
@@ -1726,6 +1750,7 @@ remove_filter
 remove_ignored
 remove_layer
 remove_node_text
+rename
 replace
 replace_channels_and_settings_description
 reply

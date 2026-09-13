@@ -17,6 +17,7 @@
 package org.meshtastic.feature.node.model
 
 import org.meshtastic.core.common.util.MeasurementSystem
+import org.meshtastic.core.model.CustomNodeName
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.navigation.Route
 import org.meshtastic.feature.node.component.NodeMenuAction
@@ -36,4 +37,6 @@ sealed interface NodeDetailAction {
 
     // Opens the compass sheet scoped to a target node and the user’s preferred units.
     data class OpenCompass(val node: Node, val displayUnits: MeasurementSystem) : NodeDetailAction
+
+    data class SetCustomNodeName(val nodeNum: Int, val customName: CustomNodeName) : NodeDetailAction
 }

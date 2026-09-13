@@ -34,10 +34,15 @@ import kotlinx.coroutines.test.setMain
 import org.meshtastic.core.data.datasource.NodeInfoReadDataSource
 import org.meshtastic.core.data.datasource.NodeInfoWriteDataSource
 import org.meshtastic.core.database.entity.MyNodeEntity
+import org.meshtastic.core.database.entity.NodeEntity
 import org.meshtastic.core.database.entity.NodeWithRelations
 import org.meshtastic.core.di.CoroutineDispatchers
+import org.meshtastic.core.model.CustomNodeName
 import org.meshtastic.core.model.MeshLog
+import org.meshtastic.core.repository.UiPrefs
+import org.meshtastic.core.testing.FakeAppPreferences
 import org.meshtastic.core.testing.FakeLocalStatsDataSource
+import org.meshtastic.proto.User
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -54,6 +59,7 @@ abstract class CommonNodeRepositoryTest {
 
     private val myNodeInfoFlow = MutableStateFlow<MyNodeEntity?>(null)
 
+    protected lateinit var fakeUiPrefs: UiPrefs
     protected lateinit var repository: NodeRepositoryImpl
 
     @BeforeTest
@@ -68,6 +74,7 @@ abstract class CommonNodeRepositoryTest {
         readDataSource = mock(MockMode.autofill)
         writeDataSource = mock(MockMode.autofill)
         localStatsDataSource = FakeLocalStatsDataSource()
+        fakeUiPrefs = FakeAppPreferences().ui
 
         every { readDataSource.myNodeInfoFlow() } returns myNodeInfoFlow
         every { readDataSource.nodeDBbyNumFlow() } returns MutableStateFlow<Map<Int, NodeWithRelations>>(emptyMap())
@@ -79,6 +86,7 @@ abstract class CommonNodeRepositoryTest {
                 writeDataSource,
                 dispatchers,
                 localStatsDataSource,
+                fakeUiPrefs,
             )
     }
 
@@ -121,5 +129,48 @@ abstract class CommonNodeRepositoryTest {
         val result = repository.effectiveLogNodeId(remoteNodeNum).first()
 
         assertEquals(remoteNodeNum, result)
+    }
+
+    @Test
+    fun `custom node names override node user display names when enabled`() = runTest(testDispatcher) {
+        val baseEntity =
+            NodeWithRelations(
+                node =
+                NodeEntity(num = 42, user = User(id = "42", long_name = "Original Long", short_name = "ORIG")),
+                metadata = null,
+            )
+        val nodeDbFlow = MutableStateFlow(mapOf(42 to baseEntity))
+        every { readDataSource.nodeDBbyNumFlow() } returns nodeDbFlow
+
+        val testRepo =
+            NodeRepositoryImpl(
+                lifecycleOwner.lifecycle,
+                readDataSource,
+                writeDataSource,
+                dispatchers,
+                localStatsDataSource,
+                fakeUiPrefs,
+            )
+
+        assertEquals("Original Long", testRepo.nodeDBbyNum.value[42]?.user?.long_name)
+
+        fakeUiPrefs.setCustomNodeName(
+            42,
+            CustomNodeName(shortName = "NEW", longName = "New Custom Name", enabled = true),
+        )
+
+        val updated = testRepo.nodeDBbyNum.value[42]
+        assertEquals("New Custom Name", updated?.user?.long_name)
+        assertEquals("NEW", updated?.user?.short_name)
+        assertEquals("Original Long", updated?.originalUser?.long_name)
+
+        // When disabled, falls back to original name
+        fakeUiPrefs.setCustomNodeName(
+            42,
+            CustomNodeName(shortName = "NEW", longName = "New Custom Name", enabled = false),
+        )
+        val disabled = testRepo.nodeDBbyNum.value[42]
+        assertEquals("Original Long", disabled?.user?.long_name)
+        assertEquals("ORIG", disabled?.user?.short_name)
     }
 }

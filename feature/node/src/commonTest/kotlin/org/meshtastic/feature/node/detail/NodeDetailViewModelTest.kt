@@ -47,6 +47,7 @@ import org.meshtastic.core.repository.LocalNodeUnavailableException
 import org.meshtastic.core.repository.PacketQueueRejectedException
 import org.meshtastic.core.repository.PacketRepository
 import org.meshtastic.core.repository.QueryController
+import org.meshtastic.core.testing.FakeAppPreferences
 import org.meshtastic.feature.node.component.NodeMenuAction
 import org.meshtastic.feature.node.domain.usecase.GetNodeDetailsUseCase
 import org.meshtastic.proto.User
@@ -91,6 +92,7 @@ class NodeDetailViewModelTest {
         ensureRemoteAdminSession = ensureRemoteAdminSession,
         observeRemoteAdminSessionStatus = observeRemoteAdminSessionStatus,
         snackbarManager = snackbarManager,
+        uiPrefs = FakeAppPreferences().ui,
         resolveUiText = resolveNodeDetailUiTextForTest,
     )
 

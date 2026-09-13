@@ -417,8 +417,11 @@ fun EntryProviderScope<NavKey>.settingsGraph(
 
     entry<SettingsRoute.About> {
         val settingsViewModel: SettingsViewModel = koinViewModel()
+        val updateCheckState by settingsViewModel.updateCheckState.collectAsStateWithLifecycle()
         AboutScreen(
             appVersionName = settingsViewModel.appVersionName,
+            updateCheckState = updateCheckState,
+            onCheckForUpdates = { settingsViewModel.checkForUpdates() },
             onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },
             onNavigateToAcknowledgements = dropUnlessResumed { backStack.add(SettingsRoute.Acknowledgements) },
         )

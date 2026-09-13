@@ -37,6 +37,7 @@ import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.SessionStatus
 import org.meshtastic.core.repository.PacketRepository
 import org.meshtastic.core.repository.QueryController
+import org.meshtastic.core.testing.FakeAppPreferences
 import org.meshtastic.core.ui.util.SnackbarManager
 import org.meshtastic.feature.node.component.NodeMenuAction
 import org.meshtastic.feature.node.domain.usecase.GetNodeDetailsUseCase
@@ -145,5 +146,6 @@ class HandleNodeActionTest {
         ensureRemoteAdminSession = ensureRemoteAdminSession,
         observeRemoteAdminSessionStatus = observeRemoteAdminSessionStatus,
         snackbarManager = snackbarManager,
+        uiPrefs = FakeAppPreferences().ui,
     )
 }

@@ -25,11 +25,13 @@ import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.choose_theme
 import org.meshtastic.core.resources.dynamic
+import org.meshtastic.core.resources.theme_adv
 import org.meshtastic.core.resources.theme_dark
 import org.meshtastic.core.resources.theme_light
 import org.meshtastic.core.resources.theme_system
 import org.meshtastic.core.ui.component.ListItem
 import org.meshtastic.core.ui.component.MeshtasticDialog
+import org.meshtastic.core.ui.theme.MODE_ADV_THEME
 import org.meshtastic.core.ui.theme.MODE_DYNAMIC
 
 /** Theme modes that match AppCompatDelegate constants for cross-platform use. */
@@ -38,6 +40,7 @@ enum class ThemeOption(val label: StringResource, val mode: Int) {
     LIGHT(label = Res.string.theme_light, mode = 1), // AppCompatDelegate.MODE_NIGHT_NO
     DARK(label = Res.string.theme_dark, mode = 2), // AppCompatDelegate.MODE_NIGHT_YES
     SYSTEM(label = Res.string.theme_system, mode = -1), // AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+    ADV(label = Res.string.theme_adv, mode = MODE_ADV_THEME),
 }
 
 /** Shared dialog for picking a theme option. Used by both Android and Desktop settings screens. */

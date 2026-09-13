@@ -39,6 +39,7 @@ import org.meshtastic.core.domain.usecase.settings.ImportMessagesFromCsvUseCase
 import org.meshtastic.core.domain.usecase.settings.ImportMessagesUseCase
 import org.meshtastic.core.domain.usecase.settings.IsOtaCapableUseCase
 import org.meshtastic.core.domain.usecase.settings.SetMeshLogSettingsUseCase
+import org.meshtastic.core.model.AppUpdateCheckState
 import org.meshtastic.core.model.BackupPacketType
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.MessageImportResult
@@ -47,6 +48,7 @@ import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeListDensity
 import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.model.ReactionNotificationMode
+import org.meshtastic.core.repository.AppUpdateService
 import org.meshtastic.core.repository.FileService
 import org.meshtastic.core.repository.MeshLogPrefs
 import org.meshtastic.core.repository.NodeRepository
@@ -82,6 +84,7 @@ class SettingsViewModel(
     private val isOtaCapableUseCase: IsOtaCapableUseCase,
     private val fileService: FileService,
     private val hiddenFeaturesUnlock: HiddenFeaturesUnlock,
+    private val appUpdateService: AppUpdateService,
 ) : ViewModel() {
     val myNodeInfo: StateFlow<MyNodeInfo?> = nodeRepository.myNodeInfo
 
@@ -123,6 +126,16 @@ class SettingsViewModel(
 
     val appVersionName
         get() = buildConfigProvider.versionName
+
+    val updateCheckState: StateFlow<AppUpdateCheckState> = appUpdateService.updateState
+
+    fun checkForUpdates() {
+        safeLaunch { appUpdateService.checkForUpdates(isManual = true) }
+    }
+
+    fun dismissUpdate() {
+        appUpdateService.dismissUpdate()
+    }
 
     val isOtaCapable: StateFlow<Boolean> = isOtaCapableUseCase().stateInWhileSubscribed(initialValue = false)
 
@@ -168,6 +181,8 @@ class SettingsViewModel(
     fun setProvideLocation(value: Boolean) {
         myNodeNum?.let { uiPrefs.setShouldProvideNodeLocation(it, value) }
     }
+
+    val theme = uiPrefs.theme
 
     fun setTheme(theme: Int) {
         uiPrefs.setTheme(theme)
@@ -255,6 +270,14 @@ class SettingsViewModel(
 
     fun setAdvThemeColorsJson(json: String) {
         uiPrefs.setAdvThemeColorsJson(json)
+    }
+
+    fun setAdvThemeColors(colors: org.meshtastic.core.model.AdvThemeColors) {
+        uiPrefs.setAdvThemeColorsJson(colors.toJson())
+    }
+
+    fun resetAdvThemeColors() {
+        uiPrefs.setAdvThemeColorsJson("")
     }
 
     val messageBubbleSpacing = uiPrefs.messageBubbleSpacing

@@ -155,30 +155,30 @@ class UiPrefsImplTest {
     }
 
     @Test
-    fun `adv preferences default to true`() = testScope.runTest {
+    fun `adv preferences default values`() = testScope.runTest {
         assertTrue(prefs.pixelArtEnabled.value)
-        assertTrue(prefs.fileTransferEnabled.value)
+        assertFalse(prefs.fileTransferEnabled.value)
         assertTrue(prefs.photoHostingEnabled.value)
     }
 
     @Test
     fun `adv preferences persist when toggled`() = testScope.runTest {
         prefs.setPixelArtEnabled(false)
-        prefs.setFileTransferEnabled(false)
+        prefs.setFileTransferEnabled(true)
         prefs.setPhotoHostingEnabled(false)
 
         assertFalse(prefs.pixelArtEnabled.value)
-        assertFalse(prefs.fileTransferEnabled.value)
+        assertTrue(prefs.fileTransferEnabled.value)
         assertFalse(prefs.photoHostingEnabled.value)
 
         val stored =
             dataStore.data.first {
                 it[UiPrefsImpl.KEY_PIXEL_ART_ENABLED] == false &&
-                    it[UiPrefsImpl.KEY_FILE_TRANSFER_ENABLED] == false &&
+                    it[UiPrefsImpl.KEY_FILE_TRANSFER_ENABLED] == true &&
                     it[UiPrefsImpl.KEY_PHOTO_HOSTING_ENABLED] == false
             }
         assertEquals(false, stored[UiPrefsImpl.KEY_PIXEL_ART_ENABLED])
-        assertEquals(false, stored[UiPrefsImpl.KEY_FILE_TRANSFER_ENABLED])
+        assertEquals(true, stored[UiPrefsImpl.KEY_FILE_TRANSFER_ENABLED])
         assertEquals(false, stored[UiPrefsImpl.KEY_PHOTO_HOSTING_ENABLED])
     }
 
@@ -194,5 +194,22 @@ class UiPrefsImplTest {
         prefs.setPhotoHostingProvider(org.meshtastic.core.model.PhotoHostingProvider.DISABLED)
         assertEquals(org.meshtastic.core.model.PhotoHostingProvider.DISABLED, prefs.photoHostingProvider.value)
         assertFalse(prefs.photoHostingEnabled.value)
+    }
+
+    @Test
+    fun `custom node names default empty and persist correctly`() = testScope.runTest {
+        assertTrue(prefs.customNodeNames.value.isEmpty())
+
+        val custom =
+            org.meshtastic.core.model.CustomNodeName(shortName = "TEST", longName = "Test Node", enabled = true)
+        prefs.setCustomNodeName(1234, custom)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(custom, prefs.customNodeNames.value[1234])
+
+        prefs.removeCustomNodeName(1234)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertTrue(prefs.customNodeNames.value.isEmpty())
     }
 }

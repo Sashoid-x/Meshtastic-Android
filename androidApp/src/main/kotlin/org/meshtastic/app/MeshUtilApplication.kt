@@ -38,7 +38,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -50,6 +52,7 @@ import org.koin.plugin.module.dsl.startKoin
 import org.meshtastic.app.di.AndroidKoinApp
 import org.meshtastic.core.common.ContextServices
 import org.meshtastic.core.database.DatabaseManager
+import org.meshtastic.core.repository.AppUpdateService
 import org.meshtastic.core.repository.MeshPrefs
 import org.meshtastic.core.repository.PlatformAnalytics
 import org.meshtastic.core.repository.ServiceRepository
@@ -176,6 +179,21 @@ open class MeshUtilApplication :
                     getStringSuspend(Res.string.discovery_interrupted_scan_restored, homePreset),
                     Severity.Warn,
                 )
+            }
+        }
+
+        // Check for app updates on startup and periodically (every 12 hours)
+        applicationScope.launch {
+            delay(5.seconds)
+            try {
+                val appUpdateService: AppUpdateService = get()
+                appUpdateService.checkForUpdates(isManual = false)
+                while (isActive) {
+                    delay(12.hours)
+                    appUpdateService.checkForUpdates(isManual = false)
+                }
+            } catch (e: Exception) {
+                Logger.w(e) { "Periodic update check failed" }
             }
         }
     }

@@ -17,6 +17,7 @@
 package org.meshtastic.core.repository
 
 import kotlinx.coroutines.flow.StateFlow
+import org.meshtastic.core.model.CustomNodeName
 import org.meshtastic.core.model.DeviceType
 import org.meshtastic.core.model.ReactionNotificationMode
 
@@ -189,6 +190,13 @@ interface UiPrefs {
     val advThemeColorsJson: StateFlow<String>
 
     fun setAdvThemeColorsJson(json: String)
+
+    /** Local custom name overrides for nodes, keyed by nodeNum. */
+    val customNodeNames: StateFlow<Map<Int, CustomNodeName>>
+
+    fun setCustomNodeName(nodeNum: Int, customName: CustomNodeName)
+
+    fun removeCustomNodeName(nodeNum: Int)
 
     /** Vertical spacing between message items in dp. */
     val messageBubbleSpacing: StateFlow<Int>

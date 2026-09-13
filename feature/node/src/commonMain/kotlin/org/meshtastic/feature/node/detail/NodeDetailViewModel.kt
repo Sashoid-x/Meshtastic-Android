@@ -35,6 +35,7 @@ import org.meshtastic.core.domain.usecase.session.EnsureRemoteAdminSessionUseCas
 import org.meshtastic.core.domain.usecase.session.EnsureSessionResult
 import org.meshtastic.core.domain.usecase.session.ObserveRemoteAdminSessionStatusUseCase
 import org.meshtastic.core.model.ContactKey
+import org.meshtastic.core.model.CustomNodeName
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.SessionStatus
@@ -44,6 +45,7 @@ import org.meshtastic.core.repository.LocalNodeUnavailableException
 import org.meshtastic.core.repository.PacketQueueRejectedException
 import org.meshtastic.core.repository.PacketRepository
 import org.meshtastic.core.repository.QueryController
+import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.UiText
 import org.meshtastic.core.resources.connect_radio_for_remote_admin
@@ -102,6 +104,7 @@ class NodeDetailViewModel(
     private val ensureRemoteAdminSession: EnsureRemoteAdminSessionUseCase,
     private val observeRemoteAdminSessionStatus: ObserveRemoteAdminSessionStatusUseCase,
     private val snackbarManager: SnackbarManager,
+    private val uiPrefs: UiPrefs,
     private val resolveUiText: suspend (UiText) -> String = { it.resolve() },
 ) : ViewModel() {
 
@@ -165,6 +168,10 @@ class NodeDetailViewModel(
         if (manualNodeId.value != nodeId) {
             manualNodeId.value = nodeId
         }
+    }
+
+    fun setCustomNodeName(nodeNum: Int, customName: CustomNodeName) {
+        uiPrefs.setCustomNodeName(nodeNum, customName)
     }
 
     /** Dispatches high-level node management actions like removal, muting, or favoriting. */

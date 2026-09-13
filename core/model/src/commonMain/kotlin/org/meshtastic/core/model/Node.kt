@@ -85,6 +85,8 @@ data class Node(
     val keyMatch: Boolean = true,
     /** The key a mismatch refused, kept so the warning can name it. Null whenever [keyMatch] is true. */
     val newPublicKey: ByteString? = null,
+    val customName: CustomNodeName? = null,
+    val originalUser: User = user,
 ) {
     val capabilities: Capabilities by lazy { Capabilities(metadata?.firmware_version) }
 

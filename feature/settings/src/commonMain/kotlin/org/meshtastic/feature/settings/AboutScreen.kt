@@ -55,12 +55,23 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
+import org.meshtastic.core.model.AppUpdateCheckState
+import org.meshtastic.core.model.AppUpdateInfo
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.about
+import org.meshtastic.core.resources.about_app_up_to_date
+import org.meshtastic.core.resources.about_check_for_updates
+import org.meshtastic.core.resources.about_check_for_updates_summary
+import org.meshtastic.core.resources.about_checking_for_updates
 import org.meshtastic.core.resources.about_mod_description
 import org.meshtastic.core.resources.about_mod_testers_content
 import org.meshtastic.core.resources.about_mod_testers_title
 import org.meshtastic.core.resources.about_mod_title
+import org.meshtastic.core.resources.about_update_available
+import org.meshtastic.core.resources.about_update_check_error
+import org.meshtastic.core.resources.about_update_dialog_download
+import org.meshtastic.core.resources.about_update_dialog_later
+import org.meshtastic.core.resources.about_update_dialog_title
 import org.meshtastic.core.resources.acknowledgements
 import org.meshtastic.core.resources.app_version
 import org.meshtastic.core.resources.apps
@@ -83,6 +94,7 @@ import org.meshtastic.core.ui.icon.Info
 import org.meshtastic.core.ui.icon.Language
 import org.meshtastic.core.ui.icon.Memory
 import org.meshtastic.core.ui.icon.MeshtasticIcons
+import org.meshtastic.core.ui.icon.SystemUpdate
 import org.meshtastic.core.ui.theme.AppTheme
 import org.meshtastic.feature.settings.component.ExpressiveSection
 import kotlin.time.Duration.Companion.seconds
@@ -122,6 +134,8 @@ fun AboutScreen(
     onNavigateUp: () -> Unit,
     onNavigateToAcknowledgements: () -> Unit,
     modifier: Modifier = Modifier,
+    updateCheckState: AppUpdateCheckState = AppUpdateCheckState.Idle,
+    onCheckForUpdates: () -> Unit = {},
 ) {
     val uriHandler = LocalUriHandler.current
 
@@ -154,6 +168,8 @@ fun AboutScreen(
                 onNavigateToAcknowledgements = onNavigateToAcknowledgements,
                 onOpenHardwareLink = { uriHandler.openUri(HARDWARE_URL) },
                 onOpenRepoLink = { uriHandler.openUri(GITHUB_REPO_URL) },
+                updateCheckState = updateCheckState,
+                onCheckForUpdates = onCheckForUpdates,
             )
             ProjectInformationSection(
                 onOpenWebsite = { uriHandler.openUri(WEBSITE_URL) },
@@ -194,15 +210,17 @@ private fun AppsSection(
     onNavigateToAcknowledgements: () -> Unit,
     onOpenHardwareLink: () -> Unit,
     onOpenRepoLink: () -> Unit,
+    updateCheckState: AppUpdateCheckState,
+    onCheckForUpdates: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var clickCount by remember { mutableIntStateOf(0) }
+    val uriHandler = LocalUriHandler.current
     var showTestersDialog by remember { mutableStateOf(false) }
+    var showUpdateDetailsDialog by remember { mutableStateOf(false) }
 
-    LaunchedEffect(clickCount) {
-        if (clickCount in 1..<TESTERS_CLICK_COUNT) {
-            delay(TESTERS_TIMEOUT_SECONDS.seconds)
-            clickCount = 0
+    LaunchedEffect(updateCheckState) {
+        if (updateCheckState is AppUpdateCheckState.UpdateAvailable) {
+            showUpdateDetailsDialog = true
         }
     }
 
@@ -223,16 +241,14 @@ private fun AppsSection(
             trailingIcon = MeshtasticIcons.ChevronRight,
             onClick = onOpenRepoLink,
         )
-        ListItem(
-            text = stringResource(Res.string.app_version),
-            leadingIcon = MeshtasticIcons.Memory,
-            supportingText = modVersionName,
-            trailingIcon = null,
+        AppVersionListItem(versionName = modVersionName, onFiveClicks = { showTestersDialog = true })
+        CheckForUpdatesListItem(
+            updateCheckState = updateCheckState,
             onClick = {
-                clickCount = clickCount.inc().coerceIn(0, TESTERS_CLICK_COUNT)
-                if (clickCount == TESTERS_CLICK_COUNT) {
-                    clickCount = 0
-                    showTestersDialog = true
+                if (updateCheckState is AppUpdateCheckState.UpdateAvailable) {
+                    showUpdateDetailsDialog = true
+                } else {
+                    onCheckForUpdates()
                 }
             },
         )
@@ -245,15 +261,105 @@ private fun AppsSection(
     }
 
     if (showTestersDialog) {
-        AlertDialog(
-            onDismissRequest = { showTestersDialog = false },
-            title = { Text(text = stringResource(Res.string.about_mod_testers_title)) },
-            text = { Text(text = stringResource(Res.string.about_mod_testers_content)) },
-            confirmButton = {
-                TextButton(onClick = { showTestersDialog = false }) { Text(text = stringResource(Res.string.close)) }
+        TestersDialog(onDismiss = { showTestersDialog = false })
+    }
+
+    if (showUpdateDetailsDialog && updateCheckState is AppUpdateCheckState.UpdateAvailable) {
+        AppUpdateDialog(
+            info = updateCheckState.info,
+            onDismiss = { showUpdateDetailsDialog = false },
+            onDownload = {
+                uriHandler.openUri(updateCheckState.info.releaseUrl)
+                showUpdateDetailsDialog = false
             },
         )
     }
+}
+
+@Composable
+private fun AppVersionListItem(versionName: String, onFiveClicks: () -> Unit) {
+    var clickCount by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(clickCount) {
+        if (clickCount in 1..<TESTERS_CLICK_COUNT) {
+            delay(TESTERS_TIMEOUT_SECONDS.seconds)
+            clickCount = 0
+        }
+    }
+
+    ListItem(
+        text = stringResource(Res.string.app_version),
+        leadingIcon = MeshtasticIcons.Memory,
+        supportingText = versionName,
+        trailingIcon = null,
+        onClick = {
+            clickCount = clickCount.inc().coerceIn(0, TESTERS_CLICK_COUNT)
+            if (clickCount == TESTERS_CLICK_COUNT) {
+                clickCount = 0
+                onFiveClicks()
+            }
+        },
+    )
+}
+
+@Composable
+private fun CheckForUpdatesListItem(updateCheckState: AppUpdateCheckState, onClick: () -> Unit) {
+    val subtitle =
+        when (updateCheckState) {
+            is AppUpdateCheckState.Checking -> stringResource(Res.string.about_checking_for_updates)
+
+            is AppUpdateCheckState.UpdateAvailable ->
+                stringResource(Res.string.about_update_available, updateCheckState.info.versionName)
+
+            is AppUpdateCheckState.UpToDate -> stringResource(Res.string.about_app_up_to_date)
+
+            is AppUpdateCheckState.Error -> stringResource(Res.string.about_update_check_error)
+
+            AppUpdateCheckState.Idle -> stringResource(Res.string.about_check_for_updates_summary)
+        }
+
+    ListItem(
+        text = stringResource(Res.string.about_check_for_updates),
+        leadingIcon = MeshtasticIcons.SystemUpdate,
+        supportingText = subtitle,
+        trailingIcon = MeshtasticIcons.ChevronRight,
+        onClick = onClick,
+    )
+}
+
+@Composable
+private fun TestersDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(Res.string.about_mod_testers_title)) },
+        text = { Text(text = stringResource(Res.string.about_mod_testers_content)) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(text = stringResource(Res.string.close)) } },
+    )
+}
+
+@Composable
+private fun AppUpdateDialog(info: AppUpdateInfo, onDismiss: () -> Unit, onDownload: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(Res.string.about_update_dialog_title)) },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(text = "${info.releaseTitle} (${info.versionName})", style = MaterialTheme.typography.titleMedium)
+                if (info.releaseNotes.isNotBlank()) {
+                    Text(text = info.releaseNotes, style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDownload) { Text(text = stringResource(Res.string.about_update_dialog_download)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(text = stringResource(Res.string.about_update_dialog_later)) }
+        },
+    )
 }
 
 @Composable

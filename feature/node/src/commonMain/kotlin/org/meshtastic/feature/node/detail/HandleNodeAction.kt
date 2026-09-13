@@ -59,6 +59,8 @@ internal fun handleNodeAction(
             }
         }
 
+        is NodeDetailAction.SetCustomNodeName -> viewModel.setCustomNodeName(action.nodeNum, action.customName)
+
         else -> {}
     }
 }

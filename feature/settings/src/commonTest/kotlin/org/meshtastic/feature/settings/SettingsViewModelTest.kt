@@ -59,6 +59,7 @@ import org.meshtastic.core.model.MessageImportResult
 import org.meshtastic.core.repository.FileService
 import org.meshtastic.core.repository.RadioConfigRepository
 import org.meshtastic.core.testing.FakeAppPreferences
+import org.meshtastic.core.testing.FakeAppUpdateService
 import org.meshtastic.core.testing.FakeDatabaseManager
 import org.meshtastic.core.testing.FakeMeshLogRepository
 import org.meshtastic.core.testing.FakeNodeRepository
@@ -95,6 +96,7 @@ class SettingsViewModelTest {
     private val exportMessagesUseCase: ExportMessagesUseCase = mock(MockMode.autofill)
     private val importMessagesUseCase: ImportMessagesUseCase = mock(MockMode.autofill)
     private val importMessagesFromCsvUseCase: ImportMessagesFromCsvUseCase = mock(MockMode.autofill)
+    private val appUpdateService = FakeAppUpdateService()
 
     @BeforeTest
     fun setUp() {
@@ -136,6 +138,7 @@ class SettingsViewModelTest {
                 isOtaCapableUseCase = isOtaCapableUseCase,
                 fileService = fileService,
                 hiddenFeaturesUnlock = HiddenFeaturesUnlock(),
+                appUpdateService = appUpdateService,
             )
     }
 
@@ -148,6 +151,12 @@ class SettingsViewModelTest {
     fun testInitialization() {
         assertNotNull(viewModel)
         assertEquals("3.0.0-test", viewModel.appVersionName)
+    }
+
+    @Test
+    fun `checkForUpdates delegates to appUpdateService`() = runTest {
+        viewModel.checkForUpdates()
+        assertEquals(1, appUpdateService.checkForUpdatesCallCount)
     }
 
     @Test

@@ -92,4 +92,24 @@ class AboutScreenTest {
         onNodeWithContentDescription("Navigate Back").performClick()
         assertTrue(navigatedUp)
     }
+
+    @Test
+    fun `check for updates row triggers callback`() = runComposeUiTest {
+        var checkForUpdatesCalled = false
+
+        setContent {
+            AppTheme {
+                AboutScreen(
+                    appVersionName = "2.8.2-advanced-5",
+                    onNavigateUp = {},
+                    onNavigateToAcknowledgements = {},
+                    onCheckForUpdates = { checkForUpdatesCalled = true },
+                )
+            }
+        }
+
+        onNodeWithText("Check for updates").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Check for updates").performClick()
+        assertTrue(checkForUpdatesCalled)
+    }
 }

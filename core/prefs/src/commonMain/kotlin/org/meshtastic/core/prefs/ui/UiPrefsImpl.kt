@@ -32,8 +32,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 import org.koin.core.annotation.Single
 import org.meshtastic.core.di.CoroutineDispatchers
+import org.meshtastic.core.model.CustomNodeName
 import org.meshtastic.core.model.DeviceType
 import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.model.ReactionNotificationMode
@@ -137,7 +140,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
     }
 
     override val fileTransferEnabled: StateFlow<Boolean> =
-        dataStore.data.map { it[KEY_FILE_TRANSFER_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
+        dataStore.data.map { it[KEY_FILE_TRANSFER_ENABLED] ?: false }.stateIn(scope, SharingStarted.Eagerly, false)
 
     override fun setFileTransferEnabled(enabled: Boolean) {
         scope.launch { dataStore.edit { it[KEY_FILE_TRANSFER_ENABLED] = enabled } }
@@ -232,6 +235,56 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
 
     override fun setAdvThemeColorsJson(json: String) {
         scope.launch { dataStore.edit { it[KEY_ADV_THEME_COLORS_JSON] = json } }
+    }
+
+    override val customNodeNames: StateFlow<Map<Int, CustomNodeName>> =
+        dataStore.data
+            .map { prefs ->
+                val json = prefs[KEY_CUSTOM_NODE_NAMES]
+                if (json.isNullOrBlank()) {
+                    emptyMap()
+                } else {
+                    try {
+                        Json.decodeFromString<Map<Int, CustomNodeName>>(json)
+                    } catch (_: Exception) {
+                        emptyMap()
+                    }
+                }
+            }
+            .stateIn(scope, SharingStarted.Eagerly, emptyMap())
+
+    override fun setCustomNodeName(nodeNum: Int, customName: CustomNodeName) {
+        scope.launch {
+            dataStore.edit { prefs ->
+                val current =
+                    try {
+                        prefs[KEY_CUSTOM_NODE_NAMES]
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let { Json.decodeFromString<Map<Int, CustomNodeName>>(it) } ?: emptyMap()
+                    } catch (_: Exception) {
+                        emptyMap()
+                    }
+                val updated = current + (nodeNum to customName)
+                prefs[KEY_CUSTOM_NODE_NAMES] = Json.encodeToString(updated)
+            }
+        }
+    }
+
+    override fun removeCustomNodeName(nodeNum: Int) {
+        scope.launch {
+            dataStore.edit { prefs ->
+                val current =
+                    try {
+                        prefs[KEY_CUSTOM_NODE_NAMES]
+                            ?.takeIf { it.isNotBlank() }
+                            ?.let { Json.decodeFromString<Map<Int, CustomNodeName>>(it) } ?: emptyMap()
+                    } catch (_: Exception) {
+                        emptyMap()
+                    }
+                val updated = current - nodeNum
+                prefs[KEY_CUSTOM_NODE_NAMES] = Json.encodeToString(updated)
+            }
+        }
     }
 
     override val messageBubbleSpacing: StateFlow<Int> =
@@ -471,6 +524,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         val KEY_PINNED_MESSAGES_ENABLED = booleanPreferencesKey("pinned-messages-enabled")
         val KEY_EVENT_THEME_ENABLED = booleanPreferencesKey("event-theme-enabled")
         val KEY_ADV_THEME_COLORS_JSON = stringPreferencesKey("adv-theme-colors-json")
+        val KEY_CUSTOM_NODE_NAMES = stringPreferencesKey("custom-node-names")
         val KEY_MESSAGE_BUBBLE_SPACING = intPreferencesKey("message-bubble-spacing")
         val KEY_MESSAGE_BUBBLE_PADDING = intPreferencesKey("message-bubble-padding")
         val KEY_MESSAGE_FONT_SIZE_SCALE = floatPreferencesKey("message-font-size-scale")

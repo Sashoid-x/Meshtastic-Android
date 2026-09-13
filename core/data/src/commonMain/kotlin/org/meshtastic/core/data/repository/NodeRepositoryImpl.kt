@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -44,6 +45,7 @@ import org.meshtastic.core.database.entity.MyNodeEntity
 import org.meshtastic.core.database.entity.NodeEntity
 import org.meshtastic.core.datastore.LocalStatsDataSource
 import org.meshtastic.core.di.CoroutineDispatchers
+import org.meshtastic.core.model.CustomNodeName
 import org.meshtastic.core.model.MeshLog
 import org.meshtastic.core.model.MyNodeInfo
 import org.meshtastic.core.model.Node
@@ -52,6 +54,7 @@ import org.meshtastic.core.model.NodeSortOption
 import org.meshtastic.core.model.matchesSearch
 import org.meshtastic.core.model.util.onlineTimeThreshold
 import org.meshtastic.core.repository.NodeRepository
+import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.proto.DeviceMetadata
 import org.meshtastic.proto.LocalStats
 import org.meshtastic.proto.User
@@ -65,7 +68,22 @@ class NodeRepositoryImpl(
     private val nodeInfoWriteDataSource: NodeInfoWriteDataSource,
     private val dispatchers: CoroutineDispatchers,
     private val localStatsDataSource: LocalStatsDataSource,
+    private val uiPrefs: UiPrefs? = null,
 ) : NodeRepository {
+    private fun applyCustomName(baseNode: Node, custom: CustomNodeName?): Node {
+        if (custom == null) return baseNode
+        val effectiveUser =
+            if (custom.enabled) {
+                baseNode.user.copy(
+                    long_name = custom.longName.ifBlank { baseNode.user.long_name },
+                    short_name = custom.shortName.ifBlank { baseNode.user.short_name },
+                )
+            } else {
+                baseNode.user
+            }
+        return baseNode.copy(user = effectiveUser, customName = custom, originalUser = baseNode.user)
+    }
+
     /** Hardware info about our local device (can be null if not connected). */
     override val myNodeInfo: StateFlow<MyNodeInfo?> =
         nodeInfoReadDataSource
@@ -107,9 +125,12 @@ class NodeRepositoryImpl(
      * flows after a recoverable Room pool failure, so this upstream never terminates on a pool wedge (#6608).
      */
     override val nodeDBbyNum: StateFlow<Map<Int, Node>> =
-        nodeInfoReadDataSource
-            .nodeDBbyNumFlow()
-            .mapLatest { map -> map.mapValues { (_, it) -> it.toModel() } }
+        combine(nodeInfoReadDataSource.nodeDBbyNumFlow(), uiPrefs?.customNodeNames ?: flowOf(emptyMap())) {
+                map,
+                customNames,
+            ->
+            map.mapValues { (num, it) -> applyCustomName(it.toModel(), customNames[num]) }
+        }
             .flowOn(dispatchers.io)
             .conflate()
             .stateIn(processLifecycle.coroutineScope, SharingStarted.Eagerly, emptyMap())
@@ -189,14 +210,22 @@ class NodeRepositoryImpl(
         includeUnknown: Boolean,
         onlyOnline: Boolean,
         onlyDirect: Boolean,
-    ): Flow<List<Node>> = nodeInfoReadDataSource
-        .getNodesFlow(
+    ): Flow<List<Node>> = combine(
+        nodeInfoReadDataSource.getNodesFlow(
             sort = sort.sqlValue,
             includeUnknown = includeUnknown,
             hopsAwayMax = if (onlyDirect) 0 else -1,
             lastHeardMin = if (onlyOnline) onlineTimeThreshold() else -1,
-        )
-        .mapLatest { list -> list.map { it.toModel() }.filter { node -> node.matchesSearch(filter) } }
+        ),
+        uiPrefs?.customNodeNames ?: flowOf(emptyMap()),
+    ) { list, customNames ->
+        list
+            .map { entity ->
+                val baseNode = entity.toModel()
+                applyCustomName(baseNode, customNames[baseNode.num])
+            }
+            .filter { node -> node.matchesSearch(filter) }
+    }
         .flowOn(dispatchers.io)
         .conflate()
 
@@ -230,8 +259,12 @@ class NodeRepositoryImpl(
     override suspend fun getUnknownNodes(): List<Node> =
         withContext(dispatchers.io) { nodeInfoReadDataSource.getUnknownNodes().map { it.toModel() } }
 
-    override suspend fun getNodeDbSnapshot(): Map<Int, Node> =
-        withContext(dispatchers.io) { nodeInfoReadDataSource.getNodeDbSnapshot().mapValues { (_, it) -> it.toModel() } }
+    override suspend fun getNodeDbSnapshot(): Map<Int, Node> = withContext(dispatchers.io) {
+        val customNames = uiPrefs?.customNodeNames?.value ?: emptyMap()
+        nodeInfoReadDataSource.getNodeDbSnapshot().mapValues { (num, it) ->
+            applyCustomName(it.toModel(), customNames[num])
+        }
+    }
 
     /** Persists hardware metadata for a node. */
     override suspend fun insertMetadata(nodeNum: Int, metadata: DeviceMetadata) =

@@ -454,6 +454,23 @@ private fun ApplicationScope.MeshtasticWindow(
                     },
             ) {
                 val theme by uiViewModel.theme.collectAsState()
+                val advColorsJson by uiViewModel.advThemeColorsJson.collectAsState()
+                val advColors =
+                    remember(advColorsJson) { org.meshtastic.core.model.AdvThemeColors.fromJson(advColorsJson) }
+                val effectiveDark =
+                    if (theme == org.meshtastic.core.ui.theme.MODE_ADV_THEME) {
+                        advColors.darkBase
+                    } else {
+                        isDarkTheme
+                    }
+                val customColorScheme =
+                    remember(theme, advColors) {
+                        if (theme == org.meshtastic.core.ui.theme.MODE_ADV_THEME) {
+                            org.meshtastic.core.ui.theme.AdvColorSchemeBuilder.build(advColors)
+                        } else {
+                            null
+                        }
+                    }
                 val bubbleSpacing by uiViewModel.messageBubbleSpacing.collectAsState()
                 val bubblePadding by uiViewModel.messageBubblePadding.collectAsState()
                 val fontScale by uiViewModel.messageFontSizeScale.collectAsState()
@@ -470,7 +487,9 @@ private fun ApplicationScope.MeshtasticWindow(
                     }
 
                 CompositionLocalProvider(org.meshtastic.core.ui.theme.LocalMessageBubbleStyle provides bubbleStyle) {
-                    AppTheme(darkTheme = isDarkTheme) { DesktopMainScreen(uiViewModel, multiBackstack) }
+                    AppTheme(darkTheme = effectiveDark, customColorScheme = customColorScheme) {
+                        DesktopMainScreen(uiViewModel, multiBackstack)
+                    }
                 }
             }
         }
