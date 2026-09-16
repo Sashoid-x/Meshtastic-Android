@@ -779,7 +779,7 @@
     <string name="file_transfer_receiver_requested">Receiver requested %1$d chunks. Preparing resend…</string>
     <string name="file_transfer_receiving">Receiving file…</string>
     <string name="file_transfer_receiving_file">Receiving file «%1$s»…</string>
-    <string name="file_transfer_receiving_progress">Receiving: %1$d of %2$d chunks (%3$d%%)</string>
+    <string name="file_transfer_receiving_progress">Receiving: %1$d of %2$d chunks (%3$d%)</string>
     <string name="file_transfer_requesting_missing">Requesting resend of %1$d missing chunks…</string>
     <string name="file_transfer_resend_pass">Resending chunks (pass %1$d)</string>
     <string name="file_transfer_retry_request_report">Retrying report request from receiver (%1$d of %2$d)…</string>

@@ -752,7 +752,7 @@
     <string name="file_transfer_receiver_requested">Получатель запросил %1$d чанков. Подготовка досыла…</string>
     <string name="file_transfer_receiving">Приём файла…</string>
     <string name="file_transfer_receiving_file">Приём файла «%1$s»…</string>
-    <string name="file_transfer_receiving_progress">Приём: %1$d из %2$d чанков (%3$d%%)</string>
+    <string name="file_transfer_receiving_progress">Приём: %1$d из %2$d чанков (%3$d%)</string>
     <string name="file_transfer_requesting_missing">Запрос досыла %1$d недостающих чанков…</string>
     <string name="file_transfer_resend_pass">Досыл чанков (проход %1$d)</string>
     <string name="file_transfer_retry_request_start">Повторный запрос начала (попытка %1$d из %2$d)…</string>
