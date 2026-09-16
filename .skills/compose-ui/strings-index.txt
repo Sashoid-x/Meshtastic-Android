@@ -199,6 +199,8 @@ aqi_unhealthy
 aqi_unhealthy_sensitive
 aqi_value_with_severity
 aqi_very_unhealthy
+archived_channel
+archived_channel_read_only
 are_you_sure
 are_you_sure_change_default
 audio
@@ -546,6 +548,7 @@ discovery_restoring_preset
 discovery_scan_complete
 discovery_scan_failed
 discovery_scan_history
+discovery_scan_in_progress
 discovery_scan_incomplete
 discovery_scan_progress
 discovery_scan_summary
@@ -851,6 +854,7 @@ firmware_update_filename_unavailable
 firmware_update_flashing
 firmware_update_hang_tight
 firmware_update_hash_rejected
+firmware_update_in_progress
 firmware_update_invalid_local_file_detail
 firmware_update_keep_device_close
 firmware_update_latest

@@ -83,6 +83,12 @@ class SendMessageUseCaseImpl(
         bytes: okio.ByteString?,
     ): Int {
         val parsedKey = ContactKey(contactKey)
+        // A retired conversation's channel is no longer on the radio, so there is no slot to send on. Without this
+        // the key's absent channel prefix would read as 0 and the message would go out on the primary channel.
+        if (parsedKey.isRetired) {
+            Logger.w { "Refusing to send to a retired conversation" }
+            return 0
+        }
         val channel = parsedKey.channelOrNull
         val dest = parsedKey.addressString
 

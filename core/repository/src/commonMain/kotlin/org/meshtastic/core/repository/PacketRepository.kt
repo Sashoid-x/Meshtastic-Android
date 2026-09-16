@@ -28,7 +28,6 @@ import org.meshtastic.core.model.MessageImportResult
 import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.Reaction
-import org.meshtastic.proto.ChannelSettings
 import org.meshtastic.proto.MeshPacket
 
 /** Stable identity of one persisted packet row within its owning node database. */
@@ -248,9 +247,6 @@ interface PacketRepository {
 
     /** Clears all packet and message history from the database. */
     suspend fun clearPacketDB()
-
-    /** Migrates channel-specific message history when encryption keys change. */
-    suspend fun migrateChannelsByPSK(oldSettings: List<ChannelSettings>, newSettings: List<ChannelSettings>)
 
     /** Marks all messages from a specific sender as filtered or unfiltered. */
     suspend fun updateFilteredBySender(senderId: String, filtered: Boolean)

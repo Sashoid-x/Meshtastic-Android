@@ -61,7 +61,6 @@ import org.meshtastic.core.repository.PersistedPacket
 import org.meshtastic.core.repository.PersistedPacketId
 import org.meshtastic.core.repository.PersistedReaction
 import org.meshtastic.core.repository.PersistedReactionId
-import org.meshtastic.proto.ChannelSettings
 import org.meshtastic.proto.MeshPacket
 import org.meshtastic.proto.PortNum
 import kotlin.time.Instant
@@ -545,12 +544,6 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
         withContext(dispatchers.io) { dbManager.withDb { it.packetDao().deleteAll() } }
     }
 
-    override suspend fun migrateChannelsByPSK(oldSettings: List<ChannelSettings>, newSettings: List<ChannelSettings>) {
-        withContext(dispatchers.io) {
-            dbManager.withDb { it.packetDao().migrateChannelsByPSK(oldSettings, newSettings) }
-        }
-    }
-
     override suspend fun updateFilteredBySender(senderId: String, filtered: Boolean) {
         val pattern = "%\"from\":\"${senderId}\"%"
         withContext(dispatchers.io) { dbManager.withDb { it.packetDao().updateFilteredBySender(pattern, filtered) } }
@@ -568,6 +561,7 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
         isMuted = isMuted,
         draft = draft,
         pinned = pinned,
+        displayName = displayName,
     )
 
     private fun Reaction.toEntity(myNodeNum: Int) = RoomReaction(
