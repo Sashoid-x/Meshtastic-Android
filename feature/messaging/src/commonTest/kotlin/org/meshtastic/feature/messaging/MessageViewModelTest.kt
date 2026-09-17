@@ -38,7 +38,12 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withContext
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.ContactSettings
+import org.meshtastic.core.model.ImgbbExpiration
+import org.meshtastic.core.model.MeshpicRetention
 import org.meshtastic.core.model.PhotoHostingProvider
+import org.meshtastic.core.network.service.ImgBBService
+import org.meshtastic.core.network.service.ImgbbApiKeyMissingException
+import org.meshtastic.core.network.service.ImgbbInvalidApiKeyException
 import org.meshtastic.core.repository.ActiveConversationTracker
 import org.meshtastic.core.repository.AdminController
 import org.meshtastic.core.repository.ConnectionStateProvider
@@ -50,6 +55,12 @@ import org.meshtastic.core.repository.QuickChatActionRepository
 import org.meshtastic.core.repository.RadioConfigRepository
 import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.core.repository.usecase.SendMessageUseCase
+import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.UiText
+import org.meshtastic.core.resources.imgbb_api_key_invalid
+import org.meshtastic.core.resources.imgbb_api_key_missing
+import org.meshtastic.core.resources.upload_photo_failed
+import org.meshtastic.core.resources.uploading_photo
 import org.meshtastic.core.testing.FakeNodeRepository
 import org.meshtastic.core.testing.TestDataFactory
 import org.meshtastic.core.ui.util.SnackbarManager
@@ -103,10 +114,12 @@ class MessageViewModelTest {
     private val fileTransferEnabledFlow = MutableStateFlow(true)
     private val photoHostingEnabledFlow = MutableStateFlow(true)
     private val photoHostingProviderFlow = MutableStateFlow(PhotoHostingProvider.MESHPIC)
-    private val sendOnEnterEnabledFlow = MutableStateFlow(true)
+    private val imgbbApiKeyFlow = MutableStateFlow("")
+    private val imgbbExpirationFlow = MutableStateFlow(ImgbbExpiration.DAYS_1)
+    private val meshpicRetentionFlow = MutableStateFlow(MeshpicRetention.DAYS_1)
     private val showBellButtonFlow = MutableStateFlow(true)
     private val insertPhotoLinkEnabledFlow = MutableStateFlow(false)
-    private val builtInImageViewerEnabledFlow = MutableStateFlow(true)
+    private val linkPreviewEnabledFlow = MutableStateFlow(true)
     private val pinnedMessagesEnabledFlow = MutableStateFlow(true)
 
     @BeforeTest
@@ -115,6 +128,21 @@ class MessageViewModelTest {
         savedStateHandle = SavedStateHandle(mapOf("contactKey" to "0!12345678"))
         nodeRepository = FakeNodeRepository()
 
+        MessagingUiTextResolver.resolve = { text ->
+            when (text) {
+                is UiText.DynamicString -> text.value
+
+                is UiText.Resource ->
+                    when (text.res) {
+                        Res.string.uploading_photo -> "Uploading photo..."
+                        Res.string.upload_photo_failed -> "Upload failed"
+                        Res.string.imgbb_api_key_missing -> "ImgBB: API key is not configured in settings"
+                        Res.string.imgbb_api_key_invalid -> "ImgBB: Invalid API key"
+                        else -> "Resource: ${text.res}"
+                    }
+            }
+        }
+
         connectionStateFlow.value = ConnectionState.Disconnected
         showQuickChatFlow.value = false
         showFullMessageTimestampsFlow.value = false
@@ -122,10 +150,11 @@ class MessageViewModelTest {
         fileTransferEnabledFlow.value = true
         photoHostingEnabledFlow.value = true
         photoHostingProviderFlow.value = PhotoHostingProvider.MESHPIC
-        sendOnEnterEnabledFlow.value = true
+        imgbbApiKeyFlow.value = ""
+        imgbbExpirationFlow.value = ImgbbExpiration.DAYS_1
+        meshpicRetentionFlow.value = MeshpicRetention.DAYS_1
         showBellButtonFlow.value = true
         insertPhotoLinkEnabledFlow.value = false
-        builtInImageViewerEnabledFlow.value = true
         pinnedMessagesEnabledFlow.value = true
         customEmojiFrequencyFlow.value = null
         contactSettingsFlow.value = emptyMap()
@@ -148,19 +177,23 @@ class MessageViewModelTest {
         every { uiPrefs.fileTransferEnabled } returns fileTransferEnabledFlow
         every { uiPrefs.photoHostingEnabled } returns photoHostingEnabledFlow
         every { uiPrefs.photoHostingProvider } returns photoHostingProviderFlow
-        every { uiPrefs.sendOnEnterEnabled } returns sendOnEnterEnabledFlow
+        every { uiPrefs.imgbbApiKey } returns imgbbApiKeyFlow
+        every { uiPrefs.imgbbExpiration } returns imgbbExpirationFlow
+        every { uiPrefs.meshpicRetention } returns meshpicRetentionFlow
         every { uiPrefs.showBellButton } returns showBellButtonFlow
         every { uiPrefs.insertPhotoLinkEnabled } returns insertPhotoLinkEnabledFlow
-        every { uiPrefs.builtInImageViewerEnabled } returns builtInImageViewerEnabledFlow
+        every { uiPrefs.linkPreviewEnabled } returns linkPreviewEnabledFlow
         every { uiPrefs.pinnedMessagesEnabled } returns pinnedMessagesEnabledFlow
         every { uiPrefs.setPixelArtEnabled(any()) } returns Unit
         every { uiPrefs.setFileTransferEnabled(any()) } returns Unit
         every { uiPrefs.setPhotoHostingEnabled(any()) } returns Unit
         every { uiPrefs.setPhotoHostingProvider(any()) } returns Unit
-        every { uiPrefs.setSendOnEnterEnabled(any()) } returns Unit
+        every { uiPrefs.setImgbbApiKey(any()) } returns Unit
+        every { uiPrefs.setImgbbExpiration(any()) } returns Unit
+        every { uiPrefs.setMeshpicRetention(any()) } returns Unit
         every { uiPrefs.setShowBellButton(any()) } returns Unit
         every { uiPrefs.setInsertPhotoLinkEnabled(any()) } returns Unit
-        every { uiPrefs.setBuiltInImageViewerEnabled(any()) } returns Unit
+        every { uiPrefs.setLinkPreviewEnabled(any()) } returns Unit
         every { uiPrefs.setPinnedMessagesEnabled(any()) } returns Unit
 
         every { packetRepository.getContactSettings() } returns contactSettingsFlow
@@ -478,28 +511,22 @@ class MessageViewModelTest {
         assertTrue(viewModel.pixelArtEnabled.value)
         assertTrue(viewModel.fileTransferEnabled.value)
         assertTrue(viewModel.photoHostingEnabled.value)
-        assertTrue(viewModel.sendOnEnterEnabled.value)
         assertTrue(viewModel.showBellButton.value)
         assertFalse(viewModel.insertPhotoLinkEnabled.value)
-        assertTrue(viewModel.builtInImageViewerEnabled.value)
         assertTrue(viewModel.pinnedMessagesEnabled.value)
 
         pixelArtEnabledFlow.value = false
         fileTransferEnabledFlow.value = false
         photoHostingEnabledFlow.value = false
-        sendOnEnterEnabledFlow.value = false
         showBellButtonFlow.value = false
         insertPhotoLinkEnabledFlow.value = true
-        builtInImageViewerEnabledFlow.value = false
         pinnedMessagesEnabledFlow.value = false
 
         assertFalse(viewModel.pixelArtEnabled.value)
         assertFalse(viewModel.fileTransferEnabled.value)
         assertFalse(viewModel.photoHostingEnabled.value)
-        assertFalse(viewModel.sendOnEnterEnabled.value)
         assertFalse(viewModel.showBellButton.value)
         assertTrue(viewModel.insertPhotoLinkEnabled.value)
-        assertFalse(viewModel.builtInImageViewerEnabled.value)
         assertFalse(viewModel.pinnedMessagesEnabled.value)
     }
 
@@ -508,8 +535,11 @@ class MessageViewModelTest {
         insertPhotoLinkEnabledFlow.value = true
         val fakeService =
             object : org.meshtastic.core.network.service.MeshPicService {
-                override suspend fun uploadImage(imageBytes: ByteArray, filename: String): Result<String> =
-                    Result.success("abc123xyz")
+                override suspend fun uploadImage(
+                    imageBytes: ByteArray,
+                    filename: String,
+                    retentionHours: Int,
+                ): Result<String> = Result.success("abc123xyz")
             }
         val vm =
             MessageViewModel(
@@ -535,7 +565,7 @@ class MessageViewModelTest {
         vm.photoLinkReady.test {
             vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
             val link = awaitItem()
-            assertEquals("https://meshpic.org/image/abc123xyz", link)
+            assertEquals("https://meshpic.org/abc123xyz", link)
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -552,8 +582,11 @@ class MessageViewModelTest {
     fun testUploadAndSendPhotoSuccess() = runTest {
         val fakeService =
             object : org.meshtastic.core.network.service.MeshPicService {
-                override suspend fun uploadImage(imageBytes: ByteArray, filename: String): Result<String> =
-                    Result.success("abc123xyz")
+                override suspend fun uploadImage(
+                    imageBytes: ByteArray,
+                    filename: String,
+                    retentionHours: Int,
+                ): Result<String> = Result.success("abc123xyz")
             }
         val vm =
             MessageViewModel(
@@ -581,7 +614,7 @@ class MessageViewModelTest {
         vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
         advanceUntilIdle()
 
-        verifySuspend { sendMessageUseCase.invoke("https://meshpic.org/image/abc123xyz", "0^all", null) }
+        verifySuspend { sendMessageUseCase.invoke("https://meshpic.org/abc123xyz", "0^all", null) }
     }
 
     @Test
@@ -622,11 +655,145 @@ class MessageViewModelTest {
     }
 
     @Test
+    fun testUploadAndSendPhotoImgbbSuccess() = runTest {
+        photoHostingProviderFlow.value = PhotoHostingProvider.IMGBB
+        val fakeImgbbService =
+            object : ImgBBService {
+                override suspend fun uploadImage(
+                    imageBytes: ByteArray,
+                    apiKey: String,
+                    expirationSeconds: Int?,
+                    filename: String,
+                ): Result<String> = Result.success("https://ibb.co/2ndCYJK")
+            }
+        val vm =
+            MessageViewModel(
+                savedStateHandle = savedStateHandle,
+                nodeRepository = nodeRepository,
+                radioConfigRepository = radioConfigRepository,
+                quickChatActionRepository = quickChatActionRepository,
+                connectionStateProvider = connectionStateProvider,
+                messagingController = messagingController,
+                packetRepository = packetRepository,
+                sendMessageUseCase = sendMessageUseCase,
+                customEmojiPrefs = customEmojiPrefs,
+                homoglyphEncodingPrefs = homoglyphPrefs,
+                uiPrefs = uiPrefs,
+                meshNotificationManager = meshNotificationManager,
+                activeConversationTracker = activeConversationTracker,
+                messageTranslationService = messageTranslationService,
+                snackbarManager = snackbarManager,
+                adminController = adminController,
+                imgbbService = fakeImgbbService,
+            )
+
+        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns 1
+
+        vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
+        advanceUntilIdle()
+
+        verifySuspend { sendMessageUseCase.invoke("https://ibb.co/2ndCYJK", "0^all", null) }
+    }
+
+    @Test
+    fun testUploadAndSendPhotoImgbbMissingApiKey() = runTest {
+        photoHostingProviderFlow.value = PhotoHostingProvider.IMGBB
+        val fakeImgbbService =
+            object : ImgBBService {
+                override suspend fun uploadImage(
+                    imageBytes: ByteArray,
+                    apiKey: String,
+                    expirationSeconds: Int?,
+                    filename: String,
+                ): Result<String> = Result.failure(ImgbbApiKeyMissingException())
+            }
+        val vm =
+            MessageViewModel(
+                savedStateHandle = savedStateHandle,
+                nodeRepository = nodeRepository,
+                radioConfigRepository = radioConfigRepository,
+                quickChatActionRepository = quickChatActionRepository,
+                connectionStateProvider = connectionStateProvider,
+                messagingController = messagingController,
+                packetRepository = packetRepository,
+                sendMessageUseCase = sendMessageUseCase,
+                customEmojiPrefs = customEmojiPrefs,
+                homoglyphEncodingPrefs = homoglyphPrefs,
+                uiPrefs = uiPrefs,
+                meshNotificationManager = meshNotificationManager,
+                activeConversationTracker = activeConversationTracker,
+                messageTranslationService = messageTranslationService,
+                snackbarManager = snackbarManager,
+                adminController = adminController,
+                imgbbService = fakeImgbbService,
+            )
+
+        snackbarManager.events.test {
+            vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
+            advanceUntilIdle()
+
+            assertEquals("Uploading photo...", awaitItem().message)
+            assertEquals("ImgBB: API key is not configured in settings", awaitItem().message)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        verifySuspend(mode = VerifyMode.not) { sendMessageUseCase.invoke(any(), any(), any()) }
+    }
+
+    @Test
+    fun testUploadAndSendPhotoImgbbInvalidApiKey() = runTest {
+        photoHostingProviderFlow.value = PhotoHostingProvider.IMGBB
+        val fakeImgbbService =
+            object : ImgBBService {
+                override suspend fun uploadImage(
+                    imageBytes: ByteArray,
+                    apiKey: String,
+                    expirationSeconds: Int?,
+                    filename: String,
+                ): Result<String> = Result.failure(ImgbbInvalidApiKeyException())
+            }
+        val vm =
+            MessageViewModel(
+                savedStateHandle = savedStateHandle,
+                nodeRepository = nodeRepository,
+                radioConfigRepository = radioConfigRepository,
+                quickChatActionRepository = quickChatActionRepository,
+                connectionStateProvider = connectionStateProvider,
+                messagingController = messagingController,
+                packetRepository = packetRepository,
+                sendMessageUseCase = sendMessageUseCase,
+                customEmojiPrefs = customEmojiPrefs,
+                homoglyphEncodingPrefs = homoglyphPrefs,
+                uiPrefs = uiPrefs,
+                meshNotificationManager = meshNotificationManager,
+                activeConversationTracker = activeConversationTracker,
+                messageTranslationService = messageTranslationService,
+                snackbarManager = snackbarManager,
+                adminController = adminController,
+                imgbbService = fakeImgbbService,
+            )
+
+        snackbarManager.events.test {
+            vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
+            advanceUntilIdle()
+
+            assertEquals("Uploading photo...", awaitItem().message)
+            assertEquals("ImgBB: Invalid API key", awaitItem().message)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        verifySuspend(mode = VerifyMode.not) { sendMessageUseCase.invoke(any(), any(), any()) }
+    }
+
+    @Test
     fun testUploadAndSendPhotoFailure() = runTest {
         val fakeService =
             object : org.meshtastic.core.network.service.MeshPicService {
-                override suspend fun uploadImage(imageBytes: ByteArray, filename: String): Result<String> =
-                    Result.failure(RuntimeException("Upload error"))
+                override suspend fun uploadImage(
+                    imageBytes: ByteArray,
+                    filename: String,
+                    retentionHours: Int,
+                ): Result<String> = Result.failure(RuntimeException("Upload error"))
             }
         val vm =
             MessageViewModel(

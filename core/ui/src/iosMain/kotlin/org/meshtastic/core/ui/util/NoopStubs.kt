@@ -49,6 +49,11 @@ actual fun rememberSaveFileLauncher(
 @Composable
 actual fun rememberOpenFileLauncher(onUriReceived: (CommonUri?) -> Unit): (mimeType: String) -> Unit = { _ -> }
 
+@Composable
+actual fun rememberOpenMultipleFilesLauncher(onUrisReceived: (List<CommonUri>) -> Unit): (mimeType: String) -> Unit =
+    { _ ->
+    }
+
 @Composable actual fun rememberOpenDocumentTreeLauncher(onTreeUriSelect: (CommonUri?) -> Unit): () -> Unit = {}
 
 @Composable actual fun rememberReadTextFromUri(): suspend (uri: CommonUri, maxChars: Int) -> String? = { _, _ -> null }

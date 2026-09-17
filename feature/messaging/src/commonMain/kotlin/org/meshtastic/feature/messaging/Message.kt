@@ -70,7 +70,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalFocusManager
@@ -117,9 +117,11 @@ import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Send
 import org.meshtastic.core.ui.theme.AppTheme
 import org.meshtastic.core.ui.util.createClipEntry
+import org.meshtastic.core.ui.util.isFromSoftKeyboard
 import org.meshtastic.core.ui.util.rememberGetFileInfo
 import org.meshtastic.core.ui.util.rememberOpenFile
 import org.meshtastic.core.ui.util.rememberOpenFileLauncher
+import org.meshtastic.core.ui.util.rememberOpenMultipleFilesLauncher
 import org.meshtastic.core.ui.util.rememberReadBytesFromUri
 import org.meshtastic.feature.messaging.component.ActionModeTopBar
 import org.meshtastic.feature.messaging.component.DeleteMessageDialog
@@ -246,14 +248,21 @@ fun MessageScreen(
         }
     }
 
-    val openPhotoHostingLauncher = rememberOpenFileLauncher { uri ->
-        if (uri != null) {
+    val openPhotoHostingLauncher = rememberOpenMultipleFilesLauncher { uris ->
+        if (uris.isNotEmpty()) {
+            val validUris = uris.take(6) // Limit to 6
             coroutineScope.launch {
-                val bytes = readFileBytes(uri)
-                val info = getFileInfo(uri)
-                val fileName = info?.name ?: "photo.jpg"
-                if (bytes != null && bytes.isNotEmpty()) {
-                    viewModel.uploadAndSendPhoto(imageBytes = bytes, contactKey = contactKey, fileName = fileName)
+                val images = mutableListOf<Pair<ByteArray, String>>()
+                for (uri in validUris) {
+                    val bytes = readFileBytes(uri)
+                    val info = getFileInfo(uri)
+                    val fileName = info?.name ?: "photo.jpg"
+                    if (bytes != null && bytes.isNotEmpty()) {
+                        images.add(Pair(bytes, fileName))
+                    }
+                }
+                if (images.isNotEmpty()) {
+                    viewModel.uploadAndSendPhotos(images = images, contactKey = contactKey)
                 }
             }
         }
@@ -268,14 +277,13 @@ fun MessageScreen(
     val pixelArtEnabled by viewModel.pixelArtEnabled.collectAsStateWithLifecycle()
     val fileTransferEnabled by viewModel.fileTransferEnabled.collectAsStateWithLifecycle()
     val photoHostingEnabled by viewModel.photoHostingEnabled.collectAsStateWithLifecycle()
-    val sendOnEnterEnabled by viewModel.sendOnEnterEnabled.collectAsStateWithLifecycle()
+    val linkPreviewEnabled by viewModel.linkPreviewEnabled.collectAsStateWithLifecycle()
     val showBellButton by viewModel.showBellButton.collectAsStateWithLifecycle()
     val insertPhotoLinkEnabled by viewModel.insertPhotoLinkEnabled.collectAsStateWithLifecycle()
-    val builtInImageViewerEnabled by viewModel.builtInImageViewerEnabled.collectAsStateWithLifecycle()
     val pinnedMessagesEnabled by viewModel.pinnedMessagesEnabled.collectAsStateWithLifecycle()
     val pinnedMessages by viewModel.getPinnedMessages(contactKey).collectAsStateWithLifecycle(emptyList())
     var showPinnedSheet by rememberSaveable { mutableStateOf(false) }
-    var fullScreenImage by remember { mutableStateOf<Triple<String, String?, String?>?>(null) }
+    var fullScreenImage by remember { mutableStateOf<Pair<List<Triple<String, String?, String?>>, Int>?>(null) }
     val okToMqtt by viewModel.okToMqtt.collectAsStateWithLifecycle()
     val filteredCount by viewModel.filteredCount.collectAsStateWithLifecycle()
     val showFiltered by viewModel.showFiltered.collectAsStateWithLifecycle()
@@ -629,7 +637,6 @@ fun MessageScreen(
                     mentionCandidates = mentionCandidates,
                     textCompressionEnabled = textCompressionEnabled,
                     isOkToMqtt = okToMqtt,
-                    sendOnEnterEnabled = sendOnEnterEnabled,
                     onToggleOkToMqtt = viewModel::toggleOkToMqtt,
                     onSendMessage = { compress ->
                         val messageText = messageInputState.text.toString().trim { it.isWhitespace() }
@@ -740,13 +747,8 @@ fun MessageScreen(
             )
         }
 
-        fullScreenImage?.let { (imageUrl, localPath, rawUrl) ->
-            FullScreenImageViewer(
-                imageUrl = imageUrl,
-                onDismiss = { fullScreenImage = null },
-                rawUrl = rawUrl,
-                initialLocalFilePath = localPath,
-            )
+        fullScreenImage?.let { (images, initialIndex) ->
+            FullScreenImageViewer(images = images, initialIndex = initialIndex, onDismiss = { fullScreenImage = null })
         }
 
         Box(Modifier.fillMaxSize().padding(paddingValues).focusable()) {
@@ -800,7 +802,7 @@ fun MessageScreen(
                             textCompressionEnabled = textCompressionEnabled,
                             pixelArtEnabled = pixelArtEnabled,
                             photoHostingEnabled = photoHostingEnabled,
-                            builtInImageViewerEnabled = builtInImageViewerEnabled,
+                            linkPreviewEnabled = linkPreviewEnabled,
                             pinnedMessagesEnabled = pinnedMessagesEnabled,
                         ),
                         handlers =
@@ -816,8 +818,8 @@ fun MessageScreen(
                             onReply = { message -> replyingToPacketId = message?.packetId },
                             onTranslate = { onEvent(MessageScreenEvent.TranslateMessage(it)) },
                             onToggleTranslation = { onEvent(MessageScreenEvent.ToggleShowTranslated(it)) },
-                            onOpenImageViewer = { resolvedUrl, localPath, rawUrl ->
-                                fullScreenImage = Triple(resolvedUrl, localPath, rawUrl)
+                            onOpenImageViewer = { images, initialIndex ->
+                                fullScreenImage = Pair(images, initialIndex)
                             },
                             onTogglePin = { message ->
                                 viewModel.togglePinMessage(message.uuid, message.pinnedMessage)
@@ -1063,7 +1065,6 @@ internal fun MessageInput(
     maxByteSize: Int = MESSAGE_CHARACTER_LIMIT_BYTES,
     textCompressionEnabled: Boolean = false,
     isOkToMqtt: Boolean = false,
-    sendOnEnterEnabled: Boolean = true,
     onToggleOkToMqtt: () -> Unit = {},
     onSendMessage: (compress: Boolean) -> Unit = {},
 ) {
@@ -1148,9 +1149,14 @@ internal fun MessageInput(
             Modifier.fillMaxWidth()
                 .padding(horizontal = 8.dp, vertical = 4.dp)
                 .onFocusChanged { isFocused = it.isFocused }
-                .onKeyEvent { keyEvent ->
-                    val isEnterNoShift = keyEvent.key == Key.Enter && !keyEvent.isShiftPressed
-                    if (sendOnEnterEnabled && isEnterNoShift) {
+                // Tunnel phase, not bubble: a multi-line field consumes Enter to insert its newline, so an
+                // Enter-to-send shortcut has to claim the event before the field ever sees it.
+                .onPreviewKeyEvent { keyEvent ->
+                    // Enter-to-send is a physical-keyboard shortcut, reached past with Shift. An on-screen keyboard
+                    // has no Shift, so its Enter is left alone to insert the newline it is labelled with.
+                    val isEnterNoShift =
+                        keyEvent.key == Key.Enter && !keyEvent.isShiftPressed && !keyEvent.isFromSoftKeyboard()
+                    if (isEnterNoShift) {
                         if (keyEvent.type == KeyEventType.KeyUp) onSendAction()
                         true // consume both KeyDown and KeyUp to prevent newline insertion
                     } else {
@@ -1164,16 +1170,10 @@ internal fun MessageInput(
             shape = RoundedCornerShape(ROUNDED_CORNER_PERCENT.toFloat()),
             isError = isOverLimit,
             placeholder = { Text(stringResource(Res.string.type_a_message)) },
+            // A multi-line field must keep its Enter key: Compose only sets IME_FLAG_NO_ENTER_ACTION for
+            // ImeAction.Default, and without it an IME may swap Enter for the action, leaving no way to type a newline.
             keyboardOptions =
-            KeyboardOptions(
-                capitalization = KeyboardCapitalization.Sentences,
-                imeAction = if (sendOnEnterEnabled) ImeAction.Send else ImeAction.Default,
-            ),
-            onKeyboardAction = {
-                if (sendOnEnterEnabled) {
-                    onSendAction()
-                }
-            },
+            KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Default),
             supportingText = {
                 // The counter is only useful as the limit approaches or when compression is active and saving space
                 val isCompressedEffective =

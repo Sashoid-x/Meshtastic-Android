@@ -56,6 +56,13 @@ expect fun rememberSaveFileLauncher(
 @Composable expect fun rememberOpenFileLauncher(onUriReceived: (CommonUri?) -> Unit): (mimeType: String) -> Unit
 
 /**
+ * Returns a launcher function to prompt the user to open/pick multiple files. The callback receives a list of the
+ * selected file URIs.
+ */
+@Composable
+expect fun rememberOpenMultipleFilesLauncher(onUrisReceived: (List<CommonUri>) -> Unit): (mimeType: String) -> Unit
+
+/**
  * Returns a launcher that prompts the user to pick a *directory*. The callback receives a tree URI, or `null` if the
  * user cancelled.
  *

@@ -156,20 +156,27 @@ interface UiPrefs {
 
     fun setPhotoHostingEnabled(enabled: Boolean)
 
-    /** Whether the built-in full-screen image viewer with zoom/pan is enabled. */
-    val builtInImageViewerEnabled: StateFlow<Boolean>
-
-    fun setBuiltInImageViewerEnabled(enabled: Boolean)
-
     /** Whether to insert the uploaded photo link into the message field instead of sending immediately. */
     val insertPhotoLinkEnabled: StateFlow<Boolean>
 
     fun setInsertPhotoLinkEnabled(enabled: Boolean)
 
-    /** Whether pressing Enter (without Shift) sends the message. */
-    val sendOnEnterEnabled: StateFlow<Boolean>
+    val imgbbApiKey: StateFlow<String>
 
-    fun setSendOnEnterEnabled(enabled: Boolean)
+    fun setImgbbApiKey(apiKey: String)
+
+    val imgbbExpiration: StateFlow<org.meshtastic.core.model.ImgbbExpiration>
+
+    fun setImgbbExpiration(expiration: org.meshtastic.core.model.ImgbbExpiration)
+
+    val meshpicRetention: StateFlow<org.meshtastic.core.model.MeshpicRetention>
+
+    fun setMeshpicRetention(retention: org.meshtastic.core.model.MeshpicRetention)
+
+    /** Whether rich link preview cards are shown for web links. */
+    val linkPreviewEnabled: StateFlow<Boolean>
+
+    fun setLinkPreviewEnabled(enabled: Boolean)
 
     /** Whether to show the alert bell button in the quick chat bar. */
     val showBellButton: StateFlow<Boolean>

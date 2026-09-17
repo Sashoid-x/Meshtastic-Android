@@ -40,6 +40,8 @@ object ImageUrlResolver {
             """https?://(?:www\.)?d\.privatepractice\.app/([A-Za-z0-9_-]{6,64})(?:/preview)?/?""",
             RegexOption.IGNORE_CASE,
         )
+    private val IMGBB_VIEWER_REGEX = Regex("""https?://(?:www\.)?ibb\.co/([A-Za-z0-9_-]+)/?""", RegexOption.IGNORE_CASE)
+    private val IMGBB_DIRECT_REGEX = Regex("""https?://(?:www\.)?i\.ibb\.co/[^\s<>"']+""", RegexOption.IGNORE_CASE)
     private val GENERAL_URL_REGEX = Regex("""https?://[^\s<>"']+[^\s<>"'.,;:!?)]""", RegexOption.IGNORE_CASE)
     private val OG_IMAGE_REGEX =
         Regex(
@@ -60,6 +62,30 @@ object ImageUrlResolver {
     fun extractFirstUrl(text: String): String? {
         val match = GENERAL_URL_REGEX.find(text) ?: return null
         return match.value.trimEnd('.', ',', ';', ':', '!', '?', ')', ']', '}', '"', '\'', '>')
+    }
+
+    fun extractAllUrls(text: String): List<String> {
+        val matches = GENERAL_URL_REGEX.findAll(text)
+        return matches
+            .map { match -> match.value.trimEnd('.', ',', ';', ':', '!', '?', ')', ']', '}', '"', '\'', '>') }
+            .toList()
+    }
+
+    fun isPhotoHostingOrDirectImageUrl(url: String): Boolean {
+        if (isKnownPhotoHost(url)) return true
+        val cleanUrl = url.substringBefore('?').substringBefore('#')
+        val ext = cleanUrl.substringAfterLast('.', "").lowercase()
+        return ext in KNOWN_IMAGE_EXTENSIONS
+    }
+
+    fun isKnownPhotoHost(url: String): Boolean {
+        val meshpicId = MESHPIC_REGEX.matchEntire(url)?.groupValues?.getOrNull(1)?.lowercase()
+        val meshfilesId = MESHFILES_REGEX.matchEntire(url)?.groupValues?.getOrNull(1)?.lowercase()
+        val imgbbViewerId = IMGBB_VIEWER_REGEX.matchEntire(url)?.groupValues?.getOrNull(1)?.lowercase()
+        val isImgbbDirect = IMGBB_DIRECT_REGEX.matchEntire(url) != null
+
+        val isKnownId = (meshpicId ?: meshfilesId ?: imgbbViewerId)?.let { it !in EXCLUDED_KEYWORDS } ?: false
+        return isImgbbDirect || isKnownId
     }
 
     @Suppress("ReturnCount")
@@ -87,6 +113,12 @@ object ImageUrlResolver {
                 return resolved
             }
         }
+
+        if (IMGBB_DIRECT_REGEX.matchEntire(url) != null) {
+            putInCache(url, url)
+            return url
+        }
+
         val cleanUrl = url.substringBefore('?').substringBefore('#')
         val ext = cleanUrl.substringAfterLast('.', "").lowercase()
         if (ext in KNOWN_IMAGE_EXTENSIONS) {
@@ -113,29 +145,32 @@ object ImageUrlResolver {
                 return url
             }
 
-            val getResponse =
-                runCatching {
-                    httpClient.get(url) {
-                        header(HttpHeaders.UserAgent, USER_AGENT)
-                        header(HttpHeaders.Range, "bytes=0-8192")
+            // Only inspect HTML body if it is a designated photo host page (such as ibb.co/<id>)
+            if (isKnownPhotoHost(url)) {
+                val getResponse =
+                    runCatching {
+                        httpClient.get(url) {
+                            header(HttpHeaders.UserAgent, USER_AGENT)
+                            header(HttpHeaders.Range, "bytes=0-8192")
+                        }
                     }
+                        .getOrNull()
+
+                val getContentType = getResponse?.headers?.get(HttpHeaders.ContentType)?.lowercase()
+                if (getContentType != null && getContentType.startsWith("image/")) {
+                    putInCache(url, url)
+                    return url
                 }
-                    .getOrNull()
 
-            val getContentType = getResponse?.headers?.get(HttpHeaders.ContentType)?.lowercase()
-            if (getContentType != null && getContentType.startsWith("image/")) {
-                putInCache(url, url)
-                return url
-            }
-
-            if (getContentType != null && getContentType.contains("text/html")) {
-                val body = runCatching { getResponse.bodyAsText() }.getOrDefault("")
-                val ogMatch = OG_IMAGE_REGEX.find(body) ?: OG_IMAGE_REVERSE_REGEX.find(body)
-                val ogImage = ogMatch?.groupValues?.getOrNull(1)
-                if (!ogImage.isNullOrBlank()) {
-                    val resolved = resolveRelativeUrl(url, ogImage)
-                    putInCache(url, resolved)
-                    return resolved
+                if (getContentType != null && getContentType.contains("text/html")) {
+                    val body = runCatching { getResponse.bodyAsText() }.getOrDefault("")
+                    val ogMatch = OG_IMAGE_REGEX.find(body) ?: OG_IMAGE_REVERSE_REGEX.find(body)
+                    val ogImage = ogMatch?.groupValues?.getOrNull(1)
+                    if (!ogImage.isNullOrBlank()) {
+                        val resolved = resolveRelativeUrl(url, ogImage)
+                        putInCache(url, resolved)
+                        return resolved
+                    }
                 }
             }
 

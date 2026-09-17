@@ -42,6 +42,8 @@ import org.meshtastic.core.domain.usecase.settings.SetMeshLogSettingsUseCase
 import org.meshtastic.core.model.AppUpdateCheckState
 import org.meshtastic.core.model.BackupPacketType
 import org.meshtastic.core.model.ConnectionState
+import org.meshtastic.core.model.ImgbbExpiration
+import org.meshtastic.core.model.MeshpicRetention
 import org.meshtastic.core.model.MessageImportResult
 import org.meshtastic.core.model.MyNodeInfo
 import org.meshtastic.core.model.Node
@@ -230,22 +232,34 @@ class SettingsViewModel(
         uiPrefs.setPhotoHostingProvider(provider)
     }
 
-    val builtInImageViewerEnabled = uiPrefs.builtInImageViewerEnabled
+    val imgbbApiKey = uiPrefs.imgbbApiKey
 
-    fun setBuiltInImageViewerEnabled(enabled: Boolean) {
-        uiPrefs.setBuiltInImageViewerEnabled(enabled)
+    fun setImgbbApiKey(apiKey: String) {
+        uiPrefs.setImgbbApiKey(apiKey)
+    }
+
+    val imgbbExpiration = uiPrefs.imgbbExpiration
+
+    fun setImgbbExpiration(expiration: ImgbbExpiration) {
+        uiPrefs.setImgbbExpiration(expiration)
+    }
+
+    val meshpicRetention = uiPrefs.meshpicRetention
+
+    fun setMeshpicRetention(retention: MeshpicRetention) {
+        uiPrefs.setMeshpicRetention(retention)
+    }
+
+    val linkPreviewEnabled = uiPrefs.linkPreviewEnabled
+
+    fun setLinkPreviewEnabled(enabled: Boolean) {
+        uiPrefs.setLinkPreviewEnabled(enabled)
     }
 
     val insertPhotoLinkEnabled = uiPrefs.insertPhotoLinkEnabled
 
     fun setInsertPhotoLinkEnabled(enabled: Boolean) {
         uiPrefs.setInsertPhotoLinkEnabled(enabled)
-    }
-
-    val sendOnEnterEnabled = uiPrefs.sendOnEnterEnabled
-
-    fun setSendOnEnterEnabled(enabled: Boolean) {
-        uiPrefs.setSendOnEnterEnabled(enabled)
     }
 
     val showBellButton = uiPrefs.showBellButton

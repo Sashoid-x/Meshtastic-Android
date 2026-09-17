@@ -38,6 +38,8 @@ import org.koin.core.annotation.Single
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.CustomNodeName
 import org.meshtastic.core.model.DeviceType
+import org.meshtastic.core.model.ImgbbExpiration
+import org.meshtastic.core.model.MeshpicRetention
 import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.model.ReactionNotificationMode
 import org.meshtastic.core.prefs.cachedFlow
@@ -184,15 +186,6 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         setPhotoHostingProvider(if (enabled) PhotoHostingProvider.MESHPIC else PhotoHostingProvider.DISABLED)
     }
 
-    override val builtInImageViewerEnabled: StateFlow<Boolean> =
-        dataStore.data
-            .map { it[KEY_BUILT_IN_IMAGE_VIEWER_ENABLED] ?: true }
-            .stateIn(scope, SharingStarted.Eagerly, true)
-
-    override fun setBuiltInImageViewerEnabled(enabled: Boolean) {
-        scope.launch { dataStore.edit { it[KEY_BUILT_IN_IMAGE_VIEWER_ENABLED] = enabled } }
-    }
-
     override val insertPhotoLinkEnabled: StateFlow<Boolean> =
         dataStore.data.map { it[KEY_INSERT_PHOTO_LINK_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
 
@@ -200,11 +193,36 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         scope.launch { dataStore.edit { it[KEY_INSERT_PHOTO_LINK_ENABLED] = enabled } }
     }
 
-    override val sendOnEnterEnabled: StateFlow<Boolean> =
-        dataStore.data.map { it[KEY_SEND_ON_ENTER_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
+    override val imgbbApiKey: StateFlow<String> =
+        dataStore.data.map { it[KEY_IMGBB_API_KEY] ?: "" }.stateIn(scope, SharingStarted.Eagerly, "")
 
-    override fun setSendOnEnterEnabled(enabled: Boolean) {
-        scope.launch { dataStore.edit { it[KEY_SEND_ON_ENTER_ENABLED] = enabled } }
+    override fun setImgbbApiKey(apiKey: String) {
+        scope.launch { dataStore.edit { it[KEY_IMGBB_API_KEY] = apiKey } }
+    }
+
+    override val imgbbExpiration: StateFlow<ImgbbExpiration> =
+        dataStore.data
+            .map { prefs -> ImgbbExpiration.fromId(prefs[KEY_IMGBB_EXPIRATION]) }
+            .stateIn(scope, SharingStarted.Eagerly, ImgbbExpiration.DAYS_30)
+
+    override fun setImgbbExpiration(expiration: ImgbbExpiration) {
+        scope.launch { dataStore.edit { it[KEY_IMGBB_EXPIRATION] = expiration.id } }
+    }
+
+    override val meshpicRetention: StateFlow<MeshpicRetention> =
+        dataStore.data
+            .map { prefs -> MeshpicRetention.fromId(prefs[KEY_MESHPIC_RETENTION]) }
+            .stateIn(scope, SharingStarted.Eagerly, MeshpicRetention.DAYS_1)
+
+    override fun setMeshpicRetention(retention: MeshpicRetention) {
+        scope.launch { dataStore.edit { it[KEY_MESHPIC_RETENTION] = retention.id } }
+    }
+
+    override val linkPreviewEnabled: StateFlow<Boolean> =
+        dataStore.data.map { it[KEY_LINK_PREVIEW_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
+
+    override fun setLinkPreviewEnabled(enabled: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_LINK_PREVIEW_ENABLED] = enabled } }
     }
 
     override val showBellButton: StateFlow<Boolean> =
@@ -523,9 +541,11 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         val KEY_FILE_TRANSFER_ENABLED = booleanPreferencesKey("file-transfer-enabled")
         val KEY_PHOTO_HOSTING_ENABLED = booleanPreferencesKey("photo-hosting-enabled")
         val KEY_PHOTO_HOSTING_PROVIDER = stringPreferencesKey("photo-hosting-provider")
-        val KEY_BUILT_IN_IMAGE_VIEWER_ENABLED = booleanPreferencesKey("built-in-image-viewer")
         val KEY_INSERT_PHOTO_LINK_ENABLED = booleanPreferencesKey("insert-photo-link")
-        val KEY_SEND_ON_ENTER_ENABLED = booleanPreferencesKey("send-on-enter")
+        val KEY_IMGBB_API_KEY = stringPreferencesKey("imgbb-api-key")
+        val KEY_IMGBB_EXPIRATION = stringPreferencesKey("imgbb-expiration")
+        val KEY_MESHPIC_RETENTION = stringPreferencesKey("meshpic-retention")
+        val KEY_LINK_PREVIEW_ENABLED = booleanPreferencesKey("link-preview-enabled")
         val KEY_SHOW_BELL_BUTTON = booleanPreferencesKey("show-bell-button")
         val KEY_REACTION_NOTIFICATION_MODE = stringPreferencesKey("reaction-notification-mode")
         val KEY_PINNED_MESSAGES_ENABLED = booleanPreferencesKey("pinned-messages-enabled")

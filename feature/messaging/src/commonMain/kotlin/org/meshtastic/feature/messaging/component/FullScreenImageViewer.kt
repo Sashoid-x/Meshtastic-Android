@@ -22,8 +22,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -32,12 +35,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -78,21 +84,18 @@ import org.meshtastic.core.ui.util.rememberSaveImageLocally
 import org.meshtastic.core.ui.util.rememberShareFileOrUrl
 
 /**
- * Built-in full-screen image viewer supporting pinch-to-zoom, pan, double-tap zoom, and Share, Open in System, and Save
- * actions.
+ * Built-in full-screen image viewer supporting pinch-to-zoom, pan, double-tap zoom, swipe between images, and Share,
+ * Open in System, and Save actions.
  */
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
 fun FullScreenImageViewer(
-    imageUrl: String,
+    images: List<Triple<String, String?, String?>>,
     onDismiss: () -> Unit,
-    rawUrl: String? = null,
-    initialLocalFilePath: String? = null,
+    initialIndex: Int = 0,
     onShowSnackbar: (String) -> Unit = {},
 ) {
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-        var scale by remember { mutableFloatStateOf(1f) }
-        var offset by remember { mutableStateOf(Offset.Zero) }
         var showControls by remember { mutableStateOf(true) }
 
         val openFile = rememberOpenFile()
@@ -101,76 +104,106 @@ fun FullScreenImageViewer(
         val shareFileOrUrl = rememberShareFileOrUrl()
         val coroutineScope = rememberCoroutineScope()
 
-        var currentLocalPath by
-            remember(imageUrl) { mutableStateOf(initialLocalFilePath ?: getLocalImageFile(imageUrl)) }
+        val pagerState = rememberPagerState(initialPage = initialIndex, pageCount = { images.size })
 
-        Box(
-            modifier =
-            Modifier.fillMaxSize()
-                .background(Color.Black)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { showControls = !showControls },
-                        onDoubleTap = {
-                            if (scale > 1.2f) {
-                                scale = 1f
-                                offset = Offset.Zero
-                            } else {
-                                scale = 2.5f
+        Box(modifier = Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { page ->
+                val (imageUrl, initialLocalFilePath, rawUrl) = images[page]
+                var currentLocalPath by
+                    remember(imageUrl) { mutableStateOf(initialLocalFilePath ?: getLocalImageFile(imageUrl)) }
+
+                var scale by remember { mutableFloatStateOf(1f) }
+                var offset by remember { mutableStateOf(Offset.Zero) }
+
+                Box(
+                    modifier =
+                    Modifier.fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = { showControls = !showControls },
+                                onDoubleTap = {
+                                    if (scale > 1.2f) {
+                                        scale = 1f
+                                        offset = Offset.Zero
+                                    } else {
+                                        scale = 2.5f
+                                    }
+                                },
+                            )
+                        }
+                        .pointerInput(Unit) {
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false)
+                                do {
+                                    val event = awaitPointerEvent()
+                                    val canceled = event.changes.any { it.isConsumed }
+                                    if (!canceled) {
+                                        val zoomChange = event.calculateZoom()
+                                        val panChange = event.calculatePan()
+
+                                        if (event.changes.size > 1 || scale > 1.05f) {
+                                            val newScale = (scale * zoomChange).coerceIn(1f, 5f)
+                                            scale = newScale
+                                            if (newScale > 1.05f) {
+                                                val maxOffsetX = (size.width * (newScale - 1f)) / 2f
+                                                val maxOffsetY = (size.height * (newScale - 1f)) / 2f
+                                                offset =
+                                                    Offset(
+                                                        x =
+                                                        (offset.x + panChange.x).coerceIn(
+                                                            -maxOffsetX,
+                                                            maxOffsetX,
+                                                        ),
+                                                        y =
+                                                        (offset.y + panChange.y).coerceIn(
+                                                            -maxOffsetY,
+                                                            maxOffsetY,
+                                                        ),
+                                                    )
+                                            } else {
+                                                offset = Offset.Zero
+                                            }
+                                            event.changes.forEach { it.consume() }
+                                        }
+                                    }
+                                } while (event.changes.any { it.pressed })
+                            }
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    SubcomposeAsyncImage(
+                        model = currentLocalPath ?: imageUrl,
+                        contentDescription = null,
+                        modifier =
+                        Modifier.fillMaxSize()
+                            .graphicsLayer(
+                                scaleX = scale,
+                                scaleY = scale,
+                                translationX = offset.x,
+                                translationY = offset.y,
+                            ),
+                        contentScale = ContentScale.Fit,
+                        onSuccess = { state ->
+                            if (currentLocalPath == null) {
+                                currentLocalPath = saveImageLocally(imageUrl, state.result.image)
+                            }
+                        },
+                        loading = {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = Color.White)
+                            }
+                        },
+                        error = {
+                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text(
+                                    text = stringResource(Res.string.image_loading_error),
+                                    color = Color.White.copy(alpha = 0.7f),
+                                )
                             }
                         },
                     )
                 }
-                .pointerInput(Unit) {
-                    detectTransformGestures { _, pan, zoom, _ ->
-                        val newScale = (scale * zoom).coerceIn(1f, 5f)
-                        scale = newScale
-                        if (newScale > 1f) {
-                            val maxOffsetX = (size.width * (newScale - 1f)) / 2f
-                            val maxOffsetY = (size.height * (newScale - 1f)) / 2f
-                            offset =
-                                Offset(
-                                    x = (offset.x + pan.x).coerceIn(-maxOffsetX, maxOffsetX),
-                                    y = (offset.y + pan.y).coerceIn(-maxOffsetY, maxOffsetY),
-                                )
-                        } else {
-                            offset = Offset.Zero
-                        }
-                    }
-                },
-            contentAlignment = Alignment.Center,
-        ) {
-            SubcomposeAsyncImage(
-                model = currentLocalPath ?: imageUrl,
-                contentDescription = null,
-                modifier =
-                Modifier.fillMaxSize()
-                    .graphicsLayer(
-                        scaleX = scale,
-                        scaleY = scale,
-                        translationX = offset.x,
-                        translationY = offset.y,
-                    ),
-                contentScale = ContentScale.Fit,
-                onSuccess = { state ->
-                    if (currentLocalPath == null) {
-                        currentLocalPath = saveImageLocally(imageUrl, state.result.image)
-                    }
-                },
-                loading = {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = Color.White)
-                    }
-                },
-                error = {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = stringResource(Res.string.image_loading_error),
-                            color = Color.White.copy(alpha = 0.7f),
-                        )
-                    }
-                },
-            )
+            }
 
             // Top control bar
             AnimatedVisibility(
@@ -197,6 +230,15 @@ fun FullScreenImageViewer(
                         )
                     }
                     Spacer(Modifier.weight(1f))
+                    if (images.size > 1) {
+                        Text(
+                            text = "${pagerState.currentPage + 1} / ${images.size}",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White,
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Spacer(Modifier.size(40.dp))
+                    }
                 }
             }
 
@@ -213,10 +255,15 @@ fun FullScreenImageViewer(
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        val currentImage = images[pagerState.currentPage]
+                        val imageUrl = currentImage.first
+                        val rawUrl = currentImage.third
+                        val currentLocalPath = currentImage.second ?: getLocalImageFile(imageUrl)
+
                         // Share
                         FilledTonalIconButton(
                             onClick = {
-                                val target = currentLocalPath ?: getLocalImageFile(imageUrl)
+                                val target = currentLocalPath
                                 shareFileOrUrl(target, rawUrl ?: imageUrl)
                             },
                             colors =
@@ -236,7 +283,7 @@ fun FullScreenImageViewer(
                         // Open in System
                         FilledTonalIconButton(
                             onClick = {
-                                val target = currentLocalPath ?: getLocalImageFile(imageUrl)
+                                val target = currentLocalPath
                                 if (target != null) {
                                     openFile(target)
                                 } else {
@@ -261,7 +308,7 @@ fun FullScreenImageViewer(
                         FilledTonalIconButton(
                             onClick = {
                                 coroutineScope.launch {
-                                    val path = currentLocalPath ?: getLocalImageFile(imageUrl)
+                                    val path = currentLocalPath
                                     if (path != null) {
                                         onShowSnackbar("Saved: $path")
                                     } else {

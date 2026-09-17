@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -34,6 +36,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
@@ -47,6 +52,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.model.BackupPacketType
+import org.meshtastic.core.model.ImgbbExpiration
+import org.meshtastic.core.model.MeshpicRetention
 import org.meshtastic.core.model.MessageImportResult
 import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.model.ReactionNotificationMode
@@ -76,18 +83,31 @@ import org.meshtastic.core.resources.adv_section_messaging
 import org.meshtastic.core.resources.adv_section_notifications
 import org.meshtastic.core.resources.adv_section_photos
 import org.meshtastic.core.resources.adv_settings
-import org.meshtastic.core.resources.built_in_image_viewer
-import org.meshtastic.core.resources.built_in_image_viewer_summary
 import org.meshtastic.core.resources.file_transfer_setting
 import org.meshtastic.core.resources.file_transfer_setting_summary
+import org.meshtastic.core.resources.imgbb_api_key_hint
+import org.meshtastic.core.resources.imgbb_api_key_setting
 import org.meshtastic.core.resources.insert_photo_link
 import org.meshtastic.core.resources.insert_photo_link_summary
+import org.meshtastic.core.resources.link_preview_setting
+import org.meshtastic.core.resources.link_preview_setting_summary
 import org.meshtastic.core.resources.okay
+import org.meshtastic.core.resources.photo_duration_12_hours
+import org.meshtastic.core.resources.photo_duration_14_days
+import org.meshtastic.core.resources.photo_duration_1_day
+import org.meshtastic.core.resources.photo_duration_1_hour
+import org.meshtastic.core.resources.photo_duration_1_month
+import org.meshtastic.core.resources.photo_duration_30_minutes
+import org.meshtastic.core.resources.photo_duration_3_days
+import org.meshtastic.core.resources.photo_duration_6_hours
+import org.meshtastic.core.resources.photo_duration_7_days
 import org.meshtastic.core.resources.photo_hosting_provider_disabled
+import org.meshtastic.core.resources.photo_hosting_provider_imgbb
 import org.meshtastic.core.resources.photo_hosting_provider_meshapp
 import org.meshtastic.core.resources.photo_hosting_provider_meshpic
 import org.meshtastic.core.resources.photo_hosting_setting
 import org.meshtastic.core.resources.photo_hosting_setting_summary
+import org.meshtastic.core.resources.photo_storage_duration
 import org.meshtastic.core.resources.pinned_messages
 import org.meshtastic.core.resources.pinned_messages_summary
 import org.meshtastic.core.resources.pixel_art_messaging
@@ -97,13 +117,12 @@ import org.meshtastic.core.resources.reaction_mode_disabled
 import org.meshtastic.core.resources.reaction_mode_private_only
 import org.meshtastic.core.resources.reaction_notifications
 import org.meshtastic.core.resources.reaction_notifications_summary
-import org.meshtastic.core.resources.send_on_enter
-import org.meshtastic.core.resources.send_on_enter_summary
 import org.meshtastic.core.resources.show_bell_button
 import org.meshtastic.core.resources.show_bell_button_summary
 import org.meshtastic.core.resources.text_compression
 import org.meshtastic.core.resources.text_compression_summary
 import org.meshtastic.core.ui.component.DropDownPreference
+import org.meshtastic.core.ui.component.EditTextPreference
 import org.meshtastic.core.ui.component.ListItem
 import org.meshtastic.core.ui.component.MainAppBar
 import org.meshtastic.core.ui.component.MeshtasticDialog
@@ -141,12 +160,14 @@ fun AdvSettingsScreen(
     val ourNode by settingsViewModel.ourNodeInfo.collectAsStateWithLifecycle()
     val textCompressionEnabled by settingsViewModel.textCompressionEnabled.collectAsStateWithLifecycle()
     val pixelArtEnabled by settingsViewModel.pixelArtEnabled.collectAsStateWithLifecycle()
-    val fileTransferEnabled by settingsViewModel.fileTransferEnabled.collectAsStateWithLifecycle()
     val photoHostingProvider by settingsViewModel.photoHostingProvider.collectAsStateWithLifecycle()
-    val builtInImageViewerEnabled by settingsViewModel.builtInImageViewerEnabled.collectAsStateWithLifecycle()
+    val imgbbApiKey by settingsViewModel.imgbbApiKey.collectAsStateWithLifecycle()
+    val imgbbExpiration by settingsViewModel.imgbbExpiration.collectAsStateWithLifecycle()
+    val meshpicRetention by settingsViewModel.meshpicRetention.collectAsStateWithLifecycle()
+    val linkPreviewEnabled by settingsViewModel.linkPreviewEnabled.collectAsStateWithLifecycle()
     val insertPhotoLinkEnabled by settingsViewModel.insertPhotoLinkEnabled.collectAsStateWithLifecycle()
-    val sendOnEnterEnabled by settingsViewModel.sendOnEnterEnabled.collectAsStateWithLifecycle()
     val showBellButton by settingsViewModel.showBellButton.collectAsStateWithLifecycle()
+    val fileTransferEnabled by settingsViewModel.fileTransferEnabled.collectAsStateWithLifecycle()
     val reactionNotificationMode by settingsViewModel.reactionNotificationMode.collectAsStateWithLifecycle()
     val pinnedMessagesEnabled by settingsViewModel.pinnedMessagesEnabled.collectAsStateWithLifecycle()
     val pressureInMmHg by settingsViewModel.pressureInMmHg.collectAsStateWithLifecycle()
@@ -340,22 +361,26 @@ fun AdvSettingsScreen(
         AdvSettingsContent(
             modifier = Modifier.padding(paddingValues),
             textCompressionEnabled = textCompressionEnabled,
-            sendOnEnterEnabled = sendOnEnterEnabled,
             insertPhotoLinkEnabled = insertPhotoLinkEnabled,
             showBellButton = showBellButton,
-            builtInImageViewerEnabled = builtInImageViewerEnabled,
             photoHostingProvider = photoHostingProvider,
+            imgbbApiKey = imgbbApiKey,
+            imgbbExpiration = imgbbExpiration,
+            meshpicRetention = meshpicRetention,
+            linkPreviewEnabled = linkPreviewEnabled,
             pixelArtEnabled = pixelArtEnabled,
             fileTransferEnabled = fileTransferEnabled,
             reactionNotificationMode = reactionNotificationMode,
             pinnedMessagesEnabled = pinnedMessagesEnabled,
             pressureInMmHg = pressureInMmHg,
             onTextCompressionChange = settingsViewModel::setTextCompressionEnabled,
-            onSendOnEnterChange = settingsViewModel::setSendOnEnterEnabled,
             onInsertPhotoLinkChange = settingsViewModel::setInsertPhotoLinkEnabled,
+            onLinkPreviewChange = settingsViewModel::setLinkPreviewEnabled,
             onShowBellButtonChange = settingsViewModel::setShowBellButton,
-            onBuiltInImageViewerChange = settingsViewModel::setBuiltInImageViewerEnabled,
             onPhotoHostingChange = settingsViewModel::setPhotoHostingProvider,
+            onImgbbApiKeyChange = settingsViewModel::setImgbbApiKey,
+            onImgbbExpirationChange = settingsViewModel::setImgbbExpiration,
+            onMeshpicRetentionChange = settingsViewModel::setMeshpicRetention,
             onPixelArtChange = settingsViewModel::setPixelArtEnabled,
             onFileTransferChange = settingsViewModel::setFileTransferEnabled,
             onReactionNotificationModeChange = settingsViewModel::setReactionNotificationMode,
@@ -368,26 +393,30 @@ fun AdvSettingsScreen(
     }
 }
 
-@Suppress("LongParameterList", "LongMethod")
+@Suppress("LongParameterList", "LongMethod", "CyclomaticComplexMethod")
 @Composable
 private fun AdvSettingsContent(
     textCompressionEnabled: Boolean,
-    sendOnEnterEnabled: Boolean,
     insertPhotoLinkEnabled: Boolean,
     showBellButton: Boolean,
-    builtInImageViewerEnabled: Boolean,
     photoHostingProvider: PhotoHostingProvider,
+    imgbbApiKey: String,
+    imgbbExpiration: ImgbbExpiration,
+    meshpicRetention: MeshpicRetention,
+    linkPreviewEnabled: Boolean,
     pixelArtEnabled: Boolean,
     fileTransferEnabled: Boolean,
     reactionNotificationMode: ReactionNotificationMode,
     pinnedMessagesEnabled: Boolean,
     pressureInMmHg: Boolean,
     onTextCompressionChange: (Boolean) -> Unit,
-    onSendOnEnterChange: (Boolean) -> Unit,
     onInsertPhotoLinkChange: (Boolean) -> Unit,
+    onLinkPreviewChange: (Boolean) -> Unit,
     onShowBellButtonChange: (Boolean) -> Unit,
-    onBuiltInImageViewerChange: (Boolean) -> Unit,
     onPhotoHostingChange: (PhotoHostingProvider) -> Unit,
+    onImgbbApiKeyChange: (String) -> Unit,
+    onImgbbExpirationChange: (ImgbbExpiration) -> Unit,
+    onMeshpicRetentionChange: (MeshpicRetention) -> Unit,
     onPixelArtChange: (Boolean) -> Unit,
     onFileTransferChange: (Boolean) -> Unit,
     onReactionNotificationModeChange: (ReactionNotificationMode) -> Unit,
@@ -435,13 +464,6 @@ private fun AdvSettingsContent(
                 onCheckedChange = onTextCompressionChange,
             )
             SwitchPreference(
-                title = stringResource(Res.string.send_on_enter),
-                summary = stringResource(Res.string.send_on_enter_summary),
-                checked = sendOnEnterEnabled,
-                enabled = true,
-                onCheckedChange = onSendOnEnterChange,
-            )
-            SwitchPreference(
                 title = stringResource(Res.string.show_bell_button),
                 summary = stringResource(Res.string.show_bell_button_summary),
                 checked = showBellButton,
@@ -462,9 +484,59 @@ private fun AdvSettingsContent(
                         PhotoHostingProvider.DISABLED -> stringResource(Res.string.photo_hosting_provider_disabled)
                         PhotoHostingProvider.MESHPIC -> stringResource(Res.string.photo_hosting_provider_meshpic)
                         PhotoHostingProvider.MESHAPP -> stringResource(Res.string.photo_hosting_provider_meshapp)
+                        PhotoHostingProvider.IMGBB -> stringResource(Res.string.photo_hosting_provider_imgbb)
                     }
                 },
             )
+            if (photoHostingProvider == PhotoHostingProvider.MESHPIC) {
+                DropDownPreference(
+                    title = stringResource(Res.string.photo_storage_duration),
+                    selectedItem = meshpicRetention,
+                    onItemSelected = onMeshpicRetentionChange,
+                    enabled = true,
+                    itemLabel = { retention ->
+                        when (retention) {
+                            MeshpicRetention.HOURS_1 -> stringResource(Res.string.photo_duration_1_hour)
+                            MeshpicRetention.HOURS_6 -> stringResource(Res.string.photo_duration_6_hours)
+                            MeshpicRetention.DAYS_1 -> stringResource(Res.string.photo_duration_1_day)
+                            MeshpicRetention.DAYS_3 -> stringResource(Res.string.photo_duration_3_days)
+                            MeshpicRetention.DAYS_7 -> stringResource(Res.string.photo_duration_7_days)
+                        }
+                    },
+                )
+            } else if (photoHostingProvider == PhotoHostingProvider.IMGBB) {
+                val focusManager = LocalFocusManager.current
+                EditTextPreference(
+                    title = stringResource(Res.string.imgbb_api_key_setting),
+                    value = imgbbApiKey,
+                    summary = stringResource(Res.string.imgbb_api_key_hint),
+                    enabled = true,
+                    isError = false,
+                    keyboardOptions =
+                    KeyboardOptions.Default.copy(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+                    onValueChanged = onImgbbApiKeyChange,
+                )
+                DropDownPreference(
+                    title = stringResource(Res.string.photo_storage_duration),
+                    selectedItem = imgbbExpiration,
+                    onItemSelected = onImgbbExpirationChange,
+                    enabled = true,
+                    itemLabel = { expiration ->
+                        when (expiration) {
+                            ImgbbExpiration.MINUTES_30 -> stringResource(Res.string.photo_duration_30_minutes)
+                            ImgbbExpiration.HOURS_1 -> stringResource(Res.string.photo_duration_1_hour)
+                            ImgbbExpiration.HOURS_6 -> stringResource(Res.string.photo_duration_6_hours)
+                            ImgbbExpiration.HOURS_12 -> stringResource(Res.string.photo_duration_12_hours)
+                            ImgbbExpiration.DAYS_1 -> stringResource(Res.string.photo_duration_1_day)
+                            ImgbbExpiration.DAYS_3 -> stringResource(Res.string.photo_duration_3_days)
+                            ImgbbExpiration.DAYS_7 -> stringResource(Res.string.photo_duration_7_days)
+                            ImgbbExpiration.DAYS_14 -> stringResource(Res.string.photo_duration_14_days)
+                            ImgbbExpiration.DAYS_30 -> stringResource(Res.string.photo_duration_1_month)
+                        }
+                    },
+                )
+            }
             SwitchPreference(
                 title = stringResource(Res.string.insert_photo_link),
                 summary = stringResource(Res.string.insert_photo_link_summary),
@@ -473,11 +545,11 @@ private fun AdvSettingsContent(
                 onCheckedChange = onInsertPhotoLinkChange,
             )
             SwitchPreference(
-                title = stringResource(Res.string.built_in_image_viewer),
-                summary = stringResource(Res.string.built_in_image_viewer_summary),
-                checked = builtInImageViewerEnabled,
+                title = stringResource(Res.string.link_preview_setting),
+                summary = stringResource(Res.string.link_preview_setting_summary),
+                checked = linkPreviewEnabled,
                 enabled = true,
-                onCheckedChange = onBuiltInImageViewerChange,
+                onCheckedChange = onLinkPreviewChange,
             )
         }
 

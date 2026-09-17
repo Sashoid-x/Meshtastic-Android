@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -85,17 +86,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.common.util.DateFormatter
+import org.meshtastic.core.model.LinkPreview
 import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.Reaction
 import org.meshtastic.core.network.service.ImageUrlResolver
+import org.meshtastic.core.network.service.LinkPreviewServiceImpl
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.a11y_message_from
 import org.meshtastic.core.resources.action_show_message_status
@@ -129,7 +133,6 @@ import org.meshtastic.core.ui.theme.MessageItemColors
 import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
 import org.meshtastic.core.ui.util.createClipEntry
 import org.meshtastic.core.ui.util.rememberGetLocalImageFile
-import org.meshtastic.core.ui.util.rememberOpenFile
 import org.meshtastic.core.ui.util.rememberSaveImageLocally
 import org.meshtastic.feature.messaging.compress.MeshTextCompressor
 import org.meshtastic.feature.messaging.image.MonochromeImageCodec
@@ -191,11 +194,12 @@ fun MessageItem(
     pixelArtEnabled: Boolean = true,
     photoHostingEnabled: Boolean = true,
     builtInImageViewerEnabled: Boolean = true,
+    linkPreviewEnabled: Boolean = true,
     pinnedMessagesEnabled: Boolean = true,
     isDirectMessage: Boolean = false,
     onTranslate: () -> Unit = {},
     onToggleTranslation: () -> Unit = {},
-    onOpenImageViewer: (String, String?, String?) -> Unit = { _, _, _ -> },
+    onOpenImageViewer: (List<Triple<String, String?, String?>>, Int) -> Unit = { _, _ -> },
     onTogglePin: () -> Unit = {},
 ) = Column(
     modifier =
@@ -248,7 +252,6 @@ fun MessageItem(
                 ActiveSheet.Actions -> {
                     MessageActionsContent(
                         quickEmojis = if (canReact) quickEmojis else emptyList(),
-                        canReply = canReply,
                         onReply = {
                             activeSheet = null
                             onReply()
@@ -524,28 +527,43 @@ fun MessageItem(
                                 null
                             }
                         }
-                    val rawUrl =
-                        remember(bodyText, photoHostingEnabled) {
+                    val allUrls = remember(bodyText) { ImageUrlResolver.extractAllUrls(bodyText) }
+                    val photoUrls =
+                        remember(allUrls, photoHostingEnabled) {
                             if (photoHostingEnabled) {
-                                ImageUrlResolver.extractFirstUrl(bodyText)
+                                allUrls.filter { ImageUrlResolver.isPhotoHostingOrDirectImageUrl(it) }
                             } else {
-                                null
+                                emptyList()
                             }
                         }
-                    val fastPathUrl = remember(rawUrl) { rawUrl?.let { ImageUrlResolver.getFastPathImageUrl(it) } }
-                    val imageUrl by
-                        produceState(initialValue = fastPathUrl, rawUrl) {
-                            if (rawUrl != null) {
-                                val fast = ImageUrlResolver.getFastPathImageUrl(rawUrl)
+                    val webUrls = remember(allUrls, photoUrls) { allUrls.filterNot { it in photoUrls } }
+                    val imageUrls by
+                        produceState(initialValue = emptyList<Pair<String, String?>>(), photoUrls) {
+                            val resolvedList = mutableListOf<Pair<String, String?>>()
+                            for (url in photoUrls) {
+                                val fast = ImageUrlResolver.getFastPathImageUrl(url)
                                 if (fast != null) {
-                                    value = fast
+                                    resolvedList.add(url to fast)
                                 } else {
-                                    value = ImageUrlResolver.resolveImageUrl(rawUrl)
+                                    val resolved = ImageUrlResolver.resolveImageUrl(url)
+                                    if (resolved != null) {
+                                        resolvedList.add(url to resolved)
+                                    }
                                 }
+                            }
+                            value = resolvedList
+                        }
+                    val linkPreview by
+                        produceState<LinkPreview?>(initialValue = null, webUrls, linkPreviewEnabled) {
+                            if (linkPreviewEnabled && webUrls.isNotEmpty() && searchQuery.isEmpty()) {
+                                val linkPreviewService = LinkPreviewServiceImpl()
+                                value = linkPreviewService.getLinkPreview(webUrls.first())
                             } else {
                                 value = null
                             }
                         }
+                    val hasPhotoImages = imageUrls.isNotEmpty() && imageUrls.any { it.second != null }
+
                     if (monoImage != null) {
                         val imageAspect = monoImage.width.toFloat() / monoImage.height.toFloat()
                         val targetWidth =
@@ -578,72 +596,20 @@ fun MessageItem(
                                 }
                             }
                         }
-                    } else if (imageUrl != null && searchQuery.isEmpty()) {
-                        val resolvedImageUrl = imageUrl!!
-                        val uriHandler = LocalUriHandler.current
-                        val openFile = rememberOpenFile()
-                        val getLocalImageFile = rememberGetLocalImageFile()
-                        val saveImageLocally = rememberSaveImageLocally()
-                        var localFilePath by
-                            remember(resolvedImageUrl) { mutableStateOf(getLocalImageFile(resolvedImageUrl)) }
+                    } else if (hasPhotoImages && searchQuery.isEmpty()) {
                         Column {
-                            SubcomposeAsyncImage(
-                                model = resolvedImageUrl,
-                                contentDescription = null,
-                                modifier =
-                                Modifier.size(220.dp).clip(RoundedCornerShape(8.dp)).clickable {
-                                    val path = localFilePath ?: getLocalImageFile(resolvedImageUrl)
-                                    if (builtInImageViewerEnabled) {
-                                        onOpenImageViewer(resolvedImageUrl, path, rawUrl)
-                                    } else {
-                                        if (path != null) {
-                                            openFile(path)
-                                        } else {
-                                            uriHandler.openUri(rawUrl ?: resolvedImageUrl)
-                                        }
-                                    }
-                                },
-                                contentScale = ContentScale.Crop,
-                                onSuccess = { state ->
-                                    localFilePath = saveImageLocally(resolvedImageUrl, state.result.image)
-                                },
-                                loading = {
-                                    Box(
-                                        modifier =
-                                        Modifier.fillMaxSize()
-                                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                                        contentAlignment = Alignment.Center,
-                                    ) {
-                                        CircularProgressIndicator(modifier = Modifier.size(28.dp))
-                                    }
-                                },
-                                error = {
-                                    Column(
-                                        modifier =
-                                        Modifier.fillMaxSize()
-                                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                                            .clickable { uriHandler.openUri(rawUrl ?: resolvedImageUrl) }
-                                            .padding(8.dp),
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center,
-                                    ) {
-                                        Icon(
-                                            imageVector = MeshtasticIcons.Image,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error,
-                                        )
-                                        Spacer(Modifier.height(4.dp))
-                                        Text(
-                                            text = stringResource(Res.string.image_loading_error),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.error,
-                                        )
-                                    }
-                                },
+                            ImageCollage(
+                                imageUrls = imageUrls,
+                                builtInImageViewerEnabled = builtInImageViewerEnabled,
+                                onOpenImageViewer = onOpenImageViewer,
                             )
                             val remainingText =
-                                remember(bodyText, rawUrl) {
-                                    if (rawUrl != null) bodyText.replace(rawUrl, "").trim() else ""
+                                remember(bodyText, photoUrls) {
+                                    var text = bodyText
+                                    for (url in photoUrls) {
+                                        text = text.replace(url, "")
+                                    }
+                                    text.trim()
                                 }
                             val bodyStyle =
                                 MaterialTheme.typography.bodyLarge.let { base ->
@@ -671,6 +637,10 @@ fun MessageItem(
                                     onMentionClick = { id -> resolveMention(id)?.let(onClickChip) },
                                 )
                             }
+                            if (linkPreview != null) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                LinkPreviewCard(preview = linkPreview!!)
+                            }
                         }
                     } else if (searchQuery.isNotEmpty()) {
                         val bodyStyle =
@@ -688,27 +658,33 @@ fun MessageItem(
                             color = contentColor,
                         )
                     } else {
-                        val bodyStyle =
-                            MaterialTheme.typography.bodyLarge.let { base ->
-                                if (bubbleStyle.fontScale != 1.0f) {
-                                    base.copy(fontSize = base.fontSize * bubbleStyle.fontScale)
-                                } else {
-                                    base
+                        Column {
+                            val bodyStyle =
+                                MaterialTheme.typography.bodyLarge.let { base ->
+                                    if (bubbleStyle.fontScale != 1.0f) {
+                                        base.copy(fontSize = base.fontSize * bubbleStyle.fontScale)
+                                    } else {
+                                        base
+                                    }
                                 }
-                            }
-                        val mentionDisplayName =
-                            remember(resolveMention) {
-                                { id: String ->
-                                    resolveMention(id)?.let { it.user.long_name.ifEmpty { it.user.short_name } }
+                            val mentionDisplayName =
+                                remember(resolveMention) {
+                                    { id: String ->
+                                        resolveMention(id)?.let { it.user.long_name.ifEmpty { it.user.short_name } }
+                                    }
                                 }
+                            AutoLinkText(
+                                text = bodyText,
+                                style = bodyStyle,
+                                color = contentColor,
+                                mentionName = mentionDisplayName,
+                                onMentionClick = { id -> resolveMention(id)?.let(onClickChip) },
+                            )
+                            if (linkPreview != null) {
+                                Spacer(modifier = Modifier.height(6.dp))
+                                LinkPreviewCard(preview = linkPreview!!)
                             }
-                        AutoLinkText(
-                            text = bodyText,
-                            style = bodyStyle,
-                            color = contentColor,
-                            mentionName = mentionDisplayName,
-                            onMentionClick = { id -> resolveMention(id)?.let(onClickChip) },
-                        )
+                        }
                     }
 
                     Row(
@@ -963,4 +939,124 @@ private fun OriginalMessageSnippet(
 internal fun findImageUrl(text: String): String? {
     val url = ImageUrlResolver.extractFirstUrl(text) ?: return null
     return ImageUrlResolver.getFastPathImageUrl(url)
+}
+
+private data class CollageRow(val images: List<Pair<String, String?>>, val height: Dp)
+
+@Composable
+private fun ImageCollage(
+    imageUrls: List<Pair<String, String?>>,
+    builtInImageViewerEnabled: Boolean,
+    onOpenImageViewer: (List<Triple<String, String?, String?>>, Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val uriHandler = LocalUriHandler.current
+    val getLocalImageFile = rememberGetLocalImageFile()
+    val saveImageLocally = rememberSaveImageLocally()
+
+    val totalCount = imageUrls.size
+    val rows: List<CollageRow> =
+        remember(imageUrls) {
+            when (totalCount) {
+                0 -> emptyList()
+                1 -> listOf(CollageRow(imageUrls, 220.dp))
+                2 -> listOf(CollageRow(imageUrls, 140.dp))
+                3 -> listOf(CollageRow(imageUrls.take(1), 130.dp), CollageRow(imageUrls.drop(1), 95.dp))
+                4 -> listOf(CollageRow(imageUrls.take(2), 110.dp), CollageRow(imageUrls.drop(2), 110.dp))
+                5 -> listOf(CollageRow(imageUrls.take(2), 110.dp), CollageRow(imageUrls.drop(2), 85.dp))
+                6 -> listOf(CollageRow(imageUrls.take(3), 95.dp), CollageRow(imageUrls.drop(3), 95.dp))
+                else -> imageUrls.chunked(3).map { CollageRow(it, 90.dp) }
+            }
+        }
+
+    Column(
+        modifier = modifier.width(248.dp).clip(RoundedCornerShape(8.dp)),
+        verticalArrangement = Arrangement.spacedBy(3.dp),
+    ) {
+        for (row in rows) {
+            Row(
+                modifier = Modifier.fillMaxWidth().height(row.height),
+                horizontalArrangement = Arrangement.spacedBy(3.dp),
+            ) {
+                for ((raw, resolved) in row.images) {
+                    val nonNullResolved = resolved
+                    if (nonNullResolved != null) {
+                        var localFilePath by
+                            remember(nonNullResolved) { mutableStateOf(getLocalImageFile(nonNullResolved)) }
+                        SubcomposeAsyncImage(
+                            model = localFilePath ?: nonNullResolved,
+                            contentDescription = null,
+                            modifier =
+                            Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).clickable {
+                                if (builtInImageViewerEnabled) {
+                                    val imageList =
+                                        imageUrls.mapNotNull { (rawUrl, resUrl) ->
+                                            if (resUrl != null) {
+                                                Triple(resUrl, getLocalImageFile(resUrl), rawUrl)
+                                            } else {
+                                                null
+                                            }
+                                        }
+                                    val initialIndex =
+                                        imageList.indexOfFirst { it.first == nonNullResolved }.takeIf { it >= 0 }
+                                            ?: 0
+                                    onOpenImageViewer(imageList, initialIndex)
+                                } else {
+                                    uriHandler.openUri(raw)
+                                }
+                            },
+                            contentScale = ContentScale.Crop,
+                            onSuccess = { state ->
+                                localFilePath = saveImageLocally(nonNullResolved, state.result.image)
+                            },
+                            loading = {
+                                Box(
+                                    modifier =
+                                    Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                }
+                            },
+                            error = {
+                                Column(
+                                    modifier =
+                                    Modifier.fillMaxSize()
+                                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        .clickable { uriHandler.openUri(raw) }
+                                        .padding(4.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                ) {
+                                    Icon(
+                                        imageVector = MeshtasticIcons.Image,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error,
+                                    )
+                                    Spacer(Modifier.height(2.dp))
+                                    Text(
+                                        text = stringResource(Res.string.image_loading_error),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                    )
+                                }
+                            },
+                        )
+                    } else {
+                        Box(
+                            modifier =
+                            Modifier.weight(1f)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .clickable { uriHandler.openUri(raw) },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

@@ -96,10 +96,28 @@ actual fun rememberOpenFileLauncher(onUriReceived: (CommonUri?) -> Unit): (mimeT
     val file = dialog.file
     val dir = dialog.directory
     if (file != null && dir != null) {
-        val path = File(dir, file)
+        val path = java.io.File(dir, file)
         onUriReceived(CommonUri.parse(path.toURI().toString()))
+    } else {
+        onUriReceived(null)
     }
 }
+
+@Composable
+actual fun rememberOpenMultipleFilesLauncher(onUrisReceived: (List<CommonUri>) -> Unit): (mimeType: String) -> Unit =
+    { _ ->
+        val parentFrame: Frame? = null
+        val dialog = FileDialog(parentFrame, "Open Files", FileDialog.LOAD)
+        dialog.isMultipleMode = true
+        dialog.isVisible = true
+        val files = dialog.files
+        if (files != null && files.isNotEmpty()) {
+            val uris = files.map { CommonUri.parse(it.toURI().toString()) }
+            onUrisReceived(uris)
+        } else {
+            onUrisReceived(emptyList())
+        }
+    }
 
 /** JVM — Opens a native dialog to pick a directory. */
 @Composable

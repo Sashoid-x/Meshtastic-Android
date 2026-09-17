@@ -26,7 +26,9 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class ImageUrlResolverTest {
 
@@ -86,6 +88,17 @@ class ImageUrlResolverTest {
     }
 
     @Test
+    fun testIsPhotoHostingOrDirectImageUrl() {
+        assertTrue(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://meshpic.org/yk9"))
+        assertTrue(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://d.privatepractice.app/w5N85eSw"))
+        assertTrue(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://ibb.co/yk9abc"))
+        assertTrue(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://i.ibb.co/yk9abc/test.jpg"))
+        assertTrue(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://example.com/cat.png"))
+        assertFalse(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://github.com/meshtastic"))
+        assertFalse(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://en.wikipedia.org/wiki/Meshtastic"))
+    }
+
+    @Test
     fun testResolveByContentTypeImage() = runTest {
         val testUrl = "https://cdn.example.com/blob/12345"
         val engine = MockEngine { request ->
@@ -94,7 +107,7 @@ class ImageUrlResolverTest {
                     respond(
                         content = byteArrayOf(1, 2, 3),
                         status = HttpStatusCode.OK,
-                        headers = headersOf(HttpHeaders.ContentType, "image/webp"),
+                        headers = headersOf(HttpHeaders.ContentType, "image/png"),
                     )
                 }
 
@@ -107,9 +120,9 @@ class ImageUrlResolverTest {
     }
 
     @Test
-    fun testResolveByOgImageHtml() = runTest {
-        val pageUrl = "https://gallery.example.com/view/999"
-        val imageUrl = "https://gallery.example.com/static/photo.jpg"
+    fun testResolveByOgImageHtmlOnPhotoHost() = runTest {
+        val pageUrl = "https://ibb.co/view999"
+        val imageUrl = "https://i.ibb.co/view999/photo.jpg"
         val engine = MockEngine { request ->
             when (request.url.toString()) {
                 pageUrl -> {

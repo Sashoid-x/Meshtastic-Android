@@ -94,7 +94,7 @@ class MessageInputEnterKeyTest {
                 isHomoglyphEncodingEnabled = false,
                 textFieldState = textFieldState,
                 mentionCandidates = persistentMapOf(),
-                onSendMessage = onSendMessage,
+                onSendMessage = { onSendMessage() },
             )
         }
     }

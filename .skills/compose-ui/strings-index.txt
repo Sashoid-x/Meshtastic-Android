@@ -1030,6 +1030,10 @@ image_viewer_open_system
 image_viewer_save
 image_viewer_saved_success
 image_viewer_share
+imgbb_api_key_hint
+imgbb_api_key_invalid
+imgbb_api_key_missing
+imgbb_api_key_setting
 ### IMPORT ###
 import_configuration
 import_export_label
@@ -1096,6 +1100,8 @@ licensed_mode_enable_confirm
 licensed_mode_enable_title
 licensed_mode_enable_warning
 licensed_mode_enable_warning_signed
+link_preview_setting
+link_preview_setting_summary
 ### LOAD ###
 load
 load_15_min
@@ -1633,11 +1639,22 @@ permissions_show
 phone_location
 phone_location_description
 ### PHOTO ###
+photo_duration_12_hours
+photo_duration_14_days
+photo_duration_1_day
+photo_duration_1_hour
+photo_duration_1_month
+photo_duration_30_minutes
+photo_duration_3_days
+photo_duration_6_hours
+photo_duration_7_days
 photo_hosting_provider_disabled
+photo_hosting_provider_imgbb
 photo_hosting_provider_meshapp
 photo_hosting_provider_meshpic
 photo_hosting_setting
 photo_hosting_setting_summary
+photo_storage_duration
 pin_message
 pin_selected
 pinned_messages

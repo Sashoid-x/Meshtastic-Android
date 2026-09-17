@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import org.meshtastic.core.model.CustomNodeName
 import org.meshtastic.core.model.DeviceType
+import org.meshtastic.core.model.ImgbbExpiration
+import org.meshtastic.core.model.MeshpicRetention
 import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.model.ReactionNotificationMode
 import org.meshtastic.core.repository.AnalyticsPrefs
@@ -174,10 +176,22 @@ class FakeUiPrefs : UiPrefs {
         photoHostingProvider.value = if (enabled) PhotoHostingProvider.MESHPIC else PhotoHostingProvider.DISABLED
     }
 
-    override val builtInImageViewerEnabled = MutableStateFlow(true)
+    override val imgbbApiKey = MutableStateFlow("")
 
-    override fun setBuiltInImageViewerEnabled(enabled: Boolean) {
-        builtInImageViewerEnabled.value = enabled
+    override fun setImgbbApiKey(apiKey: String) {
+        imgbbApiKey.value = apiKey
+    }
+
+    override val imgbbExpiration = MutableStateFlow(ImgbbExpiration.DAYS_1)
+
+    override fun setImgbbExpiration(expiration: ImgbbExpiration) {
+        imgbbExpiration.value = expiration
+    }
+
+    override val meshpicRetention = MutableStateFlow(MeshpicRetention.DAYS_1)
+
+    override fun setMeshpicRetention(retention: MeshpicRetention) {
+        meshpicRetention.value = retention
     }
 
     override val insertPhotoLinkEnabled = MutableStateFlow(true)
@@ -186,10 +200,10 @@ class FakeUiPrefs : UiPrefs {
         insertPhotoLinkEnabled.value = enabled
     }
 
-    override val sendOnEnterEnabled = MutableStateFlow(true)
+    override val linkPreviewEnabled = MutableStateFlow(true)
 
-    override fun setSendOnEnterEnabled(enabled: Boolean) {
-        sendOnEnterEnabled.value = enabled
+    override fun setLinkPreviewEnabled(enabled: Boolean) {
+        linkPreviewEnabled.value = enabled
     }
 
     override val showBellButton = MutableStateFlow(true)

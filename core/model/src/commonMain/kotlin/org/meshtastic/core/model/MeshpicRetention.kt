@@ -14,21 +14,26 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+@file:Suppress("MagicNumber")
+
 package org.meshtastic.core.model
 
-/** Supported external photo hosting providers for sharing images via URLs in chat. */
-enum class PhotoHostingProvider(val id: String) {
-    DISABLED("disabled"),
-    MESHPIC("meshpic"),
-    MESHAPP("meshapp"),
-    IMGBB("imgbb"),
+/**
+ * Storage duration options for Meshpic photo hosting.
+ *
+ * @param id Stable identifier for persistence.
+ * @param hours Retention time in hours accepted by meshpic.org.
+ */
+enum class MeshpicRetention(val id: String, val hours: Int) {
+    HOURS_1("1h", 1),
+    HOURS_6("6h", 6),
+    DAYS_1("1d", 24),
+    DAYS_3("3d", 72),
+    DAYS_7("7d", 168),
     ;
 
-    val isEnabled: Boolean
-        get() = this != DISABLED
-
     companion object {
-        fun fromId(id: String?): PhotoHostingProvider =
-            entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: DISABLED
+        fun fromId(id: String?): MeshpicRetention =
+            entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: DAYS_1
     }
 }

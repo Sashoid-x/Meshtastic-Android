@@ -54,8 +54,11 @@ import org.meshtastic.core.domain.usecase.settings.ImportMessagesUseCase
 import org.meshtastic.core.domain.usecase.settings.IsOtaCapableUseCase
 import org.meshtastic.core.domain.usecase.settings.SetMeshLogSettingsUseCase
 import org.meshtastic.core.model.ConnectionState
+import org.meshtastic.core.model.ImgbbExpiration
 import org.meshtastic.core.model.MeshLog
+import org.meshtastic.core.model.MeshpicRetention
 import org.meshtastic.core.model.MessageImportResult
+import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.repository.FileService
 import org.meshtastic.core.repository.RadioConfigRepository
 import org.meshtastic.core.testing.FakeAppPreferences
@@ -535,5 +538,25 @@ class SettingsViewModelTest {
         runCurrent()
 
         assertEquals(false, viewModel.isExporting.value)
+    }
+
+    @Test
+    fun `photo hosting preferences update correctly`() = runTest {
+        viewModel.setPhotoHostingProvider(PhotoHostingProvider.IMGBB)
+        assertEquals(PhotoHostingProvider.IMGBB, viewModel.photoHostingProvider.value)
+
+        viewModel.setImgbbApiKey("test-api-key")
+        assertEquals("test-api-key", viewModel.imgbbApiKey.value)
+
+        viewModel.setImgbbExpiration(ImgbbExpiration.MINUTES_30)
+        assertEquals(ImgbbExpiration.MINUTES_30, viewModel.imgbbExpiration.value)
+
+        viewModel.setMeshpicRetention(MeshpicRetention.DAYS_7)
+        assertEquals(MeshpicRetention.DAYS_7, viewModel.meshpicRetention.value)
+
+        viewModel.setLinkPreviewEnabled(false)
+        assertEquals(false, viewModel.linkPreviewEnabled.value)
+        viewModel.setLinkPreviewEnabled(true)
+        assertEquals(true, viewModel.linkPreviewEnabled.value)
     }
 }

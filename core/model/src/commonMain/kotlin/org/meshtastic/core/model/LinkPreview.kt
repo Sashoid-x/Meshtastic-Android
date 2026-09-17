@@ -16,19 +16,19 @@
  */
 package org.meshtastic.core.model
 
-/** Supported external photo hosting providers for sharing images via URLs in chat. */
-enum class PhotoHostingProvider(val id: String) {
-    DISABLED("disabled"),
-    MESHPIC("meshpic"),
-    MESHAPP("meshapp"),
-    IMGBB("imgbb"),
-    ;
-
-    val isEnabled: Boolean
-        get() = this != DISABLED
-
-    companion object {
-        fun fromId(id: String?): PhotoHostingProvider =
-            entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: DISABLED
-    }
-}
+/**
+ * Metadata extracted from a web link for displaying a rich preview card.
+ *
+ * @property url The original web link.
+ * @property title The page title extracted from OpenGraph or `<title>`.
+ * @property description The page description extracted from OpenGraph or meta description.
+ * @property imageUrl The preview thumbnail/banner image URL extracted from OpenGraph or twitter:image.
+ * @property siteName The website name or host (e.g. "github.com", "Wikipedia").
+ */
+data class LinkPreview(
+    val url: String,
+    val title: String? = null,
+    val description: String? = null,
+    val imageUrl: String? = null,
+    val siteName: String? = null,
+)

@@ -14,21 +14,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+@file:Suppress("MagicNumber")
+
 package org.meshtastic.core.model
 
-/** Supported external photo hosting providers for sharing images via URLs in chat. */
-enum class PhotoHostingProvider(val id: String) {
-    DISABLED("disabled"),
-    MESHPIC("meshpic"),
-    MESHAPP("meshapp"),
-    IMGBB("imgbb"),
+/**
+ * Storage duration options for ImgBB photo hosting.
+ *
+ * @param id Stable identifier for persistence.
+ * @param seconds Expiration time in seconds sent to the ImgBB API (60..15552000).
+ */
+enum class ImgbbExpiration(val id: String, val seconds: Int) {
+    MINUTES_30("30m", 1800),
+    HOURS_1("1h", 3600),
+    HOURS_6("6h", 21600),
+    HOURS_12("12h", 43200),
+    DAYS_1("1d", 86400),
+    DAYS_3("3d", 259200),
+    DAYS_7("7d", 604800),
+    DAYS_14("14d", 1209600),
+    DAYS_30("30d", 2592000),
     ;
 
-    val isEnabled: Boolean
-        get() = this != DISABLED
-
     companion object {
-        fun fromId(id: String?): PhotoHostingProvider =
-            entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: DISABLED
+        fun fromId(id: String?): ImgbbExpiration =
+            entries.firstOrNull { it.id.equals(id, ignoreCase = true) } ?: DAYS_30
     }
 }

@@ -97,7 +97,7 @@ internal data class MessageListHandlers(
     val onReply: (Message?) -> Unit,
     val onTranslate: (Message) -> Unit = {},
     val onToggleTranslation: (Message) -> Unit = {},
-    val onOpenImageViewer: (String, String?, String?) -> Unit = { _, _, _ -> },
+    val onOpenImageViewer: (List<Triple<String, String?, String?>>, Int) -> Unit = { _, _ -> },
     val onTogglePin: (Message) -> Unit = {},
 )
 
@@ -118,7 +118,7 @@ internal data class MessageListPagedState(
     val textCompressionEnabled: Boolean = false,
     val pixelArtEnabled: Boolean = true,
     val photoHostingEnabled: Boolean = true,
-    val builtInImageViewerEnabled: Boolean = true,
+    val linkPreviewEnabled: Boolean = true,
     val pinnedMessagesEnabled: Boolean = true,
 )
 
@@ -432,7 +432,7 @@ private fun RenderPagedChatMessageRow(
         textCompressionEnabled = state.textCompressionEnabled,
         pixelArtEnabled = state.pixelArtEnabled,
         photoHostingEnabled = state.photoHostingEnabled,
-        builtInImageViewerEnabled = state.builtInImageViewerEnabled,
+        linkPreviewEnabled = state.linkPreviewEnabled,
         pinnedMessagesEnabled = state.pinnedMessagesEnabled,
         sendReaction = { emoji ->
             val hasReacted =

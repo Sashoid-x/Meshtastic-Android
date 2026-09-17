@@ -99,4 +99,58 @@ class MeshPicServiceTest {
 
         assertTrue(result.isFailure)
     }
+
+    @Test
+    fun `successful upload with non-default retention sends patch request`() = runTest {
+        var patchCalled = false
+        val engine = MockEngine { request ->
+            when (request.url.toString()) {
+                MeshPicServiceImpl.MESHPIC_BASE_URL -> {
+                    respond(
+                        content = "<html><head><meta name=\"csrf-token\" content=\"test-csrf-token\"></head></html>",
+                        headers =
+                        headersOf(
+                            HttpHeaders.ContentType to listOf(ContentType.Text.Html.toString()),
+                            HttpHeaders.SetCookie to listOf("meshpic_session=test-cookie; Path=/"),
+                        ),
+                    )
+                }
+
+                MeshPicServiceImpl.MESHPIC_UPLOAD_URL -> {
+                    respond(
+                        content =
+                        """
+                            {
+                                "expires_at": "2026-09-06T11:48:52.325966+00:00",
+                                "short_id": "sWQ",
+                                "view_count": 0
+                            }
+                            """
+                            .trimIndent(),
+                        headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    )
+                }
+
+                "${MeshPicServiceImpl.MESHPIC_BASE_URL}/_ui/my-images/sWQ" -> {
+                    assertEquals("test-csrf-token", request.headers["X-CSRF-Token"])
+                    assertEquals("meshpic_session=test-cookie", request.headers[HttpHeaders.Cookie])
+                    patchCalled = true
+                    respond(
+                        content = """{"ok": true}""",
+                        headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+                    )
+                }
+
+                else -> error("Unexpected URL: ${request.url}")
+            }
+        }
+
+        val client = HttpClient(engine)
+        val service = MeshPicServiceImpl(client)
+        val result = service.uploadImage(byteArrayOf(1, 2, 3), "photo.jpg", retentionHours = 72)
+
+        assertTrue(result.isSuccess)
+        assertEquals("sWQ", result.getOrNull())
+        assertTrue(patchCalled)
+    }
 }

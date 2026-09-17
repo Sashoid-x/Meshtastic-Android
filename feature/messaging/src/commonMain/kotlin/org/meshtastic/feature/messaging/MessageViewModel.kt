@@ -54,6 +54,10 @@ import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.PhotoHostingProvider
+import org.meshtastic.core.network.service.ImgBBService
+import org.meshtastic.core.network.service.ImgBBServiceImpl
+import org.meshtastic.core.network.service.ImgbbApiKeyMissingException
+import org.meshtastic.core.network.service.ImgbbInvalidApiKeyException
 import org.meshtastic.core.network.service.MeshFilesService
 import org.meshtastic.core.network.service.MeshFilesServiceImpl
 import org.meshtastic.core.network.service.MeshPicService
@@ -73,6 +77,8 @@ import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.core.repository.usecase.SendMessageUseCase
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.UiText
+import org.meshtastic.core.resources.imgbb_api_key_invalid
+import org.meshtastic.core.resources.imgbb_api_key_missing
 import org.meshtastic.core.resources.translation_failed
 import org.meshtastic.core.resources.translation_model_download_failed
 import org.meshtastic.core.resources.translation_not_required
@@ -131,6 +137,7 @@ class MessageViewModel(
     private val fileTransferManager: FileTransferManager? = null,
     private val meshPicService: MeshPicService = MeshPicServiceImpl(),
     private val meshFilesService: MeshFilesService = MeshFilesServiceImpl(),
+    private val imgbbService: ImgBBService = ImgBBServiceImpl(),
 ) : ViewModel() {
     val fileTransferOutgoingState: StateFlow<TransferState> =
         fileTransferManager?.outgoingState ?: MutableStateFlow(TransferState.Idle)
@@ -256,13 +263,11 @@ class MessageViewModel(
 
     val photoHostingEnabled: StateFlow<Boolean> = uiPrefs.photoHostingEnabled
 
-    val sendOnEnterEnabled: StateFlow<Boolean> = uiPrefs.sendOnEnterEnabled
+    val linkPreviewEnabled: StateFlow<Boolean> = uiPrefs.linkPreviewEnabled
 
     val showBellButton: StateFlow<Boolean> = uiPrefs.showBellButton
 
     val insertPhotoLinkEnabled: StateFlow<Boolean> = uiPrefs.insertPhotoLinkEnabled
-
-    val builtInImageViewerEnabled: StateFlow<Boolean> = uiPrefs.builtInImageViewerEnabled
 
     val pinnedMessagesEnabled: StateFlow<Boolean> = uiPrefs.pinnedMessagesEnabled
 
@@ -541,42 +546,101 @@ class MessageViewModel(
         contactKey: String = "0${NodeAddress.ID_BROADCAST}",
         fileName: String = "photo.jpg",
     ) {
+        uploadAndSendPhotos(listOf(imageBytes to fileName), contactKey)
+    }
+
+    fun uploadAndSendPhotos(
+        images: List<Pair<ByteArray, String>>,
+        contactKey: String = "0${NodeAddress.ID_BROADCAST}",
+    ) {
         viewModelScope.launch {
+            if (images.isEmpty()) return@launch
             _isUploadingPhoto.value = true
             snackbarManager.showSnackbar(MessagingUiTextResolver.resolve(UiText.Resource(Res.string.uploading_photo)))
             val provider = uiPrefs.photoHostingProvider.value
-            val result =
-                when (provider) {
-                    PhotoHostingProvider.MESHPIC -> meshPicService.uploadImage(imageBytes, fileName)
-                    PhotoHostingProvider.MESHAPP -> meshFilesService.uploadImage(imageBytes, fileName)
-                    PhotoHostingProvider.DISABLED -> Result.failure(IllegalStateException("Photo hosting is disabled"))
-                }
-            _isUploadingPhoto.value = false
-            result
-                .onSuccess { idOrUrl ->
-                    val link =
-                        when (provider) {
-                            PhotoHostingProvider.MESHPIC -> "${MeshPicServiceImpl.MESHPIC_IMAGE_URL_PREFIX}$idOrUrl"
 
-                            PhotoHostingProvider.MESHAPP ->
-                                if (idOrUrl.startsWith("http")) idOrUrl else "${MeshFilesServiceImpl.BASE_URL}/$idOrUrl"
+            val links = mutableListOf<String>()
+            var anyFailed = false
+            var failureMessage: UiText? = null
 
-                            PhotoHostingProvider.DISABLED -> ""
-                        }
-                    if (link.isNotEmpty()) {
-                        if (uiPrefs.insertPhotoLinkEnabled.value) {
-                            _photoLinkReady.emit(link)
-                        } else {
-                            sendMessage(str = link, contactKey = contactKey, replyId = null, compress = false)
+            for ((imageBytes, fileName) in images) {
+                uploadSingleImage(imageBytes, fileName, provider)
+                    .onSuccess { idOrUrl ->
+                        val link = formatProviderLink(provider, idOrUrl)
+                        if (link.isNotEmpty()) {
+                            links.add(link)
                         }
                     }
+                    .onFailure { error ->
+                        anyFailed = true
+                        if (failureMessage == null) {
+                            failureMessage = resolveUploadError(error)
+                        }
+                    }
+            }
+
+            _isUploadingPhoto.value = false
+
+            if (links.isNotEmpty()) {
+                val joinedLinks = links.joinToString(" ")
+                if (uiPrefs.insertPhotoLinkEnabled.value) {
+                    _photoLinkReady.emit(joinedLinks)
+                } else {
+                    sendMessage(str = joinedLinks, contactKey = contactKey, replyId = null, compress = false)
                 }
-                .onFailure {
-                    snackbarManager.showSnackbar(
-                        MessagingUiTextResolver.resolve(UiText.Resource(Res.string.upload_photo_failed)),
-                    )
-                }
+            }
+
+            if (anyFailed) {
+                val errorText = failureMessage ?: UiText.Resource(Res.string.upload_photo_failed)
+                snackbarManager.showSnackbar(MessagingUiTextResolver.resolve(errorText))
+            }
         }
+    }
+
+    private suspend fun uploadSingleImage(
+        imageBytes: ByteArray,
+        fileName: String,
+        provider: PhotoHostingProvider,
+    ): Result<String> = when (provider) {
+        PhotoHostingProvider.MESHPIC ->
+            meshPicService.uploadImage(
+                imageBytes = imageBytes,
+                filename = fileName,
+                retentionHours = uiPrefs.meshpicRetention.value.hours,
+            )
+
+        PhotoHostingProvider.MESHAPP -> meshFilesService.uploadImage(imageBytes, fileName)
+
+        PhotoHostingProvider.IMGBB ->
+            imgbbService.uploadImage(
+                imageBytes = imageBytes,
+                apiKey = uiPrefs.imgbbApiKey.value,
+                expiration = uiPrefs.imgbbExpiration.value,
+                filename = fileName,
+            )
+
+        PhotoHostingProvider.DISABLED -> Result.failure(IllegalStateException("Photo hosting is disabled"))
+    }
+
+    private fun formatProviderLink(provider: PhotoHostingProvider, idOrUrl: String): String = when (provider) {
+        PhotoHostingProvider.MESHPIC -> "${MeshPicServiceImpl.MESHPIC_IMAGE_URL_PREFIX}$idOrUrl"
+
+        PhotoHostingProvider.MESHAPP ->
+            if (idOrUrl.startsWith("http")) {
+                idOrUrl
+            } else {
+                "${MeshFilesServiceImpl.BASE_URL}/$idOrUrl"
+            }
+
+        PhotoHostingProvider.IMGBB -> idOrUrl
+
+        PhotoHostingProvider.DISABLED -> ""
+    }
+
+    private fun resolveUploadError(error: Throwable): UiText? = when (error) {
+        is ImgbbApiKeyMissingException -> UiText.Resource(Res.string.imgbb_api_key_missing)
+        is ImgbbInvalidApiKeyException -> UiText.Resource(Res.string.imgbb_api_key_invalid)
+        else -> null
     }
 
     fun getPinnedMessages(contactKey: String): Flow<List<Message>> =

@@ -1060,6 +1060,10 @@
     <string name="image_viewer_save">Save</string>
     <string name="image_viewer_saved_success">Image saved to Downloads</string>
     <string name="image_viewer_share">Share</string>
+    <string name="imgbb_api_key_hint">Enter API key from api.imgbb.com</string>
+    <string name="imgbb_api_key_invalid">ImgBB: Invalid API key</string>
+    <string name="imgbb_api_key_missing">ImgBB: API key is not configured in settings</string>
+    <string name="imgbb_api_key_setting">ImgBB API key</string>
     <!-- IMPORT -->
     <string name="import_configuration">Import configuration</string>
     <string name="import_export_label">Import/Export</string>
@@ -1126,6 +1130,8 @@
     <string name="licensed_mode_enable_title">Enable licensed (Ham) mode?</string>
     <string name="licensed_mode_enable_warning">Licensed mode removes channel encryption keys and disables the admin channel, so all traffic is sent as plaintext that anyone can read — and this firmware cannot sign it, so other nodes cannot verify it came from you. This is not compatible with the default Meshtastic network, and you remain responsible for meeting your amateur radio license requirements and local regulations.</string>
     <string name="licensed_mode_enable_warning_signed">Licensed mode removes channel encryption keys and disables the admin channel, so all traffic is sent as plaintext that anyone can read — but it is digitally signed, letting other nodes verify it came from you. Your node number may change once to match your identity key, so favorites, message history, remote admin, and other nodes may initially treat it as new; you remain responsible for meeting your amateur radio license requirements and local regulations.</string>
+    <string name="link_preview_setting">Web Link Previews</string>
+    <string name="link_preview_setting_summary">Show rich preview cards for ordinary web links in messages</string>
     <!-- LOAD -->
     <string name="load">Load</string>
     <string name="load_15_min">Load 15m</string>
@@ -1672,11 +1678,22 @@
     <string name="phone_location">Phone Location</string>
     <string name="phone_location_description">Meshtastic uses your phone's location to enable a number of features. You can update your location permissions at any time from settings.</string>
     <!-- PHOTO -->
+    <string name="photo_duration_12_hours">12 hours</string>
+    <string name="photo_duration_14_days">14 days</string>
+    <string name="photo_duration_1_day">1 day</string>
+    <string name="photo_duration_1_hour">1 hour</string>
+    <string name="photo_duration_1_month">1 month</string>
+    <string name="photo_duration_30_minutes">30 minutes</string>
+    <string name="photo_duration_3_days">3 days</string>
+    <string name="photo_duration_6_hours">6 hours</string>
+    <string name="photo_duration_7_days">7 days</string>
     <string name="photo_hosting_provider_disabled">Off</string>
+    <string name="photo_hosting_provider_imgbb">ImgBB</string>
     <string name="photo_hosting_provider_meshapp">Meshapp</string>
     <string name="photo_hosting_provider_meshpic">Meshpic</string>
     <string name="photo_hosting_setting">Photo Hosting</string>
     <string name="photo_hosting_setting_summary">Upload photos to hosting service and share links in chat</string>
+    <string name="photo_storage_duration">Storage duration</string>
     <string name="pin_message">Pin</string>
     <string name="pin_selected">Pin</string>
     <string name="pinned_messages">Pinned Messages</string>

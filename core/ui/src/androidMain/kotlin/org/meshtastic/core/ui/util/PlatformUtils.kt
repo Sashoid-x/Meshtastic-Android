@@ -194,6 +194,15 @@ actual fun rememberOpenFileLauncher(onUriReceived: (CommonUri?) -> Unit): (mimeT
     return remember(launcher) { { mimeType -> launcher.launch(mimeType) } }
 }
 
+@Composable
+actual fun rememberOpenMultipleFilesLauncher(onUrisReceived: (List<CommonUri>) -> Unit): (mimeType: String) -> Unit {
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+            onUrisReceived(uris.map { it.toKmpUri() })
+        }
+    return remember(launcher) { { mimeType -> launcher.launch(mimeType) } }
+}
+
 @Suppress("Wrapping")
 @Composable
 actual fun rememberReadTextFromUri(): suspend (uri: CommonUri, maxChars: Int) -> String? {
