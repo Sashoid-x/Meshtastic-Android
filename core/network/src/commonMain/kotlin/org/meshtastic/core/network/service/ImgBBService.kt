@@ -150,9 +150,9 @@ class ImgBBServiceImpl(private val httpClient: HttpClient = HttpClient()) : ImgB
         }
 
         val uploadResponse = json.decodeFromString<ImgBBUploadResponse>(responseBody)
-        uploadResponse.data.urlViewer
-            ?: uploadResponse.data.displayUrl
+        uploadResponse.data.displayUrl
             ?: uploadResponse.data.url
+            ?: uploadResponse.data.urlViewer
             ?: error("No URL returned from ImgBB")
     }
 

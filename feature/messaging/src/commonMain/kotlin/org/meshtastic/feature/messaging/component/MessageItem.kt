@@ -537,8 +537,10 @@ fun MessageItem(
                             }
                         }
                     val webUrls = remember(allUrls, photoUrls) { allUrls.filterNot { it in photoUrls } }
+                    val fastPaths =
+                        remember(photoUrls) { photoUrls.map { it to ImageUrlResolver.getFastPathImageUrl(it) } }
                     val imageUrls by
-                        produceState(initialValue = emptyList<Pair<String, String?>>(), photoUrls) {
+                        produceState(initialValue = fastPaths, photoUrls) {
                             val resolvedList = mutableListOf<Pair<String, String?>>()
                             for (url in photoUrls) {
                                 val fast = ImageUrlResolver.getFastPathImageUrl(url)
@@ -546,9 +548,7 @@ fun MessageItem(
                                     resolvedList.add(url to fast)
                                 } else {
                                     val resolved = ImageUrlResolver.resolveImageUrl(url)
-                                    if (resolved != null) {
-                                        resolvedList.add(url to resolved)
-                                    }
+                                    resolvedList.add(url to (resolved ?: url))
                                 }
                             }
                             value = resolvedList
@@ -562,7 +562,7 @@ fun MessageItem(
                                 value = null
                             }
                         }
-                    val hasPhotoImages = imageUrls.isNotEmpty() && imageUrls.any { it.second != null }
+                    val hasPhotoImages = photoUrls.isNotEmpty()
 
                     if (monoImage != null) {
                         val imageAspect = monoImage.width.toFloat() / monoImage.height.toFloat()

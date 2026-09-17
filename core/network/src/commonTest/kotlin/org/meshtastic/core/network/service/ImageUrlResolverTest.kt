@@ -92,6 +92,7 @@ class ImageUrlResolverTest {
         assertTrue(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://meshpic.org/yk9"))
         assertTrue(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://d.privatepractice.app/w5N85eSw"))
         assertTrue(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://ibb.co/yk9abc"))
+        assertTrue(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://ibb.co/yk9abc/test-photo"))
         assertTrue(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://i.ibb.co/yk9abc/test.jpg"))
         assertTrue(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://example.com/cat.png"))
         assertFalse(ImageUrlResolver.isPhotoHostingOrDirectImageUrl("https://github.com/meshtastic"))

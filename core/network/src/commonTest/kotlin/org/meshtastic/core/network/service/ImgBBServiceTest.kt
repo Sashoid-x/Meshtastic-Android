@@ -83,7 +83,7 @@ class ImgBBServiceTest {
         val result = service.uploadImage(byteArrayOf(1, 2, 3), apiKey = "test_key", expiration = ImgbbExpiration.DAYS_1)
 
         assertTrue(result.isSuccess)
-        assertEquals("https://ibb.co/2ndCYJK", result.getOrNull())
+        assertEquals("https://i.ibb.co/2ndCYJK/c1f64245b6e0.jpg", result.getOrNull())
     }
 
     @Test

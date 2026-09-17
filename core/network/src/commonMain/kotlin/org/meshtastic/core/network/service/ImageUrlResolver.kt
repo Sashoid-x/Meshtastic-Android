@@ -40,7 +40,8 @@ object ImageUrlResolver {
             """https?://(?:www\.)?d\.privatepractice\.app/([A-Za-z0-9_-]{6,64})(?:/preview)?/?""",
             RegexOption.IGNORE_CASE,
         )
-    private val IMGBB_VIEWER_REGEX = Regex("""https?://(?:www\.)?ibb\.co/([A-Za-z0-9_-]+)/?""", RegexOption.IGNORE_CASE)
+    private val IMGBB_VIEWER_REGEX =
+        Regex("""https?://(?:www\.)?ibb\.co/([A-Za-z0-9_-]+)(?:/[^\s<>"']*)?""", RegexOption.IGNORE_CASE)
     private val IMGBB_DIRECT_REGEX = Regex("""https?://(?:www\.)?i\.ibb\.co/[^\s<>"']+""", RegexOption.IGNORE_CASE)
     private val GENERAL_URL_REGEX = Regex("""https?://[^\s<>"']+[^\s<>"'.,;:!?)]""", RegexOption.IGNORE_CASE)
     private val OG_IMAGE_REGEX =
@@ -151,7 +152,7 @@ object ImageUrlResolver {
                     runCatching {
                         httpClient.get(url) {
                             header(HttpHeaders.UserAgent, USER_AGENT)
-                            header(HttpHeaders.Range, "bytes=0-8192")
+                            header(HttpHeaders.Range, "bytes=0-65536")
                         }
                     }
                         .getOrNull()
