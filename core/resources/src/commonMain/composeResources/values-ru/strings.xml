@@ -208,6 +208,7 @@
     <string name="aqi_unhealthy_sensitive">Вредный для чувствительных групп</string>
     <string name="aqi_value_with_severity">%1$d (%2$s)</string>
     <string name="aqi_very_unhealthy">Очень вредный</string>
+    <string name="archived_channel">Архивный канал</string>
     <string name="are_you_sure">Вы уверены?</string>
     <string name="are_you_sure_change_default">Вы уверены, что хотите перейти на канал по умолчанию?</string>
     <string name="audio">Звук</string>
@@ -1122,7 +1123,6 @@
     <string name="lockdown_disable_message">Введи пароль для отключения блокировки. Устройство расшифрует хранилище и перезагрузится.</string>
     <string name="lockdown_enable">Включить блокировку</string>
     <string name="lockdown_enable_ack">Понимаю</string>
-    <string name="lockdown_enable_warning">Внимание: включение режима блокировки закрывает отладочный порт (SWD) на поддерживаемом оборудовании. Ты можешь отключить блокировку в любое время с помощью пароля, а полное стирание устройства восстанавливает всё при необходимости.</string>
     <string name="lockdown_enter_passphrase">Введи парольную фразу</string>
     <string name="lockdown_hide_passphrase">Скрыть</string>
     <string name="lockdown_hours_until_expiry">Часов до истечения</string>

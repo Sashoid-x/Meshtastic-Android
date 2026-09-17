@@ -16,6 +16,9 @@
  */
 package org.meshtastic.feature.settings
 
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.platform.UriHandler
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -25,6 +28,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
 import org.meshtastic.core.ui.theme.AppTheme
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
@@ -76,9 +80,16 @@ class AboutScreenTest {
         onNodeWithText("Project information").performScrollTo().assertIsDisplayed()
         onNodeWithText("Website").performScrollTo().assertIsDisplayed()
         onNodeWithText("Documentation").performScrollTo().assertIsDisplayed()
+        onNodeWithText("License").performScrollTo().assertIsDisplayed()
 
         // Copyright footer
         onNodeWithText("Meshtastic® Copyright Meshtastic LLC").performScrollTo().assertIsDisplayed()
+        onNodeWithText(
+            "Free software under the GNU General Public License v3, with no warranty. " +
+                "You may redistribute it under the same license.",
+        )
+            .performScrollTo()
+            .assertIsDisplayed()
 
         // 5-tap on version opens testers dialog
         onNodeWithText("2.5.0-adv").performScrollTo()
@@ -111,5 +122,26 @@ class AboutScreenTest {
         onNodeWithText("Check for updates").performScrollTo().assertIsDisplayed()
         onNodeWithText("Check for updates").performClick()
         assertTrue(checkForUpdatesCalled)
+    }
+
+    @Test
+    fun `license row opens the GPLv3 license`() = runComposeUiTest {
+        val openedUris = mutableListOf<String>()
+        val uriHandler =
+            object : UriHandler {
+                override fun openUri(uri: String) {
+                    openedUris += uri
+                }
+            }
+
+        setContent {
+            CompositionLocalProvider(LocalUriHandler provides uriHandler) {
+                AppTheme { AboutScreen(appVersionName = "2.5.0", onNavigateUp = {}, onNavigateToAcknowledgements = {}) }
+            }
+        }
+
+        onNodeWithText("License").performScrollTo().performClick()
+
+        assertEquals(listOf("https://www.gnu.org/licenses/gpl-3.0.html"), openedUris)
     }
 }
