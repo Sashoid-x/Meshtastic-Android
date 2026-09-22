@@ -324,7 +324,7 @@ class MeshDataHandlerImpl(
         // guard (0 means "use the default pushpin").
         if (!u.icon.isValidCodePoint()) {
             Logger.w { "Clearing an out-of-range waypoint icon code point (${u.icon})" }
-            dataPacket.bytes = Waypoint.ADAPTER.encode(u.copy(icon = 0)).toByteString()
+            dataPacket.bytes = Waypoint.ADAPTER.encode(u.newBuilder().also { wb -> wb.icon = 0 }.build()).toByteString()
         }
         val updateNotification = u.expire > nowSeconds.toInt()
         radioInterfaceService.launchSessionWork(scope, session) {
@@ -373,10 +373,16 @@ class MeshDataHandlerImpl(
         val payload = packet.decoded?.payload ?: return
         val u =
             User.ADAPTER.decode(payload)
-                .let { if (it.is_licensed == true) it.copy(public_key = ByteString.EMPTY) else it }
+                .let {
+                    if (it.is_licensed == true) {
+                        it.newBuilder().also { wb -> wb.public_key = ByteString.EMPTY }.build()
+                    } else {
+                        it
+                    }
+                }
                 .let {
                     if (packet.via_mqtt == true && !it.long_name.endsWith(" (MQTT)")) {
-                        it.copy(long_name = "${it.long_name} (MQTT)")
+                        it.newBuilder().also { wb -> wb.long_name = "${it.long_name} (MQTT)" }.build()
                     } else {
                         it
                     }
@@ -623,7 +629,7 @@ class MeshDataHandlerImpl(
             val contactKey = dataPacket.contactKey(myNodeNum)
 
             val fromNode = nodeManager.nodeDBbyNodeNum[packet.from] ?: Node(num = packet.from)
-            val fromUser = fromNode.user.copy(id = fromNode.user.id.ifEmpty { fromId })
+            val fromUser = fromNode.user.newBuilder().also { wb -> wb.id = fromNode.user.id.ifEmpty { fromId } }.build()
 
             val reaction =
                 Reaction(

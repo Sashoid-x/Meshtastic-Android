@@ -85,7 +85,7 @@ permissions:
 
 jobs:
   prepare-build-info:
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     timeout-minutes: 10
     outputs:
       APP_VERSION_NAME: ${{ steps.prep_version.outputs.APP_VERSION_NAME }}
@@ -127,7 +127,7 @@ jobs:
         shell: bash
 
   release-google:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 90
     needs: [prepare-build-info]
     steps:
@@ -168,7 +168,7 @@ jobs:
           echo "$GOOGLE_PLAY_JSON_KEY" > ./fastlane/play-store-credentials.json
 
       - name: Setup Fastlane
-        uses: ruby/setup-ruby@984c0c890880bbf811283d6f09c4607c62d210a4 # v1.323.0
+        uses: ruby/setup-ruby@e8944e80fb94b20106697132f8c20c665fab29e9 # v1.325.0
         with:
           ruby-version: '4.0.7'
           bundler-cache: true
@@ -211,7 +211,7 @@ jobs:
           subject-path: androidApp/build/outputs/apk/google/release/*.apk
 
   release-fdroid:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 90
     needs: [prepare-build-info]
     steps:
@@ -239,7 +239,7 @@ jobs:
           echo "$KEYSTORE_PROPERTIES" > ./keystore.properties
 
       - name: Setup Fastlane
-        uses: ruby/setup-ruby@984c0c890880bbf811283d6f09c4607c62d210a4 # v1.323.0
+        uses: ruby/setup-ruby@e8944e80fb94b20106697132f8c20c665fab29e9 # v1.325.0
         with:
           ruby-version: '4.0.7'
           bundler-cache: true
@@ -358,33 +358,6 @@ jobs:
           timestamp-rfc3161: http://timestamp.acs.microsoft.com
           timestamp-digest: SHA256
 
-      # jpackage computes the .deb Depends: line from the build host's package names.
-      # Ubuntu 24.04 records time_t64 transition names (libasound2t64, libpng16-16t64)
-      # that don't exist on Debian 12 Bookworm / Raspberry Pi OS, making the .deb
-      # uninstallable there (#5233 pinned ubuntu-22.04 for this; those runners retire
-      # 2027-04, brownouts from 2026-09). Strip the t64 suffix instead: Bookworm ships
-      # the plain names, and on Trixie / Ubuntu 24.04+ the t64 packages Provide them.
-      # Rewriting the control file is the only host-independent fix — jpackage's
-      # --linux-package-deps is additive-only, and the Compose plugin clears its
-      # --resource-dir during the task, so a custom control template can't be injected.
-      - name: Rewrite t64 dependency names in .deb (Debian Bookworm / Pi OS compatibility)
-        if: runner.os == 'Linux'
-        run: |
-          shopt -s nullglob
-          for deb in desktopApp/build/compose/binaries/main-release/deb/*.deb; do
-            work=$(mktemp -d)
-            dpkg-deb -R "$deb" "$work"
-            echo "$(basename "$deb") before: $(grep '^Depends:' "$work/DEBIAN/control")"
-            sed -i -E '/^(Depends|Pre-Depends|Recommends):/ s/(lib[a-z0-9.+-]*)t64([, (]|$)/\1\2/g' "$work/DEBIAN/control"
-            echo "$(basename "$deb") after:  $(grep '^Depends:' "$work/DEBIAN/control")"
-            if grep -nE '^[A-Za-z-]+:.*\blib[a-z0-9.+-]*t64\b' "$work/DEBIAN/control"; then
-              echo "::error::t64 dependency name survived rewrite in $(basename "$deb") — extend the sed above"
-              exit 1
-            fi
-            dpkg-deb -b --root-owner-group "$work" "$deb"
-            rm -rf "$work"
-          done
-
       # CMP's TargetFormat.AppImage is jpackage's "app-image" — an unpacked
       # directory, not a Linux .AppImage. Wrap it into a real AppImage so
       # Linux users get a portable no-install binary alongside .deb/.rpm.
@@ -485,7 +458,7 @@ jobs:
 
   release-flatpak-src:
     if: ${{ inputs.build_flatpak_src }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 30
     needs: [create-flatpak-src]
     steps:
@@ -523,7 +496,7 @@ jobs:
 
   github-release:
     if: ${{ !cancelled() && !failure() }}
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-26.04-arm
     timeout-minutes: 15
     needs:
       - prepare-build-info
@@ -574,6 +547,21 @@ jobs:
             -f target_commitish="$TARGET" \
             ${PREV:+-f previous_tag_name="$PREV"} \
             --jq '.body' > release-notes.md
+
+      # The generated notes are a list of PR titles - accurate, and not what a user reads.
+      # metainfo.xml already carries one hand-written paragraph per version, required by
+      # pull-request.yml on the VERSION_NAME_BASE bump, so reuse it rather than asking for
+      # the same sentence twice. When it is missing the notes gain a rendered warning
+      # instead of silence, and every release here is created as a draft, so that warning
+      # is seen before anyone publishes.
+      - name: Prepend release highlights
+        run: |
+          python3 scripts/release-highlights.py \
+            desktopApp/packaging/linux/org.meshtastic.MeshtasticDesktop.metainfo.xml \
+            config.properties \
+            release-notes.md
+          echo "--- release notes ---"
+          cat release-notes.md
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3

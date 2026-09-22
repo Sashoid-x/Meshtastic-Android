@@ -47,6 +47,7 @@ import org.meshtastic.mqtt.MqttEndpoint
 import org.meshtastic.mqtt.MqttException
 import org.meshtastic.mqtt.MqttLogLevel
 import org.meshtastic.mqtt.MqttMessage
+import org.meshtastic.mqtt.MqttProtocolVersion
 import org.meshtastic.mqtt.QoS
 import org.meshtastic.mqtt.ReasonCode
 import org.meshtastic.mqtt.packet.Subscription
@@ -64,6 +65,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -190,7 +192,16 @@ class MQTTRepositoryImplTest {
     @Test
     fun `empty address substitutes the public broker's well-known credentials`() {
         // Mirrors firmware PubSubConfig: lockdown-redacted (zeroed) configs must not connect anonymously.
-        val creds = effectiveCredentials(ModuleConfig.MQTTConfig(address = "", username = "", password = ""))
+        val creds =
+            effectiveCredentials(
+                ModuleConfig.MQTTConfig.Builder()
+                    .also { wb ->
+                        wb.address = ""
+                        wb.username = ""
+                        wb.password = ""
+                    }
+                    .build(),
+            )
         assertEquals("meshdev" to "large4cats", creds)
     }
 
@@ -201,19 +212,42 @@ class MQTTRepositoryImplTest {
 
     @Test
     fun `empty address ignores stored credentials entirely - firmware parity`() {
-        val creds = effectiveCredentials(ModuleConfig.MQTTConfig(address = "", username = "custom", password = "pw"))
+        val creds =
+            effectiveCredentials(
+                ModuleConfig.MQTTConfig.Builder()
+                    .also { wb ->
+                        wb.address = ""
+                        wb.username = "custom"
+                        wb.password = "pw"
+                    }
+                    .build(),
+            )
         assertEquals("meshdev" to "large4cats", creds)
     }
 
     @Test
     fun `explicit address uses the stored credentials as-is`() {
-        val config = ModuleConfig.MQTTConfig(address = "broker.example.com", username = "user", password = "pass")
+        val config =
+            ModuleConfig.MQTTConfig.Builder()
+                .also { wb ->
+                    wb.address = "broker.example.com"
+                    wb.username = "user"
+                    wb.password = "pass"
+                }
+                .build()
         assertEquals("user" to "pass", effectiveCredentials(config))
     }
 
     @Test
     fun `explicit default server address uses the stored credentials as-is - firmware parity`() {
-        val config = ModuleConfig.MQTTConfig(address = "mqtt.meshtastic.org", username = "user", password = "pass")
+        val config =
+            ModuleConfig.MQTTConfig.Builder()
+                .also { wb ->
+                    wb.address = "mqtt.meshtastic.org"
+                    wb.username = "user"
+                    wb.password = "pass"
+                }
+                .build()
         assertEquals("user" to "pass", effectiveCredentials(config))
     }
 
@@ -253,29 +287,47 @@ class MQTTRepositoryImplTest {
         val radioConfigRepository =
             FakeRadioConfigRepository().apply {
                 setChannelSet(
-                    ChannelSet(
-                        settings =
-                        listOf(
-                            ChannelSettings(
-                                name = "alpha",
-                                downlink_enabled = true,
-                                psk = byteArrayOf(1).toByteString(),
-                            ),
-                            ChannelSettings(
-                                name = "beta",
-                                downlink_enabled = false,
-                                psk = byteArrayOf(2).toByteString(),
-                            ),
-                            ChannelSettings(
-                                name = "gamma",
-                                downlink_enabled = true,
-                                psk = byteArrayOf(3).toByteString(),
-                            ),
-                        ),
-                    ),
+                    ChannelSet.Builder()
+                        .also { wb ->
+                            wb.settings =
+                                listOf(
+                                    ChannelSettings.Builder()
+                                        .also { wb ->
+                                            wb.name = "alpha"
+                                            wb.downlink_enabled = true
+                                            wb.psk = byteArrayOf(1).toByteString()
+                                        }
+                                        .build(),
+                                    ChannelSettings.Builder()
+                                        .also { wb ->
+                                            wb.name = "beta"
+                                            wb.downlink_enabled = false
+                                            wb.psk = byteArrayOf(2).toByteString()
+                                        }
+                                        .build(),
+                                    ChannelSettings.Builder()
+                                        .also { wb ->
+                                            wb.name = "gamma"
+                                            wb.downlink_enabled = true
+                                            wb.psk = byteArrayOf(3).toByteString()
+                                        }
+                                        .build(),
+                                )
+                        }
+                        .build(),
                 )
                 setLocalModuleConfigDirect(
-                    LocalModuleConfig(mqtt = ModuleConfig.MQTTConfig(root = "custom", json_enabled = true)),
+                    LocalModuleConfig.Builder()
+                        .also { wb ->
+                            wb.mqtt =
+                                ModuleConfig.MQTTConfig.Builder()
+                                    .also { wb ->
+                                        wb.root = "custom"
+                                        wb.json_enabled = true
+                                    }
+                                    .build()
+                        }
+                        .build(),
                 )
             }
         val harness = createHarness(radioConfigRepository = radioConfigRepository)
@@ -314,7 +366,12 @@ class MQTTRepositoryImplTest {
                 radioConfigRepository =
                 FakeRadioConfigRepository().apply {
                     setLocalModuleConfigDirect(
-                        LocalModuleConfig(mqtt = ModuleConfig.MQTTConfig(json_enabled = true)),
+                        LocalModuleConfig.Builder()
+                            .also { wb ->
+                                wb.mqtt =
+                                    ModuleConfig.MQTTConfig.Builder().also { wb -> wb.json_enabled = true }.build()
+                            }
+                            .build(),
                     )
                 },
             )
@@ -449,6 +506,56 @@ class MQTTRepositoryImplTest {
         runCurrent()
         assertEquals(1, harness.client.connectCalls.size)
         assertEquals(1, harness.client.subscribeCalls.size)
+
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertEquals(2, harness.client.connectCalls.size)
+        assertEquals(2, harness.client.subscribeCalls.size)
+
+        collector.cancelAndJoin()
+        runCurrent()
+    }
+
+    @Test
+    fun `a refused topic filter is recorded for the UI without restarting the connection`() = runTest {
+        val harness = createHarness()
+        val refusal =
+            MqttException.SubscriptionRefused(
+                reasonCode = ReasonCode.NOT_AUTHORIZED,
+                message = "The broker refused 'msh/2/e/alpha/+' (NOT_AUTHORIZED)",
+                refused = mapOf("msh/2/e/alpha/+" to ReasonCode.NOT_AUTHORIZED),
+                granted = listOf("msh/2/e/PKI/+"),
+            )
+        harness.client.failSubscribeWith(refusal)
+
+        val collector = startProxyCollection(harness.repository)
+        runCurrent()
+        assertEquals(1, harness.client.connectCalls.size)
+        assertEquals(1, harness.client.subscribeCalls.size)
+        assertSame(refusal, harness.repository.subscriptionRefusal.value)
+
+        advanceTimeBy(60_000)
+        runCurrent()
+        assertEquals(1, harness.client.connectCalls.size)
+        assertEquals(1, harness.client.subscribeCalls.size)
+
+        collector.cancelAndJoin()
+        runCurrent()
+        assertNull(harness.repository.subscriptionRefusal.value)
+    }
+
+    @Test
+    fun `a malformed SUBACK fails the attempt and the connect loop retries it`() = runTest {
+        val harness = createHarness()
+        harness.client.failSubscribeWith(
+            MqttException.ProtocolError(ReasonCode.PROTOCOL_ERROR, "SUBACK carried 1 reason codes for 2 topic filters"),
+        )
+
+        val collector = startProxyCollection(harness.repository)
+        runCurrent()
+        assertEquals(1, harness.client.connectCalls.size)
+        assertEquals(1, harness.client.subscribeCalls.size)
+        assertNull(harness.repository.subscriptionRefusal.value)
 
         advanceTimeBy(1_000)
         runCurrent()
@@ -655,53 +762,83 @@ class MQTTRepositoryImplTest {
 
     // region isUndeliverableDownlink — Tier 1 drop filter for MQTT client-proxy downlink packets.
 
+    private val usNum = 0x12345678
+    private val usId = "!12345678"
+
+    /** An envelope with both halves of the self-traffic decision set: who sent it, and who gatewayed it. */
+    private fun selfEnvelope(from: Int, gatewayId: String): ByteArray =
+        envelopeBytes(gatewayId = gatewayId, packet = MeshPacket.Builder().also { wb -> wb.from = from }.build())
+
     private fun envelopeBytes(
         channelId: String = "LongFast",
         gatewayId: String = "!aabbccdd",
-        packet: MeshPacket? = MeshPacket(),
-    ): ByteArray =
-        ServiceEnvelope.ADAPTER.encode(ServiceEnvelope(packet = packet, channel_id = channelId, gateway_id = gatewayId))
+        packet: MeshPacket? = MeshPacket.Builder().build(),
+    ): ByteArray = ServiceEnvelope.ADAPTER.encode(
+        ServiceEnvelope.Builder()
+            .also { wb ->
+                wb.packet = packet
+                wb.channel_id = channelId
+                wb.gateway_id = gatewayId
+            }
+            .build(),
+    )
 
     @Test
     fun `payload-less packet is undeliverable`() {
         // The observed LongFast flood: a packet with neither decoded nor encrypted set.
-        val bytes = envelopeBytes(packet = MeshPacket(from = 1, to = 2))
+        val bytes =
+            envelopeBytes(
+                packet =
+                MeshPacket.Builder()
+                    .also { wb ->
+                        wb.from = 1
+                        wb.to = 2
+                    }
+                    .build(),
+            )
         assertTrue(isUndeliverableDownlink(bytes, myId = "!12345678"))
     }
 
     @Test
     fun `decoded packet is deliverable`() {
-        val bytes = envelopeBytes(packet = MeshPacket(decoded = Data()))
+        val bytes =
+            envelopeBytes(packet = MeshPacket.Builder().also { wb -> wb.decoded = Data.Builder().build() }.build())
         assertFalse(isUndeliverableDownlink(bytes, myId = "!12345678"))
     }
 
     @Test
     fun `encrypted packet is deliverable`() {
-        val bytes = envelopeBytes(packet = MeshPacket(encrypted = byteArrayOf(1, 2, 3).toByteString()))
+        val bytes =
+            envelopeBytes(
+                packet = MeshPacket.Builder().also { wb -> wb.encrypted = byteArrayOf(1, 2, 3).toByteString() }.build(),
+            )
         assertFalse(isUndeliverableDownlink(bytes, myId = "!12345678"))
     }
 
     @Test
     fun `PKI payload-less packet is deliverable - guard`() {
-        val bytes = envelopeBytes(channelId = "PKI", packet = MeshPacket(from = 1))
+        val bytes = envelopeBytes(channelId = "PKI", packet = MeshPacket.Builder().also { wb -> wb.from = 1 }.build())
         assertFalse(isUndeliverableDownlink(bytes, myId = "!12345678"))
     }
 
     @Test
     fun `own echo payload-less packet is deliverable - guard`() {
-        val bytes = envelopeBytes(gatewayId = "!12345678", packet = MeshPacket(from = 1))
+        val bytes =
+            envelopeBytes(gatewayId = "!12345678", packet = MeshPacket.Builder().also { wb -> wb.from = 1 }.build())
         assertFalse(isUndeliverableDownlink(bytes, myId = "!12345678"))
     }
 
     @Test
     fun `a different gateway's payload-less packet is undeliverable`() {
-        val bytes = envelopeBytes(gatewayId = "!deadbeef", packet = MeshPacket(from = 1))
+        val bytes =
+            envelopeBytes(gatewayId = "!deadbeef", packet = MeshPacket.Builder().also { wb -> wb.from = 1 }.build())
         assertTrue(isUndeliverableDownlink(bytes, myId = "!12345678"))
     }
 
     @Test
     fun `null myId does not suppress dropping`() {
-        val bytes = envelopeBytes(gatewayId = "!deadbeef", packet = MeshPacket(from = 1))
+        val bytes =
+            envelopeBytes(gatewayId = "!deadbeef", packet = MeshPacket.Builder().also { wb -> wb.from = 1 }.build())
         assertTrue(isUndeliverableDownlink(bytes, myId = null))
     }
 
@@ -721,8 +858,20 @@ class MQTTRepositoryImplTest {
     @Test
     fun `payload-less downlink stubs are dropped before forwarding`() = runTest {
         val harness = createHarness()
-        val stub = envelopeBytes(packet = MeshPacket(from = 1, to = 2)) // no payload → dropped
-        val real = envelopeBytes(packet = MeshPacket(decoded = Data())) // has payload → forwarded
+        val stub =
+            envelopeBytes(
+                packet =
+                MeshPacket.Builder()
+                    .also { wb ->
+                        wb.from = 1
+                        wb.to = 2
+                    }
+                    .build(),
+            ) // no payload → dropped
+        val real =
+            envelopeBytes(
+                packet = MeshPacket.Builder().also { wb -> wb.decoded = Data.Builder().build() }.build(),
+            ) // has payload → forwarded
 
         val nextMessage = backgroundScope.async { harness.repository.proxyMessageFlow.first() }
         runCurrent()
@@ -732,6 +881,98 @@ class MQTTRepositoryImplTest {
         // first() returns the first *forwarded* message; the stub was dropped, so it must be `real`.
         val proxyMessage = nextMessage.await()
         assertContentEquals(real, proxyMessage.data_?.toByteArray())
+    }
+
+    @Test
+    fun `a 3 1 1 broker is subscribed without the MQTT 5 noLocal option`() = runTest {
+        val client = FakeMqttClientSession().apply { negotiatedProtocolVersion = MqttProtocolVersion.V3_1_1 }
+        val harness = createHarness(client = client)
+
+        val collector = startProxyCollection(harness.repository)
+        runCurrent()
+
+        val subscriptions = harness.client.subscribeCalls.single()
+        assertTrue(subscriptions.isNotEmpty(), "a 3.1.1 broker must still be subscribed")
+        assertTrue(
+            subscriptions.none { it.noLocal },
+            "noLocal is an MQTT 5 option and makes the client reject the whole SUBSCRIBE on 3.1.1",
+        )
+
+        collector.cancel()
+    }
+
+    @Test
+    fun `a 5 0 broker keeps noLocal so the broker does not echo our own uplink`() = runTest {
+        val client = FakeMqttClientSession().apply { negotiatedProtocolVersion = MqttProtocolVersion.V5_0 }
+        val harness = createHarness(client = client)
+
+        val collector = startProxyCollection(harness.repository)
+        runCurrent()
+
+        val subscriptions = harness.client.subscribeCalls.single()
+        assertTrue(subscriptions.isNotEmpty())
+        assertTrue(subscriptions.all { it.noLocal })
+
+        collector.cancel()
+    }
+
+    @Test
+    fun `our own uplink returning via our own gateway is forwarded as firmware reads it as a local ack`() {
+        val ours = selfEnvelope(from = usNum, gatewayId = usId)
+
+        assertEquals(MqttSelfTraffic.FORWARD, classifyMqttSelfTraffic(ours, myId = usId))
+    }
+
+    @Test
+    fun `our node id arriving via someone else's gateway is a forgery and is dropped`() {
+        val forged = selfEnvelope(from = usNum, gatewayId = "!aabbccdd")
+
+        assertEquals(MqttSelfTraffic.FORGED_SENDER, classifyMqttSelfTraffic(forged, myId = usId))
+    }
+
+    @Test
+    fun `our own uplink of someone else's packet coming back is dropped`() {
+        val bridged = selfEnvelope(from = 0xAABBCCDD.toInt(), gatewayId = usId)
+
+        assertEquals(MqttSelfTraffic.OWN_UPLINK_ECHO, classifyMqttSelfTraffic(bridged, myId = usId))
+    }
+
+    @Test
+    fun `an unrelated packet from an unrelated gateway is forwarded`() {
+        val theirs = selfEnvelope(from = 0xAABBCCDD.toInt(), gatewayId = "!99887766")
+
+        assertEquals(MqttSelfTraffic.FORWARD, classifyMqttSelfTraffic(theirs, myId = usId))
+    }
+
+    @Test
+    fun `self-traffic classification fails open before the local node id is known`() {
+        val ours = selfEnvelope(from = usNum, gatewayId = "!aabbccdd")
+
+        assertEquals(MqttSelfTraffic.FORWARD, classifyMqttSelfTraffic(ours, myId = null))
+    }
+
+    @Test
+    fun `self-traffic classification fails open on unparseable bytes`() {
+        assertEquals(MqttSelfTraffic.FORWARD, classifyMqttSelfTraffic(byteArrayOf(-1, -1, -1, -1), myId = usId))
+    }
+
+    @Test
+    fun `the json topic applies the same three-way rule`() {
+        val us = usNum.toLong() and 0xFFFFFFFFL
+        val them = 0xAABBCCDDL
+
+        assertEquals(MqttSelfTraffic.FORWARD, classifyMqttJsonSelfTraffic(us, usId, usId))
+        assertEquals(MqttSelfTraffic.FORGED_SENDER, classifyMqttJsonSelfTraffic(us, "!aabbccdd", usId))
+        assertEquals(MqttSelfTraffic.OWN_UPLINK_ECHO, classifyMqttJsonSelfTraffic(them, usId, usId))
+        assertEquals(MqttSelfTraffic.FORWARD, classifyMqttJsonSelfTraffic(them, "!99887766", usId))
+    }
+
+    @Test
+    fun `the json topic fails open when the sender or local id is unknown`() {
+        val us = usNum.toLong() and 0xFFFFFFFFL
+
+        assertEquals(MqttSelfTraffic.FORWARD, classifyMqttJsonSelfTraffic(us, null, usId))
+        assertEquals(MqttSelfTraffic.FORWARD, classifyMqttJsonSelfTraffic(us, usId, null))
     }
 
     // endregion
@@ -762,16 +1003,20 @@ class MQTTRepositoryImplTest {
 
     private fun defaultRadioConfigRepository(): FakeRadioConfigRepository = FakeRadioConfigRepository().apply {
         setChannelSet(
-            ChannelSet(
-                settings =
-                listOf(
-                    ChannelSettings(
-                        name = "alpha",
-                        downlink_enabled = true,
-                        psk = byteArrayOf(1).toByteString(),
-                    ),
-                ),
-            ),
+            ChannelSet.Builder()
+                .also { wb ->
+                    wb.settings =
+                        listOf(
+                            ChannelSettings.Builder()
+                                .also { wb ->
+                                    wb.name = "alpha"
+                                    wb.downlink_enabled = true
+                                    wb.psk = byteArrayOf(1).toByteString()
+                                }
+                                .build(),
+                        )
+                }
+                .build(),
         )
     }
 
@@ -785,6 +1030,7 @@ class MQTTRepositoryImplTest {
         private val mutableMessages = MutableSharedFlow<MqttMessage>(extraBufferCapacity = 8)
         override val messages: Flow<MqttMessage> = mutableMessages
         override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected.Idle)
+        override var negotiatedProtocolVersion: MqttProtocolVersion = MqttProtocolVersion.V5_0
         val connectCalls = mutableListOf<MqttEndpoint>()
         val subscribeCalls = mutableListOf<List<Subscription>>()
         val publishStarted = mutableListOf<MqttMessage>()

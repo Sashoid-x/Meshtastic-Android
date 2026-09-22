@@ -23,12 +23,12 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -40,33 +40,37 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.common.util.extractWifiCredentials
+import org.meshtastic.core.model.Capabilities
 import org.meshtastic.core.model.util.handleMeshtasticUri
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.advanced
 import org.meshtastic.core.resources.cancel
-import org.meshtastic.core.resources.config_network_eth_enabled_summary
 import org.meshtastic.core.resources.config_network_udp_enabled_summary
-import org.meshtastic.core.resources.config_network_wifi_enabled_summary
 import org.meshtastic.core.resources.connection_status
-import org.meshtastic.core.resources.dns
 import org.meshtastic.core.resources.error
 import org.meshtastic.core.resources.ethernet_config
-import org.meshtastic.core.resources.ethernet_enabled
 import org.meshtastic.core.resources.ethernet_ip
-import org.meshtastic.core.resources.gateway
-import org.meshtastic.core.resources.ipv4_mode
 import org.meshtastic.core.resources.network
 import org.meshtastic.core.resources.nfc_disabled
-import org.meshtastic.core.resources.ntp_server
 import org.meshtastic.core.resources.open_settings
-import org.meshtastic.core.resources.password
-import org.meshtastic.core.resources.rsyslog_server
 import org.meshtastic.core.resources.scan_nfc
-import org.meshtastic.core.resources.ssid
-import org.meshtastic.core.resources.subnet
+import org.meshtastic.core.resources.schema_network_address_mode
+import org.meshtastic.core.resources.schema_network_eth_enabled
+import org.meshtastic.core.resources.schema_network_eth_enabled_description
+import org.meshtastic.core.resources.schema_network_ipv4_dns
+import org.meshtastic.core.resources.schema_network_ipv4_gateway
+import org.meshtastic.core.resources.schema_network_ipv4_ip
+import org.meshtastic.core.resources.schema_network_ipv4_subnet
+import org.meshtastic.core.resources.schema_network_ntp_server
+import org.meshtastic.core.resources.schema_network_ntp_server_description
+import org.meshtastic.core.resources.schema_network_rsyslog_server
+import org.meshtastic.core.resources.schema_network_wifi_enabled
+import org.meshtastic.core.resources.schema_network_wifi_enabled_description
+import org.meshtastic.core.resources.schema_network_wifi_psk
+import org.meshtastic.core.resources.schema_network_wifi_ssid
+import org.meshtastic.core.resources.schema_network_wifi_ssid_description
 import org.meshtastic.core.resources.udp_enabled
 import org.meshtastic.core.resources.wifi_config
-import org.meshtastic.core.resources.wifi_enabled
 import org.meshtastic.core.resources.wifi_ip
 import org.meshtastic.core.resources.wifi_qr_code_error
 import org.meshtastic.core.resources.wifi_qr_code_scan
@@ -84,6 +88,7 @@ import org.meshtastic.core.ui.util.LocalNfcScannerSupported
 import org.meshtastic.feature.settings.radio.RadioConfigViewModel
 import org.meshtastic.feature.settings.radio.RebootBehavior
 import org.meshtastic.proto.Config
+import org.meshtastic.proto.enabled_protocols
 
 @Composable
 private fun ScanErrorDialog(onDismiss: () -> Unit = {}) =
@@ -99,7 +104,9 @@ private fun formatIpAddress(ipAddress: Int): String = "${(ipAddress) and 0xFF}."
 @Composable
 fun NetworkConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, onOpenNfcSettings: () -> Unit = {}) {
     val state by viewModel.radioConfigState.collectAsStateWithLifecycle()
-    val networkConfig = state.radioConfig.network ?: Config.NetworkConfig()
+    val firmwareVersion = state.metadata?.firmware_version
+    val capabilities = remember(firmwareVersion) { Capabilities(firmwareVersion) }
+    val networkConfig = state.radioConfig.network ?: Config.NetworkConfig.Builder().build()
     val formState = rememberConfigState(initialValue = networkConfig)
 
     var showScanErrorDialog: Boolean by rememberSaveable { mutableStateOf(false) }
@@ -134,7 +141,14 @@ fun NetworkConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, onO
             if (!handled) {
                 val (ssid, psk) = extractWifiCredentials(contents)
                 if (ssid != null && psk != null) {
-                    formState.value = formState.value.copy(wifi_ssid = ssid, wifi_psk = psk)
+                    formState.value =
+                        formState.value
+                            .newBuilder()
+                            .also { wb ->
+                                wb.wifi_ssid = ssid
+                                wb.wifi_psk = psk
+                            }
+                            .build()
                 } else {
                     showScanErrorDialog = true
                 }
@@ -158,7 +172,7 @@ fun NetworkConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, onO
         responseState = state.responseState,
         onDismissPacketResponse = viewModel::clearPacketResponse,
         onSave = {
-            val config = Config(network = it)
+            val config = Config.Builder().also { wb -> wb.network = it }.build()
             viewModel.setConfig(config)
         },
     ) {
@@ -195,16 +209,19 @@ fun NetworkConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, onO
         item {
             TitledCard(title = stringResource(Res.string.wifi_config)) {
                 SwitchPreference(
-                    title = stringResource(Res.string.wifi_enabled),
-                    summary = stringResource(Res.string.config_network_wifi_enabled_summary),
+                    title = stringResource(Res.string.schema_network_wifi_enabled),
+                    summary = stringResource(Res.string.schema_network_wifi_enabled_description),
                     checked = formState.value.wifi_enabled,
-                    onCheckedChange = { formState.value = formState.value.copy(wifi_enabled = it) },
+                    onCheckedChange = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.wifi_enabled = it }.build()
+                    },
                     enabled = state.connected,
                 )
                 if (formState.value.wifi_enabled) {
                     HorizontalDivider()
                     EditTextPreference(
-                        title = stringResource(Res.string.ssid),
+                        title = stringResource(Res.string.schema_network_wifi_ssid),
+                        summary = stringResource(Res.string.schema_network_wifi_ssid_description),
                         value = formState.value.wifi_ssid,
                         maxSize = 32, // wifi_ssid max_size:33
                         enabled = state.connected,
@@ -212,21 +229,23 @@ fun NetworkConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, onO
                         keyboardOptions =
                         KeyboardOptions.Default.copy(keyboardType = KeyboardType.Text, imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                        onValueChanged = { formState.value = formState.value.copy(wifi_ssid = it) },
+                        onValueChanged = {
+                            formState.value = formState.value.newBuilder().also { wb -> wb.wifi_ssid = it }.build()
+                        },
                     )
                     HorizontalDivider()
                     EditPasswordPreference(
-                        title = stringResource(Res.string.password),
+                        title = stringResource(Res.string.schema_network_wifi_psk),
                         value = formState.value.wifi_psk,
                         maxSize = 64, // wifi_psk max_size:65
                         enabled = state.connected,
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                        onValueChanged = { formState.value = formState.value.copy(wifi_psk = it) },
+                        onValueChanged = {
+                            formState.value = formState.value.newBuilder().also { wb -> wb.wifi_psk = it }.build()
+                        },
                     )
                     HorizontalDivider()
-                    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
                     val mediumHeight = ButtonDefaults.MediumContainerHeight
-                    @OptIn(ExperimentalMaterial3ExpressiveApi::class)
                     Button(
                         onClick = { barcodeScanner.startScan() },
                         shapes = ButtonDefaults.shapesFor(mediumHeight),
@@ -245,10 +264,12 @@ fun NetworkConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, onO
             item {
                 TitledCard(title = stringResource(Res.string.ethernet_config)) {
                     SwitchPreference(
-                        title = stringResource(Res.string.ethernet_enabled),
-                        summary = stringResource(Res.string.config_network_eth_enabled_summary),
+                        title = stringResource(Res.string.schema_network_eth_enabled),
+                        summary = stringResource(Res.string.schema_network_eth_enabled_description),
                         checked = formState.value.eth_enabled,
-                        onCheckedChange = { formState.value = formState.value.copy(eth_enabled = it) },
+                        onCheckedChange = {
+                            formState.value = formState.value.newBuilder().also { wb -> wb.eth_enabled = it }.build()
+                        },
                         enabled = state.connected,
                     )
                 }
@@ -257,7 +278,8 @@ fun NetworkConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, onO
         item {
             TitledCard(title = stringResource(Res.string.advanced)) {
                 EditTextPreference(
-                    title = stringResource(Res.string.ntp_server),
+                    title = stringResource(Res.string.schema_network_ntp_server),
+                    summary = stringResource(Res.string.schema_network_ntp_server_description),
                     value = formState.value.ntp_server,
                     maxSize = 32, // ntp_server max_size:33
                     enabled = state.connected,
@@ -265,11 +287,13 @@ fun NetworkConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, onO
                     keyboardOptions =
                     KeyboardOptions.Default.copy(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    onValueChanged = { formState.value = formState.value.copy(ntp_server = it) },
+                    onValueChanged = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.ntp_server = it }.build()
+                    },
                 )
                 HorizontalDivider()
                 EditTextPreference(
-                    title = stringResource(Res.string.rsyslog_server),
+                    title = stringResource(Res.string.schema_network_rsyslog_server),
                     value = formState.value.rsyslog_server,
                     maxSize = 32, // rsyslog_server max_size:33
                     enabled = state.connected,
@@ -277,72 +301,104 @@ fun NetworkConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, onO
                     keyboardOptions =
                     KeyboardOptions.Default.copy(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    onValueChanged = { formState.value = formState.value.copy(rsyslog_server = it) },
-                )
-                HorizontalDivider()
-                SwitchPreference(
-                    title = stringResource(Res.string.udp_enabled),
-                    summary = stringResource(Res.string.config_network_udp_enabled_summary),
-                    checked =
-                    formState.value.enabled_protocols and Config.NetworkConfig.ProtocolFlags.UDP_BROADCAST.value !=
-                        0,
-                    onCheckedChange = { enabled ->
-                        val flags =
-                            if (enabled) {
-                                formState.value.enabled_protocols or
-                                    Config.NetworkConfig.ProtocolFlags.UDP_BROADCAST.value
-                            } else {
-                                formState.value.enabled_protocols and
-                                    Config.NetworkConfig.ProtocolFlags.UDP_BROADCAST.value.inv()
-                            }
-                        formState.value = formState.value.copy(enabled_protocols = flags)
+                    onValueChanged = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.rsyslog_server = it }.build()
                     },
-                    enabled = state.connected,
                 )
                 HorizontalDivider()
+                if (capabilities.offers(Config.NetworkConfig.enabled_protocols)) {
+                    SwitchPreference(
+                        title = stringResource(Res.string.udp_enabled),
+                        summary = stringResource(Res.string.config_network_udp_enabled_summary),
+                        checked =
+                        formState.value.enabled_protocols and
+                            Config.NetworkConfig.ProtocolFlags.UDP_BROADCAST.value != 0,
+                        onCheckedChange = { enabled ->
+                            val flags =
+                                if (enabled) {
+                                    formState.value.enabled_protocols or
+                                        Config.NetworkConfig.ProtocolFlags.UDP_BROADCAST.value
+                                } else {
+                                    formState.value.enabled_protocols and
+                                        Config.NetworkConfig.ProtocolFlags.UDP_BROADCAST.value.inv()
+                                }
+                            formState.value =
+                                formState.value.newBuilder().also { wb -> wb.enabled_protocols = flags }.build()
+                        },
+                        enabled = state.connected,
+                    )
+                    HorizontalDivider()
+                }
                 DropDownPreference(
-                    title = stringResource(Res.string.ipv4_mode),
+                    title = stringResource(Res.string.schema_network_address_mode),
                     enabled = state.connected,
                     selectedItem = formState.value.address_mode,
-                    onItemSelected = { formState.value = formState.value.copy(address_mode = it) },
-                    itemLabel = { it.name },
+                    onItemSelected = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.address_mode = it }.build()
+                    },
                 )
                 if (formState.value.address_mode == Config.NetworkConfig.AddressMode.STATIC) {
                     HorizontalDivider()
-                    val ipv4 = formState.value.ipv4_config ?: Config.NetworkConfig.IpV4Config()
+                    val ipv4 = formState.value.ipv4_config ?: Config.NetworkConfig.IpV4Config.Builder().build()
                     EditIPv4Preference(
-                        title = stringResource(Res.string.wifi_ip),
+                        title = stringResource(Res.string.schema_network_ipv4_ip),
                         value = ipv4.ip,
                         enabled = state.connected,
-                        onValueChanged = { formState.value = formState.value.copy(ipv4_config = ipv4.copy(ip = it)) },
+                        onValueChanged = {
+                            formState.value =
+                                formState.value
+                                    .newBuilder()
+                                    .also { wb -> wb.ipv4_config = ipv4.newBuilder().also { wb -> wb.ip = it }.build() }
+                                    .build()
+                        },
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     )
                     HorizontalDivider()
                     EditIPv4Preference(
-                        title = stringResource(Res.string.gateway),
+                        title = stringResource(Res.string.schema_network_ipv4_gateway),
                         value = ipv4.gateway,
                         enabled = state.connected,
                         onValueChanged = {
-                            formState.value = formState.value.copy(ipv4_config = ipv4.copy(gateway = it))
+                            formState.value =
+                                formState.value
+                                    .newBuilder()
+                                    .also { wb ->
+                                        wb.ipv4_config = ipv4.newBuilder().also { wb -> wb.gateway = it }.build()
+                                    }
+                                    .build()
                         },
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     )
                     HorizontalDivider()
                     EditIPv4Preference(
-                        title = stringResource(Res.string.subnet),
+                        title = stringResource(Res.string.schema_network_ipv4_subnet),
                         value = ipv4.subnet,
                         enabled = state.connected,
                         onValueChanged = {
-                            formState.value = formState.value.copy(ipv4_config = ipv4.copy(subnet = it))
+                            formState.value =
+                                formState.value
+                                    .newBuilder()
+                                    .also { wb ->
+                                        wb.ipv4_config = ipv4.newBuilder().also { wb -> wb.subnet = it }.build()
+                                    }
+                                    .build()
                         },
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     )
                     HorizontalDivider()
                     EditIPv4Preference(
-                        title = stringResource(Res.string.dns),
+                        title = stringResource(Res.string.schema_network_ipv4_dns),
                         value = ipv4.dns,
                         enabled = state.connected,
-                        onValueChanged = { formState.value = formState.value.copy(ipv4_config = ipv4.copy(dns = it)) },
+                        onValueChanged = {
+                            formState.value =
+                                formState.value
+                                    .newBuilder()
+                                    .also { wb ->
+                                        wb.ipv4_config = ipv4.newBuilder().also { wb -> wb.dns = it }.build()
+                                    }
+                                    .build()
+                        },
                         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     )
                 }

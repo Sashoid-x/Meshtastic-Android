@@ -91,8 +91,8 @@ internal fun SecondaryMapSurface(
     interactions: MapInteractions = SecondaryMapInteractions,
     uiOptions: MapUiOptions = MapUiOptions.Standard,
 ) {
-    // Same guard as MeshMap, and in the same place: the state is pure Kotlin, the map view is what loads the
-    // native library. The style content is never composed without a presentation, so it stops here too.
+    // Same guard as MeshMap, and in the same place: the style content is never composed without a presentation, so
+    // it stops here too. Like MeshMap's, it covers the view and not the state.
     if (!LocalMapLibreRuntimeProbe.current()) return MapEngineUnavailable(modifier)
 
     val zoomRange = basemaps.current.zoomRange()
@@ -148,13 +148,13 @@ internal fun FitBoundsOnceVisible(
     // The effect restarts on [key], not on `bounds`, so it must read the current lambda rather than the one captured
     // when it last restarted — otherwise a recomposition that passes new bounds keeps framing the old ones.
     val currentBounds by rememberUpdatedState(bounds)
-    // Gated on the viewport rather than letting `fitCameraToBounds` wait for one inside the effect. Both reach the
-    // same camera, but waiting inside leaves the call cancellable for the whole time the map has yet to render,
-    // and it is cancelled by user input as well as by [key]: a fit lost that way is not retried until [key]
-    // changes again, which for these maps may be never.
+    // Gated on the viewport rather than letting `frameBounds` wait for one inside the effect. Both reach the same
+    // camera, but waiting inside leaves the call cancellable for the whole time the map has yet to render, and it
+    // is cancelled by user input as well as by [key]: a fit lost that way is not retried until [key] changes
+    // again, which for these maps may be never.
     val hasViewport = mapState.viewport != null
     LaunchedEffect(key, hasViewport) {
         if (!hasViewport) return@LaunchedEffect
-        currentBounds()?.let { mapState.fitCameraToBounds(it, padding = padding) }
+        currentBounds()?.let { mapState.frameBounds(it, padding = padding) }
     }
 }

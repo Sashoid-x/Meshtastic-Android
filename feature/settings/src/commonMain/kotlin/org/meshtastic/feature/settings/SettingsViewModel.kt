@@ -101,7 +101,7 @@ class SettingsViewModel(
             .stateInWhileSubscribed(initialValue = false)
 
     val localConfig: StateFlow<LocalConfig> =
-        radioConfigRepository.localConfigFlow.stateInWhileSubscribed(initialValue = LocalConfig())
+        radioConfigRepository.localConfigFlow.stateInWhileSubscribed(initialValue = LocalConfig.Builder().build())
 
     val provideLocation: StateFlow<Boolean> =
         myNodeInfo

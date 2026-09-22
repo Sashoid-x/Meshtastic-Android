@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.model.Capabilities
 import org.meshtastic.core.model.HamName
+import org.meshtastic.core.model.excludes
 import org.meshtastic.core.model.isUnmessageableRole
 import org.meshtastic.core.model.utf8Size
 import org.meshtastic.core.resources.Res
@@ -66,6 +67,7 @@ import org.meshtastic.core.ui.component.TitledCard
 import org.meshtastic.core.ui.icon.Close
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.feature.settings.radio.RadioConfigViewModel
+import org.meshtastic.proto.ExcludedModules
 import org.meshtastic.proto.ModuleConfig
 import org.meshtastic.proto.User
 
@@ -92,6 +94,8 @@ fun UserConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, focusS
     val formState = rememberConfigState(initialValue = userConfig)
     val firmwareVersion = state.metadata?.firmware_version
     val capabilities = remember(firmwareVersion) { Capabilities(firmwareVersion) }
+    val offersStatusMessage =
+        capabilities.supportsStatusMessage && !state.metadata.excludes(ExcludedModules.STATUSMESSAGE_CONFIG)
 
     // The status message is a ModuleConfig field, but it is part of the node's identity rather than a module of its
     // own, so it is edited beside the names instead of in a screen of its own. Editing it here also keeps it reachable
@@ -105,7 +109,7 @@ fun UserConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, focusS
     val statusFocus =
         rememberStatusMessageFocus(
             requested = focusStatusMessage,
-            supported = capabilities.supportsStatusMessage,
+            supported = offersStatusMessage,
             connected = state.connected,
         )
     // The field is absent without the capability, so the input can only differ from the saved value when shown.
@@ -145,7 +149,7 @@ fun UserConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, focusS
                     isLongNameError = !validLongName,
                     isShortNameError = !validShortName,
                 )
-                if (capabilities.supportsStatusMessage) {
+                if (offersStatusMessage) {
                     HorizontalDivider()
                     StatusMessageField(
                         value = statusMessageInput,
@@ -168,7 +172,9 @@ fun UserConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, focusS
                     (formState.value.is_unmessagable ?: false) ||
                         (!capabilities.canToggleUnmessageable && formState.value.role.isUnmessageableRole()),
                     enabled = formState.value.is_unmessagable != null || capabilities.canToggleUnmessageable,
-                    onCheckedChange = { formState.value = formState.value.copy(is_unmessagable = it) },
+                    onCheckedChange = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.is_unmessagable = it }.build()
+                    },
                     containerColor = CardDefaults.cardColors().containerColor,
                 )
                 HorizontalDivider()
@@ -182,15 +188,18 @@ fun UserConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, focusS
                         // being entered: one too wide to be a callsign is demoted to the ham long name rather than
                         // discarded, and abandoning onboarding does not leave a stray separator behind.
                         formState.value =
-                            formState.value.copy(
-                                is_licensed = licensed,
-                                long_name =
-                                when {
-                                    !state.isLocal -> longName
-                                    licensed -> HamName.forOnboarding(longName)
-                                    else -> HamName.forUnlicensing(longName)
-                                },
-                            )
+                            formState.value
+                                .newBuilder()
+                                .also { wb ->
+                                    wb.is_licensed = licensed
+                                    wb.long_name =
+                                        when {
+                                            !state.isLocal -> longName
+                                            licensed -> HamName.forOnboarding(longName)
+                                            else -> HamName.forUnlicensing(longName)
+                                        }
+                                }
+                                .build()
                     },
                 )
             }
@@ -232,7 +241,14 @@ private fun statusMessagePrefill(config: ModuleConfig.StatusMessageConfig?, broa
 private fun RadioConfigViewModel.save(user: User, userDirty: Boolean, statusMessage: String, statusDirty: Boolean) {
     if (userDirty) saveUserConfig(user)
     if (statusDirty) {
-        setModuleConfig(ModuleConfig(statusmessage = ModuleConfig.StatusMessageConfig(node_status = statusMessage)))
+        setModuleConfig(
+            ModuleConfig.Builder()
+                .also { wb ->
+                    wb.statusmessage =
+                        ModuleConfig.StatusMessageConfig.Builder().also { wb -> wb.node_status = statusMessage }.build()
+                }
+                .build(),
+        )
     }
 }
 
@@ -320,7 +336,7 @@ internal fun UserNameFields(
             modifier = Modifier.testTag(USER_LONG_NAME_TEST_TAG),
             onValueChanged = {
                 val longName = if (hamMode) HamName.compose(it, hamLongName) else it
-                formState.value = formState.value.copy(long_name = longName)
+                formState.value = formState.value.newBuilder().also { wb -> wb.long_name = longName }.build()
             },
         )
         if (hamMode) {
@@ -336,7 +352,10 @@ internal fun UserNameFields(
                 keyboardOptions = keyboardOptions,
                 keyboardActions = keyboardActions,
                 modifier = Modifier.testTag(HAM_LONG_NAME_TEST_TAG),
-                onValueChanged = { formState.value = formState.value.copy(long_name = HamName.compose(callSign, it)) },
+                onValueChanged = {
+                    formState.value =
+                        formState.value.newBuilder().also { wb -> wb.long_name = HamName.compose(callSign, it) }.build()
+                },
             )
         }
         HorizontalDivider()
@@ -349,7 +368,9 @@ internal fun UserNameFields(
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             modifier = Modifier.testTag(USER_SHORT_NAME_TEST_TAG),
-            onValueChanged = { formState.value = formState.value.copy(short_name = it) },
+            onValueChanged = {
+                formState.value = formState.value.newBuilder().also { wb -> wb.short_name = it }.build()
+            },
         )
     }
 }

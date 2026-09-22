@@ -16,7 +16,10 @@
  */
 package org.meshtastic.core.data.manager
 
+import co.touchlab.kermit.LogWriter
+import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
+import co.touchlab.kermit.platformLogWriter
 import dev.mokkery.MockMode
 import dev.mokkery.answering.calls
 import dev.mokkery.answering.returns
@@ -103,8 +106,8 @@ class MeshConnectionManagerImplTest {
 
     private val radioConnectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     private lateinit var connectionStateHolder: ConnectionStateHolder
-    private val localConfigFlow = MutableStateFlow(LocalConfig())
-    private val moduleConfigFlow = MutableStateFlow(LocalModuleConfig())
+    private val localConfigFlow = MutableStateFlow(LocalConfig.Builder().build())
+    private val moduleConfigFlow = MutableStateFlow(LocalModuleConfig.Builder().build())
 
     private lateinit var testDispatcher: TestDispatcher
 
@@ -134,8 +137,8 @@ class MeshConnectionManagerImplTest {
         testDispatcher = UnconfinedTestDispatcher()
         radioConnectionState.value = ConnectionState.Disconnected
         connectionStateHolder = ConnectionStateHolder()
-        localConfigFlow.value = LocalConfig()
-        moduleConfigFlow.value = LocalModuleConfig()
+        localConfigFlow.value = LocalConfig.Builder().build()
+        moduleConfigFlow.value = LocalModuleConfig.Builder().build()
 
         every { radioInterfaceService.connectionState } returns radioConnectionState
         every { radioConfigRepository.localConfigFlow } returns localConfigFlow
@@ -190,7 +193,23 @@ class MeshConnectionManagerImplTest {
         return { restartCalls }
     }
 
-    @AfterTest fun tearDown() = Unit
+    @AfterTest
+    fun tearDown() {
+        Logger.setLogWriters(platformLogWriter())
+    }
+
+    private class CapturingLogWriter : LogWriter() {
+        val entries = mutableListOf<Pair<Severity, String>>()
+
+        override fun log(severity: Severity, message: String, tag: String, throwable: Throwable?) {
+            entries += severity to message
+        }
+    }
+
+    private fun captureLogs(): CapturingLogWriter = CapturingLogWriter().also { Logger.setLogWriters(it) }
+
+    private fun CapturingLogWriter.messages(severity: Severity): List<String> =
+        entries.filter { it.first == severity }.map { it.second }
 
     @Test
     fun `Connected state triggers broadcast and config start`() = runTest(testDispatcher) {
@@ -290,22 +309,31 @@ class MeshConnectionManagerImplTest {
         manager = createManager(backgroundScope)
         radioConnectionState.value = ConnectionState.Connected
         advanceUntilIdle()
-        nodeRepository.updateLocalStats(LocalStats(noise_floor = -70))
+        nodeRepository.updateLocalStats(LocalStats.Builder().also { wb -> wb.noise_floor = -70 }.build())
 
         radioConnectionState.value = ConnectionState.Disconnected
         advanceUntilIdle()
 
-        assertEquals(LocalStats(), nodeRepository.localStats.value, "Disconnect should reset to \"no reading yet\"")
+        assertEquals(
+            LocalStats.Builder().build(),
+            nodeRepository.localStats.value,
+            "Disconnect should reset to \"no reading yet\"",
+        )
     }
 
     @Test
     fun `DeviceSleep behavior when power saving is off maps to Disconnected`() = runTest(testDispatcher) {
         // Power saving disabled + Role CLIENT
         val config =
-            LocalConfig(
-                power = Config.PowerConfig(is_power_saving = false),
-                device = Config.DeviceConfig(role = Config.DeviceConfig.Role.CLIENT),
-            )
+            LocalConfig.Builder()
+                .also { wb ->
+                    wb.power = Config.PowerConfig.Builder().also { wb -> wb.is_power_saving = false }.build()
+                    wb.device =
+                        Config.DeviceConfig.Builder()
+                            .also { wb -> wb.role = Config.DeviceConfig.Role.CLIENT }
+                            .build()
+                }
+                .build()
         every { radioConfigRepository.localConfigFlow } returns flowOf(config)
         every { nodeManager.nodeDBbyNodeNum } returns emptyMap()
 
@@ -325,7 +353,12 @@ class MeshConnectionManagerImplTest {
     @Test
     fun `DeviceSleep behavior when power saving is on stays in DeviceSleep`() = runTest(testDispatcher) {
         // Power saving enabled
-        val config = LocalConfig(power = Config.PowerConfig(is_power_saving = true))
+        val config =
+            LocalConfig.Builder()
+                .also { wb ->
+                    wb.power = Config.PowerConfig.Builder().also { wb -> wb.is_power_saving = true }.build()
+                }
+                .build()
         every { radioConfigRepository.localConfigFlow } returns flowOf(config)
 
         manager = createManager(backgroundScope)
@@ -357,10 +390,19 @@ class MeshConnectionManagerImplTest {
     @Test
     fun `onNodeDbReady starts MQTT and requests history`() = runTest(testDispatcher) {
         val moduleConfig =
-            LocalModuleConfig(
-                mqtt = ModuleConfig.MQTTConfig(enabled = true, proxy_to_client_enabled = true),
-                store_forward = ModuleConfig.StoreForwardConfig(enabled = true),
-            )
+            LocalModuleConfig.Builder()
+                .also { wb ->
+                    wb.mqtt =
+                        ModuleConfig.MQTTConfig.Builder()
+                            .also { wb ->
+                                wb.enabled = true
+                                wb.proxy_to_client_enabled = true
+                            }
+                            .build()
+                    wb.store_forward =
+                        ModuleConfig.StoreForwardConfig.Builder().also { wb -> wb.enabled = true }.build()
+                }
+                .build()
         moduleConfigFlow.value = moduleConfig
         everySuspend { commandSender.requestTelemetry(any(), any(), any()) } returns Unit
         every { nodeManager.myNodeNum } returns MutableStateFlow(123)
@@ -394,7 +436,14 @@ class MeshConnectionManagerImplTest {
             "MQTT and history collectors must be active; additional collectors are allowed",
         )
         serviceRepository.setConnectionState(ConnectionState.Disconnected)
-        delayedModuleConfig.emit(LocalModuleConfig(store_forward = ModuleConfig.StoreForwardConfig(enabled = true)))
+        delayedModuleConfig.emit(
+            LocalModuleConfig.Builder()
+                .also { wb ->
+                    wb.store_forward =
+                        ModuleConfig.StoreForwardConfig.Builder().also { wb -> wb.enabled = true }.build()
+                }
+                .build(),
+        )
         runCurrent()
 
         verifySuspend(exactly(0)) { historyManager.requestHistoryReplay(any(), any(), any(), any(), any()) }
@@ -406,7 +455,13 @@ class MeshConnectionManagerImplTest {
         var historyAttempts = 0
         val telemetryAttempts = mutableMapOf<Int, Int>()
         val admissionVersions = mutableListOf<Long>()
-        moduleConfigFlow.value = LocalModuleConfig(store_forward = ModuleConfig.StoreForwardConfig(enabled = true))
+        moduleConfigFlow.value =
+            LocalModuleConfig.Builder()
+                .also { wb ->
+                    wb.store_forward =
+                        ModuleConfig.StoreForwardConfig.Builder().also { wb -> wb.enabled = true }.build()
+                }
+                .build()
         everySuspend { commandSender.sendAdminForConnection(any(), any(), any(), any(), any()) } calls
             { call ->
                 admissionVersions += call.arg<Long>(1)
@@ -515,10 +570,21 @@ class MeshConnectionManagerImplTest {
         // Router with ls_secs=3600 — previously this created a 3630s timeout.
         // With the cap, it should be clamped to 300s.
         val config =
-            LocalConfig(
-                power = Config.PowerConfig(is_power_saving = true, ls_secs = 3600),
-                device = Config.DeviceConfig(role = Config.DeviceConfig.Role.ROUTER),
-            )
+            LocalConfig.Builder()
+                .also { wb ->
+                    wb.power =
+                        Config.PowerConfig.Builder()
+                            .also { wb ->
+                                wb.is_power_saving = true
+                                wb.ls_secs = 3600
+                            }
+                            .build()
+                    wb.device =
+                        Config.DeviceConfig.Builder()
+                            .also { wb -> wb.role = Config.DeviceConfig.Role.ROUTER }
+                            .build()
+                }
+                .build()
         every { radioConfigRepository.localConfigFlow } returns flowOf(config)
         every { nodeManager.nodeDBbyNodeNum } returns emptyMap()
 
@@ -550,7 +616,12 @@ class MeshConnectionManagerImplTest {
     @Test
     fun `rapid state transitions are serialized by connectionMutex`() = runTest(testDispatcher) {
         // Power saving enabled so DeviceSleep is preserved (not mapped to Disconnected)
-        val config = LocalConfig(power = Config.PowerConfig(is_power_saving = true))
+        val config =
+            LocalConfig.Builder()
+                .also { wb ->
+                    wb.power = Config.PowerConfig.Builder().also { wb -> wb.is_power_saving = true }.build()
+                }
+                .build()
         every { radioConfigRepository.localConfigFlow } returns flowOf(config)
         every { nodeManager.nodeDBbyNodeNum } returns emptyMap()
 
@@ -596,7 +667,18 @@ class MeshConnectionManagerImplTest {
         runTest(standardDispatcher) {
             // Power saving enabled with ls_secs=0 so the sleep timeout boundary is just before the
             // Stage 1 handshake watchdog. That keeps this test isolated to sleep-timeout behavior.
-            val config = LocalConfig(power = Config.PowerConfig(is_power_saving = true, ls_secs = 0))
+            val config =
+                LocalConfig.Builder()
+                    .also { wb ->
+                        wb.power =
+                            Config.PowerConfig.Builder()
+                                .also { wb ->
+                                    wb.is_power_saving = true
+                                    wb.ls_secs = 0
+                                }
+                                .build()
+                    }
+                    .build()
             every { radioConfigRepository.localConfigFlow } returns flowOf(config)
             every { nodeManager.nodeDBbyNodeNum } returns emptyMap()
 
@@ -906,6 +988,94 @@ class MeshConnectionManagerImplTest {
             ConnectionState.Disconnected,
             serviceRepository.connectionState.value,
             "Watchdog must fire once progress stops for longer than the fast timeout",
+        )
+    }
+
+    @Test
+    fun `TCP Stage 1 stall report names TCP`() = runTest(testDispatcher) {
+        every { radioInterfaceService.getDeviceAddress() } returns "t192.168.1.42"
+        val logs = captureLogs()
+        manager = createManager(backgroundScope)
+        radioConnectionState.value = ConnectionState.Connected
+        advanceTimeBy(200)
+        advanceUntilIdle()
+
+        advanceTimeBy(13_000L)
+        advanceUntilIdle()
+
+        val stall = logs.messages(Severity.Error).single { it.startsWith("Handshake stall detected") }
+        assertTrue(
+            stall.startsWith(
+                "Handshake stall detected at Stage 1 on TCP after 12s without progress (progressSignals=0",
+            ),
+            "TCP stall report must name TCP, not a shared fast-transport label: $stall",
+        )
+    }
+
+    @Test
+    fun `USB Stage 1 stall report names USB`() = runTest(testDispatcher) {
+        every { radioInterfaceService.getDeviceAddress() } returns "s/dev/bus/usb/001/002"
+        val logs = captureLogs()
+        manager = createManager(backgroundScope)
+        radioConnectionState.value = ConnectionState.Connected
+        advanceTimeBy(200)
+        advanceUntilIdle()
+
+        advanceTimeBy(13_000L)
+        advanceUntilIdle()
+
+        val stall = logs.messages(Severity.Error).single { it.startsWith("Handshake stall detected") }
+        assertTrue(
+            stall.startsWith(
+                "Handshake stall detected at Stage 1 on USB after 12s without progress (progressSignals=0",
+            ),
+            "USB stall report must name USB, not a shared fast-transport label: $stall",
+        )
+        verifySuspend(exactly(1)) { radioInterfaceService.restartTransport() }
+    }
+
+    @Test
+    fun `BLE Stage 1 stall report names BLE`() = runTest(testDispatcher) {
+        every { radioInterfaceService.getDeviceAddress() } returns "xAA:BB:CC:DD:EE:FF"
+        val logs = captureLogs()
+        manager = createManager(backgroundScope)
+        radioConnectionState.value = ConnectionState.Connected
+        advanceTimeBy(200)
+        advanceUntilIdle()
+
+        advanceTimeBy(31_000L)
+        advanceUntilIdle()
+
+        val stall = logs.messages(Severity.Error).single { it.startsWith("Handshake stall detected") }
+        assertTrue(
+            stall.startsWith("Handshake stall detected at Stage 1 on BLE after 30s without progress"),
+            "BLE stall report keeps its BLE label and budget: $stall",
+        )
+    }
+
+    @Test
+    fun `TCP fast watchdog report names TCP`() = runTest(testDispatcher) {
+        every { radioInterfaceService.getDeviceAddress() } returns "t192.168.1.42"
+        val logs = captureLogs()
+        manager = createManager(backgroundScope)
+        radioConnectionState.value = ConnectionState.Connected
+        advanceTimeBy(200)
+        advanceUntilIdle()
+
+        advanceTimeBy(8_000L)
+        manager.onHandshakeProgress()
+        advanceUntilIdle()
+        advanceTimeBy(13_000L)
+        advanceUntilIdle()
+
+        val watchdog = logs.messages(Severity.Warn).single { it.startsWith("Fast-handshake watchdog expired") }
+        assertTrue(
+            watchdog.startsWith("Fast-handshake watchdog expired on TCP after progress stalled"),
+            "Fast watchdog report must name the transport: $watchdog",
+        )
+        assertTrue(
+            logs.messages(Severity.Error).none { it.startsWith("Handshake stall detected") },
+            "A watchdog trip after progress must not also be reported as a silent stall",
         )
     }
 

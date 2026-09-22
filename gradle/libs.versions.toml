@@ -2,7 +2,7 @@
 xmlutil = "1.0.2.1"
 
 # Android
-agp = "9.4.0"
+agp = "9.4.1"
 appcompat = "1.8.0"
 appfunctions = "1.0.0-alpha11"
 
@@ -51,7 +51,7 @@ profileinstaller = "1.4.1"
 androidx-uiautomator = "2.4.0"
 
 # Compose Multiplatform
-compose-multiplatform = "1.12.0"
+compose-multiplatform = "1.12.1"
 compose-multiplatform-material3 = "1.12.0-alpha03"
 # `androidx-compose-bom-aligned` tracks androidx.compose.{runtime,ui,foundation,animation}
 # artifacts that ship in lockstep with CMP. Kept as a separate version ref so Renovate
@@ -89,9 +89,9 @@ ktor = "3.6.0"
 # Other
 aboutlibraries = "15.2.0"
 jserialcomm = "2.11.4"
-coil = "3.6.2"
+coil = "3.6.3"
 datadog-gradle = "1.31.0"
-dd-sdk-android = "3.14.0"
+dd-sdk-android = "3.14.1"
 detekt = "2.0.0-alpha.6"
 dokka = "2.2.0"
 devtools-ksp = "2.3.12"
@@ -104,11 +104,11 @@ uri-kmp = "0.0.21"
 spotless = "8.10.2"
 vico = "3.3.1"
 kable = "0.45.0"
-mqttastic = "0.8.1"
+mqttastic = "0.9.0"
 jmdns = "3.6.3"
 qrcode-kotlin = "4.5.0"
-takpacket-sdk = "0.9.1"
-meshtastic-protobufs = "2.8.0.63-g8fc402a-SNAPSHOT"
+takpacket-sdk = "0.9.2-SNAPSHOT"
+meshtastic-protobufs = "2.8.0.116-g51028ca-SNAPSHOT"
 
 # Gradle Plugins
 ccud = "2.8.0"
@@ -331,7 +331,7 @@ screenshot-validation-api = { group = "com.android.tools.screenshot", name = "sc
 
 # Build Logic
 android-gradleApiPlugin = { module = "com.android.tools.build:gradle-api", version.ref = "agp" }
-android-tools-common = { module = "com.android.tools:common", version = "32.4.0" }
+android-tools-common = { module = "com.android.tools:common", version = "32.4.1" }
 androidx-room-gradlePlugin = { module = "androidx.room3:room3-gradle-plugin", version.ref = "room" }
 compose-gradlePlugin = { module = "org.jetbrains.kotlin:compose-compiler-gradle-plugin", version.ref = "kotlin" }
 compose-multiplatform-gradlePlugin = { module = "org.jetbrains.compose:compose-gradle-plugin", version.ref = "compose-multiplatform" }

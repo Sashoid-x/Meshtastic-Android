@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
+import org.maplibre.compose.camera.CameraAnimation
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.expressions.dsl.const
 import org.maplibre.compose.interaction.ClickResult
@@ -215,8 +216,9 @@ fun MeshMap(
     /** Called with the tapped position. Used to collect the two corners of a waypoint's geofence bounding box. */
     onMapClick: (Position) -> Unit = {},
 ) {
-    // No engine on this device means presenting a map is the UnsatisfiedLinkError crash in #7001. Guarded here and
-    // not at the state, which is pure Kotlin: the native library is loaded by the map *view*.
+    // No engine on this device means presenting a map is the UnsatisfiedLinkError crash in #7001. Covers the view
+    // only: `rememberMapState` builds the native runtime itself, so a runtime that cannot come up at all has already
+    // thrown by the time this is reached.
     if (!LocalMapLibreRuntimeProbe.current()) return MapEngineUnavailable(modifier)
 
     val zoomRange = basemap.zoomRange()
@@ -278,7 +280,10 @@ private fun MeshMapNodeLayers(
                 val current = mapState.cameraPosition
                 // A cluster that cannot report an expansion zoom answers with a sentinel (0 on
                 // Android and desktop, -1 on iOS), so clamp — never zoom out on a tap.
-                mapState.animateCameraPosition(current.copy(target = centre, zoom = maxOf(expansionZoom, current.zoom)))
+                mapState.animateCameraPosition(
+                    current.copy(target = centre, zoom = maxOf(expansionZoom, current.zoom)),
+                    animation = CameraAnimation.Ease(),
+                )
             }
         },
     )
@@ -297,10 +302,10 @@ private fun FrameOnce(enabled: Boolean, nodes: List<Node>, mapState: MapState) {
     var hasFramed by remember { mutableStateOf(false) }
     val hasViewport = mapState.viewport != null
     // The node list is read through a snapshot rather than keyed on, so an arriving packet cannot cancel this.
-    // Keying on it meant the effect restarted mid-fit: `fitCameraToBounds` suspends, and whether the latch was
-    // set before the call (fit lost, latch kept, mesh never framed) or after it (latch lost to a user pan, so a
-    // later packet re-frames over them) one of the two failure modes was always reachable. Nothing here restarts
-    // on node changes now, so the latch and the fit cannot come apart.
+    // Keying on it meant the effect restarted mid-fit: `frameBounds` suspends, and whether the latch was set
+    // before the call (fit lost, latch kept, mesh never framed) or after it (latch lost to a user pan, so a later
+    // packet re-frames over them) one of the two failure modes was always reachable. Nothing here restarts on
+    // node changes now, so the latch and the fit cannot come apart.
     val currentNodes by rememberUpdatedState(nodes)
     // An effect, not composition-body work: a launch from composition fires even if the composition is
     // abandoned, while its state write is rolled back — a camera jump with no framing recorded. Fitting before
@@ -310,7 +315,7 @@ private fun FrameOnce(enabled: Boolean, nodes: List<Node>, mapState: MapState) {
         // Waits for the first node set that has anything to frame; a mesh still filling in reports none.
         val box = snapshotFlow { nodesBoundingBox(currentNodes) }.filterNotNull().first()
         hasFramed = true
-        mapState.fitCameraToBounds(box)
+        mapState.frameBounds(box)
     }
 }
 

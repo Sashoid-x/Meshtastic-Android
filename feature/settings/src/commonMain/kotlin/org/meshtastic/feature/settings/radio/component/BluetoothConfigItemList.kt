@@ -33,9 +33,11 @@ import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.bluetooth
 import org.meshtastic.core.resources.bluetooth_config
-import org.meshtastic.core.resources.bluetooth_enabled
-import org.meshtastic.core.resources.fixed_pin
-import org.meshtastic.core.resources.pairing_mode
+import org.meshtastic.core.resources.schema_bluetooth_enabled
+import org.meshtastic.core.resources.schema_bluetooth_enabled_description
+import org.meshtastic.core.resources.schema_bluetooth_fixed_pin
+import org.meshtastic.core.resources.schema_bluetooth_mode
+import org.meshtastic.core.resources.schema_bluetooth_mode_description
 import org.meshtastic.core.ui.component.DropDownPreference
 import org.meshtastic.core.ui.component.EditTextPreference
 import org.meshtastic.core.ui.component.SwitchPreference
@@ -49,7 +51,7 @@ private const val PIN_LENGTH = 6
 @Composable
 fun BluetoothConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
     val state by viewModel.radioConfigState.collectAsStateWithLifecycle()
-    val bluetoothConfig = state.radioConfig.bluetooth ?: Config.BluetoothConfig()
+    val bluetoothConfig = state.radioConfig.bluetooth ?: Config.BluetoothConfig.Builder().build()
     val formState = rememberConfigState(initialValue = bluetoothConfig)
     val focusManager = LocalFocusManager.current
 
@@ -62,22 +64,26 @@ fun BluetoothConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
         responseState = state.responseState,
         onDismissPacketResponse = viewModel::clearPacketResponse,
         onSave = {
-            val config = Config(bluetooth = it)
+            val config = Config.Builder().also { wb -> wb.bluetooth = it }.build()
             viewModel.setConfig(config)
         },
     ) {
         item {
             TitledCard(title = stringResource(Res.string.bluetooth_config)) {
                 SwitchPreference(
-                    title = stringResource(Res.string.bluetooth_enabled),
+                    title = stringResource(Res.string.schema_bluetooth_enabled),
+                    summary = stringResource(Res.string.schema_bluetooth_enabled_description),
                     checked = formState.value.enabled,
                     enabled = state.connected,
-                    onCheckedChange = { formState.value = formState.value.copy(enabled = it) },
+                    onCheckedChange = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.enabled = it }.build()
+                    },
                     containerColor = CardDefaults.cardColors().containerColor,
                 )
                 HorizontalDivider()
                 DropDownPreference(
-                    title = stringResource(Res.string.pairing_mode),
+                    title = stringResource(Res.string.schema_bluetooth_mode),
+                    summary = stringResource(Res.string.schema_bluetooth_mode_description),
                     enabled = state.connected,
                     items =
                     Config.BluetoothConfig.PairingMode.entries
@@ -86,14 +92,18 @@ fun BluetoothConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
                     selectedItem =
                     formState.value.mode.takeUnless { it.name == "UNRECOGNIZED" }
                         ?: Config.BluetoothConfig.PairingMode.RANDOM_PIN,
-                    onItemSelected = { formState.value = formState.value.copy(mode = it) },
+                    onItemSelected = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.mode = it }.build()
+                    },
                 )
                 HorizontalDivider()
                 FixedPinPreference(
                     pinValue = formState.value.fixed_pin,
                     enabled = state.connected,
                     focusManager = focusManager,
-                    onPinChange = { formState.value = formState.value.copy(fixed_pin = it) },
+                    onPinChange = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.fixed_pin = it }.build()
+                    },
                 )
             }
         }
@@ -110,7 +120,7 @@ private fun FixedPinPreference(
     var pinState by remember(pinValue) { mutableStateOf(pinValue.toString().padStart(PIN_LENGTH, '0')) }
     val pinIsError = pinState.length != PIN_LENGTH || !pinState.all { it.isDigit() }
     EditTextPreference(
-        title = stringResource(Res.string.fixed_pin),
+        title = stringResource(Res.string.schema_bluetooth_fixed_pin),
         value = pinState,
         enabled = enabled,
         isError = pinIsError,

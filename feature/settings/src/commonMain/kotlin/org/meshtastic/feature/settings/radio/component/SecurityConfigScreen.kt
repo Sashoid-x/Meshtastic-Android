@@ -38,27 +38,27 @@ import org.meshtastic.core.model.Capabilities
 import org.meshtastic.core.model.util.encodeToString
 import org.meshtastic.core.model.util.platformRandomBytes
 import org.meshtastic.core.resources.Res
-import org.meshtastic.core.resources.admin_key
 import org.meshtastic.core.resources.admin_keys
 import org.meshtastic.core.resources.administration
-import org.meshtastic.core.resources.config_security_admin_key
-import org.meshtastic.core.resources.config_security_debug_log_api_enabled
-import org.meshtastic.core.resources.config_security_is_managed
 import org.meshtastic.core.resources.config_security_private_key
 import org.meshtastic.core.resources.config_security_private_key_remote
-import org.meshtastic.core.resources.config_security_public_key
-import org.meshtastic.core.resources.config_security_serial_enabled
-import org.meshtastic.core.resources.debug_log_api_enabled
 import org.meshtastic.core.resources.direct_message_key
 import org.meshtastic.core.resources.logs
-import org.meshtastic.core.resources.managed_mode
-import org.meshtastic.core.resources.private_key
-import org.meshtastic.core.resources.public_key
 import org.meshtastic.core.resources.redacted
 import org.meshtastic.core.resources.regenerate_keys_confirmation
 import org.meshtastic.core.resources.regenerate_private_key
+import org.meshtastic.core.resources.schema_security_admin_key
+import org.meshtastic.core.resources.schema_security_admin_key_description
+import org.meshtastic.core.resources.schema_security_debug_log_api_enabled
+import org.meshtastic.core.resources.schema_security_debug_log_api_enabled_description
+import org.meshtastic.core.resources.schema_security_is_managed
+import org.meshtastic.core.resources.schema_security_is_managed_description
+import org.meshtastic.core.resources.schema_security_private_key
+import org.meshtastic.core.resources.schema_security_public_key
+import org.meshtastic.core.resources.schema_security_public_key_description
+import org.meshtastic.core.resources.schema_security_serial_enabled
+import org.meshtastic.core.resources.schema_security_serial_enabled_description
 import org.meshtastic.core.resources.security
-import org.meshtastic.core.resources.serial_console
 import org.meshtastic.core.ui.component.CopyIconButton
 import org.meshtastic.core.ui.component.EditBase64Preference
 import org.meshtastic.core.ui.component.EditListPreference
@@ -85,7 +85,7 @@ fun SecurityConfigScreenCommon(viewModel: RadioConfigViewModel, onBack: () -> Un
     val state by viewModel.radioConfigState.collectAsStateWithLifecycle()
     val firmwareVersion = state.metadata?.firmware_version
     val capabilities = remember(firmwareVersion) { Capabilities(firmwareVersion) }
-    val securityConfig = state.radioConfig.security ?: Config.SecurityConfig()
+    val securityConfig = state.radioConfig.security ?: Config.SecurityConfig.Builder().build()
     val formState = rememberConfigState(initialValue = securityConfig)
 
     var showKeyGenerationDialog by rememberSaveable { mutableStateOf(false) }
@@ -94,7 +94,7 @@ fun SecurityConfigScreenCommon(viewModel: RadioConfigViewModel, onBack: () -> Un
         onConfirm = {
             formState.value = it
             showKeyGenerationDialog = false
-            val config = Config(security = formState.value)
+            val config = Config.Builder().also { wb -> wb.security = formState.value }.build()
             viewModel.setConfig(config)
         },
         onDismiss = { showKeyGenerationDialog = false },
@@ -110,7 +110,7 @@ fun SecurityConfigScreenCommon(viewModel: RadioConfigViewModel, onBack: () -> Un
         responseState = state.responseState,
         onDismissPacketResponse = viewModel::clearPacketResponse,
         onSave = {
-            val config = Config(security = it)
+            val config = Config.Builder().also { wb -> wb.security = it }.build()
             viewModel.setConfig(config)
         },
     ) {
@@ -119,7 +119,10 @@ fun SecurityConfigScreenCommon(viewModel: RadioConfigViewModel, onBack: () -> Un
                 selectedPolicy = formState.value.packet_signature_policy,
                 connected = state.connected,
                 supported = state.metadata?.has_xeddsa,
-                onPolicyChange = { policy -> formState.value = formState.value.copy(packet_signature_policy = policy) },
+                onPolicyChange = { policy ->
+                    formState.value =
+                        formState.value.newBuilder().also { wb -> wb.packet_signature_policy = policy }.build()
+                },
             )
         }
         item {
@@ -158,33 +161,40 @@ fun SecurityConfigScreenCommon(viewModel: RadioConfigViewModel, onBack: () -> Un
         item {
             TitledCard(title = stringResource(Res.string.admin_keys)) {
                 EditListPreference(
-                    title = stringResource(Res.string.admin_key),
-                    summary = stringResource(Res.string.config_security_admin_key),
+                    title = stringResource(Res.string.schema_security_admin_key),
+                    summary = stringResource(Res.string.schema_security_admin_key_description),
                     list = formState.value.admin_key,
                     maxCount = 3,
                     enabled = state.connected,
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    onValuesChanged = { formState.value = formState.value.copy(admin_key = it) },
+                    onValuesChanged = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.admin_key = it }.build()
+                    },
                 )
             }
         }
         item {
             TitledCard(title = stringResource(Res.string.logs)) {
                 SwitchPreference(
-                    title = stringResource(Res.string.serial_console),
-                    summary = stringResource(Res.string.config_security_serial_enabled),
+                    title = stringResource(Res.string.schema_security_serial_enabled),
+                    summary = stringResource(Res.string.schema_security_serial_enabled_description),
                     checked = formState.value.serial_enabled,
                     enabled = state.connected,
-                    onCheckedChange = { formState.value = formState.value.copy(serial_enabled = it) },
+                    onCheckedChange = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.serial_enabled = it }.build()
+                    },
                     containerColor = CardDefaults.cardColors().containerColor,
                 )
                 HorizontalDivider()
                 SwitchPreference(
-                    title = stringResource(Res.string.debug_log_api_enabled),
-                    summary = stringResource(Res.string.config_security_debug_log_api_enabled),
+                    title = stringResource(Res.string.schema_security_debug_log_api_enabled),
+                    summary = stringResource(Res.string.schema_security_debug_log_api_enabled_description),
                     checked = formState.value.debug_log_api_enabled,
                     enabled = state.connected,
-                    onCheckedChange = { formState.value = formState.value.copy(debug_log_api_enabled = it) },
+                    onCheckedChange = {
+                        formState.value =
+                            formState.value.newBuilder().also { wb -> wb.debug_log_api_enabled = it }.build()
+                    },
                     containerColor = CardDefaults.cardColors().containerColor,
                 )
             }
@@ -192,11 +202,13 @@ fun SecurityConfigScreenCommon(viewModel: RadioConfigViewModel, onBack: () -> Un
         item {
             TitledCard(title = stringResource(Res.string.administration)) {
                 SwitchPreference(
-                    title = stringResource(Res.string.managed_mode),
-                    summary = stringResource(Res.string.config_security_is_managed),
+                    title = stringResource(Res.string.schema_security_is_managed),
+                    summary = stringResource(Res.string.schema_security_is_managed_description),
                     checked = formState.value.is_managed,
                     enabled = state.connected && formState.value.admin_key.isNotEmpty(),
-                    onCheckedChange = { formState.value = formState.value.copy(is_managed = it) },
+                    onCheckedChange = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.is_managed = it }.build()
+                    },
                     containerColor = CardDefaults.cardColors().containerColor,
                 )
                 HorizontalDivider()
@@ -251,15 +263,15 @@ internal fun SecurityPublicKeyPreference(
     val publicKey = resolvedPublicKey(securityConfig, formState.value.private_key)
 
     EditBase64Preference(
-        title = stringResource(Res.string.public_key),
-        summary = stringResource(Res.string.config_security_public_key),
+        title = stringResource(Res.string.schema_security_public_key),
+        summary = stringResource(Res.string.schema_security_public_key_description),
         value = publicKey,
         enabled = enabled,
         readOnly = true,
         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
         onValueChange = {
             if (it.size == 32) {
-                formState.value = formState.value.copy(public_key = it)
+                formState.value = formState.value.newBuilder().also { wb -> wb.public_key = it }.build()
             }
         },
         trailingIcon = { publicKeyCopyButton(publicKey) },
@@ -285,7 +297,7 @@ internal fun SecurityPrivateKeyPreference(
     val redacted = isPrivateKeyRedacted(securityConfig, isLocal) && privateKey.size != PRIVATE_KEY_SIZE
 
     EditBase64Preference(
-        title = stringResource(Res.string.private_key),
+        title = stringResource(Res.string.schema_security_private_key),
         summary =
         if (redacted) {
             stringResource(Res.string.config_security_private_key_remote)
@@ -298,7 +310,7 @@ internal fun SecurityPrivateKeyPreference(
         keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
         onValueChange = {
             if (it.size == PRIVATE_KEY_SIZE) {
-                formState.value = formState.value.copy(private_key = it)
+                formState.value = formState.value.newBuilder().also { wb -> wb.private_key = it }.build()
             }
         },
         trailingIcon =
@@ -332,7 +344,13 @@ fun PrivateKeyRegenerateDialog(
                 // and set the second to left-most bit of f[31].
                 f[0] = (f[0].toInt() and 0xF8).toByte()
                 f[31] = ((f[31].toInt() and 0x7F) or 0x40).toByte()
-                val securityInput = Config.SecurityConfig(private_key = f.toByteString(), public_key = ByteString.EMPTY)
+                val securityInput =
+                    Config.SecurityConfig.Builder()
+                        .also { wb ->
+                            wb.private_key = f.toByteString()
+                            wb.public_key = ByteString.EMPTY
+                        }
+                        .build()
                 onConfirm(securityInput)
             },
         )

@@ -27,13 +27,16 @@ import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.audio
 import org.meshtastic.core.resources.audio_config
-import org.meshtastic.core.resources.codec2_sample_rate
-import org.meshtastic.core.resources.codec_2_enabled
-import org.meshtastic.core.resources.i2s_clock
-import org.meshtastic.core.resources.i2s_data_in
-import org.meshtastic.core.resources.i2s_data_out
-import org.meshtastic.core.resources.i2s_word_select
-import org.meshtastic.core.resources.ptt_pin
+import org.meshtastic.core.resources.schema_audio_bitrate
+import org.meshtastic.core.resources.schema_audio_bitrate_description
+import org.meshtastic.core.resources.schema_audio_codec2_enabled
+import org.meshtastic.core.resources.schema_audio_codec2_enabled_description
+import org.meshtastic.core.resources.schema_audio_i2s_din
+import org.meshtastic.core.resources.schema_audio_i2s_sck
+import org.meshtastic.core.resources.schema_audio_i2s_sd
+import org.meshtastic.core.resources.schema_audio_i2s_ws
+import org.meshtastic.core.resources.schema_audio_ptt_pin
+import org.meshtastic.core.resources.schema_audio_ptt_pin_description
 import org.meshtastic.core.ui.component.DropDownPreference
 import org.meshtastic.core.ui.component.EditTextPreference
 import org.meshtastic.core.ui.component.SwitchPreference
@@ -45,7 +48,7 @@ import org.meshtastic.proto.ModuleConfig
 @Composable
 fun AudioConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
     val state by viewModel.radioConfigState.collectAsStateWithLifecycle()
-    val audioConfig = state.moduleConfig.audio ?: ModuleConfig.AudioConfig()
+    val audioConfig = state.moduleConfig.audio ?: ModuleConfig.AudioConfig.Builder().build()
     val formState = rememberConfigState(initialValue = audioConfig)
     val focusManager = LocalFocusManager.current
 
@@ -58,62 +61,78 @@ fun AudioConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
         responseState = state.responseState,
         onDismissPacketResponse = viewModel::clearPacketResponse,
         onSave = {
-            val config = ModuleConfig(audio = it)
+            val config = ModuleConfig.Builder().also { wb -> wb.audio = it }.build()
             viewModel.setModuleConfig(config)
         },
     ) {
         item {
             TitledCard(title = stringResource(Res.string.audio_config)) {
                 SwitchPreference(
-                    title = stringResource(Res.string.codec_2_enabled),
+                    title = stringResource(Res.string.schema_audio_codec2_enabled),
+                    summary = stringResource(Res.string.schema_audio_codec2_enabled_description),
                     checked = formState.value.codec2_enabled,
                     enabled = state.connected,
-                    onCheckedChange = { formState.value = formState.value.copy(codec2_enabled = it) },
+                    onCheckedChange = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.codec2_enabled = it }.build()
+                    },
                     containerColor = CardDefaults.cardColors().containerColor,
                 )
                 HorizontalDivider()
                 EditTextPreference(
-                    title = stringResource(Res.string.ptt_pin),
+                    title = stringResource(Res.string.schema_audio_ptt_pin),
+                    summary = stringResource(Res.string.schema_audio_ptt_pin_description),
                     value = formState.value.ptt_pin,
                     enabled = state.connected,
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    onValueChanged = { formState.value = formState.value.copy(ptt_pin = it) },
+                    onValueChanged = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.ptt_pin = it }.build()
+                    },
                 )
                 DropDownPreference(
-                    title = stringResource(Res.string.codec2_sample_rate),
+                    title = stringResource(Res.string.schema_audio_bitrate),
+                    summary = stringResource(Res.string.schema_audio_bitrate_description),
                     enabled = state.connected,
-                    items = ModuleConfig.AudioConfig.Audio_Baud.entries.map { it to it.name },
                     selectedItem = formState.value.bitrate,
-                    onItemSelected = { formState.value = formState.value.copy(bitrate = it) },
+                    onItemSelected = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.bitrate = it }.build()
+                    },
                 )
                 HorizontalDivider()
                 EditTextPreference(
-                    title = stringResource(Res.string.i2s_word_select),
+                    title = stringResource(Res.string.schema_audio_i2s_ws),
                     value = formState.value.i2s_ws,
                     enabled = state.connected,
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    onValueChanged = { formState.value = formState.value.copy(i2s_ws = it) },
+                    onValueChanged = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.i2s_ws = it }.build()
+                    },
                 )
                 EditTextPreference(
-                    title = stringResource(Res.string.i2s_data_in),
+                    title = stringResource(Res.string.schema_audio_i2s_sd),
                     value = formState.value.i2s_sd,
                     enabled = state.connected,
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    onValueChanged = { formState.value = formState.value.copy(i2s_sd = it) },
+                    onValueChanged = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.i2s_sd = it }.build()
+                    },
                 )
                 EditTextPreference(
-                    title = stringResource(Res.string.i2s_data_out),
+                    title = stringResource(Res.string.schema_audio_i2s_din),
                     value = formState.value.i2s_din,
                     enabled = state.connected,
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    onValueChanged = { formState.value = formState.value.copy(i2s_din = it) },
+                    onValueChanged = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.i2s_din = it }.build()
+                    },
                 )
                 EditTextPreference(
-                    title = stringResource(Res.string.i2s_clock),
+                    title = stringResource(Res.string.schema_audio_i2s_sck),
                     value = formState.value.i2s_sck,
                     enabled = state.connected,
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    onValueChanged = { formState.value = formState.value.copy(i2s_sck = it) },
+                    onValueChanged = {
+                        formState.value = formState.value.newBuilder().also { wb -> wb.i2s_sck = it }.build()
+                    },
                 )
             }
         }
