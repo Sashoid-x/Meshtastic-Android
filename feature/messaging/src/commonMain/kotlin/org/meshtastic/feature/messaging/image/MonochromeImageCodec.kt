@@ -40,13 +40,30 @@ data class MonochromeResolutionPreset(val index: Int, val width: Int, val height
         get() = width.toFloat() / height.toFloat()
 }
 
-data class DecodedMonochromeImage(val presetIndex: Int, val width: Int, val height: Int, val pixels: IntArray) {
+data class MonochromeTheme(
+    val id: Int,
+    val name: String,
+    val backgroundColor: Long,
+    val foregroundColor: Long,
+    val gridColor: Long,
+)
+
+data class DecodedMonochromeImage(
+    val presetIndex: Int,
+    val width: Int,
+    val height: Int,
+    val pixels: IntArray,
+    val themeIndex: Int = 0,
+    val showGrid: Boolean = false,
+) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is DecodedMonochromeImage) return false
         return presetIndex == other.presetIndex &&
             width == other.width &&
             height == other.height &&
+            themeIndex == other.themeIndex &&
+            showGrid == other.showGrid &&
             pixels.contentEquals(other.pixels)
     }
 
@@ -54,6 +71,8 @@ data class DecodedMonochromeImage(val presetIndex: Int, val width: Int, val heig
         var result = presetIndex
         result = 31 * result + width
         result = 31 * result + height
+        result = 31 * result + themeIndex
+        result = 31 * result + showGrid.hashCode()
         result = 31 * result + pixels.contentHashCode()
         return result
     }
@@ -68,6 +87,36 @@ object MonochromeImageCodec {
     const val ENC_VAR_RLE_V = 4
     const val ENC_DELTA_2D = 5
     const val ENC_LZSS = 6
+
+    val THEMES =
+        listOf(
+            MonochromeTheme(0, "Classic", 0xFFFFFFFFL, 0xFF000000L, 0x22000000L),
+            MonochromeTheme(1, "Classic Dark", 0xFF000000L, 0xFFFFFFFFL, 0x33FFFFFFL),
+            MonochromeTheme(2, "E-Paper", 0xFFF5EFEBL, 0xFF2C2420L, 0x222C2420L),
+            MonochromeTheme(3, "Sepia", 0xFFEADCC9L, 0xFF4A3525L, 0x224A3525L),
+            MonochromeTheme(4, "Blueprint", 0xFF0A2E5CL, 0xFFE0F0FFL, 0x28E0F0FFL),
+            MonochromeTheme(5, "Game Boy", 0xFF8B956DL, 0xFF0F380FL, 0x250F380FL),
+            MonochromeTheme(6, "Game Boy Pocket", 0xFFC4BEBBL, 0xFF2C2C2CL, 0x222C2C2CL),
+            MonochromeTheme(7, "Matrix Green", 0xFF0A0F0DL, 0xFF00FF66L, 0x3000FF66L),
+            MonochromeTheme(8, "Amber CRT", 0xFF140A00L, 0xFFFFB000L, 0x30FFB000L),
+            MonochromeTheme(9, "Solarized Light", 0xFFFDF6E3L, 0xFF657B83L, 0x22657B83L),
+            MonochromeTheme(10, "Solarized Dark", 0xFF002B36L, 0xFF2AA198L, 0x302AA198L),
+            MonochromeTheme(11, "Cyberpunk", 0xFF0B001AL, 0xFFFF007FL, 0x30FF007FL),
+            MonochromeTheme(12, "Synthwave", 0xFF1A0A2AL, 0xFF00F0FFL, 0x3000F0FFL),
+            MonochromeTheme(13, "Ocean Blue", 0xFF001428L, 0xFF00D2FFL, 0x3000D2FFL),
+            MonochromeTheme(14, "Forest Moss", 0xFF0D1A10L, 0xFFA8E063L, 0x30A8E063L),
+            MonochromeTheme(15, "Blood Moon", 0xFF150000L, 0xFFFF3333L, 0x30FF3333L),
+            MonochromeTheme(16, "Sunset Gold", 0xFF1A091AL, 0xFFFFAA33L, 0x30FFAA33L),
+            MonochromeTheme(17, "Nordic Frost", 0xFF2E3440L, 0xFF88C0D0L, 0x3088C0D0L),
+            MonochromeTheme(18, "Dracula", 0xFF282A36L, 0xFFBD93F9L, 0x30BD93F9L),
+            MonochromeTheme(19, "Chalkboard", 0xFF233227L, 0xFFE8F5E9L, 0x25E8F5E9L),
+            MonochromeTheme(20, "Monokai", 0xFF272822L, 0xFFE6DB74L, 0x30E6DB74L),
+            MonochromeTheme(21, "Terminal White", 0xFF0F0F0FL, 0xFFF0F0F0L, 0x25FFFFFFL),
+            MonochromeTheme(22, "Notebook", 0xFFFAF8F5L, 0xFF1A365DL, 0x201A365DL),
+            MonochromeTheme(23, "Graphite", 0xFFECEFF1L, 0xFF37474FL, 0x2237474FL),
+        )
+
+    fun getTheme(index: Int): MonochromeTheme = THEMES.getOrElse(index) { THEMES[0] }
 
     val PRESETS =
         listOf(
@@ -147,7 +196,7 @@ object MonochromeImageCodec {
         }
     }
 
-    private fun bitPack(bits: BooleanArray, count: Int): ByteArray {
+    internal fun bitPack(bits: BooleanArray, count: Int = bits.size): ByteArray {
         val out = ByteArray((count + 7) / 8)
         for (i in 0 until count) {
             if (i < bits.size && bits[i]) {
@@ -157,7 +206,7 @@ object MonochromeImageCodec {
         return out
     }
 
-    private fun bitUnpack(bytes: ByteArray, count: Int): BooleanArray {
+    internal fun bitUnpack(bytes: ByteArray, count: Int): BooleanArray {
         val bits = BooleanArray(count)
         for (i in 0 until count) {
             val byteIdx = i / 8
@@ -262,10 +311,9 @@ object MonochromeImageCodec {
         return writer.toByteArray()
     }
 
-    private fun decodeVarRle(bytes: ByteArray, count: Int): BooleanArray {
+    private fun decodeVarRle(reader: BitReader, count: Int): BooleanArray {
         val bits = BooleanArray(count)
-        if (bytes.isEmpty()) return bits
-        val reader = BitReader(bytes)
+        if (!reader.hasBits) return bits
         var currentColor = reader.readBit()
         var written = 0
         while (written < count && reader.hasBits) {
@@ -321,9 +369,8 @@ object MonochromeImageCodec {
         return writer.toByteArray()
     }
 
-    private fun decodeBlock4x4(bytes: ByteArray, width: Int, height: Int): BooleanArray {
+    private fun decodeBlock4x4(reader: BitReader, width: Int, height: Int): BooleanArray {
         val bits = BooleanArray(width * height)
-        val reader = BitReader(bytes)
         val bxCount = (width + 3) / 4
         val byCount = (height + 3) / 4
 
@@ -431,9 +478,8 @@ object MonochromeImageCodec {
         return writer.toByteArray()
     }
 
-    private fun decodeBlock8x8(bytes: ByteArray, width: Int, height: Int): BooleanArray {
+    private fun decodeBlock8x8(reader: BitReader, width: Int, height: Int): BooleanArray {
         val bits = BooleanArray(width * height)
-        val reader = BitReader(bytes)
         val bx8Count = (width + 7) / 8
         val by8Count = (height + 7) / 8
 
@@ -520,8 +566,8 @@ object MonochromeImageCodec {
         return encodeVarRle(residuals)
     }
 
-    private fun decodeDelta2D(bytes: ByteArray, width: Int, height: Int): BooleanArray {
-        val residuals = decodeVarRle(bytes, width * height)
+    private fun decodeDelta2D(reader: BitReader, width: Int, height: Int): BooleanArray {
+        val residuals = decodeVarRle(reader, width * height)
         val bits = BooleanArray(width * height)
         for (y in 0 until height) {
             for (x in 0 until width) {
@@ -582,8 +628,7 @@ object MonochromeImageCodec {
         return writer.toByteArray()
     }
 
-    private fun decodeLzss(bytes: ByteArray, expectedByteCount: Int): ByteArray {
-        val reader = BitReader(bytes)
+    private fun decodeLzss(reader: BitReader, expectedByteCount: Int): ByteArray {
         val out = ByteArray(expectedByteCount)
         var outPos = 0
         while (outPos < expectedByteCount && reader.hasBits) {
@@ -612,7 +657,7 @@ object MonochromeImageCodec {
         return result
     }
 
-    fun encode(monoBits: BooleanArray, presetIndex: Int): ByteArray {
+    fun encode(monoBits: BooleanArray, presetIndex: Int, themeIndex: Int = 0, showGrid: Boolean = false): ByteArray {
         val preset = getPreset(presetIndex)
         val pixelCount = min(monoBits.size, preset.totalPixels)
         val bits = if (monoBits.size == pixelCount) monoBits else monoBits.copyOf(pixelCount)
@@ -639,7 +684,11 @@ object MonochromeImageCodec {
         val lzss = makePacket(ENC_LZSS, presetIndex, encodeLzss(rawPacked))
         if (lzss.size < best.size) best = lzss
 
-        return best
+        val trailer = (((if (showGrid) 1 else 0) shl 7) or (themeIndex and 0x7F)).toByte()
+        val result = ByteArray(best.size + 1)
+        best.copyInto(result, 0)
+        result[best.size] = trailer
+        return result
     }
 
     fun decode(bytes: ByteArray): DecodedMonochromeImage? {
@@ -651,24 +700,32 @@ object MonochromeImageCodec {
         val pixelCount = preset.totalPixels
         val payload = bytes.copyOfRange(1, bytes.size)
 
+        val reader = BitReader(payload)
         val bits: BooleanArray =
             when (enc) {
                 ENC_RAW -> bitUnpack(payload, pixelCount)
-                ENC_BLOCK_4X4 -> decodeBlock4x4(payload, preset.width, preset.height)
-                ENC_BLOCK_8X8 -> decodeBlock8x8(payload, preset.width, preset.height)
-                ENC_VAR_RLE_H -> decodeVarRle(payload, pixelCount)
-                ENC_VAR_RLE_V -> transpose(decodeVarRle(payload, pixelCount), preset.height, preset.width)
-                ENC_DELTA_2D -> decodeDelta2D(payload, preset.width, preset.height)
-                ENC_LZSS -> bitUnpack(decodeLzss(payload, (pixelCount + 7) / 8), pixelCount)
+                ENC_BLOCK_4X4 -> decodeBlock4x4(reader, preset.width, preset.height)
+                ENC_BLOCK_8X8 -> decodeBlock8x8(reader, preset.width, preset.height)
+                ENC_VAR_RLE_H -> decodeVarRle(reader, pixelCount)
+                ENC_VAR_RLE_V -> transpose(decodeVarRle(reader, pixelCount), preset.height, preset.width)
+                ENC_DELTA_2D -> decodeDelta2D(reader, preset.width, preset.height)
+                ENC_LZSS -> bitUnpack(decodeLzss(reader, (pixelCount + 7) / 8), pixelCount)
                 else -> return null
             }
 
+        val consumedBytes = if (enc == ENC_RAW) (pixelCount + 7) / 8 else (reader.bitPos + 7) / 8
+        val hasTrailer = payload.size > consumedBytes
+        val trailer = if (hasTrailer) payload.last().toInt() and 0xFF else 0
+        val showGrid = hasTrailer && ((trailer and 0x80) != 0)
+        val themeIndex = if (hasTrailer) (trailer and 0x7F) else 0
+
+        val theme = getTheme(themeIndex)
         val pixels =
             IntArray(pixelCount) { i ->
                 if (i < bits.size && bits[i]) {
-                    0xFFFFFFFF.toInt()
+                    theme.foregroundColor.toInt()
                 } else {
-                    0xFF000000.toInt()
+                    theme.backgroundColor.toInt()
                 }
             }
         return DecodedMonochromeImage(
@@ -676,6 +733,8 @@ object MonochromeImageCodec {
             width = preset.width,
             height = preset.height,
             pixels = pixels,
+            themeIndex = themeIndex,
+            showGrid = showGrid,
         )
     }
 
@@ -699,7 +758,7 @@ object MonochromeImageCodec {
                 valNorm = kotlin.math.max(0f, kotlin.math.min(1f, valNorm))
                 val bayerVal = (bayerMatrix[(y % 4) * 4 + (x % 4)] + 0.5f) / 16f
                 val threshold = 0.5f + (bayerVal - 0.5f) * ditherAmount
-                result[i] = if (invert) valNorm < threshold else valNorm >= threshold
+                result[i] = if (invert) valNorm >= threshold else valNorm < threshold
             }
         }
         return result

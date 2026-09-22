@@ -67,6 +67,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -569,11 +570,14 @@ fun MessageItem(
                         val targetWidth =
                             if (imageAspect >= 1f) 220.dp else (220.dp * imageAspect).coerceAtLeast(140.dp)
                         val targetHeight = targetWidth / imageAspect
+                        val theme = MonochromeImageCodec.getTheme(monoImage.themeIndex)
+                        val bgColor = Color(theme.backgroundColor)
+                        val fgColor = Color(theme.foregroundColor)
                         Box(
                             modifier =
                             Modifier.size(width = targetWidth, height = targetHeight)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(Color.Black),
+                                .background(bgColor),
                             contentAlignment = Alignment.Center,
                         ) {
                             Canvas(modifier = Modifier.fillMaxSize()) {
@@ -584,12 +588,44 @@ fun MessageItem(
                                         val idx = y * monoImage.width + x
                                         if (
                                             idx < monoImage.pixels.size &&
-                                            monoImage.pixels[idx] == 0xFFFFFFFF.toInt()
+                                            monoImage.pixels[idx] == theme.foregroundColor.toInt()
                                         ) {
                                             drawRect(
-                                                color = Color.White,
+                                                color = fgColor,
                                                 topLeft = Offset(x * cellW, y * cellH),
                                                 size = Size(cellW + 0.5f, cellH + 0.5f),
+                                            )
+                                        }
+                                    }
+                                }
+                                if (monoImage.showGrid) {
+                                    val fgLum =
+                                        0.299f * fgColor.red + 0.587f * fgColor.green + 0.114f * fgColor.blue
+                                    val bgLum =
+                                        0.299f * bgColor.red + 0.587f * bgColor.green + 0.114f * bgColor.blue
+                                    val fgGridColor =
+                                        if (fgLum < 0.45f) {
+                                            Color.White.copy(alpha = 0.35f)
+                                        } else {
+                                            Color.Black.copy(alpha = 0.35f)
+                                        }
+                                    val bgGridColor =
+                                        if (bgLum < 0.45f) {
+                                            Color.White.copy(alpha = 0.35f)
+                                        } else {
+                                            Color.Black.copy(alpha = 0.35f)
+                                        }
+                                    for (y in 0 until monoImage.height) {
+                                        for (x in 0 until monoImage.width) {
+                                            val idx = y * monoImage.width + x
+                                            val isFg =
+                                                idx < monoImage.pixels.size &&
+                                                    monoImage.pixels[idx] == theme.foregroundColor.toInt()
+                                            drawRect(
+                                                color = if (isFg) fgGridColor else bgGridColor,
+                                                topLeft = Offset(x * cellW, y * cellH),
+                                                size = Size(cellW, cellH),
+                                                style = Stroke(width = 1f),
                                             )
                                         }
                                     }

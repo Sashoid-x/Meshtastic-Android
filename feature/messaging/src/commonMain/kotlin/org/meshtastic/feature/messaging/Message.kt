@@ -198,7 +198,7 @@ fun MessageScreen(
     // UI State managed within this Composable
     var replyingToPacketId by rememberSaveable { mutableStateOf<Int?>(null) }
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
-    var showImageEditor by remember { mutableStateOf(false) }
+    var showImageEditor by rememberSaveable { mutableStateOf(false) }
     var imageImportTrigger by remember { androidx.compose.runtime.mutableIntStateOf(0) }
     var selectedImageUri by remember { mutableStateOf<org.meshtastic.core.common.util.CommonUri?>(null) }
     val readImageGrayValues = org.meshtastic.core.ui.util.rememberReadImageGrayValuesFromUri()

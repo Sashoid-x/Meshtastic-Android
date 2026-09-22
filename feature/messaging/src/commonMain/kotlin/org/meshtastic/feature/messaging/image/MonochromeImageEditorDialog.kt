@@ -36,6 +36,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -45,10 +46,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -66,6 +69,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -73,6 +78,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -89,14 +95,14 @@ import org.meshtastic.core.resources.image_editor_clear
 import org.meshtastic.core.resources.image_editor_contrast
 import org.meshtastic.core.resources.image_editor_crop_title
 import org.meshtastic.core.resources.image_editor_dithering
-import org.meshtastic.core.resources.image_editor_draw_black
-import org.meshtastic.core.resources.image_editor_draw_white
-import org.meshtastic.core.resources.image_editor_erase_black
-import org.meshtastic.core.resources.image_editor_erase_white
+import org.meshtastic.core.resources.image_editor_draw
+import org.meshtastic.core.resources.image_editor_erase
+import org.meshtastic.core.resources.image_editor_grid
 import org.meshtastic.core.resources.image_editor_hint_pan_zoom
 import org.meshtastic.core.resources.image_editor_import_photo
 import org.meshtastic.core.resources.image_editor_invert
 import org.meshtastic.core.resources.image_editor_resolution
+import org.meshtastic.core.resources.image_editor_theme
 import org.meshtastic.core.resources.image_editor_title
 import org.meshtastic.core.resources.send
 import kotlin.math.min
@@ -105,6 +111,11 @@ private enum class EditorMode {
     DRAW,
     PHOTO_CROP,
 }
+
+private fun pixelsSaver(preset: MonochromeResolutionPreset): Saver<BooleanArray, ByteArray> = Saver(
+    save = { MonochromeImageCodec.bitPack(it, preset.totalPixels) },
+    restore = { MonochromeImageCodec.bitUnpack(it, preset.totalPixels) },
+)
 
 /**
  * Unified monochrome image editor.
@@ -123,9 +134,11 @@ fun MonochromeImageEditorDialog(
     importedWidth: Int = 500,
     importedHeight: Int = 500,
 ) {
-    var selectedPresetIndex by remember { mutableIntStateOf(0) }
-    var invert by remember { mutableStateOf(false) }
-    var editorMode by remember { mutableStateOf(EditorMode.DRAW) }
+    var selectedPresetIndex by rememberSaveable { mutableIntStateOf(0) }
+    var selectedThemeIndex by rememberSaveable { mutableIntStateOf(0) }
+    var showGrid by rememberSaveable { mutableStateOf(false) }
+    var photoInvert by rememberSaveable { mutableStateOf(false) }
+    var editorMode by rememberSaveable { mutableStateOf(EditorMode.DRAW) }
 
     // Auto-switch to crop when a photo arrives
     androidx.compose.runtime.LaunchedEffect(importedGrayValues) {
@@ -135,33 +148,44 @@ fun MonochromeImageEditorDialog(
     }
 
     val preset = MonochromeImageCodec.getPreset(selectedPresetIndex)
+    val currentTheme = MonochromeImageCodec.getTheme(selectedThemeIndex)
+    val drawColor = Color(currentTheme.foregroundColor)
+    val eraseColor = Color(currentTheme.backgroundColor)
 
-    // DRAW state
-    val pixels = remember(preset) { BooleanArray(preset.width * preset.height) }
+    // DRAW state preserved across configuration changes (orientation)
+    val pixels = rememberSaveable(preset.index, saver = pixelsSaver(preset)) { BooleanArray(preset.totalPixels) }
     val trigger = remember { mutableIntStateOf(0) }
-    var brushColorBlack by remember { mutableStateOf(true) }
+    var brushColorBlack by rememberSaveable { mutableStateOf(true) }
 
     val packetSize: Int by
-        remember(preset) {
+        remember(preset, selectedThemeIndex, showGrid) {
             derivedStateOf {
                 @Suppress("UNUSED_EXPRESSION")
                 trigger.value
-                val finalBits = BooleanArray(pixels.size) { if (invert) pixels[it] else !pixels[it] }
-                MonochromeImageCodec.encode(finalBits, selectedPresetIndex).size
+                MonochromeImageCodec.encode(
+                    pixels,
+                    selectedPresetIndex,
+                    themeIndex = selectedThemeIndex,
+                    showGrid = showGrid,
+                )
+                    .size
             }
         }
 
     // PHOTO_CROP state
-    var photoScale by remember { mutableFloatStateOf(1f) }
-    var photoOffset by remember { mutableStateOf(Offset.Zero) }
-    var photoRotation by remember { mutableFloatStateOf(0f) }
-    var brightness by remember { mutableFloatStateOf(0f) }
-    var contrast by remember { mutableFloatStateOf(1f) }
-    var ditherAmount by remember { mutableFloatStateOf(1f) }
+    var photoScale by rememberSaveable { mutableFloatStateOf(1f) }
+    var photoOffsetX by rememberSaveable { mutableFloatStateOf(0f) }
+    var photoOffsetY by rememberSaveable { mutableFloatStateOf(0f) }
+    val photoOffset = Offset(photoOffsetX, photoOffsetY)
+    var photoRotation by rememberSaveable { mutableFloatStateOf(0f) }
+    var brightness by rememberSaveable { mutableFloatStateOf(0f) }
+    var contrast by rememberSaveable { mutableFloatStateOf(1f) }
+    var ditherAmount by rememberSaveable { mutableFloatStateOf(1f) }
 
     androidx.compose.runtime.LaunchedEffect(selectedPresetIndex, importedGrayValues) {
         photoScale = 1f
-        photoOffset = Offset.Zero
+        photoOffsetX = 0f
+        photoOffsetY = 0f
         photoRotation = 0f
     }
 
@@ -191,15 +215,12 @@ fun MonochromeImageEditorDialog(
             val cy = importedHeight / 2f + photoOffset.y
             for (y in 0 until preset.height) {
                 for (x in 0 until preset.width) {
-                    // Offset from preset center in preset cells, then scale to source pixels
                     val dx = (x - preset.width / 2f) * cellSize
                     val dy = (y - preset.height / 2f) * cellSize
-                    // Apply rotation around the source center
                     val sx = cx + cosA * dx + sinA * dy
                     val sy = cy - sinA * dx + cosA * dy
                     val ix = sx.toInt()
                     val iy = sy.toInt()
-                    // Out-of-bounds → neutral gray (not black/white stretch)
                     result[y * preset.width + x] =
                         if (ix in 0 until importedWidth && iy in 0 until importedHeight) {
                             src[iy * importedWidth + ix]
@@ -212,7 +233,7 @@ fun MonochromeImageEditorDialog(
         }
 
     val monoBitsPreview by
-        remember(sampledGrayValues, brightness, contrast, ditherAmount, invert) {
+        remember(sampledGrayValues, brightness, contrast, ditherAmount, photoInvert) {
             derivedStateOf {
                 MonochromeImageCodec.processToMonochrome(
                     grayValues = sampledGrayValues,
@@ -221,7 +242,7 @@ fun MonochromeImageEditorDialog(
                     brightness = brightness,
                     contrast = contrast,
                     ditherAmount = ditherAmount,
-                    invert = invert,
+                    invert = photoInvert,
                 )
             }
         }
@@ -233,234 +254,523 @@ fun MonochromeImageEditorDialog(
             tonalElevation = 6.dp,
             modifier = Modifier.fillMaxSize(),
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState()),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Text(
-                    text =
-                    if (editorMode == EditorMode.PHOTO_CROP) {
-                        stringResource(Res.string.image_editor_crop_title)
-                    } else {
-                        stringResource(Res.string.image_editor_title)
-                    },
-                    style = MaterialTheme.typography.titleLarge,
-                    modifier = Modifier.padding(bottom = 12.dp),
-                )
+            BoxWithConstraints(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                val isLandscape = maxWidth > maxHeight
 
-                // Resolution chips
-                Text(
-                    stringResource(Res.string.image_editor_resolution, preset.name),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                Spacer(Modifier.height(4.dp))
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    items(MonochromeImageCodec.PRESETS) { p ->
-                        FilterChip(
-                            selected = p.index == selectedPresetIndex,
-                            onClick = { selectedPresetIndex = p.index },
-                            label = { Text(p.name, style = MaterialTheme.typography.bodySmall) },
-                        )
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-
-                // Canvas
-                if (editorMode == EditorMode.DRAW) {
-                    DrawCanvas(
-                        preset = preset,
-                        pixels = pixels,
-                        invert = invert,
-                        brushColorBlack = brushColorBlack,
-                        trigger = trigger,
-                        packetSize = packetSize,
-                        onPixelChange = { trigger.value++ },
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    // Brush buttons
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Button(onClick = { brushColorBlack = true }, enabled = !brushColorBlack) {
-                            Text(
-                                if (invert) {
-                                    stringResource(Res.string.image_editor_draw_white)
-                                } else {
-                                    stringResource(Res.string.image_editor_draw_black)
-                                },
+                if (isLandscape && editorMode == EditorMode.DRAW) {
+                    Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                        // Left column: Canvas centered
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                            DrawCanvas(
+                                preset = preset,
+                                pixels = pixels,
+                                theme = currentTheme,
+                                showGrid = showGrid,
+                                brushColorBlack = brushColorBlack,
+                                trigger = trigger,
+                                packetSize = packetSize,
+                                onPixelChange = { trigger.value++ },
                             )
                         }
-                        Button(onClick = { brushColorBlack = false }, enabled = brushColorBlack) {
+
+                        // Right column: Scrollable controls
+                        Column(
+                            modifier = Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
                             Text(
-                                if (invert) {
-                                    stringResource(Res.string.image_editor_erase_black)
-                                } else {
-                                    stringResource(Res.string.image_editor_erase_white)
-                                },
+                                text = stringResource(Res.string.image_editor_title),
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.padding(bottom = 8.dp),
                             )
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
 
-                    // Invert
-                    Row(
-                        Modifier.fillMaxWidth().clickable { invert = !invert },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            stringResource(Res.string.image_editor_invert),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Switch(checked = invert, onCheckedChange = { invert = it })
-                    }
-                    Spacer(Modifier.height(8.dp))
+                            // Resolution chips
+                            Text(
+                                stringResource(Res.string.image_editor_resolution, preset.name),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                items(MonochromeImageCodec.PRESETS) { p ->
+                                    FilterChip(
+                                        selected = p.index == selectedPresetIndex,
+                                        onClick = { selectedPresetIndex = p.index },
+                                        label = { Text(p.name, style = MaterialTheme.typography.bodySmall) },
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
 
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = {
-                                pixels.fill(false)
-                                trigger.value++
-                            },
-                            modifier = Modifier.weight(1f),
-                        ) {
-                            Text(stringResource(Res.string.image_editor_clear))
-                        }
-                        OutlinedButton(onClick = onImportPhoto, modifier = Modifier.weight(1f)) {
-                            Text(stringResource(Res.string.image_editor_import_photo))
-                        }
-                    }
-                    Spacer(Modifier.height(16.dp))
+                            // Theme chips
+                            Text(
+                                stringResource(Res.string.image_editor_theme, currentTheme.name),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                items(MonochromeImageCodec.THEMES) { t ->
+                                    FilterChip(
+                                        selected = t.id == selectedThemeIndex,
+                                        onClick = { selectedThemeIndex = t.id },
+                                        leadingIcon = {
+                                            Box(
+                                                modifier =
+                                                Modifier.size(14.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(t.backgroundColor))
+                                                    .border(1.dp, Color(t.foregroundColor), CircleShape),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Box(
+                                                    modifier =
+                                                    Modifier.size(6.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(t.foregroundColor)),
+                                                )
+                                            }
+                                        },
+                                        label = { Text(t.name, style = MaterialTheme.typography.bodySmall) },
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
 
-                    // Action row
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                        OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-                            Text(stringResource(Res.string.cancel))
-                        }
-                        Button(
-                            onClick = {
-                                val finalBits = BooleanArray(pixels.size) { if (invert) pixels[it] else !pixels[it] }
-                                onSendImage(MonochromeImageCodec.encode(finalBits, selectedPresetIndex))
-                            },
-                            modifier = Modifier.weight(1f).padding(start = 8.dp),
-                        ) {
-                            Text(stringResource(Res.string.send))
+                            // Brush buttons
+                            BrushModeButtons(
+                                drawColor = drawColor,
+                                eraseColor = eraseColor,
+                                brushColorBlack = brushColorBlack,
+                                onSelectDraw = { brushColorBlack = true },
+                                onSelectErase = { brushColorBlack = false },
+                            )
+                            Spacer(Modifier.height(8.dp))
+
+                            // Grid toggle
+                            Row(
+                                Modifier.fillMaxWidth().clickable { showGrid = !showGrid },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    stringResource(Res.string.image_editor_grid),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Switch(checked = showGrid, onCheckedChange = { showGrid = it })
+                            }
+                            Spacer(Modifier.height(8.dp))
+
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = {
+                                        for (i in pixels.indices) pixels[i] = !pixels[i]
+                                        trigger.value++
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text(stringResource(Res.string.image_editor_invert))
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        pixels.fill(false)
+                                        trigger.value++
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text(stringResource(Res.string.image_editor_clear))
+                                }
+                                OutlinedButton(onClick = onImportPhoto, modifier = Modifier.weight(1f)) {
+                                    Text(stringResource(Res.string.image_editor_import_photo))
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+
+                            // Action row
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                OutlinedButton(
+                                    onClick = onDismiss,
+                                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                ) {
+                                    Text(stringResource(Res.string.cancel))
+                                }
+                                Button(
+                                    onClick = {
+                                        onSendImage(
+                                            MonochromeImageCodec.encode(
+                                                pixels,
+                                                selectedPresetIndex,
+                                                themeIndex = selectedThemeIndex,
+                                                showGrid = showGrid,
+                                            ),
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f).padding(start = 8.dp),
+                                ) {
+                                    Text(stringResource(Res.string.send))
+                                }
+                            }
                         }
                     }
                 } else {
-                    // PHOTO_CROP
-                    val previewBytes =
-                        remember(monoBitsPreview) {
-                            MonochromeImageCodec.encode(
-                                monoBitsPreview.map { it }.toBooleanArray(),
-                                selectedPresetIndex,
-                            )
-                                .size
-                        }
-                    PhotoCropCanvas(
-                        preset = preset,
-                        monoBitsPreview = monoBitsPreview,
-                        packetSize = previewBytes,
-                        onTransform = { pan, zoom, rotation, size ->
-                            val zf = 1f + (zoom - 1f) * 0.4f
-                            photoScale = (photoScale * zf).coerceIn(0.5f, 10f)
-                            photoRotation += rotation
-                            // Screen pixels per preset cell
-                            val screenCellW = size.width.toFloat() / preset.width
-                            // Source pixels per preset cell (at current zoom)
-                            val fitScaleX = importedWidth.toFloat() / preset.width
-                            val fitScaleY = importedHeight.toFloat() / preset.height
-                            val fitScale = kotlin.math.min(fitScaleX, fitScaleY)
-                            val cellSize = fitScale / photoScale
-                            // Convert: screen pan → source pan. Negate because dragging right moves offset right.
-                            val srcPanX = -pan.x * (cellSize / screenCellW)
-                            val srcPanY = -pan.y * (cellSize / screenCellW)
-                            photoOffset += Offset(srcPanX, srcPanY)
-                        },
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = stringResource(Res.string.image_editor_hint_pan_zoom),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(8.dp))
-
-                    // Invert
-                    Row(
-                        Modifier.fillMaxWidth().clickable { invert = !invert },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
+                    // Portrait layout or Photo Crop mode
+                    Column(
+                        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text(
-                            stringResource(Res.string.image_editor_invert),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        Switch(checked = invert, onCheckedChange = { invert = it })
-                    }
-                    Spacer(Modifier.height(8.dp))
-
-                    // Sliders
-                    Text(
-                        stringResource(Res.string.image_editor_brightness, (brightness * 100).toInt()),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Slider(
-                        value = brightness,
-                        onValueChange = { brightness = it },
-                        valueRange = -1f..1f,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text(
-                        stringResource(Res.string.image_editor_contrast, NumberFormatter.format(contrast, 1)),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Slider(
-                        value = contrast,
-                        onValueChange = { contrast = it },
-                        valueRange = 0.1f..3f,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Text(
-                        stringResource(Res.string.image_editor_dithering, (ditherAmount * 100).toInt()),
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Slider(
-                        value = ditherAmount,
-                        onValueChange = { ditherAmount = it },
-                        valueRange = 0f..1f,
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    Spacer(Modifier.height(12.dp))
-
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(onClick = { editorMode = EditorMode.DRAW }, modifier = Modifier.weight(1f)) {
-                            Text(stringResource(Res.string.cancel))
-                        }
-                        Button(
-                            onClick = {
-                                val baked = monoBitsPreview
-                                // monoBits[i]=true means white pixel.
-                                // pixels[i]=true means "ink". Ink is black when invert=false.
-                                // So: pixels[i]=true when the result is black (monoBits=false, invert=false)
-                                //                     or when result is white (monoBits=true, invert=true)
-                                for (i in pixels.indices) {
-                                    pixels[i] =
-                                        if (invert) baked.getOrElse(i) { false } else !baked.getOrElse(i) { true }
-                                }
-                                trigger.value++
-                                editorMode = EditorMode.DRAW
+                            text =
+                            if (editorMode == EditorMode.PHOTO_CROP) {
+                                stringResource(Res.string.image_editor_crop_title)
+                            } else {
+                                stringResource(Res.string.image_editor_title)
                             },
-                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(bottom = 12.dp),
+                        )
+
+                        // Resolution chips
+                        Text(
+                            stringResource(Res.string.image_editor_resolution, preset.name),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Text(stringResource(Res.string.image_editor_apply))
+                            items(MonochromeImageCodec.PRESETS) { p ->
+                                FilterChip(
+                                    selected = p.index == selectedPresetIndex,
+                                    onClick = { selectedPresetIndex = p.index },
+                                    label = { Text(p.name, style = MaterialTheme.typography.bodySmall) },
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(8.dp))
+
+                        // Theme chips (in DRAW mode)
+                        if (editorMode == EditorMode.DRAW) {
+                            Text(
+                                stringResource(Res.string.image_editor_theme, currentTheme.name),
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(Modifier.height(4.dp))
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                items(MonochromeImageCodec.THEMES) { t ->
+                                    FilterChip(
+                                        selected = t.id == selectedThemeIndex,
+                                        onClick = { selectedThemeIndex = t.id },
+                                        leadingIcon = {
+                                            Box(
+                                                modifier =
+                                                Modifier.size(14.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(t.backgroundColor))
+                                                    .border(1.dp, Color(t.foregroundColor), CircleShape),
+                                                contentAlignment = Alignment.Center,
+                                            ) {
+                                                Box(
+                                                    modifier =
+                                                    Modifier.size(6.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(t.foregroundColor)),
+                                                )
+                                            }
+                                        },
+                                        label = { Text(t.name, style = MaterialTheme.typography.bodySmall) },
+                                    )
+                                }
+                            }
+                            Spacer(Modifier.height(12.dp))
+                        }
+
+                        // Canvas
+                        if (editorMode == EditorMode.DRAW) {
+                            DrawCanvas(
+                                preset = preset,
+                                pixels = pixels,
+                                theme = currentTheme,
+                                showGrid = showGrid,
+                                brushColorBlack = brushColorBlack,
+                                trigger = trigger,
+                                packetSize = packetSize,
+                                onPixelChange = { trigger.value++ },
+                            )
+                            Spacer(Modifier.height(8.dp))
+
+                            // Brush buttons
+                            BrushModeButtons(
+                                drawColor = drawColor,
+                                eraseColor = eraseColor,
+                                brushColorBlack = brushColorBlack,
+                                onSelectDraw = { brushColorBlack = true },
+                                onSelectErase = { brushColorBlack = false },
+                            )
+                            Spacer(Modifier.height(8.dp))
+
+                            // Grid toggle
+                            Row(
+                                Modifier.fillMaxWidth().clickable { showGrid = !showGrid },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    stringResource(Res.string.image_editor_grid),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Switch(checked = showGrid, onCheckedChange = { showGrid = it })
+                            }
+                            Spacer(Modifier.height(8.dp))
+
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = {
+                                        for (i in pixels.indices) pixels[i] = !pixels[i]
+                                        trigger.value++
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text(stringResource(Res.string.image_editor_invert))
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        pixels.fill(false)
+                                        trigger.value++
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text(stringResource(Res.string.image_editor_clear))
+                                }
+                                OutlinedButton(onClick = onImportPhoto, modifier = Modifier.weight(1f)) {
+                                    Text(stringResource(Res.string.image_editor_import_photo))
+                                }
+                            }
+                            Spacer(Modifier.height(16.dp))
+
+                            // Action row
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                OutlinedButton(
+                                    onClick = onDismiss,
+                                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                                ) {
+                                    Text(stringResource(Res.string.cancel))
+                                }
+                                Button(
+                                    onClick = {
+                                        onSendImage(
+                                            MonochromeImageCodec.encode(
+                                                pixels,
+                                                selectedPresetIndex,
+                                                themeIndex = selectedThemeIndex,
+                                                showGrid = showGrid,
+                                            ),
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f).padding(start = 8.dp),
+                                ) {
+                                    Text(stringResource(Res.string.send))
+                                }
+                            }
+                        } else {
+                            // PHOTO_CROP
+                            val previewBytes =
+                                remember(monoBitsPreview, selectedThemeIndex, showGrid) {
+                                    MonochromeImageCodec.encode(
+                                        monoBitsPreview.map { it }.toBooleanArray(),
+                                        selectedPresetIndex,
+                                        themeIndex = selectedThemeIndex,
+                                        showGrid = showGrid,
+                                    )
+                                        .size
+                                }
+                            PhotoCropCanvas(
+                                preset = preset,
+                                monoBitsPreview = monoBitsPreview,
+                                theme = currentTheme,
+                                showGrid = showGrid,
+                                packetSize = previewBytes,
+                                onTransform = { pan, zoom, rotation, size ->
+                                    val zf = 1f + (zoom - 1f) * 0.4f
+                                    photoScale = (photoScale * zf).coerceIn(0.5f, 10f)
+                                    photoRotation += rotation
+                                    val screenCellW = size.width.toFloat() / preset.width
+                                    val fitScaleX = importedWidth.toFloat() / preset.width
+                                    val fitScaleY = importedHeight.toFloat() / preset.height
+                                    val fitScale = kotlin.math.min(fitScaleX, fitScaleY)
+                                    val cellSize = fitScale / photoScale
+                                    val srcPanX = -pan.x * (cellSize / screenCellW)
+                                    val srcPanY = -pan.y * (cellSize / screenCellW)
+                                    photoOffsetX += srcPanX
+                                    photoOffsetY += srcPanY
+                                },
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                text = stringResource(Res.string.image_editor_hint_pan_zoom),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(Modifier.height(8.dp))
+
+                            // Invert
+                            Row(
+                                Modifier.fillMaxWidth().clickable { photoInvert = !photoInvert },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                Text(
+                                    stringResource(Res.string.image_editor_invert),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                                Switch(checked = photoInvert, onCheckedChange = { photoInvert = it })
+                            }
+                            Spacer(Modifier.height(8.dp))
+
+                            // Sliders
+                            Text(
+                                stringResource(Res.string.image_editor_brightness, (brightness * 100).toInt()),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Slider(
+                                value = brightness,
+                                onValueChange = { brightness = it },
+                                valueRange = -1f..1f,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Text(
+                                stringResource(Res.string.image_editor_contrast, NumberFormatter.format(contrast, 1)),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Slider(
+                                value = contrast,
+                                onValueChange = { contrast = it },
+                                valueRange = 0.1f..3f,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Text(
+                                stringResource(Res.string.image_editor_dithering, (ditherAmount * 100).toInt()),
+                                style = MaterialTheme.typography.bodySmall,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Slider(
+                                value = ditherAmount,
+                                onValueChange = { ditherAmount = it },
+                                valueRange = 0f..1f,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            Spacer(Modifier.height(12.dp))
+
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                OutlinedButton(
+                                    onClick = { editorMode = EditorMode.DRAW },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text(stringResource(Res.string.cancel))
+                                }
+                                Button(
+                                    onClick = {
+                                        val baked = monoBitsPreview
+                                        for (i in pixels.indices) {
+                                            pixels[i] = baked.getOrNull(i) ?: false
+                                        }
+                                        trigger.value++
+                                        editorMode = EditorMode.DRAW
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                ) {
+                                    Text(stringResource(Res.string.image_editor_apply))
+                                }
+                            }
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+private fun contrastingGridColor(color: Color): Color {
+    val lum = 0.299f * color.red + 0.587f * color.green + 0.114f * color.blue
+    return if (lum < 0.45f) {
+        Color.White.copy(alpha = 0.35f)
+    } else {
+        Color.Black.copy(alpha = 0.35f)
+    }
+}
+
+@Composable
+private fun BrushModeButtons(
+    drawColor: Color,
+    eraseColor: Color,
+    brushColorBlack: Boolean,
+    onSelectDraw: () -> Unit,
+    onSelectErase: () -> Unit,
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (brushColorBlack) {
+            Button(onClick = {}, modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier =
+                    Modifier.size(16.dp)
+                        .clip(CircleShape)
+                        .background(drawColor)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.image_editor_draw))
+            }
+        } else {
+            OutlinedButton(onClick = onSelectDraw, modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier =
+                    Modifier.size(16.dp)
+                        .clip(CircleShape)
+                        .background(drawColor)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.image_editor_draw))
+            }
+        }
+
+        if (!brushColorBlack) {
+            Button(onClick = {}, modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier =
+                    Modifier.size(16.dp)
+                        .clip(CircleShape)
+                        .background(eraseColor)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.image_editor_erase))
+            }
+        } else {
+            OutlinedButton(onClick = onSelectErase, modifier = Modifier.weight(1f)) {
+                Box(
+                    modifier =
+                    Modifier.size(16.dp)
+                        .clip(CircleShape)
+                        .background(eraseColor)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(Res.string.image_editor_erase))
             }
         }
     }
@@ -470,7 +780,8 @@ fun MonochromeImageEditorDialog(
 private fun DrawCanvas(
     preset: MonochromeResolutionPreset,
     pixels: BooleanArray,
-    invert: Boolean,
+    theme: MonochromeTheme,
+    showGrid: Boolean,
     brushColorBlack: Boolean,
     trigger: androidx.compose.runtime.State<Int>,
     packetSize: Int,
@@ -489,6 +800,10 @@ private fun DrawCanvas(
         }
     }
 
+    val bgColor = Color(theme.backgroundColor)
+    val inkColor = Color(theme.foregroundColor)
+    val gridColor = Color(theme.gridColor)
+
     androidx.compose.foundation.layout.Row(
         modifier = Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically,
@@ -499,7 +814,7 @@ private fun DrawCanvas(
                 .aspectRatio(preset.width.toFloat() / preset.height.toFloat())
                 .clip(RoundedCornerShape(8.dp))
                 .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
-                .background(if (invert) Color.Black else Color.White)
+                .background(bgColor)
                 .pointerInput(preset) {
                     detectDragGestures(
                         onDragStart = { offset -> updatePixel(offset, this.size) },
@@ -512,7 +827,6 @@ private fun DrawCanvas(
             Canvas(modifier = Modifier.matchParentSize()) {
                 @Suppress("UNUSED_EXPRESSION")
                 trigger.value
-                val inkColor = if (invert) Color.White else Color.Black
                 val cellW = size.width / preset.width
                 val cellH = size.height / preset.height
                 for (y in 0 until preset.height) {
@@ -521,7 +835,22 @@ private fun DrawCanvas(
                             drawRect(
                                 color = inkColor,
                                 topLeft = Offset(x * cellW, y * cellH),
+                                size = Size(cellW + 0.5f, cellH + 0.5f),
+                            )
+                        }
+                    }
+                }
+                if (showGrid) {
+                    val inkGridColor = contrastingGridColor(inkColor)
+                    val bgGridColor = contrastingGridColor(bgColor)
+                    for (y in 0 until preset.height) {
+                        for (x in 0 until preset.width) {
+                            val isDrawn = pixels[y * preset.width + x]
+                            drawRect(
+                                color = if (isDrawn) inkGridColor else bgGridColor,
+                                topLeft = Offset(x * cellW, y * cellH),
                                 size = Size(cellW, cellH),
+                                style = Stroke(width = 1f),
                             )
                         }
                     }
@@ -554,9 +883,15 @@ private fun DrawCanvas(
 private fun PhotoCropCanvas(
     preset: MonochromeResolutionPreset,
     monoBitsPreview: BooleanArray,
+    theme: MonochromeTheme,
+    showGrid: Boolean,
     packetSize: Int,
     onTransform: (pan: Offset, zoom: Float, rotation: Float, size: IntSize) -> Unit,
 ) {
+    val bgColor = Color(theme.backgroundColor)
+    val inkColor = Color(theme.foregroundColor)
+    val gridColor = Color(theme.gridColor)
+
     androidx.compose.foundation.layout.Row(
         modifier = Modifier.fillMaxWidth().height(androidx.compose.foundation.layout.IntrinsicSize.Min),
         verticalAlignment = Alignment.CenterVertically,
@@ -567,7 +902,7 @@ private fun PhotoCropCanvas(
                 .aspectRatio(preset.width.toFloat() / preset.height.toFloat())
                 .clip(RoundedCornerShape(8.dp))
                 .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
-                .background(Color.Black)
+                .background(bgColor)
                 .pointerInput(Unit) {
                     detectTransformGestures { _, pan, zoom, rotation ->
                         onTransform(pan, zoom, rotation, this.size)
@@ -583,9 +918,25 @@ private fun PhotoCropCanvas(
                         val idx = y * preset.width + x
                         if (idx < monoBitsPreview.size && monoBitsPreview[idx]) {
                             drawRect(
-                                color = Color.White,
+                                color = inkColor,
                                 topLeft = Offset(x * cellW, y * cellH),
                                 size = Size(cellW + 0.5f, cellH + 0.5f),
+                            )
+                        }
+                    }
+                }
+                if (showGrid) {
+                    val inkGridColor = contrastingGridColor(inkColor)
+                    val bgGridColor = contrastingGridColor(bgColor)
+                    for (y in 0 until preset.height) {
+                        for (x in 0 until preset.width) {
+                            val idx = y * preset.width + x
+                            val isDrawn = idx < monoBitsPreview.size && monoBitsPreview[idx]
+                            drawRect(
+                                color = if (isDrawn) inkGridColor else bgGridColor,
+                                topLeft = Offset(x * cellW, y * cellH),
+                                size = Size(cellW, cellH),
+                                style = Stroke(width = 1f),
                             )
                         }
                     }
