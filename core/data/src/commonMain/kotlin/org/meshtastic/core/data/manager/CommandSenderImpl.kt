@@ -177,14 +177,14 @@ class CommandSenderImpl(
                 hopLimit = p.hopLimit,
                 channel = p.channel,
                 decoded =
-                    Data.Builder()
-                        .also { wb ->
-                            wb.portnum = PortNum.fromValue(p.dataType) ?: PortNum.UNKNOWN_APP
-                            wb.payload = p.bytes ?: ByteString.EMPTY
-                            wb.reply_id = p.replyId ?: 0
-                            wb.emoji = p.emoji
-                        }
-                        .build(),
+                Data.Builder()
+                    .also { wb ->
+                        wb.portnum = PortNum.fromValue(p.dataType) ?: PortNum.UNKNOWN_APP
+                        wb.payload = p.bytes ?: ByteString.EMPTY
+                        wb.reply_id = p.replyId ?: 0
+                        wb.emoji = p.emoji
+                    }
+                    .build(),
                 priority = MeshPacket.Priority.fromValue(p.priority) ?: MeshPacket.Priority.UNSET,
                 isDirectOnly = p.isDirectOnly,
             )

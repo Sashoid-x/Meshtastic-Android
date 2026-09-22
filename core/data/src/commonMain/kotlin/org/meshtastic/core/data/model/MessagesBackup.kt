@@ -157,12 +157,12 @@ fun MeshLogExport.toMeshLog(): MeshLog {
         try {
             if (fromRadioBase64.isNotEmpty()) {
                 val bytes = fromRadioBase64.decodeBase64()?.toByteArray()
-                if (bytes != null) FromRadio.ADAPTER.decode(bytes) else FromRadio()
+                if (bytes != null) FromRadio.ADAPTER.decode(bytes) else FromRadio.Builder().build()
             } else {
-                FromRadio()
+                FromRadio.Builder().build()
             }
         } catch (_: Exception) {
-            FromRadio()
+            FromRadio.Builder().build()
         }
     return MeshLog(
         uuid = uuid,

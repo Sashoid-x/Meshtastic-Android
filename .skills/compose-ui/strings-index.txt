@@ -932,6 +932,7 @@ image_editor_grid
 image_editor_hint_pan_zoom
 image_editor_import_photo
 image_editor_invert
+image_editor_palette_select
 image_editor_resolution
 image_editor_theme
 image_editor_title
@@ -1459,6 +1460,7 @@ offline_terrain_cache_detail
 offline_terrain_empty
 offline_terrain_manager
 offline_terrain_regional_detail
+ok_to_mqtt
 okay
 ### ONE ###
 one_day

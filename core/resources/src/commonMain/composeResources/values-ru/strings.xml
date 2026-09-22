@@ -964,6 +964,7 @@
     <string name="image_editor_hint_pan_zoom">Масштабируйте и перемещайте, затем нажмите «Применить»</string>
     <string name="image_editor_import_photo">Импорт из фото</string>
     <string name="image_editor_invert">Негатив (инверсия)</string>
+    <string name="image_editor_palette_select">Выбор палитры</string>
     <string name="image_editor_resolution">Разрешение (%1$s):</string>
     <string name="image_editor_theme">Палитра (%1$s):</string>
     <string name="image_editor_title">Редактор изображения</string>
@@ -1621,7 +1622,6 @@
     <string name="pm_status_unknown_flags">Неизвестные флаги 0x%1$s</string>
     <string name="pm1_0">PM1.0</string>
     <string name="pm10">PM10</string>
-    <string name="pm1_0">PM1.0</string>
     <string name="pm2_5">PM2.5</string>
     <string name="position">Местоположение</string>
     <string name="position_config_set_fixed_from_phone">Установить местоположение с телефона</string>

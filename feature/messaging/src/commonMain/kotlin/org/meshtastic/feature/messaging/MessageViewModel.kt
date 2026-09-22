@@ -279,9 +279,9 @@ class MessageViewModel(
     fun toggleOkToMqtt() {
         safeLaunch(tag = "toggleOkToMqtt") {
             val currentChannelSet = radioConfigRepository.channelSetFlow.first()
-            val currentLora = currentChannelSet.lora_config ?: Config.LoRaConfig()
-            val updatedLora = currentLora.copy(config_ok_to_mqtt = !currentLora.config_ok_to_mqtt)
-            adminController.setLocalConfig(Config(lora = updatedLora))
+            val currentLora = currentChannelSet.lora_config ?: Config.LoRaConfig.Builder().build()
+            val updatedLora = currentLora.newBuilder().also { b -> b.config_ok_to_mqtt = !b.config_ok_to_mqtt }.build()
+            adminController.setLocalConfig(Config.Builder().also { wb -> wb.lora = updatedLora }.build())
             radioConfigRepository.updateChannelSet(null, updatedLora)
         }
     }

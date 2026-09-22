@@ -56,7 +56,7 @@ class FileTransferManagerTest {
         val serviceRepository = mock<ServiceRepository>(MockMode.autofill)
         val radioConfigRepository = mock<RadioConfigRepository>(MockMode.autofill)
         every { serviceRepository.meshPacketFlow } returns MutableSharedFlow<MeshPacket>()
-        every { radioConfigRepository.localConfigFlow } returns MutableStateFlow(LocalConfig())
+        every { radioConfigRepository.localConfigFlow } returns MutableStateFlow(LocalConfig.Builder().build())
         return Triple(commandSender, serviceRepository, radioConfigRepository)
     }
 

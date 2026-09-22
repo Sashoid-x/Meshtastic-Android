@@ -74,10 +74,13 @@ class NodeRepositoryImpl(
         if (custom == null) return baseNode
         val effectiveUser =
             if (custom.enabled) {
-                baseNode.user.copy(
-                    long_name = custom.longName.ifBlank { baseNode.user.long_name },
-                    short_name = custom.shortName.ifBlank { baseNode.user.short_name },
-                )
+                baseNode.user
+                    .newBuilder()
+                    .also { b ->
+                        b.long_name = custom.longName.ifBlank { baseNode.user.long_name }
+                        b.short_name = custom.shortName.ifBlank { baseNode.user.short_name }
+                    }
+                    .build()
             } else {
                 baseNode.user
             }

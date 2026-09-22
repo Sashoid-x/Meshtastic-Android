@@ -27,6 +27,7 @@
 
 package org.meshtastic.feature.messaging.image
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -45,23 +46,30 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -80,6 +88,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -88,6 +98,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.common.util.NumberFormatter
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.cancel
+import org.meshtastic.core.resources.close
 import org.meshtastic.core.resources.image_editor_apply
 import org.meshtastic.core.resources.image_editor_brightness
 import org.meshtastic.core.resources.image_editor_bytes
@@ -101,10 +112,14 @@ import org.meshtastic.core.resources.image_editor_grid
 import org.meshtastic.core.resources.image_editor_hint_pan_zoom
 import org.meshtastic.core.resources.image_editor_import_photo
 import org.meshtastic.core.resources.image_editor_invert
+import org.meshtastic.core.resources.image_editor_palette_select
 import org.meshtastic.core.resources.image_editor_resolution
 import org.meshtastic.core.resources.image_editor_theme
 import org.meshtastic.core.resources.image_editor_title
 import org.meshtastic.core.resources.send
+import org.meshtastic.core.ui.icon.Check
+import org.meshtastic.core.ui.icon.KeyboardArrowDown
+import org.meshtastic.core.ui.icon.MeshtasticIcons
 import kotlin.math.min
 
 private enum class EditorMode {
@@ -137,6 +152,7 @@ fun MonochromeImageEditorDialog(
     var selectedPresetIndex by rememberSaveable { mutableIntStateOf(0) }
     var selectedThemeIndex by rememberSaveable { mutableIntStateOf(0) }
     var showGrid by rememberSaveable { mutableStateOf(false) }
+    var showThemeDialog by rememberSaveable { mutableStateOf(false) }
     var photoInvert by rememberSaveable { mutableStateOf(false) }
     var editorMode by rememberSaveable { mutableStateOf(EditorMode.DRAW) }
 
@@ -248,6 +264,13 @@ fun MonochromeImageEditorDialog(
         }
 
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        if (showThemeDialog) {
+            ThemeSelectionDialog(
+                currentThemeIndex = selectedThemeIndex,
+                onThemeSelect = { selectedThemeIndex = it },
+                onDismiss = { showThemeDialog = false },
+            )
+        }
         Surface(
             shape = RoundedCornerShape(0.dp),
             color = MaterialTheme.colorScheme.surface,
@@ -305,42 +328,12 @@ fun MonochromeImageEditorDialog(
                             }
                             Spacer(Modifier.height(8.dp))
 
-                            // Theme chips
-                            Text(
-                                stringResource(Res.string.image_editor_theme, currentTheme.name),
-                                style = MaterialTheme.typography.bodyMedium,
+                            // Theme selector button
+                            ThemeSelectorButton(
+                                currentTheme = currentTheme,
+                                onClick = { showThemeDialog = true },
                                 modifier = Modifier.fillMaxWidth(),
                             )
-                            Spacer(Modifier.height(4.dp))
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                items(MonochromeImageCodec.THEMES) { t ->
-                                    FilterChip(
-                                        selected = t.id == selectedThemeIndex,
-                                        onClick = { selectedThemeIndex = t.id },
-                                        leadingIcon = {
-                                            Box(
-                                                modifier =
-                                                Modifier.size(14.dp)
-                                                    .clip(CircleShape)
-                                                    .background(Color(t.backgroundColor))
-                                                    .border(1.dp, Color(t.foregroundColor), CircleShape),
-                                                contentAlignment = Alignment.Center,
-                                            ) {
-                                                Box(
-                                                    modifier =
-                                                    Modifier.size(6.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color(t.foregroundColor)),
-                                                )
-                                            }
-                                        },
-                                        label = { Text(t.name, style = MaterialTheme.typography.bodySmall) },
-                                    )
-                                }
-                            }
                             Spacer(Modifier.height(8.dp))
 
                             // Brush buttons
@@ -456,45 +449,13 @@ fun MonochromeImageEditorDialog(
                         }
                         Spacer(Modifier.height(8.dp))
 
-                        // Theme chips (in DRAW mode)
-                        if (editorMode == EditorMode.DRAW) {
-                            Text(
-                                stringResource(Res.string.image_editor_theme, currentTheme.name),
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth(),
-                            ) {
-                                items(MonochromeImageCodec.THEMES) { t ->
-                                    FilterChip(
-                                        selected = t.id == selectedThemeIndex,
-                                        onClick = { selectedThemeIndex = t.id },
-                                        leadingIcon = {
-                                            Box(
-                                                modifier =
-                                                Modifier.size(14.dp)
-                                                    .clip(CircleShape)
-                                                    .background(Color(t.backgroundColor))
-                                                    .border(1.dp, Color(t.foregroundColor), CircleShape),
-                                                contentAlignment = Alignment.Center,
-                                            ) {
-                                                Box(
-                                                    modifier =
-                                                    Modifier.size(6.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color(t.foregroundColor)),
-                                                )
-                                            }
-                                        },
-                                        label = { Text(t.name, style = MaterialTheme.typography.bodySmall) },
-                                    )
-                                }
-                            }
-                            Spacer(Modifier.height(12.dp))
-                        }
+                        // Theme selector button
+                        ThemeSelectorButton(
+                            currentTheme = currentTheme,
+                            onClick = { showThemeDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(12.dp))
 
                         // Canvas
                         if (editorMode == EditorMode.DRAW) {
@@ -963,4 +924,181 @@ private fun PhotoCropCanvas(
             }
         }
     }
+}
+
+@Composable
+private fun ThemeBadge(
+    theme: MonochromeTheme,
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.Dp = 20.dp,
+) {
+    Box(
+        modifier =
+        modifier
+            .size(size)
+            .clip(CircleShape)
+            .background(Color(theme.backgroundColor))
+            .border(1.5.dp, Color(theme.foregroundColor), CircleShape),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(modifier = Modifier.size(size / 2).clip(CircleShape).background(Color(theme.foregroundColor)))
+    }
+}
+
+@Composable
+private fun ThemeSelectorButton(currentTheme: MonochromeTheme, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = modifier,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                ThemeBadge(theme = currentTheme, size = 22.dp)
+                Text(
+                    text = stringResource(Res.string.image_editor_theme, currentTheme.name),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
+            Icon(
+                imageVector = MeshtasticIcons.KeyboardArrowDown,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ThemeSelectionDialog(currentThemeIndex: Int, onThemeSelect: (Int) -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = stringResource(Res.string.image_editor_palette_select),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+        },
+        text = {
+            Box(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 125.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    items(MonochromeImageCodec.THEMES) { theme ->
+                        val isSelected = theme.id == currentThemeIndex
+                        Surface(
+                            onClick = {
+                                onThemeSelect(theme.id)
+                                onDismiss()
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            color =
+                            if (isSelected) {
+                                MaterialTheme.colorScheme.primaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            },
+                            border =
+                            BorderStroke(
+                                width = if (isSelected) 2.dp else 1.dp,
+                                color =
+                                if (isSelected) {
+                                    MaterialTheme.colorScheme.primary
+                                } else {
+                                    MaterialTheme.colorScheme.outlineVariant
+                                },
+                            ),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(8.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                Box(
+                                    modifier =
+                                    Modifier.fillMaxWidth()
+                                        .height(34.dp)
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(Color(theme.backgroundColor))
+                                        .border(
+                                            1.dp,
+                                            Color(theme.foregroundColor).copy(alpha = 0.25f),
+                                            RoundedCornerShape(6.dp),
+                                        ),
+                                    contentAlignment = Alignment.Center,
+                                ) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Box(
+                                            modifier =
+                                            Modifier.size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(theme.foregroundColor)),
+                                        )
+                                        Box(
+                                            modifier =
+                                            Modifier.size(16.dp, 6.dp)
+                                                .clip(RoundedCornerShape(2.dp))
+                                                .background(Color(theme.foregroundColor)),
+                                        )
+                                        Box(
+                                            modifier =
+                                            Modifier.size(8.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(theme.foregroundColor)),
+                                        )
+                                    }
+                                }
+                                Spacer(Modifier.height(6.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center,
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text(
+                                        text = theme.name,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        color =
+                                        if (isSelected) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onSurface
+                                        },
+                                    )
+                                    if (isSelected) {
+                                        Spacer(Modifier.width(4.dp))
+                                        Icon(
+                                            imageVector = MeshtasticIcons.Check,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(14.dp),
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.close)) } },
+    )
 }
