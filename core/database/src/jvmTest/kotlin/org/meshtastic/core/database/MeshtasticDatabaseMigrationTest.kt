@@ -64,11 +64,16 @@ class MeshtasticDatabaseMigrationTest {
     @Test
     fun migrateAll() = runTest {
         helper.createDatabase(EARLIEST_SCHEMA_VERSION).close()
-        // 52→53 is manual FTS-rebuild; 59→60 is manual idempotent migration.
+        // 52→53 is manual FTS-rebuild; 59→60, 61→62, 62→63 are manual idempotent migrations.
         helper
             .runMigrationsAndValidate(
                 latestSchemaVersion(),
-                listOf(MeshtasticDatabase.MIGRATION_52_53, MeshtasticDatabase.MIGRATION_59_60),
+                listOf(
+                    MeshtasticDatabase.MIGRATION_52_53,
+                    MeshtasticDatabase.MIGRATION_59_60,
+                    MeshtasticDatabase.MIGRATION_61_62,
+                    MeshtasticDatabase.MIGRATION_62_63,
+                ),
             )
             .close()
     }

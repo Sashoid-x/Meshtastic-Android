@@ -150,8 +150,9 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         AutoMigration(from = 59, to = 60),
         AutoMigration(from = 60, to = 61),
         AutoMigration(from = 61, to = 62),
+        AutoMigration(from = 62, to = 63),
     ],
-    version = 62,
+    version = 63,
     exportSchema = true,
 )
 @androidx.room3.ConstructedBy(MeshtasticDatabaseConstructor::class)
@@ -298,6 +299,66 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             }
 
         /**
+         * Idempotent migration from schema 61 to 62.
+         *
+         * Ensures `nodes.soil_water_metrics` and `device_hardware.is_maker` are present.
+         */
+        internal val MIGRATION_61_62: Migration =
+            object : Migration(61, 62) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    if (!connection.hasColumn("nodes", "soil_water_metrics")) {
+                        connection.execSQL(
+                            "ALTER TABLE `nodes` ADD COLUMN `soil_water_metrics` BLOB NOT NULL DEFAULT x''",
+                        )
+                    }
+                    if (!connection.hasColumn("device_hardware", "is_maker")) {
+                        connection.execSQL(
+                            "ALTER TABLE `device_hardware` ADD COLUMN `is_maker` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
+                }
+            }
+
+        /**
+         * Idempotent migration from schema 62 to 63.
+         *
+         * Ensures `nodes.soil_water_metrics` and `device_hardware.is_maker` are present for databases that upgraded to
+         * 62 before soil_water_metrics was merged into the local branch.
+         */
+        internal val MIGRATION_62_63: Migration =
+            object : Migration(62, 63) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    if (!connection.hasColumn("nodes", "soil_water_metrics")) {
+                        connection.execSQL(
+                            "ALTER TABLE `nodes` ADD COLUMN `soil_water_metrics` BLOB NOT NULL DEFAULT x''",
+                        )
+                    }
+                    if (!connection.hasColumn("device_hardware", "is_maker")) {
+                        connection.execSQL(
+                            "ALTER TABLE `device_hardware` ADD COLUMN `is_maker` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
+                }
+            }
+
+        /** Idempotent migration from schema 61 to 63. */
+        internal val MIGRATION_61_63: Migration =
+            object : Migration(61, 63) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    if (!connection.hasColumn("nodes", "soil_water_metrics")) {
+                        connection.execSQL(
+                            "ALTER TABLE `nodes` ADD COLUMN `soil_water_metrics` BLOB NOT NULL DEFAULT x''",
+                        )
+                    }
+                    if (!connection.hasColumn("device_hardware", "is_maker")) {
+                        connection.execSQL(
+                            "ALTER TABLE `device_hardware` ADD COLUMN `is_maker` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
+                }
+            }
+
+        /**
          * Configures a [RoomDatabase.Builder] with standard settings for this project.
          *
          * All platforms force [setSingleConnectionPool]. Without it, Room defaults to a 4-reader pool for named
@@ -313,7 +374,15 @@ abstract class MeshtasticDatabase : RoomDatabase() {
         @OptIn(ExperimentalCoroutinesApi::class)
         fun <T : RoomDatabase> RoomDatabase.Builder<T>.configureCommon(): RoomDatabase.Builder<T> =
             this.fallbackToDestructiveMigration(dropAllTables = false)
-                .addMigrations(MIGRATION_52_53, MIGRATION_58_59, MIGRATION_58_60, MIGRATION_59_60)
+                .addMigrations(
+                    MIGRATION_52_53,
+                    MIGRATION_58_59,
+                    MIGRATION_58_60,
+                    MIGRATION_59_60,
+                    MIGRATION_61_62,
+                    MIGRATION_62_63,
+                    MIGRATION_61_63,
+                )
                 .setSingleConnectionPool()
                 .setQueryCoroutineContext(
                     // limitedParallelism(1) has the same throughput ceiling as the single-connection pool
