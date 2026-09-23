@@ -238,9 +238,6 @@ private fun MessageListPagedContent(
             }
         }
 
-    // Disable animations during scroll to prevent jank/stutter
-    val enableAnimations by remember { derivedStateOf { !listState.isScrollInProgress } }
-
     // One bar at a time, owned above the rows: a row cannot see a tap that lands on another row or on the space
     // between them, and two rows owning their own state could both be open at once.
     var openReactionBarFor by remember { mutableStateOf<Long?>(null) }
@@ -284,7 +281,10 @@ private fun MessageListPagedContent(
 
                 if (message != null) {
                     val isFirstUnread = state.hasUnreadMessages && unreadDividerIndex == index
-                    val itemModifier = if (enableAnimations) Modifier.animateItem() else Modifier
+                    // Note: Do not use Modifier.animateItem() here. In CMP inside ThreePaneScaffold's
+                    // LookaheadScope, reverseLayout LazyColumn item insertion (e.g. sending a message)
+                    // crashes with IllegalStateException ("LookaheadDelegate has not been measured yet")
+                    // because the newly prepended item reaches placement before lookahead measured it.
                     // The separator belongs above the first message of each local day. At the top of the loaded
                     // range there is no older message to compare against, so only label it once paging has
                     // confirmed there is nothing older — otherwise the label would move as pages arrive.
@@ -297,8 +297,7 @@ private fun MessageListPagedContent(
 
                     if (isFirstUnread || startsNewDay) {
                         // Wrap in Column to prevent overlapping of divider and message item
-                        // Apply animation to the container Column once
-                        Column(modifier = itemModifier) {
+                        Column {
                             if (startsNewDay) DateSeparator(timestampMillis = message.displayTime)
                             if (isFirstUnread) UnreadMessagesDivider()
                             RenderPagedChatMessageRow(
@@ -334,7 +333,6 @@ private fun MessageListPagedContent(
                             listState = listState,
                             onShowStatusDialog = onShowStatusDialog,
                             onShowReactions = onShowReactions,
-                            modifier = itemModifier,
                             showUserName = !hasSamePrev,
                             hasSamePrev = hasSamePrev,
                             hasSameNext = hasSameNext,
