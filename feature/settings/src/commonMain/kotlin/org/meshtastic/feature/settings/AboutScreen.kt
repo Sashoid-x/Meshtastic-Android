@@ -56,7 +56,6 @@ import coil3.request.ImageRequest
 import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.model.AppUpdateCheckState
-import org.meshtastic.core.model.AppUpdateInfo
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.about
 import org.meshtastic.core.resources.about_app_up_to_date
@@ -69,9 +68,6 @@ import org.meshtastic.core.resources.about_mod_testers_title
 import org.meshtastic.core.resources.about_mod_title
 import org.meshtastic.core.resources.about_update_available
 import org.meshtastic.core.resources.about_update_check_error
-import org.meshtastic.core.resources.about_update_dialog_download
-import org.meshtastic.core.resources.about_update_dialog_later
-import org.meshtastic.core.resources.about_update_dialog_title
 import org.meshtastic.core.resources.acknowledgements
 import org.meshtastic.core.resources.app_version
 import org.meshtastic.core.resources.apps
@@ -87,6 +83,7 @@ import org.meshtastic.core.resources.project_information
 import org.meshtastic.core.resources.website
 import org.meshtastic.core.resources.what_is_meshtastic
 import org.meshtastic.core.resources.what_is_meshtastic_description
+import org.meshtastic.core.ui.component.AppUpdateDialog
 import org.meshtastic.core.ui.component.ListItem
 import org.meshtastic.core.ui.component.MainAppBar
 import org.meshtastic.core.ui.icon.ChevronRight
@@ -339,31 +336,6 @@ private fun TestersDialog(onDismiss: () -> Unit) {
         title = { Text(text = stringResource(Res.string.about_mod_testers_title)) },
         text = { Text(text = stringResource(Res.string.about_mod_testers_content)) },
         confirmButton = { TextButton(onClick = onDismiss) { Text(text = stringResource(Res.string.close)) } },
-    )
-}
-
-@Composable
-private fun AppUpdateDialog(info: AppUpdateInfo, onDismiss: () -> Unit, onDownload: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(Res.string.about_update_dialog_title)) },
-        text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(text = "${info.releaseTitle} (${info.versionName})", style = MaterialTheme.typography.titleMedium)
-                if (info.releaseNotes.isNotBlank()) {
-                    Text(text = info.releaseNotes, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDownload) { Text(text = stringResource(Res.string.about_update_dialog_download)) }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text(text = stringResource(Res.string.about_update_dialog_later)) }
-        },
     )
 }
 

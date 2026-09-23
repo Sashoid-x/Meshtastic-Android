@@ -50,7 +50,7 @@ actual fun rememberSaveFileLauncher(
 actual fun rememberOpenFileLauncher(onUriReceived: (CommonUri?) -> Unit): (mimeType: String) -> Unit = { _ -> }
 
 @Composable
-actual fun rememberOpenMultipleFilesLauncher(onUrisReceived: (List<CommonUri>) -> Unit): (mimeType: String) -> Unit =
+actual fun rememberOpenMultipleFilesLauncher(onUrisSelect: (List<CommonUri>) -> Unit): (mimeType: String) -> Unit =
     { _ ->
     }
 

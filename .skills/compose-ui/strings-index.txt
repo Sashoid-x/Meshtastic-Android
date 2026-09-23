@@ -22,10 +22,13 @@ about_mod_testers_content
 about_mod_testers_title
 about_mod_title
 about_update_available
+about_update_badge
 about_update_check_error
+about_update_details
 about_update_dialog_download
 about_update_dialog_later
 about_update_dialog_title
+about_update_snackbar
 accept
 acknowledgements
 ### ACTION ###

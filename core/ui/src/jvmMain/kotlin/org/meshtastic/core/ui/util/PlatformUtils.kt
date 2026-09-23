@@ -104,7 +104,7 @@ actual fun rememberOpenFileLauncher(onUriReceived: (CommonUri?) -> Unit): (mimeT
 }
 
 @Composable
-actual fun rememberOpenMultipleFilesLauncher(onUrisReceived: (List<CommonUri>) -> Unit): (mimeType: String) -> Unit =
+actual fun rememberOpenMultipleFilesLauncher(onUrisSelect: (List<CommonUri>) -> Unit): (mimeType: String) -> Unit =
     { _ ->
         val parentFrame: Frame? = null
         val dialog = FileDialog(parentFrame, "Open Files", FileDialog.LOAD)
@@ -113,9 +113,9 @@ actual fun rememberOpenMultipleFilesLauncher(onUrisReceived: (List<CommonUri>) -
         val files = dialog.files
         if (files != null && files.isNotEmpty()) {
             val uris = files.map { CommonUri.parse(it.toURI().toString()) }
-            onUrisReceived(uris)
+            onUrisSelect(uris)
         } else {
-            onUrisReceived(emptyList())
+            onUrisSelect(emptyList())
         }
     }
 

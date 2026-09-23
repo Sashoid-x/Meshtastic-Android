@@ -43,6 +43,7 @@ import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.KoinViewModel
 import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.database.entity.asDeviceVersion
+import org.meshtastic.core.model.AppUpdateCheckState
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.EventFirmwareEdition
 import org.meshtastic.core.model.MeshActivity
@@ -53,6 +54,7 @@ import org.meshtastic.core.model.service.TracerouteResponse
 import org.meshtastic.core.model.util.dispatchMeshtasticUri
 import org.meshtastic.core.model.util.isOtaStatusNotification
 import org.meshtastic.core.navigation.DeepLinkRouter
+import org.meshtastic.core.repository.AppUpdateService
 import org.meshtastic.core.repository.EventFirmwareRepository
 import org.meshtastic.core.repository.FirmwareReleaseRepository
 import org.meshtastic.core.repository.FirmwareUpdateStatusRepository
@@ -69,6 +71,8 @@ import org.meshtastic.core.repository.ServiceRepository
 import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.core.repository.notificationId
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.about_update_details
+import org.meshtastic.core.resources.about_update_snackbar
 import org.meshtastic.core.resources.client_notification
 import org.meshtastic.core.resources.compromised_keys
 import org.meshtastic.core.resources.getStringSuspend
@@ -107,6 +111,7 @@ class UIViewModel(
     val alertManager: AlertManager,
     val snackbarManager: SnackbarManager,
     nodeRestartTracker: NodeRestartTracker,
+    private val appUpdateService: AppUpdateService? = null,
 ) : ViewModel() {
 
     /** True while the connected node is expected to be mid-restart (reboot-applying config save or reboot command). */
@@ -327,7 +332,42 @@ class UIViewModel(
             }
             .launchIn(viewModelScope)
 
+        appUpdateService
+            ?.updateState
+            ?.onEach { state ->
+                if (state is AppUpdateCheckState.UpdateAvailable) {
+                    val info = state.info
+                    if (info.versionName != lastNotifiedUpdateVersion) {
+                        lastNotifiedUpdateVersion = info.versionName
+                        val message = getStringSuspend(Res.string.about_update_snackbar, info.versionName)
+                        val action = getStringSuspend(Res.string.about_update_details)
+                        snackbarManager.showSnackbar(
+                            message = message,
+                            actionLabel = action,
+                            onAction = { showUpdateDialog() },
+                        )
+                    }
+                }
+            }
+            ?.launchIn(viewModelScope)
+
         Logger.d { "UIViewModel created" }
+    }
+
+    val appUpdateState: StateFlow<AppUpdateCheckState> =
+        appUpdateService?.updateState ?: MutableStateFlow(AppUpdateCheckState.Idle)
+
+    private val _showAppUpdateDialog = MutableStateFlow(false)
+    val showAppUpdateDialog: StateFlow<Boolean> = _showAppUpdateDialog.asStateFlow()
+
+    private var lastNotifiedUpdateVersion: String? = null
+
+    fun showUpdateDialog() {
+        _showAppUpdateDialog.value = true
+    }
+
+    fun dismissUpdateDialog() {
+        _showAppUpdateDialog.value = false
     }
 
     private val _sharedContactRequested: MutableStateFlow<SharedContact?> = MutableStateFlow(null)

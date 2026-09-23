@@ -18,15 +18,16 @@ package org.meshtastic.core.ui.component
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.meshtastic.core.model.AppUpdateCheckState
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.ui.qr.ScannedQrCodeDialog
 import org.meshtastic.core.ui.share.SharedContactDialog
 import org.meshtastic.core.ui.viewmodel.UIViewModel
 
 /**
- * Shared composable that conditionally renders [SharedContactDialog] and [ScannedQrCodeDialog] when the device is
- * connected and requests are pending.
+ * Shared composable that conditionally renders [SharedContactDialog], [ScannedQrCodeDialog], and [AppUpdateDialog].
  *
  * This eliminates identical boilerplate from Android `MainScreen` and Desktop `DesktopMainScreen`.
  */
@@ -35,6 +36,21 @@ fun SharedDialogs(uiViewModel: UIViewModel) {
     val connectionState by uiViewModel.connectionState.collectAsStateWithLifecycle()
     val sharedContactRequested by uiViewModel.sharedContactRequested.collectAsStateWithLifecycle()
     val requestChannelSet by uiViewModel.requestChannelSet.collectAsStateWithLifecycle()
+    val showAppUpdateDialog by uiViewModel.showAppUpdateDialog.collectAsStateWithLifecycle()
+    val appUpdateState by uiViewModel.appUpdateState.collectAsStateWithLifecycle()
+    val uriHandler = LocalUriHandler.current
+
+    if (showAppUpdateDialog && appUpdateState is AppUpdateCheckState.UpdateAvailable) {
+        val info = (appUpdateState as AppUpdateCheckState.UpdateAvailable).info
+        AppUpdateDialog(
+            info = info,
+            onDismiss = { uiViewModel.dismissUpdateDialog() },
+            onDownload = {
+                uriHandler.openUri(info.releaseUrl)
+                uiViewModel.dismissUpdateDialog()
+            },
+        )
+    }
 
     if (connectionState == ConnectionState.Connected) {
         sharedContactRequested?.let {

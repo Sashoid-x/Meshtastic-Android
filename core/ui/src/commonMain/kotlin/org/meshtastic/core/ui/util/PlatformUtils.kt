@@ -60,7 +60,7 @@ expect fun rememberSaveFileLauncher(
  * selected file URIs.
  */
 @Composable
-expect fun rememberOpenMultipleFilesLauncher(onUrisReceived: (List<CommonUri>) -> Unit): (mimeType: String) -> Unit
+expect fun rememberOpenMultipleFilesLauncher(onUrisSelect: (List<CommonUri>) -> Unit): (mimeType: String) -> Unit
 
 /**
  * Returns a launcher that prompts the user to pick a *directory*. The callback receives a tree URI, or `null` if the

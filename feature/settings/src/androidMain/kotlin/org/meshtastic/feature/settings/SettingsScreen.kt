@@ -48,6 +48,7 @@ import org.koin.core.qualifier.named
 import org.meshtastic.core.common.di.GOOGLE_SERVICES_AVAILABLE
 import org.meshtastic.core.common.util.UnitsOverride
 import org.meshtastic.core.common.util.nowMillis
+import org.meshtastic.core.model.AppUpdateCheckState
 import org.meshtastic.core.navigation.Route
 import org.meshtastic.core.navigation.SettingsRoute
 import org.meshtastic.core.navigation.WifiProvisionRoute
@@ -189,6 +190,9 @@ fun SettingsScreen(
             onSelect = { languageTag -> settingsViewModel.setLocale(languageTag) },
         )
     }
+
+    val updateCheckState by settingsViewModel.updateCheckState.collectAsStateWithLifecycle()
+    val updateAvailable = updateCheckState is AppUpdateCheckState.UpdateAvailable
 
     var showThemePickerDialog by rememberSaveable { mutableStateOf(false) }
     var showUnitsPickerDialog by rememberSaveable { mutableStateOf(false) }
@@ -348,6 +352,7 @@ fun SettingsScreen(
                     onUnlockHiddenFeatures = { settingsViewModel.unlockHiddenFeatures() },
                     onShowAppIntro = { settingsViewModel.showAppIntro() },
                     onNavigateToAbout = { onNavigate(SettingsRoute.About) },
+                    updateAvailable = updateAvailable,
                 )
             }
 

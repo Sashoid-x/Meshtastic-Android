@@ -49,6 +49,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.flow.Flow
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
+import org.meshtastic.core.model.AppUpdateCheckState
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.DeviceType
 import org.meshtastic.core.model.MeshActivity
@@ -84,6 +85,8 @@ fun MeshtasticNavigationSuite(
     val nodeRestartExpected by uiViewModel.nodeRestartExpected.collectAsStateWithLifecycle()
     val watchdogReconnectInFlight by uiViewModel.watchdogReconnectInFlight.collectAsStateWithLifecycle()
     val unreadMessageCount by uiViewModel.unreadMessageCount.collectAsStateWithLifecycle()
+    val appUpdateState by uiViewModel.appUpdateState.collectAsStateWithLifecycle()
+    val updateAvailable = appUpdateState is AppUpdateCheckState.UpdateAvailable
     val selectedDevice by uiViewModel.currentDeviceAddressFlow.collectAsStateWithLifecycle()
 
     val adaptiveInfo = currentWindowAdaptiveInfoV2()
@@ -111,6 +114,7 @@ fun MeshtasticNavigationSuite(
                             nodeRestartExpected = nodeRestartExpected,
                             watchdogReconnectInFlight = watchdogReconnectInFlight,
                             unreadMessageCount = unreadMessageCount,
+                            updateAvailable = updateAvailable,
                             selectedDevice = selectedDevice,
                             meshActivityFlow = uiViewModel.meshActivity,
                         )
@@ -188,6 +192,7 @@ private fun NavigationIconContent(
     meshActivityFlow: Flow<MeshActivity>,
     nodeRestartExpected: Boolean = false,
     watchdogReconnectInFlight: Boolean = false,
+    updateAvailable: Boolean = false,
 ) {
     val isConnectionsRoute = destination == TopLevelDestination.Connect
     // An expected node restart (reboot-applying config save) presents as an in-progress state, not a scary
@@ -237,6 +242,14 @@ private fun NavigationIconContent(
                             exit = scaleOut() + fadeOut(),
                         ) {
                             Badge { Text(lastNonZeroCount.toString()) }
+                        }
+                    } else if (destination == TopLevelDestination.Settings) {
+                        AnimatedVisibility(
+                            visible = updateAvailable,
+                            enter = scaleIn() + fadeIn(),
+                            exit = scaleOut() + fadeOut(),
+                        ) {
+                            Badge()
                         }
                     }
                 },

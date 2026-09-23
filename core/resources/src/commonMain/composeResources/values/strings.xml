@@ -40,10 +40,13 @@
     <string name="about_mod_testers_title">Beta Testers &amp; Contributors</string>
     <string name="about_mod_title">Meshtastic Advanced Mod</string>
     <string name="about_update_available">Update available: %1$s</string>
+    <string name="about_update_badge">NEW</string>
     <string name="about_update_check_error">Failed to check for updates</string>
+    <string name="about_update_details">Details</string>
     <string name="about_update_dialog_download">Download</string>
     <string name="about_update_dialog_later">Later</string>
     <string name="about_update_dialog_title">Update Available</string>
+    <string name="about_update_snackbar">New version available: %1$s</string>
     <string name="accept">Accept</string>
     <string name="acknowledgements">Acknowledgements</string>
     <!-- ACTION -->

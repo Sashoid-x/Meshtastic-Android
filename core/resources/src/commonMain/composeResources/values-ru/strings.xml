@@ -37,11 +37,14 @@
     <string name="about_mod_testers_title">Тестировщики и благодарности</string>
     <string name="about_mod_title">Meshtastic Advanced Mod</string>
     <string name="about_update_available">Доступно обновление: %1$s</string>
+    <string name="about_update_badge">NEW</string>
     <string name="about_app_up_to_date">У вас установлена последняя версия</string>
     <string name="about_update_check_error">Не удалось проверить обновления</string>
+    <string name="about_update_details">Подробнее</string>
     <string name="about_update_dialog_download">Скачать</string>
     <string name="about_update_dialog_later">Позже</string>
     <string name="about_update_dialog_title">Доступно обновление</string>
+    <string name="about_update_snackbar">Доступна новая версия: %1$s</string>
     <string name="accept">Принять</string>
     <string name="acknowledgements">Благодарности</string>
     <string name="action_copy_message">Скопировать сообщение</string>

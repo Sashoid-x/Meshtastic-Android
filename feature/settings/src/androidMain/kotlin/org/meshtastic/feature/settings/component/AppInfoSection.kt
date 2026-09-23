@@ -21,6 +21,13 @@ import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Badge
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,13 +35,17 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.about
+import org.meshtastic.core.resources.about_update_badge
 import org.meshtastic.core.resources.app_notifications
 import org.meshtastic.core.resources.app_version
 import org.meshtastic.core.resources.info
@@ -42,6 +53,7 @@ import org.meshtastic.core.resources.intro_show
 import org.meshtastic.core.resources.modules_already_unlocked
 import org.meshtastic.core.resources.modules_unlocked
 import org.meshtastic.core.resources.system_settings
+import org.meshtastic.core.ui.component.BasicListItem
 import org.meshtastic.core.ui.component.ListItem
 import org.meshtastic.core.ui.icon.AppSettingsAlt
 import org.meshtastic.core.ui.icon.ChevronRight
@@ -62,6 +74,7 @@ fun AppInfoSection(
     onUnlockHiddenFeatures: () -> Unit,
     onShowAppIntro: () -> Unit,
     onNavigateToAbout: () -> Unit,
+    updateAvailable: Boolean = false,
 ) {
     val context = LocalContext.current
     val settingsLauncher =
@@ -98,6 +111,47 @@ fun AppInfoSection(
             settingsLauncher.launch(intent)
         }
 
+        AboutListItem(updateAvailable = updateAvailable, onNavigateToAbout = onNavigateToAbout)
+
+        AppVersionButton(
+            hiddenFeaturesUnlocked = hiddenFeaturesUnlocked,
+            appVersionName = appVersionName,
+            onUnlockHiddenFeatures = onUnlockHiddenFeatures,
+        )
+    }
+}
+
+@Composable
+private fun AboutListItem(updateAvailable: Boolean, onNavigateToAbout: () -> Unit) {
+    if (updateAvailable) {
+        BasicListItem(
+            text = stringResource(Res.string.about),
+            leadingIcon = MeshtasticIcons.Info,
+            trailingContent = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Badge(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.about_update_badge),
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                    Icon(
+                        imageVector = MeshtasticIcons.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            onClick = onNavigateToAbout,
+        )
+    } else {
         ListItem(
             text = stringResource(Res.string.about),
             leadingIcon = MeshtasticIcons.Info,
@@ -105,12 +159,6 @@ fun AppInfoSection(
         ) {
             onNavigateToAbout()
         }
-
-        AppVersionButton(
-            hiddenFeaturesUnlocked = hiddenFeaturesUnlocked,
-            appVersionName = appVersionName,
-            onUnlockHiddenFeatures = onUnlockHiddenFeatures,
-        )
     }
 }
 
