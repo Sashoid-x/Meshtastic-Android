@@ -1543,6 +1543,7 @@ photo_duration_6_hours
 photo_duration_7_days
 photo_hosting_provider_disabled
 photo_hosting_provider_imgbb
+photo_hosting_provider_junkdata
 photo_hosting_provider_meshapp
 photo_hosting_provider_meshpic
 photo_hosting_setting

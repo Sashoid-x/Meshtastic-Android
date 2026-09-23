@@ -58,6 +58,8 @@ import org.meshtastic.core.network.service.ImgBBService
 import org.meshtastic.core.network.service.ImgBBServiceImpl
 import org.meshtastic.core.network.service.ImgbbApiKeyMissingException
 import org.meshtastic.core.network.service.ImgbbInvalidApiKeyException
+import org.meshtastic.core.network.service.JunkDataService
+import org.meshtastic.core.network.service.JunkDataServiceImpl
 import org.meshtastic.core.network.service.MeshFilesService
 import org.meshtastic.core.network.service.MeshFilesServiceImpl
 import org.meshtastic.core.network.service.MeshPicService
@@ -136,6 +138,7 @@ class MessageViewModel(
     private val adminController: AdminController,
     private val fileTransferManager: FileTransferManager? = null,
     private val meshPicService: MeshPicService = MeshPicServiceImpl(),
+    private val junkDataService: JunkDataService = JunkDataServiceImpl(),
     private val meshFilesService: MeshFilesService = MeshFilesServiceImpl(),
     private val imgbbService: ImgBBService = ImgBBServiceImpl(),
 ) : ViewModel() {
@@ -609,6 +612,13 @@ class MessageViewModel(
                 retentionHours = uiPrefs.meshpicRetention.value.hours,
             )
 
+        PhotoHostingProvider.JUNKDATA ->
+            junkDataService.uploadImage(
+                imageBytes = imageBytes,
+                filename = fileName,
+                retentionHours = uiPrefs.meshpicRetention.value.hours,
+            )
+
         PhotoHostingProvider.MESHAPP -> meshFilesService.uploadImage(imageBytes, fileName)
 
         PhotoHostingProvider.IMGBB ->
@@ -624,6 +634,8 @@ class MessageViewModel(
 
     private fun formatProviderLink(provider: PhotoHostingProvider, idOrUrl: String): String = when (provider) {
         PhotoHostingProvider.MESHPIC -> "${MeshPicServiceImpl.MESHPIC_IMAGE_URL_PREFIX}$idOrUrl"
+
+        PhotoHostingProvider.JUNKDATA -> "${JunkDataServiceImpl.JUNKDATA_VIEW_URL_PREFIX}$idOrUrl"
 
         PhotoHostingProvider.MESHAPP ->
             if (idOrUrl.startsWith("http")) {

@@ -44,6 +44,7 @@ import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.network.service.ImgBBService
 import org.meshtastic.core.network.service.ImgbbApiKeyMissingException
 import org.meshtastic.core.network.service.ImgbbInvalidApiKeyException
+import org.meshtastic.core.network.service.JunkDataService
 import org.meshtastic.core.repository.ActiveConversationTracker
 import org.meshtastic.core.repository.AdminController
 import org.meshtastic.core.repository.ConnectionStateProvider
@@ -615,6 +616,46 @@ class MessageViewModelTest {
         advanceUntilIdle()
 
         verifySuspend { sendMessageUseCase.invoke("https://meshpic.org/abc123xyz", "0^all", null) }
+    }
+
+    @Test
+    fun testUploadAndSendPhotoJunkDataSuccess() = runTest {
+        photoHostingProviderFlow.value = PhotoHostingProvider.JUNKDATA
+        val fakeJunkDataService =
+            object : JunkDataService {
+                override suspend fun uploadImage(
+                    imageBytes: ByteArray,
+                    filename: String,
+                    retentionHours: Int,
+                ): Result<String> = Result.success("ty8tjhs")
+            }
+        val vm =
+            MessageViewModel(
+                savedStateHandle = savedStateHandle,
+                nodeRepository = nodeRepository,
+                radioConfigRepository = radioConfigRepository,
+                quickChatActionRepository = quickChatActionRepository,
+                connectionStateProvider = connectionStateProvider,
+                messagingController = messagingController,
+                packetRepository = packetRepository,
+                uiPrefs = uiPrefs,
+                customEmojiPrefs = customEmojiPrefs,
+                homoglyphEncodingPrefs = homoglyphPrefs,
+                meshNotificationManager = meshNotificationManager,
+                activeConversationTracker = activeConversationTracker,
+                sendMessageUseCase = sendMessageUseCase,
+                messageTranslationService = messageTranslationService,
+                snackbarManager = snackbarManager,
+                adminController = adminController,
+                junkDataService = fakeJunkDataService,
+            )
+
+        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns 1
+
+        vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
+        advanceUntilIdle()
+
+        verifySuspend { sendMessageUseCase.invoke("https://junkdata.ru/v/ty8tjhs", "0^all", null) }
     }
 
     @Test

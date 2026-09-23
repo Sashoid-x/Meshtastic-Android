@@ -20,6 +20,7 @@ package org.meshtastic.core.model
 enum class PhotoHostingProvider(val id: String) {
     DISABLED("disabled"),
     MESHPIC("meshpic"),
+    JUNKDATA("junkdata"),
     MESHAPP("meshapp"),
     IMGBB("imgbb"),
     ;

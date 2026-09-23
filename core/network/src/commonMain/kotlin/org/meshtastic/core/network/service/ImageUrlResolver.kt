@@ -35,6 +35,8 @@ object ImageUrlResolver {
     private val KNOWN_IMAGE_EXTENSIONS = setOf("png", "jpg", "jpeg", "webp", "gif", "bmp", "svg", "avif")
     private val MESHPIC_REGEX =
         Regex("""https?://(?:www\.)?meshpic\.org/(?:image/|i/)?([A-Za-z0-9_-]+)/?""", RegexOption.IGNORE_CASE)
+    private val JUNKDATA_REGEX =
+        Regex("""https?://(?:www\.)?junkdata\.ru/(?:v/|i/)?([A-Za-z0-9_-]+)/?""", RegexOption.IGNORE_CASE)
     private val MESHFILES_REGEX =
         Regex(
             """https?://(?:www\.)?d\.privatepractice\.app/([A-Za-z0-9_-]{6,64})(?:/preview)?/?""",
@@ -81,11 +83,13 @@ object ImageUrlResolver {
 
     fun isKnownPhotoHost(url: String): Boolean {
         val meshpicId = MESHPIC_REGEX.matchEntire(url)?.groupValues?.getOrNull(1)?.lowercase()
+        val junkdataId = JUNKDATA_REGEX.matchEntire(url)?.groupValues?.getOrNull(1)?.lowercase()
         val meshfilesId = MESHFILES_REGEX.matchEntire(url)?.groupValues?.getOrNull(1)?.lowercase()
         val imgbbViewerId = IMGBB_VIEWER_REGEX.matchEntire(url)?.groupValues?.getOrNull(1)?.lowercase()
         val isImgbbDirect = IMGBB_DIRECT_REGEX.matchEntire(url) != null
 
-        val isKnownId = (meshpicId ?: meshfilesId ?: imgbbViewerId)?.let { it !in EXCLUDED_KEYWORDS } ?: false
+        val isKnownId =
+            (meshpicId ?: junkdataId ?: meshfilesId ?: imgbbViewerId)?.let { it !in EXCLUDED_KEYWORDS } ?: false
         return isImgbbDirect || isKnownId
     }
 
@@ -100,6 +104,16 @@ object ImageUrlResolver {
             val id = meshpicMatch.groupValues[1]
             if (id.lowercase() !in EXCLUDED_KEYWORDS) {
                 val resolved = "https://meshpic.org/image/$id"
+                putInCache(url, resolved)
+                return resolved
+            }
+        }
+
+        val junkdataMatch = JUNKDATA_REGEX.matchEntire(url)
+        if (junkdataMatch != null) {
+            val id = junkdataMatch.groupValues[1]
+            if (id.lowercase() !in EXCLUDED_KEYWORDS) {
+                val resolved = "https://junkdata.ru/i/$id"
                 putInCache(url, resolved)
                 return resolved
             }

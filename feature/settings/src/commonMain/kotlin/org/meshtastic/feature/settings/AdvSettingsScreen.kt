@@ -103,6 +103,7 @@ import org.meshtastic.core.resources.photo_duration_6_hours
 import org.meshtastic.core.resources.photo_duration_7_days
 import org.meshtastic.core.resources.photo_hosting_provider_disabled
 import org.meshtastic.core.resources.photo_hosting_provider_imgbb
+import org.meshtastic.core.resources.photo_hosting_provider_junkdata
 import org.meshtastic.core.resources.photo_hosting_provider_meshapp
 import org.meshtastic.core.resources.photo_hosting_provider_meshpic
 import org.meshtastic.core.resources.photo_hosting_setting
@@ -483,12 +484,16 @@ private fun AdvSettingsContent(
                     when (provider) {
                         PhotoHostingProvider.DISABLED -> stringResource(Res.string.photo_hosting_provider_disabled)
                         PhotoHostingProvider.MESHPIC -> stringResource(Res.string.photo_hosting_provider_meshpic)
+                        PhotoHostingProvider.JUNKDATA -> stringResource(Res.string.photo_hosting_provider_junkdata)
                         PhotoHostingProvider.MESHAPP -> stringResource(Res.string.photo_hosting_provider_meshapp)
                         PhotoHostingProvider.IMGBB -> stringResource(Res.string.photo_hosting_provider_imgbb)
                     }
                 },
             )
-            if (photoHostingProvider == PhotoHostingProvider.MESHPIC) {
+            if (
+                photoHostingProvider == PhotoHostingProvider.MESHPIC ||
+                photoHostingProvider == PhotoHostingProvider.JUNKDATA
+            ) {
                 DropDownPreference(
                     title = stringResource(Res.string.photo_storage_duration),
                     selectedItem = meshpicRetention,

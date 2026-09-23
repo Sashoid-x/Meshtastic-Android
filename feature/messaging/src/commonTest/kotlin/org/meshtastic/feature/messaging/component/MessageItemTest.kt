@@ -391,6 +391,8 @@ class MessageItemTest {
         assertEquals("https://meshpic.org/image/abc123xyz", findImageUrl("Check https://meshpic.org/image/abc123xyz"))
         assertEquals("https://meshpic.org/image/short", findImageUrl("https://meshpic.org/i/short"))
         assertEquals("https://meshpic.org/image/short", findImageUrl("https://meshpic.org/short"))
+        assertEquals("https://junkdata.ru/i/ty8tjhs", findImageUrl("Check https://junkdata.ru/v/ty8tjhs"))
+        assertEquals("https://junkdata.ru/i/ty8tjhs", findImageUrl("https://junkdata.ru/i/ty8tjhs"))
         assertEquals("https://example.com/cat.jpg", findImageUrl("Photo: https://example.com/cat.jpg."))
         assertEquals("https://example.com/dog.PNG?w=800", findImageUrl("Look: https://example.com/dog.PNG?w=800!"))
         assertEquals("https://cdn.site.org/pic.webp", findImageUrl("https://cdn.site.org/pic.webp"))

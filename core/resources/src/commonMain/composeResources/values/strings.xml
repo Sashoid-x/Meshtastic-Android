@@ -1582,6 +1582,7 @@
     <string name="photo_duration_7_days">7 days</string>
     <string name="photo_hosting_provider_disabled">Off</string>
     <string name="photo_hosting_provider_imgbb">ImgBB</string>
+    <string name="photo_hosting_provider_junkdata">JunkData</string>
     <string name="photo_hosting_provider_meshapp">Meshapp</string>
     <string name="photo_hosting_provider_meshpic">Meshpic</string>
     <string name="photo_hosting_setting">Photo Hosting</string>
