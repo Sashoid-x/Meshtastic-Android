@@ -139,16 +139,15 @@ import org.meshtastic.feature.settings.component.ExpressiveSection
 import org.meshtastic.feature.settings.component.PacketTypePickerDialog
 import kotlin.time.Instant.Companion.fromEpochMilliseconds
 
-private val BACKUP_TIMESTAMP_FORMAT =
-    LocalDateTime.Format {
-        year()
-        monthNumber()
-        day()
-        char('_')
-        hour()
-        minute()
-        second()
-    }
+private val BACKUP_TIMESTAMP_FORMAT = LocalDateTime.Format {
+    year()
+    monthNumber()
+    day()
+    char('_')
+    hour()
+    minute()
+    second()
+}
 
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable

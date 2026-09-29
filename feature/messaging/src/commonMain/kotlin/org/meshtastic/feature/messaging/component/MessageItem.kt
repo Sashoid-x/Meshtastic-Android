@@ -1028,14 +1028,13 @@ private fun ImageCollage(
                             modifier =
                             Modifier.weight(1f).fillMaxHeight().clip(RoundedCornerShape(4.dp)).clickable {
                                 if (builtInImageViewerEnabled) {
-                                    val imageList =
-                                        imageUrls.mapNotNull { (rawUrl, resUrl) ->
-                                            if (resUrl != null) {
-                                                Triple(resUrl, getLocalImageFile(resUrl), rawUrl)
-                                            } else {
-                                                null
-                                            }
+                                    val imageList = imageUrls.mapNotNull { (rawUrl, resUrl) ->
+                                        if (resUrl != null) {
+                                            Triple(resUrl, getLocalImageFile(resUrl), rawUrl)
+                                        } else {
+                                            null
                                         }
+                                    }
                                     val initialIndex =
                                         imageList.indexOfFirst { it.first == nonNullResolved }.takeIf { it >= 0 }
                                             ?: 0

@@ -34,7 +34,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -197,7 +196,10 @@ fun BoxScope.ScrollToBottomFab(
     } else {
         FloatingActionButton(modifier = modifier, onClick = onClick) {
             if (unreadCount > 0) {
-                BadgedBox(badge = { Badge { Text(unreadCount.toString()) } }) { icon() }
+                Box {
+                    icon()
+                    Badge(modifier = Modifier.align(Alignment.TopEnd)) { Text(unreadCount.toString()) }
+                }
             } else {
                 icon()
             }
@@ -460,17 +462,14 @@ fun MessageTopBar(
     actions = {
         if (onPinnedMessagesClick != null) {
             IconButton(onClick = onPinnedMessagesClick) {
-                BadgedBox(
-                    badge = {
-                        if (pinnedMessagesCount > 0) {
-                            Badge { Text(pinnedMessagesCount.toString()) }
-                        }
-                    },
-                ) {
+                Box {
                     Icon(
                         imageVector = MeshtasticIcons.Keep,
                         contentDescription = stringResource(Res.string.pinned_messages),
                     )
+                    if (pinnedMessagesCount > 0) {
+                        Badge(modifier = Modifier.align(Alignment.TopEnd)) { Text(pinnedMessagesCount.toString()) }
+                    }
                 }
             }
         }
@@ -782,15 +781,14 @@ fun handleQuickChatAction(
     when (action.mode) {
         QuickChatAction.Mode.Append -> {
             if (!currentText.contains(action.message)) {
-                val newText =
-                    buildString {
-                        append(currentText)
-                        if (currentText.isNotEmpty() && !currentText.endsWith(' ')) {
-                            append(' ')
-                        }
-                        append(action.message)
+                val newText = buildString {
+                    append(currentText)
+                    if (currentText.isNotEmpty() && !currentText.endsWith(' ')) {
+                        append(' ')
                     }
-                        .limitBytes(MESSAGE_CHARACTER_LIMIT_BYTES)
+                    append(action.message)
+                }
+                    .limitBytes(MESSAGE_CHARACTER_LIMIT_BYTES)
                 onUpdateText(newText)
             }
         }

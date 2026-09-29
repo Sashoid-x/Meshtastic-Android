@@ -240,8 +240,9 @@ class FileTransferManagerTest {
         assertTrue(manager.incomingState.value is TransferState.Failed)
 
         // Cancel packet should be sent to sender
-        val cancelPacket =
-            sentPackets.lastOrNull { MftProtocol.packetType(it.bytes!!.toByteArray()) == MftProtocol.TYPE_CANCEL }
+        val cancelPacket = sentPackets.lastOrNull {
+            MftProtocol.packetType(it.bytes!!.toByteArray()) == MftProtocol.TYPE_CANCEL
+        }
         assertTrue(cancelPacket != null)
 
         // Subsequent in-flight chunks must be silently dropped, NOT triggering new cancel packets
@@ -408,8 +409,9 @@ class FileTransferManagerTest {
         // Sender ends Pass 2
         manager.onMftPacketReceived("!senderNode", MftPassEnd(transferId, 2).encode())
 
-        val missingPacket =
-            sentPackets.lastOrNull { MftProtocol.packetType(it.bytes!!.toByteArray()) == MftProtocol.TYPE_MISSING }
+        val missingPacket = sentPackets.lastOrNull {
+            MftProtocol.packetType(it.bytes!!.toByteArray()) == MftProtocol.TYPE_MISSING
+        }
         assertNotNull(missingPacket)
         val missing = checkNotNull(MftMissing.decode(missingPacket.bytes!!.toByteArray()))
         assertEquals(2, missing.passNumber)

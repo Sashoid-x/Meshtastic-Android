@@ -195,28 +195,27 @@ class FileTransferManager(
         val ratio = "gzip=$isGzip -> ${toSend.size} B, ${outChunks.size} chunks"
         logger.i { "send '$fileName' (${fileData.size} B, $ratio) to $destAddress" }
 
-        sendJob =
-            scope.launch {
-                try {
-                    executeSend()
-                } catch (e: CancellationException) {
-                    _outgoingState.value =
-                        TransferState.Failed(
-                            outFileName,
-                            getString(Res.string.file_transfer_state_cancelled),
-                            canRetry = true,
-                        )
-                    throw e
-                } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-                    logger.e(e) { "send failed" }
-                    _outgoingState.value =
-                        TransferState.Failed(
-                            fileName = outFileName,
-                            reason = e.message ?: getString(Res.string.file_transfer_state_error),
-                            canRetry = true,
-                        )
-                }
+        sendJob = scope.launch {
+            try {
+                executeSend()
+            } catch (e: CancellationException) {
+                _outgoingState.value =
+                    TransferState.Failed(
+                        outFileName,
+                        getString(Res.string.file_transfer_state_cancelled),
+                        canRetry = true,
+                    )
+                throw e
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                logger.e(e) { "send failed" }
+                _outgoingState.value =
+                    TransferState.Failed(
+                        fileName = outFileName,
+                        reason = e.message ?: getString(Res.string.file_transfer_state_error),
+                        canRetry = true,
+                    )
             }
+        }
     }
 
     fun retryOutgoing() {
@@ -657,7 +656,8 @@ class FileTransferManager(
                 speedBytesPerSec = speed,
                 isGzip = inIsGzip,
                 passNumber = inCurrentPassNumber,
-                statusMessage = getString(
+                statusMessage =
+                getString(
                     Res.string.file_transfer_receiving_progress,
                     received,
                     inTotalChunks,
@@ -671,11 +671,10 @@ class FileTransferManager(
             sendMissingListOrComplete(from, inCurrentPassNumber)
         } else {
             idleCheckJob?.cancel()
-            idleCheckJob =
-                scope.launch {
-                    delay(IDLE_REPAIR_TIMEOUT_MS)
-                    sendMissingListOrComplete(from, inCurrentPassNumber)
-                }
+            idleCheckJob = scope.launch {
+                delay(IDLE_REPAIR_TIMEOUT_MS)
+                sendMissingListOrComplete(from, inCurrentPassNumber)
+            }
         }
     }
 
@@ -769,14 +768,13 @@ class FileTransferManager(
             ) ?: _incomingState.value
 
         idleCheckJob?.cancel()
-        idleCheckJob =
-            scope.launch {
-                delay(IDLE_REPAIR_TIMEOUT_MS)
-                if (inChunkBuffer.size < inTotalChunks && !isSendingCancelled) {
-                    logger.w { "pass #$passNumber repair timeout, re-sending MftMissing..." }
-                    sendMissingListOrComplete(to, passNumber)
-                }
+        idleCheckJob = scope.launch {
+            delay(IDLE_REPAIR_TIMEOUT_MS)
+            if (inChunkBuffer.size < inTotalChunks && !isSendingCancelled) {
+                logger.w { "pass #$passNumber repair timeout, re-sending MftMissing..." }
+                sendMissingListOrComplete(to, passNumber)
             }
+        }
     }
 
     private fun handleIncomingStartAck(startAck: MftStartAck) {

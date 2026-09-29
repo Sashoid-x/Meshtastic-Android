@@ -117,6 +117,7 @@ class MessageViewModelResendTest {
                 activeConversationTracker = ActiveConversationTracker(),
                 messageTranslationService = mock<MessageTranslationService>(MockMode.autofill),
                 snackbarManager = SnackbarManager(),
+                adminController = mock<org.meshtastic.core.repository.AdminController>(MockMode.autofill),
             )
     }
 

@@ -324,7 +324,8 @@ abstract class MeshtasticDatabase : RoomDatabase() {
          * Idempotent migration from schema 62 to 63.
          *
          * Ensures `nodes.soil_water_metrics` and `device_hardware.is_maker` are present for databases that upgraded to
-         * 62 before soil_water_metrics was merged into the local branch.
+         * 62 before soil_water_metrics was merged into the local branch, and adds `reactions.xeddsa_signed` and
+         * `reactions.ack_proof_status`.
          */
         internal val MIGRATION_62_63: Migration =
             object : Migration(62, 63) {
@@ -337,6 +338,16 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     if (!connection.hasColumn("device_hardware", "is_maker")) {
                         connection.execSQL(
                             "ALTER TABLE `device_hardware` ADD COLUMN `is_maker` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
+                    if (!connection.hasColumn("reactions", "xeddsa_signed")) {
+                        connection.execSQL(
+                            "ALTER TABLE `reactions` ADD COLUMN `xeddsa_signed` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
+                    if (!connection.hasColumn("reactions", "ack_proof_status")) {
+                        connection.execSQL(
+                            "ALTER TABLE `reactions` ADD COLUMN `ack_proof_status` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
                 }
@@ -356,6 +367,16 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                             "ALTER TABLE `device_hardware` ADD COLUMN `is_maker` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
+                    if (!connection.hasColumn("reactions", "xeddsa_signed")) {
+                        connection.execSQL(
+                            "ALTER TABLE `reactions` ADD COLUMN `xeddsa_signed` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
+                    if (!connection.hasColumn("reactions", "ack_proof_status")) {
+                        connection.execSQL(
+                            "ALTER TABLE `reactions` ADD COLUMN `ack_proof_status` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
                 }
             }
 
@@ -370,6 +391,16 @@ abstract class MeshtasticDatabase : RoomDatabase() {
         internal val MIGRATION_63_64: Migration =
             object : Migration(63, 64) {
                 override suspend fun migrate(connection: SQLiteConnection) {
+                    if (!connection.hasColumn("reactions", "xeddsa_signed")) {
+                        connection.execSQL(
+                            "ALTER TABLE `reactions` ADD COLUMN `xeddsa_signed` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
+                    if (!connection.hasColumn("reactions", "ack_proof_status")) {
+                        connection.execSQL(
+                            "ALTER TABLE `reactions` ADD COLUMN `ack_proof_status` INTEGER NOT NULL DEFAULT 0",
+                        )
+                    }
                     connection.execSQL(
                         "CREATE TABLE IF NOT EXISTS `_new_discovered_node` (" +
                             "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `preset_result_id` INTEGER NOT NULL, " +

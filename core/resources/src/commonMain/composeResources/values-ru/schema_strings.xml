@@ -376,7 +376,7 @@
     <string name="schema_position_gps_mode">Режим GPS (физическое оборудование)</string>
     <string name="schema_position_gps_update_interval">Интервал опроса GPS</string>
     <string name="schema_position_gps_update_interval_description">Как часто запрашивать координаты GPS (&lt;10 секунд держит GPS включенным постоянно).</string>
-    <string name="schema_position_gpsmode_disabled">Включено</string>
+    <string name="schema_position_gpsmode_disabled">Выключено</string>
     <string name="schema_position_gpsmode_enabled">Включено</string>
     <string name="schema_position_gpsmode_not_present">Отсутствует</string>
     <string name="schema_position_position_broadcast_secs">Период рассылки</string>

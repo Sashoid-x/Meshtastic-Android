@@ -110,8 +110,10 @@ class SendMessageUseCaseImpl(
                 // Best-effort: inform firmware of the destination's public key
                 // for its NodeDB cache.  The MeshPacket itself carries the key
                 // directly, so the message can be encrypted regardless.
-                sendSharedContact(destNode)
-            } else if (channel == null) {
+                if (destNode != null && !destNode.mismatchKey && destNode.keyMatch) {
+                    sendSharedContact(destNode)
+                }
+            } else if (channel == null && destNode != null) {
                 // Legacy favoriting only applies to old-style DMs without PKI
                 if (!destNode.isFavorite && !isClientBase) {
                     favoriteNode(destNode)

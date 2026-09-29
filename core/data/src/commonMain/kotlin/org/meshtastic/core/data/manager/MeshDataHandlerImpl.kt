@@ -74,8 +74,6 @@ import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.critical_alert
 import org.meshtastic.core.resources.error_duty_cycle
 import org.meshtastic.core.resources.getStringSuspend
-import org.meshtastic.core.resources.mesh_beacon_notification_body
-import org.meshtastic.core.resources.mesh_beacon_notification_title
 import org.meshtastic.core.resources.message_image_preview
 import org.meshtastic.core.resources.unknown_username
 import org.meshtastic.core.resources.waypoint_received

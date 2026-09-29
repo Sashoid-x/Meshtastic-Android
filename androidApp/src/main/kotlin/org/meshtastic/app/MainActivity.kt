@@ -204,11 +204,12 @@ class MainActivity : AppCompatActivity() {
                         // once we've decided whether to show the intro or the main screen.
                         ReportDrawnWhen { true }
 
-                    if (appIntroCompleted || launchOptions.skipOnboarding) {
-                        MainScreen()
-                    } else {
-                        val introViewModel = koinViewModel<IntroViewModel>()
-                        AppIntroductionScreen(onDone = { model.onAppIntroCompleted() }, viewModel = introViewModel)
+                        if (appIntroCompleted || launchOptions.skipOnboarding) {
+                            MainScreen()
+                        } else {
+                            val introViewModel = koinViewModel<IntroViewModel>()
+                            AppIntroductionScreen(onDone = { model.onAppIntroCompleted() }, viewModel = introViewModel)
+                        }
                     }
                 }
             }

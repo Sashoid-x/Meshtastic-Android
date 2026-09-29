@@ -65,50 +65,49 @@ class AppUpdateServiceImpl(
         val currentVersion = buildConfigProvider.versionName
         logger.i { "Checking for updates. Current version: $currentVersion (manual: $isManual)" }
 
-        val resultState =
-            runCatching {
-                val responseText =
-                    httpClient
-                        .get(RELEASES_API_URL) {
-                            header(HttpHeaders.Accept, "application/vnd.github.v3+json")
-                            header(HttpHeaders.UserAgent, "Meshtastic-Android")
-                        }
-                        .bodyAsText()
+        val resultState = runCatching {
+            val responseText =
+                httpClient
+                    .get(RELEASES_API_URL) {
+                        header(HttpHeaders.Accept, "application/vnd.github.v3+json")
+                        header(HttpHeaders.UserAgent, "Meshtastic-Android")
+                    }
+                    .bodyAsText()
 
-                val releases = json.decodeFromString<List<GitHubReleaseDto>>(responseText)
-                val latestCandidate =
-                    releases
-                        .filterNot { it.draft }
-                        .firstOrNull { release ->
-                            val tag = release.tagName
-                            tag != null && ModVersion.isNewer(latest = tag, current = currentVersion)
-                        }
+            val releases = json.decodeFromString<List<GitHubReleaseDto>>(responseText)
+            val latestCandidate =
+                releases
+                    .filterNot { it.draft }
+                    .firstOrNull { release ->
+                        val tag = release.tagName
+                        tag != null && ModVersion.isNewer(latest = tag, current = currentVersion)
+                    }
 
-                if (latestCandidate != null && latestCandidate.tagName != null) {
-                    val info =
-                        AppUpdateInfo(
-                            versionName = latestCandidate.tagName.removePrefix("v"),
-                            releaseTitle = latestCandidate.name ?: latestCandidate.tagName,
-                            releaseNotes = latestCandidate.body.orEmpty(),
-                            releaseUrl = latestCandidate.htmlUrl ?: RELEASES_PAGE_URL,
-                            isPrerelease = latestCandidate.prerelease,
-                            publishedAt = latestCandidate.publishedAt,
-                        )
-                    logger.i { "Update available: ${info.versionName}" }
-                    AppUpdateCheckState.UpdateAvailable(info)
+            if (latestCandidate != null && latestCandidate.tagName != null) {
+                val info =
+                    AppUpdateInfo(
+                        versionName = latestCandidate.tagName.removePrefix("v"),
+                        releaseTitle = latestCandidate.name ?: latestCandidate.tagName,
+                        releaseNotes = latestCandidate.body.orEmpty(),
+                        releaseUrl = latestCandidate.htmlUrl ?: RELEASES_PAGE_URL,
+                        isPrerelease = latestCandidate.prerelease,
+                        publishedAt = latestCandidate.publishedAt,
+                    )
+                logger.i { "Update available: ${info.versionName}" }
+                AppUpdateCheckState.UpdateAvailable(info)
+            } else {
+                logger.i { "App is up to date (current: $currentVersion)" }
+                AppUpdateCheckState.UpToDate
+            }
+        }
+            .getOrElse { throwable ->
+                logger.w(throwable) { "Failed to check for updates" }
+                if (isManual) {
+                    AppUpdateCheckState.Error(throwable.message ?: "Network error")
                 } else {
-                    logger.i { "App is up to date (current: $currentVersion)" }
-                    AppUpdateCheckState.UpToDate
+                    AppUpdateCheckState.Idle
                 }
             }
-                .getOrElse { throwable ->
-                    logger.w(throwable) { "Failed to check for updates" }
-                    if (isManual) {
-                        AppUpdateCheckState.Error(throwable.message ?: "Network error")
-                    } else {
-                        AppUpdateCheckState.Idle
-                    }
-                }
 
         _updateState.value = resultState
         return resultState

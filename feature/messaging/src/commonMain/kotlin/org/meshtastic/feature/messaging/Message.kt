@@ -817,6 +817,9 @@ fun MessageScreen(
                             onDeleteMessages = { viewModel.deleteMessages(it) },
                             onSendMessage = { text, key -> viewModel.sendMessage(text, key) },
                             onResendImage = { bytes, key -> viewModel.sendImageMessage(bytes, contactKey = key) },
+                            onResendMessage = { message ->
+                                viewModel.resendMessage(message.uuid, message.text, contactKey)
+                            },
                             onReply = { message -> replyingToPacketId = message?.packetId },
                             onTranslate = { onEvent(MessageScreenEvent.TranslateMessage(it)) },
                             onToggleTranslation = { onEvent(MessageScreenEvent.ToggleShowTranslated(it)) },

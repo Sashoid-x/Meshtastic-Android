@@ -136,7 +136,10 @@ abstract class CommonNodeRepositoryTest {
         val baseEntity =
             NodeWithRelations(
                 node =
-                NodeEntity(num = 42, user = User(id = "42", long_name = "Original Long", short_name = "ORIG")),
+                NodeEntity(
+                    num = 42,
+                    user = User.Builder().id("42").long_name("Original Long").short_name("ORIG").build(),
+                ),
                 metadata = null,
             )
         val nodeDbFlow = MutableStateFlow(mapOf(42 to baseEntity))

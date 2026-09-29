@@ -278,4 +278,47 @@ class SendMessageUseCaseTest {
         radioController.sentSharedContacts.size shouldBe 0
         radioController.favoritedNodes.size shouldBe 0
     }
+
+    @Test
+    fun `invoke with PKI DM to unknown node succeeds without crash`() = runTest {
+        val ourNode =
+            Node(
+                num = 1,
+                user = User.Builder().also { wb -> wb.id = "!local" }.build(),
+                metadata = DeviceMetadata.Builder().also { wb -> wb.firmware_version = "2.5.0" }.build(),
+            )
+        nodeRepository.setOurNode(ourNode)
+        appPreferences.homoglyph.homoglyphEncodingEnabled.value = false
+
+        // Act — dest node not in repository
+        useCase("Hello unknown", "${NodeAddress.PKC_CHANNEL_INDEX}!unknown0", null)
+
+        radioController.sentSharedContacts.size shouldBe 0
+        radioController.favoritedNodes.size shouldBe 0
+    }
+
+    @Test
+    fun `invoke with PKI DM to node with key mismatch skips sendSharedContact`() = runTest {
+        val ourNode =
+            Node(
+                num = 1,
+                user = User.Builder().also { wb -> wb.id = "!local" }.build(),
+                metadata = DeviceMetadata.Builder().also { wb -> wb.firmware_version = "2.5.0" }.build(),
+            )
+        nodeRepository.setOurNode(ourNode)
+        val destNode =
+            Node(
+                num = 0x12345678,
+                user = User.Builder().also { wb -> wb.id = "!12345678" }.build(),
+                keyMatch = false,
+            )
+        nodeRepository.upsert(destNode)
+        appPreferences.homoglyph.homoglyphEncodingEnabled.value = false
+
+        // Act — dest node has mismatched key
+        useCase("Hello mismatch", "${NodeAddress.PKC_CHANNEL_INDEX}!12345678", null)
+
+        radioController.sentSharedContacts.size shouldBe 0
+        radioController.favoritedNodes.size shouldBe 0
+    }
 }

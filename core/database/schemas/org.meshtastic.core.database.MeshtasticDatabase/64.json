@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 64,
-    "identityHash": "bfee7bae8629a7b53c153ee1f2cb07dd",
+    "identityHash": "310627bf8182feb707e01fc55c662940",
     "entities": [
       {
         "tableName": "my_node",
@@ -362,7 +362,7 @@
       },
       {
         "tableName": "packet",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `myNodeNum` INTEGER NOT NULL DEFAULT 0, `port_num` INTEGER NOT NULL, `contact_key` TEXT NOT NULL, `received_time` INTEGER NOT NULL, `read` INTEGER NOT NULL DEFAULT 1, `data` TEXT NOT NULL, `packet_id` INTEGER NOT NULL DEFAULT 0, `routing_error` INTEGER NOT NULL DEFAULT -1, `snr` REAL, `rssi` INTEGER, `hopsAway` INTEGER NOT NULL DEFAULT -1, `sfpp_hash` BLOB, `filtered` INTEGER NOT NULL DEFAULT 0, `message_text` TEXT NOT NULL DEFAULT '', `translated_text` TEXT, `show_translated` INTEGER NOT NULL DEFAULT 0)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `myNodeNum` INTEGER NOT NULL DEFAULT 0, `port_num` INTEGER NOT NULL, `contact_key` TEXT NOT NULL, `received_time` INTEGER NOT NULL, `read` INTEGER NOT NULL DEFAULT 1, `data` TEXT NOT NULL, `packet_id` INTEGER NOT NULL DEFAULT 0, `routing_error` INTEGER NOT NULL DEFAULT -1, `snr` REAL, `rssi` INTEGER, `hopsAway` INTEGER NOT NULL DEFAULT -1, `sfpp_hash` BLOB, `filtered` INTEGER NOT NULL DEFAULT 0, `message_text` TEXT NOT NULL DEFAULT '', `translated_text` TEXT, `show_translated` INTEGER NOT NULL DEFAULT 0, `pinned_message` INTEGER NOT NULL DEFAULT 0)",
         "fields": [
           {
             "fieldPath": "uuid",
@@ -466,6 +466,13 @@
           {
             "fieldPath": "showTranslated",
             "columnName": "show_translated",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "pinnedMessage",
+            "columnName": "pinned_message",
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"
@@ -1874,7 +1881,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'bfee7bae8629a7b53c153ee1f2cb07dd')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '310627bf8182feb707e01fc55c662940')"
     ]
   }
 }

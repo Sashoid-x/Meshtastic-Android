@@ -30,8 +30,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -63,7 +61,6 @@ import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.ic_lock
 import org.meshtastic.core.resources.ic_lock_open
 import org.meshtastic.core.resources.ic_warning
-import org.meshtastic.core.resources.security_icon_badge_warning_description
 import org.meshtastic.core.resources.security_icon_description
 import org.meshtastic.core.resources.security_icon_help_dismiss
 import org.meshtastic.core.resources.security_icon_help_green_lock
@@ -171,24 +168,22 @@ private fun SecurityIconDisplay(
     badgeIcon: ImageVector? = null,
     badgeIconColor: Color? = null,
 ) {
-    BadgedBox(
-        badge = {
-            if (badgeIcon != null) {
-                Badge(
-                    containerColor = Color.Transparent, // Allows badgeIconColor to define appearance
-                ) {
-                    Icon(
-                        imageVector = badgeIcon,
-                        contentDescription = stringResource(Res.string.security_icon_badge_warning_description),
-                        tint = badgeIconColor ?: colorScheme.onError, // Default for contrast
-                        modifier = Modifier.size(16.dp), // Adjusted badge icon size
-                    )
-                }
-            }
-        },
-        modifier = modifier,
-    ) {
-        Icon(imageVector = icon, contentDescription = contentDescription, tint = mainIconTint)
+    if (badgeIcon != null) {
+        BadgedIcon(
+            icon = icon,
+            badge = badgeIcon,
+            contentDescription = contentDescription,
+            modifier = modifier,
+            tint = mainIconTint,
+            badgeTint = badgeIconColor ?: colorScheme.onError,
+        )
+    } else {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = mainIconTint,
+            modifier = modifier,
+        )
     }
 }
 

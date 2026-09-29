@@ -151,8 +151,10 @@ object ImageUrlResolver {
         if (cache.value.containsKey(url)) return cache.value[url]
 
         return try {
-            val headResponse =
-                runCatching { httpClient.head(url) { header(HttpHeaders.UserAgent, USER_AGENT) } }.getOrNull()
+            val headResponse = runCatching {
+                httpClient.head(url) { header(HttpHeaders.UserAgent, USER_AGENT) }
+            }
+                .getOrNull()
 
             val headContentType = headResponse?.headers?.get(HttpHeaders.ContentType)?.lowercase()
             if (headContentType != null && headContentType.startsWith("image/")) {
@@ -162,14 +164,13 @@ object ImageUrlResolver {
 
             // Only inspect HTML body if it is a designated photo host page (such as ibb.co/<id>)
             if (isKnownPhotoHost(url)) {
-                val getResponse =
-                    runCatching {
-                        httpClient.get(url) {
-                            header(HttpHeaders.UserAgent, USER_AGENT)
-                            header(HttpHeaders.Range, "bytes=0-65536")
-                        }
+                val getResponse = runCatching {
+                    httpClient.get(url) {
+                        header(HttpHeaders.UserAgent, USER_AGENT)
+                        header(HttpHeaders.Range, "bytes=0-65536")
                     }
-                        .getOrNull()
+                }
+                    .getOrNull()
 
                 val getContentType = getResponse?.headers?.get(HttpHeaders.ContentType)?.lowercase()
                 if (getContentType != null && getContentType.startsWith("image/")) {

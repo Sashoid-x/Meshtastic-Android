@@ -39,7 +39,14 @@ class NodeMappingFixtureTest {
         val defaults = Node(num = 0)
 
         assertTrue(components.isNotEmpty())
-        val unset = components.filter { it.invoke(fixture) == it.invoke(defaults) }.map { it.name }
+        // customName and originalUser are UI-level decorator properties attached by NodeRepositoryImpl from DataStore,
+        // not persisted in NodeEntity/nodes table.
+        val nonPersisted = setOf("component30", "component31")
+        val unset =
+            components
+                .filter { it.name !in nonPersisted }
+                .filter { it.invoke(fixture) == it.invoke(defaults) }
+                .map { it.name }
         assertEquals(emptyList(), unset, "fixture leaves these Node properties at their defaults")
     }
 
