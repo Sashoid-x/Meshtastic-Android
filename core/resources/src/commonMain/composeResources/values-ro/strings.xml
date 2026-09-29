@@ -297,10 +297,6 @@
     <string name="files_available">Fișiere disponibile (%1$d):</string>
     <!-- FILTER -->
     <string name="filter_add_placeholder">Adaugă cuvânt sau regex:pattern-ul</string>
-    <string name="filter_disable_for_contact">Dezactivați filtrarea</string>
-    <string name="filter_enable">Activați filtrarea</string>
-    <string name="filter_enable_for_contact">Activați filtrarea</string>
-    <string name="filter_enable_summary">Ascunde mesajele ce conțin cuvinte filtre</string>
     <string name="filter_hide_count">Ascunde %1$d filtrate</string>
     <string name="filter_icon">Filtru</string>
     <string name="filter_message_label">Filtrat</string>
@@ -642,6 +638,7 @@
     <string name="not_connected">Neconectat</string>
     <string name="note">Notiță</string>
     <string name="notes">Notițe</string>
+    <!-- NOTIFICATION -->
     <string name="notification_permissions_description">Meshtastic folosește notificări pentru a te ține la curent cu mesaje noi și alte evenimente importante. Puteți actualiza permisiunile de notificare în orice moment din setări.</string>
     <!-- NOTIFICATIONS -->
     <string name="notifications_for_channel_and_direct_messages">Notificări pentru canal și mesaje directe.</string>

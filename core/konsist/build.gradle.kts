@@ -36,3 +36,17 @@ kotlin {
         }
     }
 }
+
+// Konsist reads every `.kt` in the checkout from disk, which Gradle cannot see. The patterns are anchored at the
+// source roots because a leading `**` also claims the directories other tasks write, such as the docs sync targets.
+tasks.named<Test>("jvmTest") {
+    inputs
+        .files(
+            fileTree(isolated.rootProject.projectDirectory) {
+                include("*/src/*/kotlin/**/*.kt", "*/*/src/*/kotlin/**/*.kt", "config/spotless/*.kt")
+                exclude("**/build/**")
+            },
+        )
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("konsistScannedSources")
+}

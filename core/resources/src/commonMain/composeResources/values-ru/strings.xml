@@ -335,6 +335,11 @@
     <string name="config_device_tripleClickAsAdHocPing_summary">Отправлять позицию на основной канал по тройному нажатию кнопки.</string>
     <string name="config_device_tzdef_summary">Часовой пояс дат на экране и журнале устройства.</string>
     <string name="config_device_use_phone_tz">Использовать часовой пояс телефона</string>
+    <string name="config_lora_coding_rate_fraction">4/%1$d</string>
+    <string name="config_lora_coding_rate_override">Переопределение скорости кодирования</string>
+    <string name="config_lora_coding_rate_override_max_summary">В этом пресете уже используется максимальная скорость кодирования.</string>
+    <string name="config_lora_coding_rate_override_summary">Добавляет коррекцию ошибок поверх пресета. Более высокая скорость кодирования увеличивает длительность передачи каждого пакета и расходует больше рабочего цикла и ресурсов канала.</string>
+    <string name="config_lora_coding_rate_preset_default">Пресет по умолчанию (%1$s)</string>
     <string name="config_lora_modem_preset_licensed_summary">Пресеты этого региона предназначены только для лицензированных операторов (любительское радио). Включи «Лицензированный радиолюбитель (Ham)» в настройках пользователя, чтобы выбрать их.</string>
     <string name="config_lora_modem_preset_summary">Доступные пресеты модема, по умолчанию - Long Fast.</string>
     <string name="config_lora_region_summary">Регион, в котором вы будете использовать ваше радио.</string>
@@ -559,6 +564,7 @@
     <string name="doc_keywords_mqtt">mqtt,broker,internet,bridge,uplink,downlink</string>
     <string name="doc_keywords_node_metrics">metrics,telemetry,signal,snr,rssi,battery,traceroute</string>
     <string name="doc_keywords_nodes">node,mesh,list,role,status,favorite,filter</string>
+    <string name="doc_keywords_notifications">notification,alert,sound,mute,reply,watch,wear os</string>
     <string name="doc_keywords_onboarding">setup,welcome,permissions,first-launch</string>
     <string name="doc_keywords_settings_module">module,serial,telemetry,canned,store-forward,administration</string>
     <string name="doc_keywords_settings_radio">settings,radio,lora,region,modem,device,power,security</string>
@@ -587,6 +593,7 @@
     <string name="doc_title_mqtt">MQTT</string>
     <string name="doc_title_node_metrics">Метрики ноды</string>
     <string name="doc_title_nodes">Ноды</string>
+    <string name="doc_title_notifications">Уведомления</string>
     <string name="doc_title_onboarding">Начало работы</string>
     <string name="doc_title_settings_module">Настройки - Модули и администрирование</string>
     <string name="doc_title_settings_radio">Настройки - Радио и пользователь</string>
@@ -707,9 +714,9 @@
     <string name="files_available">Доступные файлы (%1$d):</string>
     <string name="filter_add_placeholder">Добавьте слово или регулярное выражение:шаблон</string>
     <string name="filter_disable_for_contact">Отключить фильтрацию</string>
-    <string name="filter_enable">Включить фильтрацию</string>
+    <string name="filter_enable">Фильтровать все диалоги</string>
     <string name="filter_enable_for_contact">Включить фильтрацию</string>
-    <string name="filter_enable_summary">Скрывать сообщения, содержащие слова-фильтры</string>
+    <string name="filter_enable_summary">Скрывать сообщения, содержащие фильтры в каждом канале и ЛС. Выключает их для одного разговора из меню.</string>
     <string name="filter_hide_count">Скрыть %1$d отфильтрованных</string>
     <string name="filter_icon">Фильтр</string>
     <string name="filter_message_label">Отфильтрованные</string>
@@ -725,6 +732,11 @@
     <string name="firmware_edition">Версия прошивки</string>
     <string name="firmware_event_ended_banner">%1$s завершен. Вернитесь к стандартной Meshtastic прошивке, чтобы восстановить нормальные функции.</string>
     <string name="firmware_event_ended_button">Обновление прошивки</string>
+    <string name="firmware_maintenance_bootloader_available">Последнее: %1$s</string>
+    <string name="firmware_maintenance_bootloader_installed">Установлено: %1$s</string>
+    <string name="firmware_maintenance_bootloader_latest_hint">Последняя версия: %1$s. Установленная версия отображается после перезагрузки устройства в режиме обновления.</string>
+    <string name="firmware_maintenance_bootloader_up_to_date">Загрузчик обновлён</string>
+    <string name="firmware_maintenance_bootloader_up_to_date_hint">Обновлять нечего. Далее переустанавливается прошивка, что приведёт к перезагрузке устройства.</string>
     <string name="firmware_maintenance_cdc_unblock_failed">Файл стирания был скопирован, но устройство не начало стирание. Пока ничего не изменилось. Отключи устройство, дважды нажми кнопку сброса и повтори попытку.</string>
     <string name="firmware_maintenance_copy_failed">Не удалось скопировать файл на диск устройства. Убедите, что диск всё ещё подключён, и повтори попытку.</string>
     <string name="firmware_maintenance_data_unavailable">Список образов для стирания сейчас недоступен. Проверь подключение и повтори попытку или используй веб-флешер на flasher.meshtastic.org.</string>
@@ -1186,8 +1198,11 @@
     <string name="mesh_map_location_description">Включает синюю точку местоположения для вашего телефона на карте нод.</string>
     <string name="meshtastic">Meshtastic</string>
     <string name="meshtastic_alerts_notifications">Служебные уведомления</string>
+    <string name="meshtastic_alerts_notifications_description">Критические оповещения, отправляемые нодами в сеть.</string>
     <string name="meshtastic_app_name">Meshtastic</string>
     <string name="meshtastic_broadcast_notifications">Уведомления о сообщениях в общем чате</string>
+    <string name="meshtastic_broadcast_notifications_description">Сообщения, отправляемые в ваши каналы.</string>
+    <string name="meshtastic_client_notifications">Уведомления по радио</string>
     <string name="meshtastic_low_battery_notifications">Уведомление о низком уровне заряда</string>
     <string name="meshtastic_low_battery_temporary_remote_notifications">Уведомления о низком заряде батареи (избранные ноды)</string>
     <string name="meshtastic_mesh_beacon_notifications">Уведомления о приглашениях в сеть</string>
@@ -1232,10 +1247,12 @@
     <string name="message_routing_error_timeout_detail">Подтверждение не было получено вовремя. Повтори попытку, когда улучшится сигнал или покрытие mesh-сети.</string>
     <string name="message_routing_error_too_large">Слишком большое сообщение для отправки</string>
     <string name="message_routing_error_too_large_detail">Сократи сообщение и отправь его снова.</string>
+    <string name="message_status_ack_proof_invalid">Сбой проверки доставки</string>
     <string name="message_status_delivered">Отправлено в сеть</string>
     <string name="message_status_enroute">Отправка...</string>
     <string name="message_status_queued">В очереди на отправку</string>
     <string name="message_status_recipient_delivered">Доставлено получателю</string>
+    <string name="message_status_recipient_delivered_proven">Доставлено получателю - доказано</string>
     <string name="message_status_relayed_not_confirmed">Передано, не подтверждено получателем</string>
     <string name="message_status_sfpp_confirmed">Подтверждено в цепочке SF++</string>
     <string name="message_status_sfpp_routing">Маршрутизация по SF++ цепочке…</string>
@@ -1267,8 +1284,6 @@
     <string name="mqtt_probe_tcp_failure">Не удается подключиться к брокеру (TCP)</string>
     <string name="mqtt_probe_timeout">Тайм-аут после %1$d мс</string>
     <string name="mqtt_probe_tls_failure">Ошибка TLS-рукопожатия: %1$s</string>
-    <string name="mqtt_proxy_local">MQTT-прокси на этом телефоне</string>
-    <string name="mqtt_proxy_local_summary">Этот телефон передаёт MQTT-трафик для подключённого устройства. Выключите, чтобы сразу прекратить передачу, не изменяя настройки MQTT устройства — полезно, когда трафик MQTT перегружает соединение. Включите обратно, чтобы продолжить передачу.</string>
     <string name="mqtt_status_connected">Подключено</string>
     <string name="mqtt_status_connecting">Подключение…</string>
     <string name="mqtt_status_disconnected">Отключено</string>
@@ -1276,8 +1291,8 @@
     <string name="mqtt_status_inactive">Неактивно</string>
     <string name="mqtt_status_reconnecting">Восстановление связи…</string>
     <string name="mqtt_status_reconnecting_with_attempt">Восстановление (попытка %1$d) — %2$s</string>
-    <string name="mqtt_status_topics_refused_all">Подключено, но брокер отклонил все топики: %1$s</string>
-    <string name="mqtt_status_topics_refused_some">Подключено, но брокер отклонил %1$s</string>
+    <string name="mqtt_status_topics_refused_all">Подключено, но брокер отклонил все темы: %1$s</string>
+    <string name="mqtt_status_topics_refused_some">Подключено, но брокер отказал %1$s</string>
     <string name="mqtt_test_connection">Проверить соединение</string>
     <string name="must_set_region">Вы должны задать регион!</string>
     <string name="must_update">Вам необходимо обновить данное приложение в магазине приложений (или с Github). Оно слишком старо для взаимодействия с прошивкой радиостанции. Пожалуйста, прочитайте нашу <a href="https://meshtastic.org/docs/software/android/installation">документацию</a> по этой теме.</string>
@@ -1409,6 +1424,8 @@
     <string name="not_now">Не сейчас</string>
     <string name="note">Примечание</string>
     <string name="notes">Заметки</string>
+    <!-- NOTIFICATION -->
+    <string name="notification_group_mesh">Меш</string>
     <string name="notification_permission_blocked_notice">Уведомления отключены, и Android больше не будет спрашивать. Включи их в настройках приложения, чтобы получать оповещения о новых сообщениях и тревогах.</string>
     <string name="notification_permission_denied_notice">Без уведомлений Meshtastic не сможет оповещать тебя о новых сообщениях, новых нодах или низком заряде батареи, когда приложение работает в фоновом режиме.</string>
     <string name="notification_permission_rationale">Уведомления — это способ, которым Meshtastic связывается с тобой, когда приложение закрыто(в фоне): новые сообщения, обнаруженные ноды и низкий заряд батареи радио. Если ты откажешься, больше ничего не изменится.</string>
@@ -1457,7 +1474,7 @@
     <string name="packet_authenticity_balanced">Сбалансировано — предпочтительно аутентифицировать</string>
     <string name="packet_authenticity_balanced_summary">Рекомендуется. Отклонять неподписанные попытки понижения от нод, которые, как известно, подписывают.</string>
     <string name="packet_authenticity_compatible">Совместимо — принять не подписано</string>
-    <string name="packet_authenticity_compatible_summary">Аутентифицировать пакеты по возможности, но принимать неподписанный трафик для максимальной совместимости.</string>
+    <string name="packet_authenticity_compatible_summary">Для максимальной совместимости принимать трафик без цифровой подписи. Пакет все равно будет отброшен, если подпись неверна и ее возможно проверить.</string>
     <string name="packet_authenticity_level">Уровень защиты</string>
     <string name="packet_authenticity_strict">Строгий — требуется аутентификация</string>
     <string name="packet_authenticity_strict_confirm">Включить строгий</string>
@@ -1523,6 +1540,31 @@
     <string name="pixel_art_messaging">Пиксель-Арт</string>
     <string name="pixel_art_messaging_summary">Редактор и отправка монохромных изображений</string>
     <string name="play">Воспроизвести</string>
+    <plurals name="plurals_hours">
+        <item quantity="one">%1$d час</item>
+        <item quantity="few">%1$d часов</item>
+        <item quantity="many">%1$d часа</item>
+        <item quantity="other">%1$d часы</item>
+    </plurals>
+    <plurals name="plurals_milliseconds">
+        <item quantity="one">%1$d миллисекунда</item>
+        <item quantity="few">%1$d миллисекунды</item>
+        <item quantity="many">%1$d миллисекунд</item>
+        <item quantity="other">%1$d миллисекунд</item>
+    </plurals>
+    <plurals name="plurals_minutes">
+        <item quantity="one">%1$d минута</item>
+        <item quantity="few">%1$d минуты</item>
+        <item quantity="many">%1$d минут</item>
+        <item quantity="other">%1$d минут</item>
+    </plurals>
+    <plurals name="plurals_seconds">
+        <item quantity="one">%1$d секунда</item>
+        <item quantity="few">%1$d секунды</item>
+        <item quantity="many">%1$d секунд</item>
+        <item quantity="other">%1$d секунд</item>
+    </plurals>
+    <!-- PM -->
     <string name="pm10">PM10</string>
     <string name="pm1_0">PM1.0</string>
     <string name="pm2_5">PM2.5</string>
@@ -1701,6 +1743,12 @@
     <string name="secondary_channel_position_feature">Отключение позиции на первичном канале позволяет периодические передачи позиции на первом вторичном канале с включенной позицией, в противном случае требуется ручной запрос позиции.</string>
     <string name="secondary_no_telemetry">Нет периодической телеметрической передачи</string>
     <string name="security">Безопасность</string>
+    <string name="security_ack_proof_failed">Сбой проверки доставки</string>
+    <string name="security_ack_proof_failed_info">Что-то признало это сообщение без ключа, только зацепки получателя.</string>
+    <string name="security_ack_proof_no_key">Доказательство доставки не проверено</string>
+    <string name="security_ack_proof_no_key_info">Доказательство доставки прибыло, но не было ключа для его проверки.</string>
+    <string name="security_ack_proof_verified">Доставка проверена</string>
+    <string name="security_ack_proof_verified_info">Упомянутая вами нода подтвердила, что она получил это сообщение.</string>
     <string name="security_icon_badge_warning_description">Предупреждающий Знак</string>
     <string name="security_icon_description">Статус безопасности</string>
     <string name="security_icon_help_dismiss">Отменить</string>
@@ -1746,6 +1794,7 @@
     <string name="settings">настройки</string>
     <string name="settings_search_no_results">Ничего не найдено</string>
     <string name="settings_search_placeholder">Поиск настроек</string>
+    <!-- SHARE -->
     <string name="share">Поделиться</string>
     <string name="share_action">Поделиться ссылкой</string>
     <string name="share_by_tap_subtext">Пока это открыто, другой телефон также может принять приглашение, коснувшись твоего.</string>
@@ -1881,7 +1930,6 @@
     <string name="time">Время</string>
     <string name="timeout">Время ожидания истекло</string>
     <string name="timestamp">Отметка времени</string>
-    <string name="tls_enabled_public_broker_summary">Когда этот телефон ретранслирует MQTT, он всегда подключается к mqtt.meshtastic.org через TLS. Эта настройка применяется, когда радио достигает брокера через собственный Wi-Fi или Ethernet.</string>
     <string name="toggle_my_position">Переключить мою позицию</string>
     <string name="trace_route">Трассировка маршрута</string>
     <string name="traceroute">Трассировка маршрута</string>

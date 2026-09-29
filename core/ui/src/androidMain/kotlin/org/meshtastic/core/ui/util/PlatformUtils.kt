@@ -64,6 +64,7 @@ import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import org.meshtastic.core.common.gpsDisabled
+import org.meshtastic.core.common.hasBluetoothLe
 import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.common.util.ioDispatcher
 import java.net.URLEncoder
@@ -309,6 +310,12 @@ actual val bleScanRequiresLocationServices: Boolean =
     android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S
 
 @Composable
+actual fun isBluetoothSupported(): Boolean {
+    val context = LocalContext.current
+    return remember(context) { context.hasBluetoothLe() }
+}
+
+@Composable
 actual fun isBluetoothDisabled(): Boolean {
     val context = LocalContext.current
     return rememberObservedFlag(
@@ -441,6 +448,18 @@ actual fun rememberLocationPermissionState(): PermissionUiState = rememberRuntim
     ),
     // Coarse-only grants are an accepted degraded mode, so any granted permission counts.
     requireAll = false,
+)
+
+@Composable
+actual fun rememberPreciseLocationPermissionState(): PermissionUiState = rememberRuntimePermissionState(
+    // Android 12+ ignores a fine request that does not also ask for coarse. Fine leads so the rationale and the
+    // requested flag follow the permission that decides the grant.
+    permissions =
+    arrayOf(
+        android.Manifest.permission.ACCESS_FINE_LOCATION,
+        android.Manifest.permission.ACCESS_COARSE_LOCATION,
+    ),
+    requireAll = true,
 )
 
 @Composable

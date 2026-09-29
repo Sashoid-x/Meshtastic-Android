@@ -26,10 +26,8 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import org.koin.core.annotation.Single
 import org.meshtastic.core.common.hasLocationPermission
-import org.meshtastic.core.model.Position
 import org.meshtastic.core.repository.LocationRepository
 import org.meshtastic.core.repository.MeshLocationManager
-import kotlin.time.Duration.Companion.milliseconds
 import org.meshtastic.proto.Position as ProtoPosition
 
 @Single
@@ -45,29 +43,28 @@ class AndroidMeshLocationManager(private val context: Application, private val l
         this.sendPositionFn = sendPositionFn
         if (locationFlow?.isActive == true) return
 
-        if (context.hasLocationPermission()) {
+        // Firmware stores this fix as the node's own position and rebroadcasts it at the channel's precision, which
+        // it stamps over any precision_bits sent here, so an approximate fix would go out claiming accuracy it lacks.
+        if (context.hasLocationPermission(precise = true)) {
             locationFlow =
                 locationRepository
                     .getLocations()
                     .onEach { location ->
                         sendPositionFn(
-                            ProtoPosition.Builder()
-                                .also { wb ->
-                                    wb.latitude_i = Position.degI(location.latitude)
-                                    wb.longitude_i = Position.degI(location.longitude)
-                                    wb.altitude =
-                                        if (LocationCompat.hasMslAltitude(location)) {
-                                            LocationCompat.getMslAltitudeMeters(location).toInt()
-                                        } else {
-                                            null
-                                        }
-                                    wb.altitude_hae = location.altitude.toInt()
-                                    wb.time = (location.time.milliseconds.inWholeSeconds).toInt()
-                                    wb.ground_speed = location.speed.toInt()
-                                    wb.ground_track = location.bearing.toInt()
-                                    wb.location_source = ProtoPosition.LocSource.LOC_EXTERNAL
-                                }
-                                .build(),
+                            phonePosition(
+                                latitude = location.latitude,
+                                longitude = location.longitude,
+                                timeMillis = location.time,
+                                mslAltitudeMeters =
+                                if (LocationCompat.hasMslAltitude(location)) {
+                                    LocationCompat.getMslAltitudeMeters(location)
+                                } else {
+                                    null
+                                },
+                                haeAltitudeMeters = location.altitude.takeIf { location.hasAltitude() },
+                                speedMetersPerSecond = location.speed.takeIf { location.hasSpeed() },
+                                bearingDegrees = location.bearing.takeIf { location.hasBearing() },
+                            ),
                         )
                     }
                     .launchIn(scope)

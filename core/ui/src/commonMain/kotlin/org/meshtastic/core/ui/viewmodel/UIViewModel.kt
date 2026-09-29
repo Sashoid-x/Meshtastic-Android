@@ -61,15 +61,14 @@ import org.meshtastic.core.repository.FirmwareUpdateStatusRepository
 import org.meshtastic.core.repository.LockdownCoordinator
 import org.meshtastic.core.repository.LockdownPassphraseStore
 import org.meshtastic.core.repository.MeshLogRepository
+import org.meshtastic.core.repository.MeshNotificationManager
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.NodeRestartTracker
-import org.meshtastic.core.repository.NotificationManager
 import org.meshtastic.core.repository.PacketRepository
 import org.meshtastic.core.repository.RadioController
 import org.meshtastic.core.repository.RadioInterfaceService
 import org.meshtastic.core.repository.ServiceRepository
 import org.meshtastic.core.repository.UiPrefs
-import org.meshtastic.core.repository.notificationId
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.about_update_details
 import org.meshtastic.core.resources.about_update_snackbar
@@ -106,7 +105,7 @@ class UIViewModel(
     private val eventFirmwareRepository: EventFirmwareRepository,
     private val firmwareUpdateStatusRepository: FirmwareUpdateStatusRepository,
     private val uiPrefs: UiPrefs,
-    private val notificationManager: NotificationManager,
+    private val serviceNotifications: MeshNotificationManager,
     packetRepository: PacketRepository,
     val alertManager: AlertManager,
     val snackbarManager: SnackbarManager,
@@ -204,7 +203,7 @@ class UIViewModel(
 
     fun clearClientNotification(notification: ClientNotification) {
         serviceRepository.clearClientNotification()
-        notificationManager.cancel(notification.notificationId())
+        serviceNotifications.clearClientNotification(notification)
     }
 
     val lockdownState = serviceRepository.lockdownState

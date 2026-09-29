@@ -94,6 +94,8 @@ internal data class MessageListHandlers(
     val onDeleteMessages: (List<Long>) -> Unit,
     val onSendMessage: (String, String) -> Unit,
     val onResendImage: (ByteArray, String) -> Unit = { _, _ -> },
+    /** Replaces a failed message with a fresh send of its text; the action decides whether sending is allowed. */
+    val onResendMessage: (Message) -> Unit,
     val onReply: (Message?) -> Unit,
     val onTranslate: (Message) -> Unit = {},
     val onToggleTranslation: (Message) -> Unit = {},

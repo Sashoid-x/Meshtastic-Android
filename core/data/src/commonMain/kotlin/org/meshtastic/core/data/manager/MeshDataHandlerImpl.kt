@@ -27,6 +27,7 @@ import org.koin.core.annotation.Single
 import org.meshtastic.core.common.di.ServiceScope
 import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.common.util.nowSeconds
+import org.meshtastic.core.model.Channel
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.MeshBeaconOffer
 import org.meshtastic.core.model.MessageStatus
@@ -58,8 +59,6 @@ import org.meshtastic.core.repository.MessageAnnouncement
 import org.meshtastic.core.repository.MessageFilter
 import org.meshtastic.core.repository.NeighborInfoHandler
 import org.meshtastic.core.repository.NodeManager
-import org.meshtastic.core.repository.Notification
-import org.meshtastic.core.repository.NotificationManager
 import org.meshtastic.core.repository.PacketHandler
 import org.meshtastic.core.repository.PacketRepository
 import org.meshtastic.core.repository.PlatformAnalytics
@@ -106,7 +105,6 @@ class MeshDataHandlerImpl(
     private val packetHandler: PacketHandler,
     private val serviceStateWriter: ServiceStateWriter,
     private val packetRepository: Lazy<PacketRepository>,
-    private val notificationManager: NotificationManager,
     private val serviceNotifications: MeshNotificationManager,
     private val analytics: PlatformAnalytics,
     private val dataMapper: MeshDataMapper,
@@ -277,15 +275,7 @@ class MeshDataHandlerImpl(
                 // does not warrant a notification.
                 val channelSet = radioConfigRepository.channelSetFlow.first()
                 if (beacon.isAlreadyJoined(channelSet.lora_config, channelSet.settings)) return@launchSessionWork
-                notificationManager.dispatch(
-                    Notification(
-                        title = getStringSuspend(Res.string.mesh_beacon_notification_title),
-                        message = offer.message.ifBlank { getStringSuspend(Res.string.mesh_beacon_notification_body) },
-                        category = Notification.Category.MeshBeacon,
-                        // Literal URI avoids a core:navigation module dep (see NodeManagerImpl).
-                        deepLinkUri = "meshtastic://meshtastic/discovery",
-                    ),
-                )
+                serviceNotifications.showMeshBeaconNotification(offer)
             }
         }
     }
@@ -416,6 +406,7 @@ class MeshDataHandlerImpl(
             r.error_reason?.value ?: 0,
             dataPacket.relayNode,
             session,
+            ackProofStatus = packet.ack_proof_status.value,
         )
     }
 
@@ -426,13 +417,16 @@ class MeshDataHandlerImpl(
         routingError: Int,
         relayNode: Int?,
         session: RadioSessionContext,
+        ackProofStatus: Int = MeshPacket.AckProofStatus.ACK_PROOF_ABSENT.value,
     ) {
         radioInterfaceService.launchSessionWork(scope, session) {
             val isAck = routingError == Routing.Error.NONE.value
-            val packets =
-                packetRepository.value.findPacketsWithId(requestId).filter { it.status != MessageStatus.RECEIVED }
-            val reactions =
-                packetRepository.value.findReactionsWithId(requestId).filter { it.status != MessageStatus.RECEIVED }
+            val absentAckProof = MeshPacket.AckProofStatus.ACK_PROOF_ABSENT.value
+            val provenAckProof = MeshPacket.AckProofStatus.ACK_PROOF_VALID.value
+            val allPackets = packetRepository.value.findPacketsWithId(requestId)
+            val packets = allPackets.filter { it.status != MessageStatus.RECEIVED }
+            val allReactions = packetRepository.value.findReactionsWithId(requestId)
+            val reactions = allReactions.filter { it.status != MessageStatus.RECEIVED }
             val p = packets.filter { it.to == fromId }.singleOrNull() ?: packets.singleOrNull()
             val reaction = reactions.filter { it.to == fromId }.singleOrNull() ?: reactions.singleOrNull()
 
@@ -451,17 +445,43 @@ class MeshDataHandlerImpl(
                 }
             if (p != null && p.status != MessageStatus.RECEIVED) {
                 val updatedPacket =
-                    p.copy(status = m, relays = if (isAck) p.relays + 1 else p.relays, relayNode = relayNode)
+                    p.copy(
+                        status = m,
+                        relays = if (isAck) p.relays + 1 else p.relays,
+                        relayNode = relayNode,
+                        // Several acks can close out one packet, and only the addressed node's carries a proof. An
+                        // unproven later ack must not erase the verdict an earlier one established.
+                        ackProofStatus = ackProofStatus.takeIf { it != absentAckProof } ?: p.ackProofStatus,
+                    )
                 packetRepository.value.update(updatedPacket, routingError = routingError)
+            } else if (p == null && ackProofStatus == provenAckProof) {
+                // A forged ack can arrive first and settle the packet as RECEIVED, which hides it from every later
+                // ack. Let the addressed node's proof still be recorded, without disturbing the settled status.
+                val settled = allPackets.filter { it.to == fromId }.singleOrNull() ?: allPackets.singleOrNull()
+                if (settled != null && settled.ackProofStatus != provenAckProof) {
+                    packetRepository.value.update(
+                        settled.copy(ackProofStatus = provenAckProof),
+                        routingError = routingError,
+                    )
+                }
             }
 
-            reaction?.let { r ->
-                if (r.status != MessageStatus.RECEIVED) {
-                    var updated = r.copy(status = m, routingError = routingError, relayNode = relayNode)
-                    if (isAck) {
-                        updated = updated.copy(relays = updated.relays + 1)
-                    }
-                    packetRepository.value.updateReaction(updated)
+            if (reaction != null) {
+                var updated =
+                    reaction.copy(
+                        status = m,
+                        routingError = routingError,
+                        relayNode = relayNode,
+                        ackProofStatus = ackProofStatus.takeIf { it != absentAckProof } ?: reaction.ackProofStatus,
+                    )
+                if (isAck) {
+                    updated = updated.copy(relays = updated.relays + 1)
+                }
+                packetRepository.value.updateReaction(updated)
+            } else if (ackProofStatus == provenAckProof) {
+                val settled = allReactions.filter { it.to == fromId }.singleOrNull() ?: allReactions.singleOrNull()
+                if (settled != null && settled.ackProofStatus != provenAckProof) {
+                    packetRepository.value.updateReaction(settled.copy(ackProofStatus = provenAckProof))
                 }
             }
             packetHandler.completeDispatchedResponse(requestId, complete = isAck)
@@ -544,13 +564,10 @@ class MeshDataHandlerImpl(
             // conversation on screen — only mute silences it.
             dataPacket.dataType == PortNum.ALERT_APP.value ->
                 if (!muted) {
-                    notificationManager.dispatch(
-                        Notification(
-                            title = getSenderName(dataPacket),
-                            message = dataPacket.alert ?: getStringSuspend(Res.string.critical_alert),
-                            category = Notification.Category.Alert,
-                            contactKey = contactKey,
-                        ),
+                    serviceNotifications.showAlertNotification(
+                        contactKey,
+                        getSenderName(dataPacket),
+                        dataPacket.alert ?: getStringSuspend(Res.string.critical_alert),
                     )
                 }
 
@@ -566,6 +583,21 @@ class MeshDataHandlerImpl(
                     MessageAnnouncement.Alert -> updateNotification(contactKey, dataPacket, isSilent = false)
                 }
         }
+    }
+
+    /**
+     * The name a channel conversation is titled and read aloud by, as the rest of the app shows it: an unnamed primary
+     * is its modem preset ("LongFast"), never an empty title.
+     */
+    private suspend fun effectiveChannelName(index: Int): String? {
+        val channelSet = radioConfigRepository.channelSetFlow.first()
+        val lora = channelSet.lora_config ?: Channel.default.loraConfig
+        return channelSet.settings.getOrNull(index)?.let { Channel(it, lora).name }
+    }
+
+    /** Test seam over the waypoint notification text; compose-resources cannot load in the plain-JVM tests. */
+    internal var waypointMessageFormatter: suspend (String) -> String = { waypointName ->
+        getStringSuspend(Res.string.waypoint_received, waypointName)
     }
 
     private suspend fun getSenderName(packet: DataPacket): String {
@@ -585,12 +617,7 @@ class MeshDataHandlerImpl(
                 val isImage = dataPacket.dataType == PortNum.PRIVATE_APP.value
                 val message = if (isImage) getStringSuspend(Res.string.message_image_preview) else dataPacket.text!!
                 val isBroadcast = dataPacket.destination is NodeAddress.Broadcast
-                val channelName =
-                    if (isBroadcast) {
-                        radioConfigRepository.channelSetFlow.first().settings.getOrNull(dataPacket.channel)?.name
-                    } else {
-                        null
-                    }
+                val channelName = if (isBroadcast) effectiveChannelName(dataPacket.channel) else null
                 serviceNotifications.updateMessageNotification(
                     contactKey,
                     getSenderName(dataPacket),
@@ -602,15 +629,13 @@ class MeshDataHandlerImpl(
             }
 
             PortNum.WAYPOINT_APP.value -> {
-                val message = getStringSuspend(Res.string.waypoint_received, dataPacket.waypoint!!.name)
-                notificationManager.dispatch(
-                    Notification(
-                        title = getSenderName(dataPacket),
-                        message = message,
-                        category = Notification.Category.Message,
-                        contactKey = contactKey,
-                        isSilent = isSilent,
-                    ),
+                val waypoint = dataPacket.waypoint!!
+                serviceNotifications.updateWaypointNotification(
+                    contactKey,
+                    getSenderName(dataPacket),
+                    waypointMessageFormatter(waypoint.name),
+                    waypoint.id,
+                    isSilent,
                 )
             }
 
@@ -650,6 +675,7 @@ class MeshDataHandlerImpl(
                     status = MessageStatus.RECEIVED,
                     to = toId,
                     channel = dataPacket.channel,
+                    xeddsaSigned = packet.xeddsa_signed,
                 )
 
             // Check for duplicates before inserting
@@ -686,16 +712,7 @@ class MeshDataHandlerImpl(
                         }
 
                     if (!muted && announcement != MessageAnnouncement.Suppress && allowReactionNotification) {
-                        val channelName =
-                            if (isBroadcast) {
-                                radioConfigRepository.channelSetFlow
-                                    .first()
-                                    .settings
-                                    .getOrNull(originalPacket.channel)
-                                    ?.name
-                            } else {
-                                null
-                            }
+                        val channelName = if (isBroadcast) effectiveChannelName(originalPacket.channel) else null
                         serviceNotifications.updateReactionNotification(
                             contactKey,
                             getSenderName(dataPacket),

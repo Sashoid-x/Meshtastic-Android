@@ -54,14 +54,15 @@ import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.parameter.parametersOf
 import org.meshtastic.app.intro.AnalyticsIntro
 import org.meshtastic.app.map.getMapViewProvider
 import org.meshtastic.app.node.component.InlineMap
 import org.meshtastic.app.node.metrics.getTracerouteMapOverlayInsets
 import org.meshtastic.app.ui.MainScreen
 import org.meshtastic.core.barcode.rememberBarcodeScanner
+import org.meshtastic.core.common.state.LaunchOptions
 import org.meshtastic.core.model.AdvThemeColors
+import org.meshtastic.core.model.DeviceAddress
 import org.meshtastic.core.navigation.DEEP_LINK_BASE_URI
 import org.meshtastic.core.network.repository.UsbRepository
 import org.meshtastic.core.nfc.NfcEmulatorEffect
@@ -94,33 +95,28 @@ import org.meshtastic.core.ui.util.LocalNfcEmulatorProvider
 import org.meshtastic.core.ui.util.LocalNfcScannerProvider
 import org.meshtastic.core.ui.util.LocalNfcScannerSupported
 import org.meshtastic.core.ui.util.LocalNfcWriterProvider
-import org.meshtastic.core.ui.util.LocalNodeMapScreenProvider
 import org.meshtastic.core.ui.util.LocalNodeTrackMapProvider
 import org.meshtastic.core.ui.util.LocalSitePlannerAvailable
 import org.meshtastic.core.ui.util.LocalTracerouteMapOverlayInsetsProvider
 import org.meshtastic.core.ui.util.LocalTracerouteMapProvider
-import org.meshtastic.core.ui.util.LocalTracerouteMapScreenProvider
 import org.meshtastic.core.ui.util.accentColorOrNull
 import org.meshtastic.core.ui.util.brandHighlightOrNull
 import org.meshtastic.core.ui.util.brandPalette
 import org.meshtastic.core.ui.util.showToast
 import org.meshtastic.core.ui.viewmodel.UIViewModel
-import org.meshtastic.feature.connections.NO_DEVICE_SELECTED
 import org.meshtastic.feature.intro.AppIntroductionScreen
 import org.meshtastic.feature.intro.IntroViewModel
 import org.meshtastic.feature.map.MapScreen
 import org.meshtastic.feature.map.SharedMapViewModel
 import org.meshtastic.feature.map.layers.MapLayersManager
 import org.meshtastic.feature.map.layers.toPickedMapFile
-import org.meshtastic.feature.map.node.NodeMapViewModel
-import org.meshtastic.feature.node.metrics.MetricsViewModel
-import org.meshtastic.feature.node.metrics.TracerouteMapScreen
 
 class MainActivity : AppCompatActivity() {
     private val model: UIViewModel by viewModel()
 
     private val usbRepository: UsbRepository by inject()
     private val mapLayersManager: MapLayersManager by inject()
+    private val launchOptions: LaunchOptions by inject()
 
     @Suppress("LongMethod")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -128,9 +124,14 @@ class MainActivity : AppCompatActivity() {
 
         super.onCreate(savedInstanceState)
 
-        if (BuildConfig.DEBUG && intent.getBooleanExtra(EXTRA_SKIP_ONBOARDING, false)) {
+        // MainActivity is exported, so any app can send these extras; only the shell can start the debug alias.
+        val automationLaunch = BuildConfig.DEBUG && intent.component?.className == AUTOMATION_LAUNCHER
+        if (automationLaunch && intent.getBooleanExtra(EXTRA_SKIP_ONBOARDING, false)) {
+            launchOptions.skipOnboarding = true
             model.onAppIntroCompleted()
         }
+        launchOptions.skipDeepLinkConfirmation =
+            automationLaunch && intent.getBooleanExtra(EXTRA_SKIP_CONNECT_CONFIRM, false)
 
         enableEdgeToEdge()
 
@@ -203,19 +204,22 @@ class MainActivity : AppCompatActivity() {
                         // once we've decided whether to show the intro or the main screen.
                         ReportDrawnWhen { true }
 
-                        if (appIntroCompleted) {
-                            MainScreen()
-                        } else {
-                            val introViewModel = koinViewModel<IntroViewModel>()
-                            AppIntroductionScreen(onDone = { model.onAppIntroCompleted() }, viewModel = introViewModel)
-                        }
+                    if (appIntroCompleted || launchOptions.skipOnboarding) {
+                        MainScreen()
+                    } else {
+                        val introViewModel = koinViewModel<IntroViewModel>()
+                        AppIntroductionScreen(onDone = { model.onAppIntroCompleted() }, viewModel = introViewModel)
                     }
                 }
             }
         }
 
         // Listen for new intents (e.g. deep links, NFC) without overriding onNewIntent
-        addOnNewIntentListener { intent -> handleIntent(intent) }
+        addOnNewIntentListener { intent ->
+            // The switch covers the launch it came with; a link that arrives later still asks.
+            launchOptions.skipDeepLinkConfirmation = false
+            handleIntent(intent)
+        }
 
         handleIntent(intent)
     }
@@ -286,13 +290,14 @@ class MainActivity : AppCompatActivity() {
             LocalSitePlannerAvailable provides true,
             LocalInlineMapProvider provides { node, modifier -> InlineMap(node, modifier) },
             LocalNodeTrackMapProvider provides
-                { destNum, positions, modifier, selectedPositionTime, onPositionSelected ->
+                { destNum, positions, modifier, selectedPositionTime, onPositionSelected, showAttribution ->
                     org.meshtastic.app.map.node.NodeTrackMap(
                         destNum,
                         positions,
                         modifier,
                         selectedPositionTime,
                         onPositionSelected,
+                        showAttribution,
                     )
                 },
             LocalTracerouteMapOverlayInsetsProvider provides getTracerouteMapOverlayInsets(),
@@ -308,24 +313,6 @@ class MainActivity : AppCompatActivity() {
             LocalDiscoveryMapProvider provides
                 { userLat, userLon, nodes, modifier ->
                     org.meshtastic.app.map.discovery.DiscoveryMap(userLat, userLon, nodes, modifier)
-                },
-            LocalNodeMapScreenProvider provides
-                { destNum, onNavigateUp ->
-                    val vm = koinViewModel<NodeMapViewModel>()
-                    vm.setDestNum(destNum)
-                    org.meshtastic.app.map.node.NodeMapScreen(vm, onNavigateUp = onNavigateUp)
-                },
-            LocalTracerouteMapScreenProvider provides
-                { destNum, requestId, logUuid, onNavigateUp ->
-                    val metricsViewModel = koinViewModel<MetricsViewModel> { parametersOf(destNum) }
-                    metricsViewModel.setNodeId(destNum)
-
-                    TracerouteMapScreen(
-                        metricsViewModel = metricsViewModel,
-                        requestId = requestId,
-                        logUuid = logUuid,
-                        onNavigateUp = onNavigateUp,
-                    )
                 },
             LocalMapMainScreenProvider provides
                 { onClickNodeChip, navigateToNodeDetails, waypointId, sitePlannerNodeNum ->
@@ -446,14 +433,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showConnectionsPageIfNoDeviceSelected() {
-        val selectedAddress = model.currentDeviceAddressFlow.value
-        if (!selectedAddress.isNullOrBlank() && selectedAddress != NO_DEVICE_SELECTED) return
+        if (DeviceAddress.parse(model.currentDeviceAddressFlow.value) != null) return
 
         handleMeshtasticUri("$DEEP_LINK_BASE_URI/connections".toUri())
     }
 
     private companion object {
         const val EXTRA_SKIP_ONBOARDING = "skip_onboarding"
+        const val EXTRA_SKIP_CONNECT_CONFIRM = "skip_connect_confirm"
+
+        /** The DUMP-guarded alias in the debug manifest. */
+        const val AUTOMATION_LAUNCHER = "org.meshtastic.app.AutomationLauncher"
     }
 }
 

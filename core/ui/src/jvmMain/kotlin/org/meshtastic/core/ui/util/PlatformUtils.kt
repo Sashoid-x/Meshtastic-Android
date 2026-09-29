@@ -56,8 +56,8 @@ actual fun rememberShowToastResource(): suspend (StringResource) -> Unit = { _ -
 
 /** JVM stub — map opening is not available on Desktop. */
 @Composable
-actual fun rememberOpenMap(): (latitude: Double, longitude: Double, label: String) -> Unit = { lat, lon, label ->
-    Logger.i { "Open map: $lat, $lon ($label)" }
+actual fun rememberOpenMap(): (latitude: Double, longitude: Double, label: String) -> Unit = { _, _, _ ->
+    Logger.i { "Open map requested; not available on Desktop" }
 }
 
 /** JVM stub — URL opening via Desktop browse API. */
@@ -181,6 +181,8 @@ actual val bleScanRequiresLocationServices: Boolean = false
 /** JVM — Bluetooth adapter state is not surfaced on Desktop. */
 @Composable actual fun isBluetoothDisabled(): Boolean = false
 
+@Composable actual fun isBluetoothSupported(): Boolean = true
+
 /** JVM — local-network availability is not gated on Desktop. */
 @Composable actual fun isWifiUnavailable(): Boolean = false
 
@@ -190,6 +192,9 @@ actual fun rememberOpenAppSettings(): () -> Unit = { Logger.w { "App settings no
 
 /** JVM — Desktop does not gate location behind a runtime permission. */
 @Composable actual fun rememberLocationPermissionState(): PermissionUiState = grantedPermissionUiState()
+
+/** Desktop has no runtime gate on location precision either. */
+@Composable actual fun rememberPreciseLocationPermissionState(): PermissionUiState = grantedPermissionUiState()
 
 /** JVM — Desktop does not gate Bluetooth behind a runtime permission. */
 @Composable actual fun rememberBluetoothPermissionState(): PermissionUiState = grantedPermissionUiState()

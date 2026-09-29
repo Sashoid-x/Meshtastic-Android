@@ -99,6 +99,7 @@ import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.Reaction
+import org.meshtastic.core.model.isAckProofForged
 import org.meshtastic.core.network.service.ImageUrlResolver
 import org.meshtastic.core.network.service.LinkPreviewServiceImpl
 import org.meshtastic.core.resources.Res
@@ -230,6 +231,7 @@ fun MessageItem(
     val statusString = message.getStatusStringRes(isDirectMessage)
     val isDirectImplicitAck = message.status == MessageStatus.DELIVERED && isDirectMessage
     val isRetryableFailure = message.status == MessageStatus.ERROR && message.isStatusRetryable(isDirectMessage)
+    val isForgedAck = isAckProofForged(message.ackProofStatus)
     // While searching, always show the original text — FTS matches and highlights apply to it, not the translation.
     val showsTranslation = message.showTranslated && message.translatedText != null && searchQuery.isEmpty()
     val isCompressedMessage = remember(message.text) { MeshTextCompressor.isCompressed(message.text) }
@@ -287,6 +289,7 @@ fun MessageItem(
                         // pulled the packet off the node, which is misleading after an offline backlog sync.
                         timestamp = timestamp,
                         xeddsaSigned = message.xeddsaSigned,
+                        ackProofStatus = message.ackProofStatus,
                         onStatus = onStatusClick,
                         translationRowState = translationRowStateFor(message, translationAvailable),
                         onTranslate = {
@@ -799,7 +802,7 @@ fun MessageItem(
                                 status = message.status ?: MessageStatus.UNKNOWN,
                                 text = stringResource(statusString.second),
                                 metadataStyle = metadataStyle,
-                                isWarning = isDirectImplicitAck || isRetryableFailure,
+                                isWarning = isDirectImplicitAck || isRetryableFailure || isForgedAck,
                                 onStatusClick = onStatusClick,
                             )
                         }

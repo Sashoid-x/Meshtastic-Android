@@ -75,6 +75,8 @@ actual val bleScanRequiresLocationServices: Boolean = false
 
 @Composable actual fun isBluetoothDisabled(): Boolean = false
 
+@Composable actual fun isBluetoothSupported(): Boolean = true
+
 @Composable actual fun isWifiUnavailable(): Boolean = false
 
 @Composable
@@ -85,6 +87,8 @@ actual fun SetScreenBrightness(brightness: Float) {
 @Composable actual fun rememberOpenAppSettings(): () -> Unit = {}
 
 @Composable actual fun rememberLocationPermissionState(): PermissionUiState = grantedPermissionUiState()
+
+@Composable actual fun rememberPreciseLocationPermissionState(): PermissionUiState = grantedPermissionUiState()
 
 @Composable actual fun rememberBluetoothPermissionState(): PermissionUiState = grantedPermissionUiState()
 

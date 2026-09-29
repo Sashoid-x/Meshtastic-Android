@@ -80,6 +80,7 @@ import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.SettingsRemote
 import org.meshtastic.core.ui.icon.Wifi
 import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
+import org.meshtastic.core.ui.util.isBluetoothSupported
 import org.meshtastic.feature.settings.component.AppInfoSection
 import org.meshtastic.feature.settings.component.AppearanceSettingsContent
 import org.meshtastic.feature.settings.component.ExpressiveSection
@@ -277,16 +278,17 @@ fun SettingsScreen(
 
             // App-local settings are only relevant when configuring the local node
             if (state.isLocal) {
+                val provideLocation = settingsViewModel.provideLocation.collectAsStateWithLifecycle().value
                 // Ahead of the app settings block: onboarding runs once, so this is the only place a user who skipped
                 // or declined a permission can find their way back to it.
-                PermissionsSettingsContent()
+                PermissionsSettingsContent(needsPreciseLocation = provideLocation)
 
                 ExpressiveSection(title = stringResource(Res.string.app_settings)) {
                     PrivacySettingsContent(
                         analyticsAvailable = appFunctionsAvailable,
                         analyticsEnabled = viewModel.analyticsAllowedFlow.collectAsStateWithLifecycle(true).value,
                         onToggleAnalytics = { viewModel.toggleAnalyticsAllowed() },
-                        provideLocation = settingsViewModel.provideLocation.collectAsStateWithLifecycle().value,
+                        provideLocation = provideLocation,
                         onToggleLocation = { settingsViewModel.setProvideLocation(it) },
                         homoglyphEnabled =
                         viewModel.homoglyphEncodingEnabledFlow.collectAsStateWithLifecycle(false).value,
@@ -326,8 +328,11 @@ fun SettingsScreen(
                     ) {
                         onNavigate(SettingsRoute.NodeList)
                     }
-                    ListItem(text = stringResource(Res.string.wifi_devices), leadingIcon = MeshtasticIcons.Wifi) {
-                        onNavigate(WifiProvisionRoute.WifiProvision())
+                    // Wi-Fi provisioning reaches the device over BLE.
+                    if (isBluetoothSupported()) {
+                        ListItem(text = stringResource(Res.string.wifi_devices), leadingIcon = MeshtasticIcons.Wifi) {
+                            onNavigate(WifiProvisionRoute.WifiProvision())
+                        }
                     }
                     ListItem(
                         text = stringResource(Res.string.filter_settings),

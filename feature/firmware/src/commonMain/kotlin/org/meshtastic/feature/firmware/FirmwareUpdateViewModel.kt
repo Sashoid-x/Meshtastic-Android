@@ -30,14 +30,17 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.annotation.KoinViewModel
+import org.meshtastic.core.ble.BluetoothRepository
 import org.meshtastic.core.common.di.ApplicationCoroutineScope
 import org.meshtastic.core.common.state.HiddenFeaturesUnlock
 import org.meshtastic.core.common.state.OperationLease
@@ -51,12 +54,14 @@ import org.meshtastic.core.datastore.BootloaderWarningDataSource
 import org.meshtastic.core.datastore.FirmwareRecoveryDataSource
 import org.meshtastic.core.datastore.model.PendingFirmwareRecovery
 import org.meshtastic.core.model.ConnectionState
+import org.meshtastic.core.model.DeviceAddress
 import org.meshtastic.core.model.DeviceHardware
 import org.meshtastic.core.model.InterfaceId
 import org.meshtastic.core.model.MyNodeInfo
 import org.meshtastic.core.model.util.anonymize
 import org.meshtastic.core.repository.DeviceHardwareRepository
 import org.meshtastic.core.repository.FirmwareReleaseRepository
+import org.meshtastic.core.repository.FirmwareUpdateStatusRepository
 import org.meshtastic.core.repository.MaintenanceUf2Repository
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.NodeRestartTracker
@@ -66,6 +71,7 @@ import org.meshtastic.core.repository.RadioPrefs
 import org.meshtastic.core.repository.isBle
 import org.meshtastic.core.repository.isSerial
 import org.meshtastic.core.repository.isTcp
+import org.meshtastic.core.repository.selectedDevice
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.UiText
 import org.meshtastic.core.resources.firmware_maintenance_cdc_unblock_failed
@@ -132,6 +138,8 @@ class FirmwareUpdateViewModel(
     private val hiddenFeaturesUnlock: HiddenFeaturesUnlock,
     private val analytics: PlatformAnalytics,
     private val nodeRestartTracker: NodeRestartTracker,
+    private val bluetoothRepository: BluetoothRepository,
+    private val firmwareUpdateStatusRepository: FirmwareUpdateStatusRepository,
 ) : ViewModel() {
 
     /** The USB maintenance sequence's hold on the radio. Spans several passes, so it cannot use `withOperation`. */
@@ -183,6 +191,9 @@ class FirmwareUpdateViewModel(
      */
     private var maintenanceWriteJob: Job? = null
 
+    /** The drive read for [FirmwareUpdateState.ReviewingBootloader], written to if the user confirms the upgrade. */
+    private var reviewedVolume: CommonUri? = null
+
     /**
      * True once an erase or bootloader image has been written, which is the point the device stops having a working
      * application. From then on failures re-offer the pass instead of surfacing a dead end.
@@ -202,6 +213,14 @@ class FirmwareUpdateViewModel(
             tempFirmwareFile = cleanupTemporaryFiles(fileHandler, tempFirmwareFile)
             checkForUpdates()
         }
+        // One observer of every state write, so the foreground-service notification can follow a flash the user has
+        // backgrounded without any write site having to remember to publish.
+        viewModelScope.launch {
+            _state
+                .map { it.toUpdateProgress() }
+                .distinctUntilChanged()
+                .collect(firmwareUpdateStatusRepository::publishProgress)
+        }
     }
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -214,6 +233,7 @@ class FirmwareUpdateViewModel(
         // leaked lock would permanently suppress the radio transport's auto-reconnect for the rest of the app
         // session — see startUsbMaintenance/advancePastPass. A no-op if no sequence was in flight.
         releaseMaintenanceLease()
+        firmwareUpdateStatusRepository.publishProgress(null)
         // viewModelScope is already cancelled when onCleared() runs, so launch cleanup on the
         // application-wide scope (SupervisorJob + ioDispatcher). ATOMIC start + NonCancellable
         // context keeps cleanup running even if something tries to cancel it mid-flight.
@@ -258,6 +278,7 @@ class FirmwareUpdateViewModel(
     private fun endMaintenanceSequence() {
         maintenanceWriteJob = null
         pendingUsbPasses = emptyList()
+        reviewedVolume = null
         destructiveWriteDone = false
         maintenanceHardware = null
         releaseMaintenanceLease()
@@ -272,7 +293,7 @@ class FirmwareUpdateViewModel(
                 _state.value = FirmwareUpdateState.Checking
                 safeCatching {
                     val ourNode = nodeRepository.myNodeInfo.value
-                    val address = radioPrefs.devAddr.value?.drop(1)
+                    val address = radioPrefs.selectedDevice?.identity
                     if (address == null || ourNode == null) {
                         // Not connected: offer to re-flash a device stranded in bootloader mode if we saved a
                         // recovery record when its (now-interrupted) update was triggered. Otherwise, no device.
@@ -309,7 +330,14 @@ class FirmwareUpdateViewModel(
                                     }
                                 }
 
-                                radioPrefs.isBle() -> FirmwareUpdateMethod.Ble
+                                // A saved BLE address restored onto hardware with no Bluetooth LE has no BLE path.
+                                radioPrefs.isBle() -> {
+                                    if (bluetoothRepository.isSupported) {
+                                        FirmwareUpdateMethod.Ble
+                                    } else {
+                                        FirmwareUpdateMethod.Unknown
+                                    }
+                                }
 
                                 radioPrefs.isTcp() -> {
                                     // WiFi OTA is ESP32-only; nRF52/RP2040 have no TCP update path.
@@ -361,7 +389,8 @@ class FirmwareUpdateViewModel(
      * first reconnecting (the bootloader exposes no mesh service to connect to). No record ⇒ the usual "no device".
      */
     private suspend fun enterRecoveryModeOrError() {
-        val recovery = firmwareRecoveryDataSource.pending.first()
+        // Recovery re-flashes over BLE only; without Bluetooth LE the record is kept but not offered.
+        val recovery = firmwareRecoveryDataSource.pending.first()?.takeIf { bluetoothRepository.isSupported }
         if (recovery == null) {
             clearDeviceMetadata()
             _state.value = FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_update_no_device))
@@ -677,6 +706,55 @@ class FirmwareUpdateViewModel(
         if (pass.step != currentState.step) return
         val hardware = maintenanceHardware ?: return
 
+        if (pass.step == UsbFileSaveStep.BootloaderUpgrade) {
+            reviewBootloaderPass(pass, treeUri)
+        } else {
+            launchPassWrite(pass, treeUri, hardware)
+        }
+    }
+
+    /** Writes the reviewed bootloader upgrade to the drive the review read. */
+    @Suppress("ReturnCount") // preconditions guarding a destructive write
+    fun confirmBootloaderUpgrade() {
+        if (_state.value !is FirmwareUpdateState.ReviewingBootloader) return
+        val pass = pendingUsbPasses.firstOrNull()?.takeIf { it.step == UsbFileSaveStep.BootloaderUpgrade } ?: return
+        val treeUri = reviewedVolume ?: return
+        val hardware = maintenanceHardware ?: return
+        reviewedVolume = null
+        launchPassWrite(pass, treeUri, hardware)
+    }
+
+    /** Moves on to reinstalling the firmware without writing the bootloader, so nothing destructive has happened. */
+    fun skipBootloaderUpgrade() {
+        if (_state.value !is FirmwareUpdateState.ReviewingBootloader) return
+        val pass = pendingUsbPasses.firstOrNull()?.takeIf { it.step == UsbFileSaveStep.BootloaderUpgrade } ?: return
+        reviewedVolume = null
+        viewModelScope.launch { advancePastPass(pass, written = false) }
+    }
+
+    private fun reviewBootloaderPass(pass: UsbFileSavePass, treeUri: CommonUri) {
+        maintenanceWriteJob =
+            viewModelScope.launch {
+                try {
+                    when (val review = usbPassWriter(portsBefore = emptySet()).review(treeUri)) {
+                        is BootloaderReview.Refused -> reofferOrFail(pass, usbMaintenanceRefusalMessage(review.reason))
+
+                        is BootloaderReview.Ready -> {
+                            reviewedVolume = treeUri
+                            _state.value = FirmwareUpdateState.ReviewingBootloader(review.versions)
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    endMaintenanceSequence()
+                    throw e
+                } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                    Logger.w(e) { "Reading the bootloader drive failed" }
+                    reofferOrFail(pass, UiText.Resource(Res.string.firmware_update_failed))
+                }
+            }
+    }
+
+    private fun launchPassWrite(pass: UsbFileSavePass, treeUri: CommonUri, hardware: DeviceHardware) {
         maintenanceWriteJob =
             viewModelScope.launch {
                 try {
@@ -716,8 +794,8 @@ class FirmwareUpdateViewModel(
             reofferOrFail(pass, UiText.Resource(Res.string.firmware_maintenance_cdc_unblock_failed))
     }
 
-    private suspend fun advancePastPass(pass: UsbFileSavePass) {
-        if (pass.step.isDestructive) destructiveWriteDone = true
+    private suspend fun advancePastPass(pass: UsbFileSavePass, written: Boolean = true) {
+        if (written && pass.step.isDestructive) destructiveWriteDone = true
         pendingUsbPasses = pendingUsbPasses.drop(1)
 
         val next = pendingUsbPasses.firstOrNull()
@@ -907,7 +985,10 @@ class FirmwareUpdateViewModel(
             LocalFirmwareResolution.Invalid(reason = fallbackReason, fileName = fileName)
         } else {
             val extractingState =
-                FirmwareUpdateState.Processing(ProgressState(UiText.Resource(Res.string.firmware_update_extracting)))
+                FirmwareUpdateState.Processing(
+                    ProgressState(UiText.Resource(Res.string.firmware_update_extracting)),
+                    beforeConfirmation = true,
+                )
             _state.value = extractingState
             try {
                 val extractedArtifact = extractLocalFirmwareArchive(uri, fileName, state, payloadExtension)
@@ -1319,7 +1400,7 @@ private fun isValidBluetoothAddress(address: String?): Boolean =
     address != null && BLUETOOTH_ADDRESS_REGEX.matches(address)
 
 private fun isBluetoothInterfaceAddress(address: String): Boolean =
-    address.startsWith(InterfaceId.BLUETOOTH.id) || address.startsWith("!")
+    DeviceAddress.parse(address)?.interfaceId == InterfaceId.BLUETOOTH
 
 private fun FirmwareReleaseRepository.getReleaseFlow(type: FirmwareReleaseType): Flow<FirmwareRelease?> = when (type) {
     FirmwareReleaseType.STABLE -> stableRelease

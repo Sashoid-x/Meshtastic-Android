@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 63,
-    "identityHash": "1bd762e1943093dfdd686bcedae776e8",
+    "identityHash": "3641f269ffa84e3748190d2993f2820f",
     "entities": [
       {
         "tableName": "my_node",
@@ -780,7 +780,7 @@
       },
       {
         "tableName": "reactions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`myNodeNum` INTEGER NOT NULL DEFAULT 0, `reply_id` INTEGER NOT NULL, `user_id` TEXT NOT NULL, `emoji` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `snr` REAL, `rssi` INTEGER, `hopsAway` INTEGER NOT NULL DEFAULT -1, `packet_id` INTEGER NOT NULL DEFAULT 0, `status` INTEGER NOT NULL DEFAULT 0, `routing_error` INTEGER NOT NULL DEFAULT 0, `relays` INTEGER NOT NULL DEFAULT 0, `relay_node` INTEGER, `to` TEXT, `channel` INTEGER NOT NULL DEFAULT 0, `sfpp_hash` BLOB, PRIMARY KEY(`myNodeNum`, `reply_id`, `user_id`, `emoji`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`myNodeNum` INTEGER NOT NULL DEFAULT 0, `reply_id` INTEGER NOT NULL, `user_id` TEXT NOT NULL, `emoji` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `snr` REAL, `rssi` INTEGER, `hopsAway` INTEGER NOT NULL DEFAULT -1, `packet_id` INTEGER NOT NULL DEFAULT 0, `status` INTEGER NOT NULL DEFAULT 0, `routing_error` INTEGER NOT NULL DEFAULT 0, `relays` INTEGER NOT NULL DEFAULT 0, `relay_node` INTEGER, `to` TEXT, `channel` INTEGER NOT NULL DEFAULT 0, `sfpp_hash` BLOB, `xeddsa_signed` INTEGER NOT NULL DEFAULT 0, `ack_proof_status` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`myNodeNum`, `reply_id`, `user_id`, `emoji`))",
         "fields": [
           {
             "fieldPath": "myNodeNum",
@@ -879,6 +879,20 @@
             "fieldPath": "sfpp_hash",
             "columnName": "sfpp_hash",
             "affinity": "BLOB"
+          },
+          {
+            "fieldPath": "xeddsaSigned",
+            "columnName": "xeddsa_signed",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "ackProofStatus",
+            "columnName": "ack_proof_status",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -1860,7 +1874,13 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+<<<<<<< HEAD
       "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1bd762e1943093dfdd686bcedae776e8')"
+    ]
+  }
+}
+=======
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3641f269ffa84e3748190d2993f2820f')"
     ]
   }
 }

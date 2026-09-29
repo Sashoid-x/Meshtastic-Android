@@ -69,6 +69,11 @@ data class DataPacket(
     var isDirectOnly: Boolean = false,
     /** Wire MeshPacket.Priority value (e.g. 127 = MAX, 120 = ACK, 70 = RELIABLE, 0 = UNSET). */
     var priority: Int = 0,
+    /**
+     * The radio's verdict on the ack that closed out this outgoing packet (see [MeshPacket.AckProofStatus]). Written
+     * when the ack arrives, not when the packet is sent, so it stays absent for anything still enroute.
+     */
+    var ackProofStatus: Int = 0,
 ) {
 
     /** If there was an error with this message, this string describes what was wrong. */
