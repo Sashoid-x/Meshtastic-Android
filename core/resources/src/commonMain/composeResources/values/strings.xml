@@ -17,18 +17,24 @@
 
 <resources>
     <!-- A11Y -->
+    <string name="a11y_humidity">Humidity</string>
     <string name="a11y_label_value">%1$s: %2$s</string>
     <string name="a11y_message_from">Message from %1$s: %2$s</string>
     <string name="a11y_node_battery">battery %1$d%</string>
+    <string name="a11y_node_channel">Channel %1$d</string>
     <string name="a11y_node_distance_away">%1$s away</string>
     <string name="a11y_node_favorite">favorite</string>
-    <string name="a11y_node_hops_away">%1$d hops away</string>
+    <plurals name="a11y_node_hops_count">
+        <item quantity="one">%1$d hop away</item>
+        <item quantity="other">%1$d hops away</item>
+    </plurals>
     <string name="a11y_node_last_heard">last heard %1$s</string>
     <string name="a11y_node_offline">offline</string>
     <string name="a11y_node_online">online</string>
     <string name="a11y_node_role">role %1$s</string>
     <string name="a11y_node_signal">signal %1$s</string>
     <string name="a11y_nodes_at_hop">Hop %1$d: %2$d nodes</string>
+    <string name="a11y_temperature">Temperature</string>
     <!-- ABOUT -->
     <string name="about">About</string>
     <string name="about_app_up_to_date">You are using the latest version</string>
@@ -425,7 +431,6 @@
     <string name="channel_8">Channel 8</string>
     <string name="channel_features">Channel Features</string>
     <string name="channel_invalid">This Channel URL is invalid and can not be used</string>
-    <string name="channel_label">Channel</string>
     <string name="channel_name">Channel Name</string>
     <string name="channel_url">Channel URL</string>
     <string name="channel_utilization">ChUtil</string>
@@ -444,6 +449,7 @@
     <string name="chirpy_error_unknown">Oops! We hit some heavy packet loss or signal interference! 📡 Let's re-transmit that query and see if we can get through.</string>
     <string name="chirpy_error_unsupported_flavor">I'm operating on a limited frequency on this app flavor! 🔌 Try using a version with full AI Core integration.</string>
     <string name="chirpy_error_unsupported_platform">Oh no! My antenna can't seem to establish a connection on this platform. 📡 Please double-check your hardware compatibility!</string>
+    <string name="chirpy_fallback_unavailable">AI assistant is not available on this platform. Here are pages that may help:</string>
     <string name="chirpy_intro">Hey there! 📡 I'm Chirpy, your on-device Meshtastic assistant! I can help with setup, configuration, troubleshooting, and mesh networking tips. What can I help you with?</string>
     <string name="chirpy_ready">Ask Chirpy</string>
     <string name="chirpy_search_placeholder">Ask about Meshtastic…</string>
@@ -628,6 +634,7 @@
     <string name="direct_message">Direct Message</string>
     <string name="direct_message_key">Direct Message Key</string>
     <string name="direct_messages">Direct Messages</string>
+    <string name="disabled">Disabled</string>
     <string name="discard_changes">Discard</string>
     <string name="disconnect">Disconnect</string>
     <string name="disconnected">Disconnected</string>
@@ -643,6 +650,7 @@
     <string name="discovery_dwell_time">Dwell Time</string>
     <string name="discovery_dwell_time_description">Time to listen on each preset</string>
     <string name="discovery_empty_history">No discovery sessions yet</string>
+    <string name="discovery_empty_history_hint">Start a scan from Local Mesh Discovery to see its results here.</string>
     <string name="discovery_export_report">Export report</string>
     <string name="discovery_history">Discovery History</string>
     <string name="discovery_interrupted_scan_restored">Restored radio to home config (%1$s) after an interrupted discovery scan</string>
@@ -705,7 +713,10 @@
     <string name="discovery_stop_scan">Stop Scan</string>
     <string name="discovery_summary_not_available">AI analysis not available</string>
     <string name="discovery_time_remaining">%1$s remaining</string>
-    <string name="discovery_unique_nodes">%1$d unique nodes</string>
+    <plurals name="discovery_unique_nodes_count">
+        <item quantity="one">%1$d unique node</item>
+        <item quantity="other">%1$d unique nodes</item>
+    </plurals>
     <string name="discovery_view_map">View map</string>
     <string name="disk_free_indexed">Disk Free %1$d</string>
     <string name="display">Display</string>
@@ -718,7 +729,9 @@
     <string name="distance_measurements">Distance Measurements</string>
     <string name="distance_measurements_description">Display the distance between your phone and other Meshtastic nodes with positions.</string>
     <!-- DOC -->
+    <string name="doc_auto_translated">Auto-translated</string>
     <string name="doc_clear_search">Clear search</string>
+    <string name="doc_community_translated">Community translated</string>
     <string name="doc_keywords_app_functions">system ai,gemini,assistant,functions,automation,voice</string>
     <string name="doc_keywords_connections">bluetooth,usb,tcp,pairing,serial,wifi</string>
     <string name="doc_keywords_debug_logs">debug,logs,logcat,export,bug report,issue,troubleshooting,diagnostics</string>
@@ -731,7 +744,7 @@
     <string name="doc_keywords_messages">message,channel,encryption,direct,broadcast,quick-chat</string>
     <string name="doc_keywords_mqtt">mqtt,broker,internet,bridge,uplink,downlink</string>
     <string name="doc_keywords_node_metrics">metrics,telemetry,signal,snr,rssi,battery,traceroute</string>
-    <string name="doc_keywords_nodes">node,mesh,list,role,status,favorite,filter</string>
+    <string name="doc_keywords_nodes">node,mesh,list,role,status,favorite,filter,shell,terminal</string>
     <string name="doc_keywords_notifications">notification,alert,sound,mute,reply,watch,wear os</string>
     <string name="doc_keywords_onboarding">setup,welcome,permissions,first-launch</string>
     <string name="doc_keywords_settings_module">module,serial,telemetry,canned,store-forward,administration</string>
@@ -743,8 +756,12 @@
     <string name="doc_keywords_units">units,locale,metric,imperial,temperature,distance</string>
     <string name="doc_keywords_widget">widget,home screen,local stats,glance,battery,utilization</string>
     <string name="doc_loading">Loading documentation…</string>
+    <string name="doc_no_content">No content available.</string>
     <string name="doc_no_documentation">No documentation available</string>
     <string name="doc_no_results">No results found</string>
+    <string name="doc_open_page">Open %1$s</string>
+    <string name="doc_page_not_found">Page not found: %1$s</string>
+    <string name="doc_page_not_found_detail">This page may have been moved or removed.</string>
     <string name="doc_search_placeholder">Search documentation…</string>
     <string name="doc_section_developer">Developer Guide</string>
     <string name="doc_section_user">User Guide</string>
@@ -779,6 +796,12 @@
     <string name="download">Download</string>
     <string name="download_this_area">Download this area</string>
     <string name="duplicated_public_key_title">Duplicate Public Key Detected</string>
+    <!-- DURATION -->
+    <string name="duration_ago">%1$s ago</string>
+    <string name="duration_days_short">%1$dd</string>
+    <string name="duration_hours_short">%1$dh</string>
+    <string name="duration_minutes_short">%1$dm</string>
+    <string name="duration_seconds_short">%1$ds</string>
     <string name="dynamic">Dynamic</string>
     <string name="easily_set_up_private_mesh_networks">Easily set up private mesh networks for secure and reliable communication in remote areas.</string>
     <string name="edit">Edit</string>
@@ -827,6 +850,7 @@
     <string name="export_tak_data_package">Export TAK Data Package</string>
     <string name="external_notification">External Notification</string>
     <string name="external_notification_config">External Notification Config</string>
+    <string name="external_power_short">PWR</string>
     <string name="factory_reset">Factory reset</string>
     <string name="fair">Fair</string>
     <string name="fallback_node_name">Meshtastic %1$s</string>
@@ -1003,6 +1027,8 @@
     <string name="firmware_update_taking_a_while">This might take a minute...</string>
     <string name="firmware_update_target">Target: %1$s</string>
     <string name="firmware_update_title">Firmware Update</string>
+    <string name="firmware_update_transfer_percent">%1$d%</string>
+    <string name="firmware_update_transfer_progress">%1$d% (%2$s/s, ETA: %3$ds)</string>
     <string name="firmware_update_unknown_error">Unknown error</string>
     <string name="firmware_update_unknown_hardware">Unknown hardware model: %1$d</string>
     <string name="firmware_update_unknown_release">Unknown remote release</string>
@@ -1081,6 +1107,7 @@
     <string name="i_know_what_i_m_doing">I know what I'm doing.</string>
     <string name="iaq">IAQ</string>
     <string name="iaq_definition">(Indoor Air Quality) relative scale IAQ value as measured by Bosch BME680. Value Range 0–500.</string>
+    <string name="iaq_value">IAQ %1$d</string>
     <string name="icon_meanings">Icon Meanings</string>
     <string name="ignore">Ignore</string>
     <string name="ignore_add">Add '%1$s' to ignore list?</string>
@@ -1274,6 +1301,8 @@
     <string name="longitude">Longitude</string>
     <string name="lora">LoRa</string>
     <string name="lora_config">LoRa</string>
+    <string name="lora_config_change_value">%1$s: %2$s → %3$s</string>
+    <string name="lora_config_changes">LoRa Configuration Changes:</string>
     <string name="low_battery">Low Battery</string>
     <string name="low_battery_message">Node %1$s has a low battery (%2$d%)</string>
     <string name="low_battery_title">Low battery: %1$s</string>
@@ -1284,9 +1313,7 @@
     <string name="manual_position_request">Manual position request required</string>
     <!-- MAP -->
     <string name="map">Mesh Map</string>
-    <string name="map_cache_info">Cache Capacity: %1$d MB\nCache Usage: %2$d MB</string>
     <string name="map_cache_manager">Cache Manager</string>
-    <string name="map_cache_megabytes">%1$s MB</string>
     <string name="map_cache_size">Current Cache size</string>
     <string name="map_cache_tiles">%1$d tiles</string>
     <string name="map_clear_tiles">Clear Downloaded Tiles</string>
@@ -1307,6 +1334,8 @@
     <string name="map_filter_title">Filter map</string>
     <string name="map_layer_formats">Map layers support .kml, .kmz, or GeoJSON formats.</string>
     <string name="map_layer_opacity">Opacity: %1$d%</string>
+    <string name="map_layer_open_failed">Couldn't open that map file.</string>
+    <string name="map_layer_too_large">Map files over %1$d MB can't be imported.</string>
     <string name="map_node_popup_details">%1$s&lt;br&gt;Last heard: %2$s&lt;br&gt;Last position: %3$s&lt;br&gt;Battery: %4$s</string>
     <string name="map_offline_banner">Offline — showing cached map data</string>
     <string name="map_offline_download_failed_build">No offline map data available right now — try again later</string>
@@ -1410,6 +1439,8 @@
     <string name="meshtastic_messages_notifications_description">Messages sent directly to you.</string>
     <string name="meshtastic_new_nodes_notifications">New node notifications</string>
     <string name="meshtastic_new_nodes_notifications_description">Nodes heard for the first time.</string>
+    <string name="meshtastic_reactions_notifications">Reaction notifications</string>
+    <string name="meshtastic_reactions_notifications_description">Emoji reactions to messages.</string>
     <string name="meshtastic_service_notifications">Service notifications</string>
     <string name="meshtastic_service_notifications_description">Shows the connection to your radio while Meshtastic runs in the background.</string>
     <string name="meshtastic_waypoints_notifications">Waypoint notifications</string>
@@ -1540,7 +1571,6 @@
     <string name="no_bluetooth_devices_seen">No Bluetooth devices seen</string>
     <string name="no_custom_tile_sources_found">No custom tile sources found.</string>
     <string name="no_device_selected">No device selected</string>
-    <string name="no_devices_found">No devices found</string>
     <string name="no_files_manifested">No files manifested.</string>
     <string name="no_local_stats">No Stats Available</string>
     <string name="no_map_layers_loaded">No map layers loaded.</string>
@@ -1682,7 +1712,7 @@
     <!-- PACKET -->
     <string name="packet_authenticity">Packet authenticity</string>
     <string name="packet_authenticity_balanced">Balanced — Prefer authenticated</string>
-    <string name="packet_authenticity_balanced_summary">Recommended. Reject unsigned downgrade attempts from nodes known to sign.</string>
+    <string name="packet_authenticity_balanced_summary">Reject unsigned downgrade attempts from nodes known to sign.</string>
     <string name="packet_authenticity_compatible">Compatible — Accept unsigned</string>
     <string name="packet_authenticity_compatible_summary">Accept unsigned traffic for maximum compatibility. A signature that can be checked and is wrong still drops the packet.</string>
     <string name="packet_authenticity_level">Protection level</string>
@@ -1850,6 +1880,8 @@
     <string name="reaction_notifications">Reaction Notifications</string>
     <string name="reaction_notifications_summary">Configure notifications for emoji reactions</string>
     <string name="reboot">Reboot</string>
+    <string name="reboot_into_dfu">Reboot into DFU mode</string>
+    <string name="reboot_into_dfu_warning">The node stays in its bootloader and off the mesh until new firmware is flashed or it is reset.</string>
     <string name="recent_network_devices">Recent Network Devices</string>
     <string name="reconnecting">Reconnecting…</string>
     <string name="redacted" translatable="false">***[REDACTED]***</string>
@@ -1868,6 +1900,45 @@
     <string name="remote_hardware">Remote Hardware</string>
     <string name="remote_hardware_config">Remote Hardware Config</string>
     <string name="remote_hardware_enabled">Remote Hardware enabled</string>
+    <string name="remote_shell">Remote Shell</string>
+    <string name="remote_shell_command_hint">Command</string>
+    <string name="remote_shell_error_notice">Error from the node: %1$s</string>
+    <string name="remote_shell_full_screen">Full-screen programs need more than the mesh can carry, so their output may not display correctly</string>
+    <string name="remote_shell_input_dropped">%1$d bytes of input dropped, the node is not keeping up</string>
+    <string name="remote_shell_key_alt">Alt</string>
+    <string name="remote_shell_key_ctrl">Control</string>
+    <string name="remote_shell_key_down">Down arrow</string>
+    <string name="remote_shell_key_end">End</string>
+    <string name="remote_shell_key_escape">Escape</string>
+    <string name="remote_shell_key_home">Home</string>
+    <string name="remote_shell_key_left">Left arrow</string>
+    <string name="remote_shell_key_page_down">Page down</string>
+    <string name="remote_shell_key_page_up">Page up</string>
+    <string name="remote_shell_key_right">Right arrow</string>
+    <string name="remote_shell_key_tab">Tab</string>
+    <string name="remote_shell_key_up">Up arrow</string>
+    <string name="remote_shell_last_contact">Waiting for the node, last heard %1$d s ago</string>
+    <string name="remote_shell_menu_line_mode">Line mode</string>
+    <string name="remote_shell_menu_paste">Paste</string>
+    <string name="remote_shell_menu_text_larger">Larger text</string>
+    <string name="remote_shell_menu_text_smaller">Smaller text</string>
+    <string name="remote_shell_modifier_locked">Locked</string>
+    <string name="remote_shell_modifier_once">Applies to the next key</string>
+    <string name="remote_shell_more_options">More options</string>
+    <string name="remote_shell_no_reply">No reply from the node. It must list your radio's public key as an admin key, and be in range.</string>
+    <string name="remote_shell_no_reply_reason">Could not open the session (%1$s). The node must list your radio's public key as an admin key, and be in range.</string>
+    <string name="remote_shell_open">Open terminal</string>
+    <string name="remote_shell_open_description">Opens a shell on this node, starting a remote admin session first if needed</string>
+    <string name="remote_shell_reconnect">Reconnect</string>
+    <string name="remote_shell_send">Send</string>
+    <string name="remote_shell_session_closed">Session closed</string>
+    <string name="remote_shell_session_closed_reason">Session closed: %1$s</string>
+    <string name="remote_shell_status_closed">Session closed</string>
+    <string name="remote_shell_status_closing">Closing…</string>
+    <string name="remote_shell_status_failed">Session failed</string>
+    <string name="remote_shell_status_not_connected">Not connected</string>
+    <string name="remote_shell_status_opening">Opening session…</string>
+    <string name="remote_shell_subtitle_round_trip">%1$s, %2$d ms round trip</string>
     <string name="remotely_administrating">"[Remote] %1$s"</string>
     <!-- REMOVE -->
     <string name="remove">Remove</string>
@@ -2063,15 +2134,15 @@
     <string name="site_planner">Site Planner</string>
     <string name="site_planner_antenna_gain_dbi">Antenna gain (dBi)</string>
     <string name="site_planner_antenna_height_meters">Antenna height (m)</string>
-    <string name="site_planner_browser_note">The estimate opens in your browser. To bring it onto this map, click the transmitter pin there, choose Export › GeoJSON, then add the downloaded file under Manage Map Layers › Add Layer. Use the GeoJSON export — the KML one is a ground-overlay image this map cannot draw.</string>
     <string name="site_planner_color_scale">Color palette</string>
     <string name="site_planner_estimate">Estimate coverage</string>
     <string name="site_planner_estimating">Estimating coverage…</string>
-    <string name="site_planner_failed">Coverage estimate failed</string>
+    <string name="site_planner_failed">Couldn't estimate coverage. The terrain may not have downloaded, so check your connection and try again.</string>
     <string name="site_planner_frequency_mhz">Frequency (MHz)</string>
-    <string name="site_planner_high_resolution">High-resolution terrain</string>
+    <string name="site_planner_invalid_frequency">Enter 30 to 6000 MHz</string>
     <string name="site_planner_invalid_latitude">Enter −90 to 90</string>
     <string name="site_planner_invalid_longitude">Enter −180 to 180</string>
+    <string name="site_planner_invalid_max_range">Enter 1 to 150 km</string>
     <string name="site_planner_invalid_positive">Must be greater than 0</string>
     <string name="site_planner_invalid_rx_sensitivity">Enter −150 to −30 dBm</string>
     <string name="site_planner_max_range_km">Max range (km)</string>
@@ -2086,7 +2157,6 @@
     <string name="site_planner_use_current_location">Use current location</string>
     <string name="site_planner_use_map_center">Use map center</string>
     <string name="site_planner_use_node_location">Use current node location</string>
-    <string name="site_planner_webview_updating">The system WebView is updating. Please try again in a moment.</string>
     <string name="skip">Skip</string>
     <string name="slot">Slot</string>
     <string name="snr">SNR</string>
@@ -2298,6 +2368,7 @@
     <string name="unpin_selected">Unpin</string>
     <string name="unrecognized">Unrecognized</string>
     <string name="unset">Unset - 0</string>
+    <string name="unsupported_device">This device isn't supported</string>
     <string name="update_status">Update status</string>
     <string name="updated">Updated</string>
     <string name="uplink_enabled">MQTT Uplink Enabled</string>
@@ -2308,6 +2379,7 @@
     <!-- URL -->
     <string name="url">URL</string>
     <string name="url_cannot_be_empty">URL cannot be empty.</string>
+    <string name="url_http_localhost_only">Use https:// here. Plain http:// only works for localhost.</string>
     <string name="url_must_be_http">URL must start with http:// or https://.</string>
     <string name="url_must_contain_placeholders">URL must contain placeholders.</string>
     <string name="url_template">URL Template</string>

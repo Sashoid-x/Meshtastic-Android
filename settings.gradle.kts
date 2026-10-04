@@ -114,6 +114,7 @@ include(
     ":feature:connections",
     ":feature:map",
     ":feature:map-maplibre",
+    ":feature:coverage",
     ":feature:map-terrain",
     ":feature:node",
     ":feature:settings",
@@ -131,3 +132,4 @@ include(
     ":baselineprofile",
     ":store-screenshots",
 )
+

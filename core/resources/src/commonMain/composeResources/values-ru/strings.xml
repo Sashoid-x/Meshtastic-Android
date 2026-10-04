@@ -1,18 +1,19 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <!-- Strings -->
+    <string name="a11y_humidity">Влажность</string>
     <string name="a11y_label_value">%1$s: %2$s</string>
     <string name="a11y_message_from">От %1$s: %2$s</string>
     <string name="a11y_node_battery">заряд батареи %1$d</string>
+    <string name="a11y_node_channel">Канал %1$d</string>
     <string name="a11y_node_distance_away">%1$s отсюда</string>
     <string name="a11y_node_favorite">избранный</string>
-    <string name="a11y_node_hops_away">%1$d hops away</string>
     <string name="a11y_node_last_heard">последний раз услышан %1$s</string>
     <string name="a11y_node_offline">оффлайн</string>
     <string name="a11y_node_online">онлайн</string>
     <string name="a11y_node_role">роль %1$s</string>
     <string name="a11y_node_signal">сигнал %1$s</string>
     <string name="a11y_nodes_at_hop">Хоп %1$d: %2$d нод</string>
+    <string name="a11y_temperature">Температура</string>
     <string name="about">О приложении</string>
     <string name="about_app_up_to_date">У вас установлена последняя версия</string>
     <string name="about_check_for_updates">Проверить обновления</string>
@@ -394,7 +395,6 @@
     <string name="channel_8">Канал 8</string>
     <string name="channel_features">Особенности канала</string>
     <string name="channel_invalid">Этот URL-адрес канала недействителен и не может быть использован</string>
-    <string name="channel_label">Канал</string>
     <string name="channel_name">Имя канала</string>
     <string name="channel_url">URL канала</string>
     <string name="channel_utilization">ChUtil</string>
@@ -588,6 +588,7 @@
     <string name="direct_message">Прямое сообщение</string>
     <string name="direct_message_key">Ключ прямого сообщения</string>
     <string name="direct_messages">Личные сообщения</string>
+    <string name="disabled">Включено</string>
     <string name="discard_changes">Отмена</string>
     <string name="disconnect">Отключиться</string>
     <string name="disconnected">Отключено</string>
@@ -664,7 +665,6 @@
     <string name="discovery_stop_scan">Остановить сканирование</string>
     <string name="discovery_summary_not_available">Анализ ИИ недоступен</string>
     <string name="discovery_time_remaining">Осталось %1$s</string>
-    <string name="discovery_unique_nodes">%1$d уникальных нод</string>
     <string name="discovery_view_map">Посмотреть карту</string>
     <string name="disk_free_indexed">Свободно на диске %1$d</string>
     <string name="display">Дисплей</string>
@@ -688,7 +688,6 @@
     <string name="doc_keywords_messages">message,channel,encryption,direct,broadcast,quick-chat</string>
     <string name="doc_keywords_mqtt">mqtt,broker,internet,bridge,uplink,downlink</string>
     <string name="doc_keywords_node_metrics">metrics,telemetry,signal,snr,rssi,battery,traceroute</string>
-    <string name="doc_keywords_nodes">node,mesh,list,role,status,favorite,filter</string>
     <string name="doc_keywords_notifications">notification,alert,sound,mute,reply,watch,wear os</string>
     <string name="doc_keywords_onboarding">setup,welcome,permissions,first-launch</string>
     <string name="doc_keywords_settings_module">module,serial,telemetry,canned,store-forward,administration</string>
@@ -736,6 +735,7 @@
     <string name="download">Скачать</string>
     <string name="download_this_area">Загрузить этот регион</string>
     <string name="duplicated_public_key_title">Обнаружен дубликат открытого ключа</string>
+    <!-- DURATION -->
     <string name="dynamic">Динамический</string>
     <string name="easily_set_up_private_mesh_networks">Легко создать частные сети для защищённой и надежной связи в удаленных районах.</string>
     <string name="edit">Редактировать</string>
@@ -956,6 +956,7 @@
     <string name="firmware_update_taking_a_while">Это может занять минутку...</string>
     <string name="firmware_update_target">Целевое устройство: %1$s</string>
     <string name="firmware_update_title">Обновление прошивки</string>
+    <string name="firmware_update_transfer_percent">%1$d%</string>
     <string name="firmware_update_unknown_error">Неизвестная ошибка</string>
     <string name="firmware_update_unknown_hardware">Неизвестная модель оборудования: %1$d</string>
     <string name="firmware_update_unknown_release">Неизвестная внешняя версия</string>
@@ -1217,9 +1218,7 @@
     <string name="manage_map_layers">Управление Слоями Карты</string>
     <string name="manual_position_request">Требуется запрос позиции вручную</string>
     <string name="map">Карта сети</string>
-    <string name="map_cache_info">Емкость кэша: %1$d MB\nИспользование кэша: %2$d MB</string>
     <string name="map_cache_manager">Менеджер кэша</string>
-    <string name="map_cache_megabytes">%1$s МБ</string>
     <string name="map_cache_size">Текущий размер кэша</string>
     <string name="map_cache_tiles">%1$d файла</string>
     <string name="map_clear_tiles">Очистить загруженные файлы</string>
@@ -1455,7 +1454,6 @@
     <string name="no_bluetooth_devices_seen">Bluetooth-устройства не обнаружены</string>
     <string name="no_custom_tile_sources_found">Источники пользовательских плиток не найдены.</string>
     <string name="no_device_selected">Устройство не выбрано</string>
-    <string name="no_devices_found">Устройства не найдены</string>
     <string name="no_files_manifested">Файлы не отобразились.</string>
     <string name="no_local_stats">Статистика недоступна</string>
     <string name="no_map_layers_loaded">Слои карты не загружены.</string>
@@ -1597,7 +1595,6 @@
     <string name="pa_fan_disabled">PA вентилятор выключен</string>
     <string name="packet_authenticity">Подлинность пакета</string>
     <string name="packet_authenticity_balanced">Сбалансировано — предпочтительно аутентифицировать</string>
-    <string name="packet_authenticity_balanced_summary">Рекомендуется. Отклонять неподписанные попытки понижения от нод, которые, как известно, подписывают.</string>
     <string name="packet_authenticity_compatible">Совместимо — принять не подписано</string>
     <string name="packet_authenticity_compatible_summary">Для максимальной совместимости принимать трафик без цифровой подписи. Пакет все равно будет отброшен, если подпись неверна и ее возможно проверить.</string>
     <string name="packet_authenticity_level">Уровень защиты</string>
@@ -1773,6 +1770,12 @@
     <string name="remote_hardware">Удаленное устройство</string>
     <string name="remote_hardware_config">Настройка удаленного оборудования</string>
     <string name="remote_hardware_enabled">Удаленное оборудование включено</string>
+    <string name="remote_shell_key_alt">Уровень моря</string>
+    <string name="remote_shell_key_ctrl">Управление</string>
+    <string name="remote_shell_key_home">Начало начал</string>
+    <string name="remote_shell_modifier_locked">Заблокировано</string>
+    <string name="remote_shell_send">Отправить</string>
+    <string name="remote_shell_status_not_connected">Связь не установлена</string>
     <string name="remotely_administrating">"[Удалённо] %1$s"</string>
     <string name="remove">Удалить</string>
     <string name="remove_favorite">Убрать из избранных</string>
@@ -1959,13 +1962,10 @@
     <string name="site_planner">Планировщик места</string>
     <string name="site_planner_antenna_gain_dbi">Усиление антенны (dBi)</string>
     <string name="site_planner_antenna_height_meters">Высота антенны (м)</string>
-    <string name="site_planner_browser_note">Смета откроется в твоем браузере. Чтобы добавить её на эту карту, кликни по значку передатчика там, выбери Экспорт › GeoJSON, а затем добавь скачанный файл через Управление слоями карты › Добавить слой. Используй экспорт в GeoJSON — KML создаёт наложение изображения на землю, которое эта карта не может отобразить.</string>
     <string name="site_planner_color_scale">Цветовая палитра</string>
     <string name="site_planner_estimate">Оценка покрытия</string>
     <string name="site_planner_estimating">Оценка покрытия…</string>
-    <string name="site_planner_failed">Оценка покрытия не удалась</string>
     <string name="site_planner_frequency_mhz">Частота (МГц)</string>
-    <string name="site_planner_high_resolution">Местность с высоким разрешением</string>
     <string name="site_planner_invalid_latitude">Введите от -90 до 90</string>
     <string name="site_planner_invalid_longitude">Введите от −180 до 180</string>
     <string name="site_planner_invalid_positive">Должно быть больше 0</string>
@@ -1982,7 +1982,6 @@
     <string name="site_planner_use_current_location">Использовать текущее местоположение</string>
     <string name="site_planner_use_map_center">Использовать центр карты</string>
     <string name="site_planner_use_node_location">Использовать текущее местоположение</string>
-    <string name="site_planner_webview_updating">Системный WebView обновляется. Повтори попытку через мгновение.</string>
     <string name="skip">Пропустить</string>
     <string name="slot">Слот</string>
     <string name="snr">Сигнал/шум</string>

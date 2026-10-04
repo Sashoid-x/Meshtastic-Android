@@ -31,6 +31,7 @@ import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.Position
 import org.meshtastic.core.model.TelemetryType
+import org.meshtastic.core.model.util.TimeConstants
 import org.meshtastic.core.model.util.isWithinSizeLimit
 import org.meshtastic.core.repository.AwaitedSendResult
 import org.meshtastic.core.repository.CommandSender
@@ -65,7 +66,6 @@ import org.meshtastic.proto.Telemetry
 import org.meshtastic.proto.ToRadio
 import kotlin.math.absoluteValue
 import kotlin.random.Random
-import kotlin.time.Duration.Companion.hours
 import org.meshtastic.proto.Position as ProtoPosition
 
 @Suppress("TooManyFunctions", "CyclomaticComplexMethod", "LongParameterList")
@@ -284,7 +284,7 @@ class CommandSenderImpl(
                         wb.longitude_i = Position.degI(currentPosition.longitude)
                         wb.altitude = currentPosition.altitude
                     }
-                    wb.time = (nowMillis / MILLIS_PER_SECOND).toInt()
+                    wb.time = (nowMillis / TimeConstants.MS_PER_SEC).toInt()
                 }
                 .build()
         enqueueOrThrow(
@@ -436,7 +436,7 @@ class CommandSenderImpl(
                 val neighborInfoToSend =
                     neighborInfoHandler.lastNeighborInfo
                         ?: run {
-                            val oneHour = 1.hours.inWholeMinutes.toInt()
+                            val oneHour = TimeConstants.SECONDS_PER_HOUR
                             Logger.d { "No stored neighbor info from connected radio, sending dummy data" }
                             NeighborInfo.Builder()
                                 .also { wb ->
@@ -450,7 +450,7 @@ class CommandSenderImpl(
                                                     wb.node_id = 0
                                                     // Dummy node ID that can be intercepted
                                                     wb.snr = 0f
-                                                    wb.last_rx_time = (nowMillis / MILLIS_PER_SECOND).toInt()
+                                                    wb.last_rx_time = (nowMillis / TimeConstants.MS_PER_SEC).toInt()
                                                     wb.node_broadcast_interval_secs = oneHour
                                                 }
                                                 .build(),
@@ -504,7 +504,7 @@ class CommandSenderImpl(
     ): Boolean {
         val validUntilEpoch =
             if (hours > 0) {
-                (nowMillis / MILLIS_PER_SECOND + hours.toLong() * SECONDS_PER_HOUR).toInt()
+                (nowMillis / TimeConstants.MS_PER_SEC + hours.toLong() * TimeConstants.SECONDS_PER_HOUR).toInt()
             } else {
                 0
             }
@@ -645,8 +645,5 @@ class CommandSenderImpl(
         private const val ADMIN_CHANNEL_NAME = "admin"
 
         private const val DEFAULT_HOP_LIMIT = 3
-
-        private const val MILLIS_PER_SECOND = 1000L
-        private const val SECONDS_PER_HOUR = 3600
     }
 }

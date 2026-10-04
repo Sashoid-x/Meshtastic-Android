@@ -72,12 +72,6 @@ expect fun rememberOpenMultipleFilesLauncher(onUrisSelect: (List<CommonUri>) -> 
  */
 @Composable expect fun rememberOpenDocumentTreeLauncher(onTreeUriSelect: (CommonUri?) -> Unit): () -> Unit
 
-/**
- * Returns a suspend function that reads up to [maxChars] characters of text from a [CommonUri]. Returns `null` if the
- * file is empty or cannot be read.
- */
-@Composable expect fun rememberReadTextFromUri(): suspend (uri: CommonUri, maxChars: Int) -> String?
-
 /** Keeps the screen awake while [enabled] is true. No-op on platforms that don't support it. */
 @Composable expect fun KeepScreenOn(enabled: Boolean)
 

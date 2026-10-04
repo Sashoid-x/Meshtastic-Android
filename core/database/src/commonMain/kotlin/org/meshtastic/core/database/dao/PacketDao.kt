@@ -39,6 +39,7 @@ import org.meshtastic.core.model.MessageStatus
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.util.ChannelKeyChange
 import org.meshtastic.core.model.util.ConversationSlot
+import org.meshtastic.core.model.util.TimeConstants
 import org.meshtastic.proto.MeshPacket
 
 @Suppress("TooManyFunctions", "LargeClass")
@@ -359,8 +360,7 @@ interface PacketDao {
      */
     @Transaction
     suspend fun applyOutgoingReactionQueueStatus(packetId: Int, status: MessageStatus): ReactionEntity? {
-        val match =
-            findReactionsWithId(packetId).filter { it.status != MessageStatus.RECEIVED }.singleOrNull() ?: return null
+        val match = findReactionsWithId(packetId).singleOrNull { it.status != MessageStatus.RECEIVED } ?: return null
         if (shouldApplyOutgoingQueueStatus(match.status, status)) update(match.copy(status = status))
         return match
     }
@@ -1038,7 +1038,8 @@ interface PacketDao {
     private fun MessageStatus.isDowngradeFrom(current: MessageStatus?) =
         current == MessageStatus.SFPP_CONFIRMED && this == MessageStatus.SFPP_ROUTING
 
-    private fun resolveNewTime(rxTime: Long, fallback: Long) = if (rxTime > 0) rxTime * MILLIS_PER_SECOND else fallback
+    private fun resolveNewTime(rxTime: Long, fallback: Long) =
+        if (rxTime > 0) rxTime * TimeConstants.MS_PER_SEC else fallback
 
     /**
      * Atomically applies an SFPP delivery-status transition to every packet and reaction matching [packetId] + address
@@ -1126,7 +1127,6 @@ interface PacketDao {
         private const val MILLIS_PER_SECOND = 1000L
         private const val BATCH_CHUNK_SIZE = 50
     }
-
     // region ── FTS5 Search ──
 
     @Query(

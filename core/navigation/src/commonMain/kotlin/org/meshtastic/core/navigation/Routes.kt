@@ -90,6 +90,8 @@ sealed interface NodeDetailRoute : Route {
     @Serializable data class AirQualityMetrics(val destNum: Int) : NodeDetailRoute
 
     @Serializable data class NeighborInfoLog(val destNum: Int) : NodeDetailRoute
+
+    @Serializable data class RemoteShell(val destNum: Int) : NodeDetailRoute
 }
 
 @Serializable

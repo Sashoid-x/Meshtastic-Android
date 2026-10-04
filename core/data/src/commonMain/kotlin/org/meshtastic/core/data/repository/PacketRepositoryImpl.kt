@@ -19,6 +19,7 @@ package org.meshtastic.core.data.repository
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
+import androidx.paging.PagingSource
 import androidx.paging.map
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
@@ -245,34 +246,19 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
         }
 
     override fun getMessagesFromPaged(contact: String, getNode: suspend (String?) -> Node): Flow<PagingData<Message>> =
-        Pager(
-            config =
-            PagingConfig(
-                pageSize = MESSAGES_PAGE_SIZE,
-                enablePlaceholders = false,
-                initialLoadSize = MESSAGES_PAGE_SIZE,
-            ),
-            pagingSourceFactory = { dbManager.currentDb.value.packetDao().getMessagesFromPaged(contact) },
-        )
-            .flow
-            .map { pagingData ->
-                val cachedGetNode = memoize(getNode)
-                val replyCache = mutableMapOf<Int, PacketEntity?>()
-                pagingData.map { packet ->
-                    val message = packet.toMessage(cachedGetNode)
-                    val replyId = message.replyId?.takeIf { it != 0 }
-                    val originalMessage =
-                        replyId
-                            ?.let { id -> replyCache.getOrPut(id) { getReplyParent(id, contact) } }
-                            ?.toMessage(cachedGetNode)
-                    if (originalMessage != null) message.copy(originalMessage = originalMessage) else message
-                }
-            }
+        pagedMessages(contact, getNode) { dao -> dao.getMessagesFromPaged(contact) }
 
     override fun getMessagesFromPaged(
         contactKey: String,
         includeFiltered: Boolean,
         getNode: suspend (String?) -> Node,
+    ): Flow<PagingData<Message>> =
+        pagedMessages(contactKey, getNode) { dao -> dao.getMessagesFromPaged(contactKey, includeFiltered) }
+
+    private fun pagedMessages(
+        contactKey: String,
+        getNode: suspend (String?) -> Node,
+        pagingSource: (PacketDao) -> PagingSource<Int, PacketEntity>,
     ): Flow<PagingData<Message>> = Pager(
         config =
         PagingConfig(
@@ -280,9 +266,7 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
             enablePlaceholders = false,
             initialLoadSize = MESSAGES_PAGE_SIZE,
         ),
-        pagingSourceFactory = {
-            dbManager.currentDb.value.packetDao().getMessagesFromPaged(contactKey, includeFiltered)
-        },
+        pagingSourceFactory = { pagingSource(dbManager.currentDb.value.packetDao()) },
     )
         .flow
         .map { pagingData ->
@@ -414,23 +398,14 @@ class PacketRepositoryImpl(private val dbManager: DatabaseProvider, private val 
         read: Boolean,
         filtered: Boolean,
     ) {
-        val packetToSave =
-            RoomPacket(
-                uuid = 0L,
-                myNodeNum = myNodeNum,
-                packetId = packet.id,
-                port_num = packet.dataType,
-                contact_key = contactKey,
-                received_time = receivedTime,
-                read = read,
-                data = packet,
-                snr = packet.snr,
-                rssi = packet.rssi,
-                hopsAway = packet.hopsAway,
-                filtered = filtered,
-                messageText = packet.text.orEmpty(),
-            )
-        insertRoomPacket(packetToSave)
+        savePacket(
+            myNodeNum = myNodeNum,
+            contactKey = contactKey,
+            packet = packet,
+            receivedTime = receivedTime,
+            read = read,
+            filtered = filtered,
+        )
     }
 
     override suspend fun update(packet: DataPacket, routingError: Int): Unit =

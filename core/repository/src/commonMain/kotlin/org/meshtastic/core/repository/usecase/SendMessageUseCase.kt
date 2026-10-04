@@ -17,6 +17,7 @@
 package org.meshtastic.core.repository.usecase
 
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.CancellationException
 import okio.ByteString.Companion.toByteString
 import org.meshtastic.core.common.util.HomoglyphCharacterStringTransformer
 import org.meshtastic.core.common.util.nowMillis
@@ -54,7 +55,16 @@ interface SendMessageUseCase {
         replyId: Int? = null,
         dataType: Int = org.meshtastic.proto.PortNum.TEXT_MESSAGE_APP.value,
         bytes: okio.ByteString? = null,
-    ): Int
+    ): SendMessageOutcome
+}
+
+/** What [SendMessageUseCase] did with a message. */
+sealed interface SendMessageOutcome {
+    /** Saved to history and queued for delivery under mesh packet id [packetId]. */
+    data class Queued(val packetId: Int) : SendMessageOutcome
+
+    /** Nothing was saved or sent: the conversation is retired, so its channel is no longer on the radio. */
+    data object Refused : SendMessageOutcome
 }
 
 @Suppress("TooGenericExceptionCaught")
@@ -81,13 +91,13 @@ class SendMessageUseCaseImpl(
         replyId: Int?,
         dataType: Int,
         bytes: okio.ByteString?,
-    ): Int {
+    ): SendMessageOutcome {
         val parsedKey = ContactKey(contactKey)
         // A retired conversation's channel is no longer on the radio, so there is no slot to send on. Without this
         // the key's absent channel prefix would read as 0 and the message would go out on the primary channel.
         if (parsedKey.isRetired) {
             Logger.w { "Refusing to send to a retired conversation" }
-            return 0
+            return SendMessageOutcome.Refused
         }
         val channel = parsedKey.channelOrNull
         val dest = parsedKey.addressString
@@ -158,19 +168,24 @@ class SendMessageUseCaseImpl(
                 "message_send",
                 mapOf("num_bytes" to finalMessageText.length, "is_reply" to (replyId != null)),
             )
+        } catch (e: CancellationException) {
+            throw e
         } catch (ex: Exception) {
             Logger.e(ex) { "Failed to enqueue message packet" }
             throw ex
         }
 
-        return packetId
+        return SendMessageOutcome.Queued(packetId)
     }
 
+    // Both side effects are best-effort: the message still goes out if the radio rejects or drops them.
     private suspend fun favoriteNode(node: Node) {
         try {
             radioController.setFavorite(node.num, favorite = true)
+        } catch (e: CancellationException) {
+            throw e
         } catch (ex: Exception) {
-            Logger.e(ex) { "Favorite node error" }
+            Logger.w(ex) { "Favorite node error" }
         }
     }
 
@@ -180,8 +195,10 @@ class SendMessageUseCaseImpl(
             if (!accepted) {
                 Logger.w { "Shared contact for node ${node.num} was not acknowledged by the radio" }
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (ex: Exception) {
-            Logger.e(ex) { "Send shared contact error" }
+            Logger.w(ex) { "Send shared contact error" }
         }
     }
 }

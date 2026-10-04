@@ -58,15 +58,12 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import co.touchlab.kermit.Logger
-import com.eygraber.uri.toAndroidUri
 import com.eygraber.uri.toKmpUri
-import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import org.meshtastic.core.common.gpsDisabled
 import org.meshtastic.core.common.hasBluetoothLe
 import org.meshtastic.core.common.util.CommonUri
-import org.meshtastic.core.common.util.ioDispatcher
 import java.net.URLEncoder
 
 @Composable
@@ -229,7 +226,6 @@ actual fun rememberReadTextFromUri(): suspend (uri: CommonUri, maxChars: Int) ->
         }
     }
 }
-
 @Composable
 actual fun KeepScreenOn(enabled: Boolean) {
     val view = LocalView.current
