@@ -27,7 +27,8 @@ import org.meshtastic.core.ui.share.SharedContactImportDialog
 import org.meshtastic.core.ui.viewmodel.UIViewModel
 
 /**
- * Shared composable that conditionally renders [SharedContactImportDialog], [ScannedQrCodeDialog], and [AppUpdateDialog].
+ * Shared composable that conditionally renders [SharedContactImportDialog], [ScannedQrCodeDialog], and
+ * [AppUpdateDialog].
  *
  * This eliminates identical boilerplate from Android `MainScreen` and Desktop `DesktopMainScreen`.
  */

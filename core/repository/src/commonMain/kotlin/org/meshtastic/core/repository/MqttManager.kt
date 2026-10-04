@@ -34,8 +34,8 @@ interface MqttManager {
     val proxyActive: StateFlow<Boolean>
 
     /**
-     * Observable state indicating whether the MQTT client is enabled from UI/graph,
-     * independent of the connected radio node's MQTT configuration.
+     * Observable state indicating whether the MQTT client is enabled from UI/graph, independent of the connected radio
+     * node's MQTT configuration.
      */
     val isClientEnabled: StateFlow<Boolean>
 

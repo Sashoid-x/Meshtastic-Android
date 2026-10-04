@@ -1127,6 +1127,7 @@ interface PacketDao {
         private const val MILLIS_PER_SECOND = 1000L
         private const val BATCH_CHUNK_SIZE = 50
     }
+
     // region ── FTS5 Search ──
 
     @Query(

@@ -626,7 +626,6 @@ class MeshDataHandlerImpl(
 
     private suspend fun updateNotification(contactKey: String, dataPacket: DataPacket, isSilent: Boolean) {
         when (dataPacket.dataType) {
-<<<<<<< HEAD
             PortNum.TEXT_MESSAGE_APP.value,
             PortNum.PRIVATE_APP.value,
             -> {

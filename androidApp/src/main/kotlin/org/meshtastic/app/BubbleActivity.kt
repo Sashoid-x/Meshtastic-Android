@@ -134,6 +134,7 @@ class BubbleActivity : AppCompatActivity() {
                         )
                     }
                 }
+            }
         }
     }
 

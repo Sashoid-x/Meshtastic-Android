@@ -292,10 +292,10 @@ fun EnvironmentMetricsChart(
                         series(
                             x = pressureData.map { it.time },
                             y =
-                                pressureData.mapNotNull {
-                                    val raw = Environment.BAROMETRIC_PRESSURE.getValue(it) ?: return@mapNotNull null
-                                    if (pressureInMmHg) raw * MetricFormatter.MMHG_PER_HPA else raw
-                                },
+                            pressureData.mapNotNull {
+                                val raw = Environment.BAROMETRIC_PRESSURE.getValue(it) ?: return@mapNotNull null
+                                if (pressureInMmHg) raw * MetricFormatter.MMHG_PER_HPA else raw
+                            },
                         )
                     }
                 }

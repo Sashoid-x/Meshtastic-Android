@@ -226,6 +226,7 @@ actual fun rememberReadTextFromUri(): suspend (uri: CommonUri, maxChars: Int) ->
         }
     }
 }
+
 @Composable
 actual fun KeepScreenOn(enabled: Boolean) {
     val view = LocalView.current
