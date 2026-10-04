@@ -58,12 +58,15 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import co.touchlab.kermit.Logger
+import com.eygraber.uri.toAndroidUri
 import com.eygraber.uri.toKmpUri
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import org.meshtastic.core.common.gpsDisabled
 import org.meshtastic.core.common.hasBluetoothLe
 import org.meshtastic.core.common.util.CommonUri
+import org.meshtastic.core.common.util.ioDispatcher
 import java.net.URLEncoder
 
 @Composable
@@ -199,32 +202,6 @@ actual fun rememberOpenMultipleFilesLauncher(onUrisSelect: (List<CommonUri>) -> 
             onUrisSelect(uris.map { it.toKmpUri() })
         }
     return remember(launcher) { { mimeType -> launcher.launch(mimeType) } }
-}
-
-@Suppress("Wrapping")
-@Composable
-actual fun rememberReadTextFromUri(): suspend (uri: CommonUri, maxChars: Int) -> String? {
-    val context = LocalContext.current
-    return remember(context) {
-        { uri, maxChars ->
-            withContext(ioDispatcher) {
-                @Suppress("TooGenericExceptionCaught")
-                try {
-                    val androidUri = uri.toAndroidUri()
-                    context.contentResolver.openInputStream(androidUri)?.use { stream ->
-                        stream.bufferedReader().use { reader ->
-                            val buffer = CharArray(maxChars)
-                            val read = reader.read(buffer)
-                            if (read > 0) String(buffer, 0, read) else null
-                        }
-                    }
-                } catch (e: Exception) {
-                    Logger.e(e) { "Failed to read text from URI: $uri" }
-                    null
-                }
-            }
-        }
-    }
 }
 
 @Composable
