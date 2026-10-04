@@ -35,6 +35,7 @@ import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.Reaction
 import org.meshtastic.core.model.ReactionNotificationMode
+import org.meshtastic.core.model.TopologySource
 import org.meshtastic.core.model.destination
 import org.meshtastic.core.model.geofence.activeWaypointPackets
 import org.meshtastic.core.model.isBroadcast
@@ -68,6 +69,7 @@ import org.meshtastic.core.repository.RadioSessionContext
 import org.meshtastic.core.repository.ServiceStateWriter
 import org.meshtastic.core.repository.StoreForwardPacketHandler
 import org.meshtastic.core.repository.TelemetryPacketHandler
+import org.meshtastic.core.repository.TopologyManager
 import org.meshtastic.core.repository.TracerouteHandler
 import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.core.resources.Res
@@ -120,6 +122,7 @@ class MeshDataHandlerImpl(
     private val activeConversationTracker: ActiveConversationTracker,
     private val uiPrefs: UiPrefs,
     private val scope: ServiceScope,
+    private val topologyManager: TopologyManager,
 ) : MeshDataHandler {
 
     override fun handleReceivedData(
@@ -129,6 +132,14 @@ class MeshDataHandlerImpl(
         logUuid: String?,
         logInsertJob: Job?,
     ) {
+        val source =
+            if (packet.via_mqtt == true) {
+                TopologySource.MQTT
+            } else {
+                TopologySource.LOCAL_RADIO
+            }
+        topologyManager.processPacket(packet, source)
+
         val dataPacket = dataMapper.toDataPacket(packet) ?: return
         val fromUs = myNodeNum == packet.from
         dataPacket.status = MessageStatus.RECEIVED

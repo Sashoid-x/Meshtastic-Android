@@ -22,6 +22,7 @@ import org.jetbrains.compose.resources.vectorResource
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.ic_delete_fill0
 import org.meshtastic.core.resources.ic_do_not_disturb_on
+import org.meshtastic.core.resources.ic_hub
 import org.meshtastic.core.resources.ic_nodes
 import org.meshtastic.core.resources.ic_notes
 
@@ -33,3 +34,5 @@ val MeshtasticIcons.DeleteNode: ImageVector
     @Composable get() = vectorResource(Res.drawable.ic_delete_fill0)
 val MeshtasticIcons.Nodes: ImageVector
     @Composable get() = vectorResource(Res.drawable.ic_nodes)
+val MeshtasticIcons.Hub: ImageVector
+    @Composable get() = vectorResource(Res.drawable.ic_hub)

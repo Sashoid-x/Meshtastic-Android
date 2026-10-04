@@ -49,6 +49,7 @@ import org.meshtastic.feature.wifiprovision.di.FeatureWifiProvisionModule
     includes =
     [
         org.meshtastic.core.di.di.CoreDiModule::class,
+        org.meshtastic.core.automation.di.CoreAutomationModule::class,
         CoreCommonModule::class,
         CoreBleModule::class,
         CoreDataModule::class,
@@ -66,6 +67,7 @@ import org.meshtastic.feature.wifiprovision.di.FeatureWifiProvisionModule
         FeatureConnectionsModule::class,
         FeatureMapModule::class,
         FeatureSettingsModule::class,
+        org.meshtastic.feature.automation.di.FeatureAutomationModule::class,
         FeatureDiscoveryModule::class,
         FeatureDocsModule::class,
         FeatureFirmwareModule::class,

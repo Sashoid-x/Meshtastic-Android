@@ -22,8 +22,12 @@ import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
 import org.meshtastic.core.database.DatabaseProvider
 import org.meshtastic.core.database.createDatabaseDataStore
+import org.meshtastic.core.database.dao.AutomationDao
 import org.meshtastic.core.database.dao.DiscoveryDao
+import org.meshtastic.core.database.dao.SwitchingAutomationDao
 import org.meshtastic.core.database.dao.SwitchingDiscoveryDao
+import org.meshtastic.core.database.dao.SwitchingTopologyEdgeDao
+import org.meshtastic.core.database.dao.TopologyEdgeDao
 
 @Module
 @ComponentScan("org.meshtastic.core.database")
@@ -39,4 +43,12 @@ class CoreDatabaseModule {
      */
     @Factory
     fun provideDiscoveryDao(databaseProvider: DatabaseProvider): DiscoveryDao = SwitchingDiscoveryDao(databaseProvider)
+
+    @Factory
+    fun provideAutomationDao(databaseProvider: DatabaseProvider): AutomationDao =
+        SwitchingAutomationDao(databaseProvider)
+
+    @Factory
+    fun provideTopologyEdgeDao(databaseProvider: DatabaseProvider): TopologyEdgeDao =
+        SwitchingTopologyEdgeDao(databaseProvider)
 }

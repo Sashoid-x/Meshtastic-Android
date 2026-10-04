@@ -28,6 +28,7 @@ import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.meshtastic.core.common.util.ioDispatcher
+import org.meshtastic.core.database.dao.AutomationDao
 import org.meshtastic.core.database.dao.BootloaderOtaQuirksDao
 import org.meshtastic.core.database.dao.ChannelSetDao
 import org.meshtastic.core.database.dao.DeviceHardwareDao
@@ -41,7 +42,10 @@ import org.meshtastic.core.database.dao.MeshLogDao
 import org.meshtastic.core.database.dao.NodeInfoDao
 import org.meshtastic.core.database.dao.PacketDao
 import org.meshtastic.core.database.dao.QuickChatActionDao
+import org.meshtastic.core.database.dao.TopologyEdgeDao
 import org.meshtastic.core.database.dao.TracerouteNodePositionDao
+import org.meshtastic.core.database.entity.AutomationLogEntity
+import org.meshtastic.core.database.entity.AutomationRuleEntity
 import org.meshtastic.core.database.entity.BootloaderOtaQuirksCacheEntity
 import org.meshtastic.core.database.entity.ChannelSetEntity
 import org.meshtastic.core.database.entity.ContactSettings
@@ -62,6 +66,7 @@ import org.meshtastic.core.database.entity.Packet
 import org.meshtastic.core.database.entity.PacketFts
 import org.meshtastic.core.database.entity.QuickChatAction
 import org.meshtastic.core.database.entity.ReactionEntity
+import org.meshtastic.core.database.entity.TopologyEdge
 import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
 
 @Database(
@@ -88,6 +93,9 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         ChannelSetEntity::class,
         BootloaderOtaQuirksCacheEntity::class,
         MaintenanceUf2CacheEntity::class,
+        AutomationRuleEntity::class,
+        AutomationLogEntity::class,
+        TopologyEdge::class,
     ],
     autoMigrations =
     [
@@ -152,8 +160,10 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         AutoMigration(from = 61, to = 62),
         AutoMigration(from = 62, to = 63),
         // 63 -> 64 is the manual MIGRATION_63_64 (log index added in place), applied via configureCommon().
+        // 64 -> 65 is the manual MIGRATION_64_65 (automation tables created), applied via configureCommon().
+        // 65 -> 66 is the manual MIGRATION_65_66 (topology_edge table created), applied via configureCommon().
     ],
-    version = 64,
+    version = 66,
     exportSchema = true,
 )
 @androidx.room3.ConstructedBy(MeshtasticDatabaseConstructor::class)
@@ -188,6 +198,10 @@ abstract class MeshtasticDatabase : RoomDatabase() {
     abstract fun bootloaderOtaQuirksDao(): BootloaderOtaQuirksDao
 
     abstract fun maintenanceUf2Dao(): MaintenanceUf2Dao
+
+    abstract fun automationDao(): AutomationDao
+
+    abstract fun topologyEdgeDao(): TopologyEdgeDao
 
     companion object {
         /**
@@ -440,6 +454,74 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             }
 
         /**
+         * Creates the `automation_rule` and `automation_log` tables introduced in schema 65.
+         *
+         * Both tables are new (no data to migrate) so we issue CREATE TABLE IF NOT EXISTS. The FK from `automation_log`
+         * to `automation_rule` is enforced after FK-checks are enabled.
+         */
+        internal val MIGRATION_64_65: Migration =
+            object : Migration(64, 65) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    connection.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `automation_rule` (" +
+                            "`id` TEXT NOT NULL, " +
+                            "`name` TEXT NOT NULL, " +
+                            "`is_enabled` INTEGER NOT NULL DEFAULT 1, " +
+                            "`trigger_json` TEXT NOT NULL, " +
+                            "`conditions_json` TEXT NOT NULL DEFAULT '[]', " +
+                            "`actions_json` TEXT NOT NULL, " +
+                            "`created_at` INTEGER NOT NULL, " +
+                            "`last_fired_at` INTEGER NOT NULL DEFAULT 0, " +
+                            "`fire_count` INTEGER NOT NULL DEFAULT 0, " +
+                            "PRIMARY KEY(`id`))",
+                    )
+                    connection.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `automation_log` (" +
+                            "`id` TEXT NOT NULL, " +
+                            "`rule_id` TEXT NOT NULL, " +
+                            "`timestamp` INTEGER NOT NULL, " +
+                            "`success` INTEGER NOT NULL, " +
+                            "`detail` TEXT NOT NULL DEFAULT '', " +
+                            "PRIMARY KEY(`id`), " +
+                            "FOREIGN KEY(`rule_id`) REFERENCES `automation_rule`(`id`) " +
+                            "ON UPDATE NO ACTION ON DELETE CASCADE)",
+                    )
+                    connection.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_automation_log_rule_id` ON `automation_log` (`rule_id`)",
+                    )
+                    connection.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_automation_log_timestamp` ON `automation_log` (`timestamp`)",
+                    )
+                }
+            }
+
+        /** Creates the `topology_edge` table introduced in schema 66. */
+        internal val MIGRATION_65_66: Migration =
+            object : Migration(65, 66) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    connection.execSQL(
+                        "CREATE TABLE IF NOT EXISTS `topology_edge` (" +
+                            "`node1` INTEGER NOT NULL, " +
+                            "`node2` INTEGER NOT NULL, " +
+                            "`best_snr` REAL NOT NULL, " +
+                            "`best_rssi` INTEGER NOT NULL, " +
+                            "`last_seen` INTEGER NOT NULL, " +
+                            "`source` TEXT NOT NULL, " +
+                            "PRIMARY KEY(`node1`, `node2`))",
+                    )
+                    connection.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_topology_edge_node1` ON `topology_edge` (`node1`)",
+                    )
+                    connection.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_topology_edge_node2` ON `topology_edge` (`node2`)",
+                    )
+                    connection.execSQL(
+                        "CREATE INDEX IF NOT EXISTS `index_topology_edge_source` ON `topology_edge` (`source`)",
+                    )
+                }
+            }
+
+        /**
          * Configures a [RoomDatabase.Builder] with standard settings for this project.
          *
          * All platforms force [setSingleConnectionPool]. Without it, Room defaults to a 4-reader pool for named
@@ -464,6 +546,8 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     MIGRATION_62_63,
                     MIGRATION_61_63,
                     MIGRATION_63_64,
+                    MIGRATION_64_65,
+                    MIGRATION_65_66,
                 )
                 .setSingleConnectionPool()
                 .setQueryCoroutineContext(

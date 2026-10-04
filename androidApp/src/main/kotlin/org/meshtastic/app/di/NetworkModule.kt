@@ -20,9 +20,12 @@ import android.app.Application
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.nsd.NsdManager
+import android.os.Build
 import coil3.ImageLoader
 import coil3.annotation.ExperimentalCoilApi
 import coil3.disk.DiskCache
+import coil3.gif.AnimatedImageDecoder
+import coil3.gif.GifDecoder
 import coil3.memory.MemoryCache
 import coil3.memoryCacheMaxSizePercentWhileInBackground
 import coil3.network.DeDupeConcurrentRequestStrategy
@@ -93,6 +96,11 @@ class NetworkModule {
                 ),
             )
             add(SvgDecoder.Factory(scaleToDensity = true))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                add(AnimatedImageDecoder.Factory())
+            } else {
+                add(GifDecoder.Factory())
+            }
         }
         .memoryCache {
             MemoryCache.Builder().maxSizePercent(context = application, percent = MEMORY_CACHE_PERCENT).build()

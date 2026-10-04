@@ -38,6 +38,7 @@ kotlin {
             implementation(projects.core.resources)
             implementation(libs.meshtastic.protobufs)
             implementation(projects.core.takserver)
+            implementation(projects.core.automation)
 
             implementation(libs.jetbrains.lifecycle.runtime)
             implementation(libs.kotlinx.atomicfu)

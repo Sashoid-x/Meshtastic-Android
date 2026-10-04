@@ -88,6 +88,7 @@ toolchainManagement {
 }
 
 include(
+    ":core:automation",
     ":core:ble",
     ":core:common",
     ":core:data",
@@ -107,6 +108,7 @@ include(
     ":core:takserver",
     ":core:testing",
     ":core:ui",
+    ":feature:automation",
     ":feature:intro",
     ":feature:messaging",
     ":feature:connections",

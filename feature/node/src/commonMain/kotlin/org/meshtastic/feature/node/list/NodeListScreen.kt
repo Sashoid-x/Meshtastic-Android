@@ -82,6 +82,7 @@ import org.meshtastic.core.resources.nodes_unheard_banner_one
 import org.meshtastic.core.resources.nodes_unheard_keep
 import org.meshtastic.core.resources.nodes_unheard_remove
 import org.meshtastic.core.resources.set_up_connection
+import org.meshtastic.core.resources.topology_graph_title
 import org.meshtastic.core.ui.component.MainAppBar
 import org.meshtastic.core.ui.component.MeshtasticImportFAB
 import org.meshtastic.core.ui.component.NodeItem
@@ -90,6 +91,7 @@ import org.meshtastic.core.ui.component.ScrollToTopEvent
 import org.meshtastic.core.ui.component.SharedContactDialog
 import org.meshtastic.core.ui.component.smartScrollToTop
 import org.meshtastic.core.ui.icon.BarChart
+import org.meshtastic.core.ui.icon.Hub
 import org.meshtastic.core.ui.icon.Info
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.NoDevice
@@ -129,6 +131,7 @@ fun NodeListScreen(
     onHandleDeepLink: (org.meshtastic.core.common.util.CommonUri, onInvalid: () -> Unit) -> Unit = { _, _ -> },
     onNavigateToConnections: () -> Unit = {},
     onEditStatusMessage: () -> Unit = {},
+    onNavigateToTopology: () -> Unit = {},
 ) {
     val showToast = org.meshtastic.core.ui.util.rememberShowToastResource()
     val scope = rememberCoroutineScope()
@@ -295,6 +298,12 @@ fun NodeListScreen(
                 canNavigateUp = false,
                 onNavigateUp = {},
                 actions = {
+                    IconButton(onClick = onNavigateToTopology) {
+                        Icon(
+                            imageVector = MeshtasticIcons.Hub,
+                            contentDescription = stringResource(Res.string.topology_graph_title),
+                        )
+                    }
                     IconButton(onClick = { showHopHistogram = true }) {
                         Icon(
                             imageVector = MeshtasticIcons.BarChart,

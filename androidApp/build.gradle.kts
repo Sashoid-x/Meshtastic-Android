@@ -219,6 +219,7 @@ androidComponents {
 }
 
 dependencies {
+    implementation(projects.core.automation)
     implementation(projects.core.ble)
     implementation(projects.core.common)
     implementation(projects.core.data)
@@ -238,6 +239,7 @@ dependencies {
     implementation(projects.core.ui)
     implementation(projects.core.barcode)
     implementation(projects.core.takserver)
+    implementation(projects.feature.automation)
     implementation(projects.feature.intro)
     implementation(projects.feature.messaging)
     implementation(projects.feature.connections)
@@ -272,6 +274,7 @@ dependencies {
     implementation(libs.coil)
     implementation(libs.coil.network.ktor3)
     implementation(libs.coil.svg)
+    implementation(libs.coil.gif)
     implementation(libs.androidx.core.splashscreen)
     // Installs the baseline profile produced by :baselineprofile at app startup (API < 31)
     // and lets ART honor it on first launch. On API 31+ the platform installs it automatically.

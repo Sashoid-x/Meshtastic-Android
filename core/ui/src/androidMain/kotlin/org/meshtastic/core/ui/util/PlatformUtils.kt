@@ -833,13 +833,36 @@ private fun getLocalImageTargetFile(cacheDir: java.io.File, url: String): java.i
     return java.io.File(dir, "img_$hash.$ext")
 }
 
+private fun isValidLocalImage(file: java.io.File): Boolean {
+    if (!file.exists() || file.length() == 0L) return false
+    if (file.extension.equals("gif", ignoreCase = true)) {
+        return try {
+            file.inputStream().use { input ->
+                val header = ByteArray(3)
+                input.read(header) == 3 &&
+                    header[0] == 'G'.code.toByte() &&
+                    header[1] == 'I'.code.toByte() &&
+                    header[2] == 'F'.code.toByte()
+            }
+        } catch (@Suppress("TooGenericExceptionCaught") _: Exception) {
+            false
+        }
+    }
+    return true
+}
+
 @Composable
 actual fun rememberGetLocalImageFile(): (url: String) -> String? {
     val context = LocalContext.current
     return remember(context) {
         { url ->
             val target = getLocalImageTargetFile(context.cacheDir, url)
-            if (target.exists() && target.length() > 0L) target.absolutePath else null
+            if (isValidLocalImage(target)) {
+                target.absolutePath
+            } else {
+                if (target.exists()) target.delete()
+                null
+            }
         }
     }
 }
@@ -851,9 +874,11 @@ actual fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> Stri
         { url, image ->
             try {
                 val target = getLocalImageTargetFile(context.cacheDir, url)
-                if (target.exists() && target.length() > 0L) {
+                val isGif = target.extension.equals("gif", ignoreCase = true)
+                if (isValidLocalImage(target)) {
                     target.absolutePath
                 } else {
+                    if (target.exists()) target.delete()
                     var copied = false
                     val snapshot = coil3.SingletonImageLoader.get(context).diskCache?.openSnapshot(url)
                     if (snapshot != null) {
@@ -870,7 +895,7 @@ actual fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> Stri
                             snapshot.close()
                         }
                     }
-                    if (!copied) {
+                    if (!copied && !isGif) {
                         val bitmap =
                             (image as? coil3.BitmapImage)?.bitmap
                                 ?: (image as? coil3.DrawableImage)?.let { drawableImage ->
@@ -900,7 +925,7 @@ actual fun rememberSaveImageLocally(): (url: String, image: coil3.Image) -> Stri
                             }
                         }
                     }
-                    target.absolutePath
+                    if (isValidLocalImage(target)) target.absolutePath else null
                 }
             } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
                 Logger.e(e) { "Failed to save local image for $url" }

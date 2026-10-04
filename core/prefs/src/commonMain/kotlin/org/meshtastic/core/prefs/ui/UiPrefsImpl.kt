@@ -353,6 +353,15 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         scope.launch { dataStore.edit { it[KEY_PRESSURE_IN_MMHG] = enabled } }
     }
 
+    override val autoTopologyDiscoveryEnabled: StateFlow<Boolean> =
+        dataStore.data
+            .map { it[KEY_AUTO_TOPOLOGY_DISCOVERY_ENABLED] ?: false }
+            .stateIn(scope, SharingStarted.Eagerly, false)
+
+    override fun setAutoTopologyDiscoveryEnabled(enabled: Boolean) {
+        scope.launch { dataStore.edit { it[KEY_AUTO_TOPOLOGY_DISCOVERY_ENABLED] = enabled } }
+    }
+
     override val eventThemeEnabled: StateFlow<Boolean> =
         dataStore.data.map { it[KEY_EVENT_THEME_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
 
@@ -564,6 +573,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         val KEY_MESSAGE_FONT_SIZE_SCALE = floatPreferencesKey("message-font-size-scale")
         val KEY_REACTION_CHIP_SPACING = intPreferencesKey("reaction-chip-spacing")
         val KEY_PRESSURE_IN_MMHG = booleanPreferencesKey("pressure-in-mm-hg")
+        val KEY_AUTO_TOPOLOGY_DISCOVERY_ENABLED = booleanPreferencesKey("auto-topology-discovery-enabled")
 
         val KEY_APP_INTRO_COMPLETED = booleanPreferencesKey("app_intro_completed")
         val KEY_THEME = intPreferencesKey("theme")

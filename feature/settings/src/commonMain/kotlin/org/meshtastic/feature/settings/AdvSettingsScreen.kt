@@ -83,6 +83,10 @@ import org.meshtastic.core.resources.adv_section_messaging
 import org.meshtastic.core.resources.adv_section_notifications
 import org.meshtastic.core.resources.adv_section_photos
 import org.meshtastic.core.resources.adv_settings
+import org.meshtastic.core.resources.auto_topology_discovery_summary
+import org.meshtastic.core.resources.auto_topology_discovery_title
+import org.meshtastic.core.resources.automation
+import org.meshtastic.core.resources.automation_summary
 import org.meshtastic.core.resources.file_transfer_setting
 import org.meshtastic.core.resources.file_transfer_setting_summary
 import org.meshtastic.core.resources.imgbb_api_key_hint
@@ -131,6 +135,7 @@ import org.meshtastic.core.ui.component.SwitchPreference
 import org.meshtastic.core.ui.icon.FileDownload
 import org.meshtastic.core.ui.icon.FormatPaint
 import org.meshtastic.core.ui.icon.MeshtasticIcons
+import org.meshtastic.core.ui.icon.Settings
 import org.meshtastic.core.ui.icon.Upload
 import org.meshtastic.core.ui.util.rememberOpenFileLauncher
 import org.meshtastic.core.ui.util.rememberSaveFileLauncher
@@ -155,6 +160,7 @@ fun AdvSettingsScreen(
     settingsViewModel: SettingsViewModel,
     onNavigateUp: () -> Unit,
     onNavigateToAppearance: () -> Unit = {},
+    onNavigateToAutomation: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val ourNode by settingsViewModel.ourNodeInfo.collectAsStateWithLifecycle()
@@ -171,6 +177,7 @@ fun AdvSettingsScreen(
     val reactionNotificationMode by settingsViewModel.reactionNotificationMode.collectAsStateWithLifecycle()
     val pinnedMessagesEnabled by settingsViewModel.pinnedMessagesEnabled.collectAsStateWithLifecycle()
     val pressureInMmHg by settingsViewModel.pressureInMmHg.collectAsStateWithLifecycle()
+    val autoTopologyDiscoveryEnabled by settingsViewModel.autoTopologyDiscoveryEnabled.collectAsStateWithLifecycle()
 
     val isImporting by settingsViewModel.isImporting.collectAsStateWithLifecycle()
     val isExporting by settingsViewModel.isExporting.collectAsStateWithLifecycle()
@@ -373,6 +380,7 @@ fun AdvSettingsScreen(
             reactionNotificationMode = reactionNotificationMode,
             pinnedMessagesEnabled = pinnedMessagesEnabled,
             pressureInMmHg = pressureInMmHg,
+            autoTopologyDiscoveryEnabled = autoTopologyDiscoveryEnabled,
             onTextCompressionChange = settingsViewModel::setTextCompressionEnabled,
             onInsertPhotoLinkChange = settingsViewModel::setInsertPhotoLinkEnabled,
             onLinkPreviewChange = settingsViewModel::setLinkPreviewEnabled,
@@ -386,7 +394,9 @@ fun AdvSettingsScreen(
             onReactionNotificationModeChange = settingsViewModel::setReactionNotificationMode,
             onPinnedMessagesChange = settingsViewModel::setPinnedMessagesEnabled,
             onPressureInMmHgChange = settingsViewModel::setPressureInMmHg,
+            onAutoTopologyDiscoveryChange = settingsViewModel::setAutoTopologyDiscoveryEnabled,
             onNavigateToAppearance = onNavigateToAppearance,
+            onNavigateToAutomation = onNavigateToAutomation,
             onExportMessages = { showExportTypeDialog = true },
             onImportMessages = { importMessagesLauncher("*/*") },
         )
@@ -409,6 +419,7 @@ private fun AdvSettingsContent(
     reactionNotificationMode: ReactionNotificationMode,
     pinnedMessagesEnabled: Boolean,
     pressureInMmHg: Boolean,
+    autoTopologyDiscoveryEnabled: Boolean,
     onTextCompressionChange: (Boolean) -> Unit,
     onInsertPhotoLinkChange: (Boolean) -> Unit,
     onLinkPreviewChange: (Boolean) -> Unit,
@@ -422,7 +433,9 @@ private fun AdvSettingsContent(
     onReactionNotificationModeChange: (ReactionNotificationMode) -> Unit,
     onPinnedMessagesChange: (Boolean) -> Unit,
     onPressureInMmHgChange: (Boolean) -> Unit,
+    onAutoTopologyDiscoveryChange: (Boolean) -> Unit,
     onNavigateToAppearance: () -> Unit,
+    onNavigateToAutomation: () -> Unit,
     onExportMessages: () -> Unit,
     onImportMessages: () -> Unit,
     modifier: Modifier = Modifier,
@@ -469,6 +482,13 @@ private fun AdvSettingsContent(
                 checked = showBellButton,
                 enabled = true,
                 onCheckedChange = onShowBellButtonChange,
+            )
+            SwitchPreference(
+                title = stringResource(Res.string.auto_topology_discovery_title),
+                summary = stringResource(Res.string.auto_topology_discovery_summary),
+                checked = autoTopologyDiscoveryEnabled,
+                enabled = true,
+                onCheckedChange = onAutoTopologyDiscoveryChange,
             )
         }
 
@@ -588,6 +608,16 @@ private fun AdvSettingsContent(
                         ReactionNotificationMode.DISABLED -> stringResource(Res.string.reaction_mode_disabled)
                     }
                 },
+            )
+        }
+
+        ExpressiveSection(title = stringResource(Res.string.automation)) {
+            ListItem(
+                text = stringResource(Res.string.automation),
+                supportingText = stringResource(Res.string.automation_summary),
+                leadingIcon = MeshtasticIcons.Settings,
+                trailingIcon = null,
+                onClick = onNavigateToAutomation,
             )
         }
 

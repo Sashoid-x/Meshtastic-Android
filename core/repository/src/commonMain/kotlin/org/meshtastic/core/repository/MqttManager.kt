@@ -33,6 +33,18 @@ interface MqttManager {
      */
     val proxyActive: StateFlow<Boolean>
 
+    /**
+     * Observable state indicating whether the MQTT client is enabled from UI/graph,
+     * independent of the connected radio node's MQTT configuration.
+     */
+    val isClientEnabled: StateFlow<Boolean>
+
+    /** Message throughput rate in messages per second. */
+    val messageRate: StateFlow<Float>
+
+    /** Enables or disables the MQTT client independently of the radio node's MQTT config. */
+    fun setClientEnabled(enabled: Boolean)
+
     /** Starts the MQTT proxy with the given settings. */
     fun startProxy(enabled: Boolean, proxyToClientEnabled: Boolean)
 

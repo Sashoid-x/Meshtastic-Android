@@ -16,6 +16,7 @@
  */
 package org.meshtastic.core.data.manager
 
+import dev.mokkery.MockMode
 import dev.mokkery.mock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -30,6 +31,7 @@ import org.meshtastic.core.model.MqttConnectionState
 import org.meshtastic.core.network.repository.MQTTRepository
 import org.meshtastic.core.repository.PacketHandler
 import org.meshtastic.core.repository.ServiceStateWriter
+import org.meshtastic.core.repository.TopologyManager
 import org.meshtastic.core.testing.FakeNodeRepository
 import org.meshtastic.mqtt.ConnectionState
 import org.meshtastic.mqtt.MqttException
@@ -119,6 +121,7 @@ class MqttManagerImplTest {
                 serviceStateWriter = mock<ServiceStateWriter>(),
                 nodeRepository = FakeNodeRepository(),
                 scope = CoroutineScope(StandardTestDispatcher(testScheduler)).asServiceScope(),
+                topologyManager = lazy { mock<TopologyManager>(MockMode.autofill) },
             )
         return Harness(manager, repository)
     }

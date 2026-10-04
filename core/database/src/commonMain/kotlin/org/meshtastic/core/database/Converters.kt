@@ -114,16 +114,18 @@ class Converters {
 
     /** Discovery scans capture the radio's pre-scan LoRa config so an interrupted scan can restore it later. */
     @ColumnTypeConverter
-    fun bytesToLoRaConfig(bytes: ByteArray?): Config.LoRaConfig? =
-        bytes?.let { Config.LoRaConfig.ADAPTER.decodeOrNull(it, Logger) }
+    fun bytesToLoRaConfig(bytes: ByteArray?): Config.LoRaConfig? = bytes?.let {
+        Config.LoRaConfig.ADAPTER.decodeOrNull(it, Logger)
+    }
 
     @ColumnTypeConverter
     fun loRaConfigToBytes(value: Config.LoRaConfig?): ByteArray? = value?.let { Config.LoRaConfig.ADAPTER.encode(it) }
 
     /** Discovery scans capture the radio's pre-scan primary channel to restore after a custom-channel target. */
     @ColumnTypeConverter
-    fun bytesToChannelSettings(bytes: ByteArray?): ChannelSettings? =
-        bytes?.let { ChannelSettings.ADAPTER.decodeOrNull(it, Logger) }
+    fun bytesToChannelSettings(bytes: ByteArray?): ChannelSettings? = bytes?.let {
+        ChannelSettings.ADAPTER.decodeOrNull(it, Logger)
+    }
 
     @ColumnTypeConverter
     fun channelSettingsToBytes(value: ChannelSettings?): ByteArray? = value?.let { ChannelSettings.ADAPTER.encode(it) }
@@ -133,4 +135,13 @@ class Converters {
 
     @ColumnTypeConverter
     fun intToMessageStatus(value: Int): MessageStatus = MessageStatus.entries.getOrElse(value) { MessageStatus.UNKNOWN }
+
+    @ColumnTypeConverter
+    fun stringToTopologySource(value: String): org.meshtastic.core.model.TopologySource = runCatching {
+        org.meshtastic.core.model.TopologySource.valueOf(value)
+    }
+        .getOrDefault(org.meshtastic.core.model.TopologySource.LOCAL_RADIO)
+
+    @ColumnTypeConverter
+    fun topologySourceToString(value: org.meshtastic.core.model.TopologySource): String = value.name
 }

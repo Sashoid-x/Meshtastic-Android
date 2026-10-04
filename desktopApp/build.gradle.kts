@@ -340,12 +340,14 @@ dependencies {
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose.m3)
 
-    // Coil image loading (network + SVG decoding for device hardware images)
+    // Coil image loading (network + SVG decoding for device hardware images, GIF decoding)
     implementation(libs.coil)
     implementation(libs.coil.network.ktor3)
     implementation(libs.coil.svg)
+    implementation(libs.coil.gif)
 
     // Core KMP modules (JVM variants)
+    implementation(projects.core.automation)
     implementation(projects.core.common)
     implementation(projects.core.di)
     implementation(projects.core.model)
@@ -366,6 +368,7 @@ dependencies {
     implementation(projects.core.ble)
 
     // Feature modules (JVM variants for real composable wiring)
+    implementation(projects.feature.automation)
     implementation(projects.feature.settings)
     implementation(projects.feature.docs)
     implementation(projects.feature.node)

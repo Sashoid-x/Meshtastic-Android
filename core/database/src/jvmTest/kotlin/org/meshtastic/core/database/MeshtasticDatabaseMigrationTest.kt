@@ -744,6 +744,22 @@ class MeshtasticDatabaseMigrationTest {
             }
     }
 
+    @Test
+    fun migration64To65CreatesAutomationTables() = runTest {
+        helper.createDatabase(SCHEMA_65_FROM_VERSION).close()
+
+        helper
+            .runMigrationsAndValidate(
+                SCHEMA_65_TO_VERSION,
+                listOf(MeshtasticDatabase.MIGRATION_64_65),
+            )
+            .use { connection ->
+                val tables = queryColumn(connection, "SELECT name FROM sqlite_master WHERE type='table'")
+                assertTrue("automation_rule" in tables)
+                assertTrue("automation_log" in tables)
+            }
+    }
+
     /** The `detail` column of `EXPLAIN QUERY PLAN` for [sql], one entry per plan step. */
     private fun queryPlan(connection: SQLiteConnection, sql: String): List<String> =
         connection.prepare("EXPLAIN QUERY PLAN $sql").use { statement ->
@@ -797,9 +813,15 @@ class MeshtasticDatabaseMigrationTest {
         const val REACTION_AUTH_TO_VERSION = 63
         const val SCHEMA_64_FROM_VERSION = 63
         const val SCHEMA_64_TO_VERSION = 64
+        const val SCHEMA_65_FROM_VERSION = 64
+        const val SCHEMA_65_TO_VERSION = 65
+        const val SCHEMA_66_FROM_VERSION = 65
+        const val SCHEMA_66_TO_VERSION = 66
         const val QUERY_PLAN_DETAIL_COLUMN = 3
 
-        /** Every hand-written migration, which a walk across 52→53, 58→60, 61→63, or 63→64 must be given. */
+        /**
+         * Every hand-written migration, which a walk across 52→53, 58→60, 61→63, 63→64, 64→65, or 65→66 must be given.
+         */
         val MANUAL_MIGRATIONS =
             listOf(
                 MeshtasticDatabase.MIGRATION_52_53,
@@ -810,6 +832,8 @@ class MeshtasticDatabaseMigrationTest {
                 MeshtasticDatabase.MIGRATION_62_63,
                 MeshtasticDatabase.MIGRATION_61_63,
                 MeshtasticDatabase.MIGRATION_63_64,
+                MeshtasticDatabase.MIGRATION_64_65,
+                MeshtasticDatabase.MIGRATION_65_66,
             )
         const val PUBLIC_KEY_BYTES = 32
         const val STORED_CHANNEL_SET_HEX = "0A0612044D657368"

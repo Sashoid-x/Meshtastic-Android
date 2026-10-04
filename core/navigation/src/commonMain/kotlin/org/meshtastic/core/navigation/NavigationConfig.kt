@@ -31,6 +31,7 @@ import kotlinx.serialization.modules.subclassesOfSealed
 val MeshtasticNavSavedStateConfig = SavedStateConfiguration {
     serializersModule = SerializersModule {
         polymorphic(NavKey::class) {
+            subclassesOfSealed<AutomationRoute>()
             subclassesOfSealed<ChannelsRoute>()
             subclassesOfSealed<ConnectionsRoute>()
             subclassesOfSealed<ContactsRoute>()

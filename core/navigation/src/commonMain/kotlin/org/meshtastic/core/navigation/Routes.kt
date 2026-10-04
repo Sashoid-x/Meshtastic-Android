@@ -62,6 +62,8 @@ sealed interface NodesRoute : Route {
     @Serializable data object Nodes : NodesRoute, Graph
 
     @Serializable data class NodeDetail(val destNum: Int? = null) : NodesRoute
+
+    @Serializable data object TopologyGraph : NodesRoute
 }
 
 @Serializable
@@ -187,6 +189,8 @@ sealed interface SettingsRoute : Route {
 
     @Serializable data object AppearanceSettings : SettingsRoute
 
+    @Serializable data object Automation : SettingsRoute
+
     // endregion
 
     // region help & documentation routes
@@ -196,6 +200,17 @@ sealed interface SettingsRoute : Route {
     @Serializable data class HelpDocPage(val pageId: String) : SettingsRoute
 
     // endregion
+}
+
+@Serializable
+sealed interface AutomationRoute : Route {
+    @Serializable data object AutomationGraph : AutomationRoute, Graph
+
+    @Serializable data object AutomationList : AutomationRoute
+
+    @Serializable data class AutomationBuilder(val ruleId: String? = null) : AutomationRoute
+
+    @Serializable data class AutomationLogs(val ruleId: String) : AutomationRoute
 }
 
 @Serializable

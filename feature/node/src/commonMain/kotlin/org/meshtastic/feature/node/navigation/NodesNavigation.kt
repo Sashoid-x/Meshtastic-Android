@@ -70,6 +70,8 @@ import org.meshtastic.feature.node.metrics.PowerMetricsScreen
 import org.meshtastic.feature.node.metrics.SignalMetricsScreen
 import org.meshtastic.feature.node.metrics.TracerouteLogScreen
 import org.meshtastic.feature.node.metrics.TracerouteMapScreen
+import org.meshtastic.feature.node.topology.TopologyGraphScreen
+import org.meshtastic.feature.node.topology.TopologyGraphViewModel
 import kotlin.reflect.KClass
 
 @OptIn(ExperimentalMaterial3AdaptiveApi::class)
@@ -86,6 +88,17 @@ fun EntryProviderScope<NavKey>.nodesGraph(
             scrollToTopEvents = scrollToTopEvents,
             onHandleDeepLink = onHandleDeepLink,
             onNavigateToConnections = onNavigateToConnections,
+        )
+    }
+
+    entry<NodesRoute.TopologyGraph>(metadata = { ListDetailSceneStrategy.detailPane() }) {
+        val topologyGraphViewModel: TopologyGraphViewModel = koinViewModel()
+        TopologyGraphScreen(
+            viewModel = topologyGraphViewModel,
+            onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },
+            onNavigateToNodeDetail = { destNum ->
+                backStack.add(NodesRoute.NodeDetail(destNum))
+            },
         )
     }
 

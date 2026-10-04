@@ -47,5 +47,6 @@ fun AdaptiveNodeListScreen(
         onNavigateToConnections = onNavigateToConnections,
         // A bare radio-config route on this tab's stack resolves to the local session, the same as Connections -> LoRa.
         onEditStatusMessage = { backStack.add(SettingsRoute.UserStatusMessage) },
+        onNavigateToTopology = { backStack.add(NodesRoute.TopologyGraph) },
     )
 }

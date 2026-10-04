@@ -280,6 +280,12 @@ class SettingsViewModel(
         uiPrefs.setPinnedMessagesEnabled(enabled)
     }
 
+    val autoTopologyDiscoveryEnabled = uiPrefs.autoTopologyDiscoveryEnabled
+
+    fun setAutoTopologyDiscoveryEnabled(enabled: Boolean) {
+        uiPrefs.setAutoTopologyDiscoveryEnabled(enabled)
+    }
+
     val advThemeColorsJson = uiPrefs.advThemeColorsJson
 
     fun setAdvThemeColorsJson(json: String) {

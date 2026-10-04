@@ -78,6 +78,7 @@ class MeshServiceOrchestrator(
     private val connectionManager: MeshConnectionManager,
     private val dispatchers: CoroutineDispatchers,
     private val localNetworkAccess: LocalNetworkAccess,
+    private val automationEngine: org.meshtastic.core.automation.engine.AutomationEngine? = null,
 ) {
     // Per-start coroutine scope. A fresh scope is created on each start() and cancelled on stop(), so all collectors
     // launched from start() are torn down cleanly and do not accumulate across start/stop/start cycles.
@@ -164,6 +165,7 @@ class MeshServiceOrchestrator(
 
         serviceNotifications.initChannels()
         connectionManager.updateStatusNotification()
+        automationEngine?.start(newScope)
 
         // Observe TAK server pref to start/stop
         takPrefs.isTakServerEnabled
@@ -225,6 +227,7 @@ class MeshServiceOrchestrator(
     fun stop() {
         Logger.i { "Stopping mesh service orchestrator" }
         takMeshIntegration.stop()
+        automationEngine?.stop()
         // Best-effort polite goodbye on service teardown (onDestroy / process shutdown). We launch
         // on a fresh detached scope — not the orchestrator's per-start scope — so the subsequent
         // scope.cancel() below doesn't interrupt the short drain delay inside disconnect(). The

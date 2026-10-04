@@ -240,6 +240,11 @@ interface UiPrefs {
 
     fun setPressureInMmHg(enabled: Boolean)
 
+    /** Whether auto-topology discovery is enabled in local radio mode (opt-in; default off). */
+    val autoTopologyDiscoveryEnabled: StateFlow<Boolean>
+
+    fun setAutoTopologyDiscoveryEnabled(enabled: Boolean)
+
     /**
      * Whether to apply an event edition's ambient theme (accent wash + custom typeface) app-wide (opt-out; default on).
      */

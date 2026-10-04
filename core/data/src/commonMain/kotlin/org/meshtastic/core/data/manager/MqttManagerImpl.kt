@@ -19,6 +19,7 @@ package org.meshtastic.core.data.manager
 import co.touchlab.kermit.Logger
 import co.touchlab.kermit.Severity
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -28,11 +29,16 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.koin.core.annotation.Single
 import org.meshtastic.core.common.di.ServiceScope
+import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.common.util.safeCatchingAll
 import org.meshtastic.core.model.MqttConnectionState
 import org.meshtastic.core.model.MqttProbeStatus
+import org.meshtastic.core.model.TopologySource
 import org.meshtastic.core.network.repository.MQTTRepository
 import org.meshtastic.core.network.repository.MQTT_KEEPALIVE_SECONDS
 import org.meshtastic.core.network.repository.isCredentialRejection
@@ -42,6 +48,7 @@ import org.meshtastic.core.repository.MqttManager
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.PacketHandler
 import org.meshtastic.core.repository.ServiceStateWriter
+import org.meshtastic.core.repository.TopologyManager
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.getStringSuspend
 import org.meshtastic.core.resources.mqtt_error_connection_lost
@@ -61,21 +68,37 @@ import org.meshtastic.proto.MqttClientProxyMessage
 import org.meshtastic.proto.ToRadio
 import kotlin.uuid.Uuid
 
+private const val RATE_WINDOW_MS = 5_000L
+private const val RATE_WINDOW_SECONDS = 5.0f
+
 @Single
+@Suppress("TooManyFunctions")
 class MqttManagerImpl(
     private val mqttRepository: MQTTRepository,
     private val packetHandler: PacketHandler,
     private val serviceStateWriter: ServiceStateWriter,
     private val nodeRepository: NodeRepository,
     private val scope: ServiceScope,
+    private val topologyManager: Lazy<TopologyManager>,
 ) : MqttManager {
     private var mqttMessageFlow: Job? = null
     private val _proxyActive = MutableStateFlow(false)
-
     override val proxyActive: StateFlow<Boolean> = _proxyActive.asStateFlow()
 
+    private val _isClientEnabled = MutableStateFlow(false)
+    override val isClientEnabled: StateFlow<Boolean> = _isClientEnabled.asStateFlow()
+
+    private val _messageRate = MutableStateFlow(0f)
+    override val messageRate: StateFlow<Float> = _messageRate.asStateFlow()
+
+    private val isRunningFlow = combine(_proxyActive, _isClientEnabled) { proxy, client -> proxy || client }
+
+    private val messageTimestamps = ArrayDeque<Long>()
+    private val rateMutex = Mutex()
+    private var decayJob: Job? = null
+
     override val mqttConnectionState: StateFlow<MqttConnectionState> =
-        combine(_proxyActive, mqttRepository.connectionState, mqttRepository.subscriptionRefusal) {
+        combine(isRunningFlow, mqttRepository.connectionState, mqttRepository.subscriptionRefusal) {
                 active,
                 libState,
                 refusal,
@@ -95,51 +118,126 @@ class MqttManagerImpl(
             .stateIn(scope, SharingStarted.Eagerly, MqttConnectionState.Inactive)
 
     override fun startProxy(enabled: Boolean, proxyToClientEnabled: Boolean) {
+        _proxyActive.value = enabled && proxyToClientEnabled
+        syncConnection()
+    }
+
+    override fun setClientEnabled(enabled: Boolean) {
+        _isClientEnabled.value = enabled
+        syncConnection()
+    }
+
+    override fun stop() {
+        _proxyActive.value = false
+        _isClientEnabled.value = false
+        syncConnection()
+    }
+
+    private fun syncConnection() {
+        val shouldBeActive = _proxyActive.value || _isClientEnabled.value
+        if (shouldBeActive) {
+            startMqttStream()
+        } else {
+            stopMqttStream()
+        }
+    }
+
+    private fun startMqttStream() {
         if (mqttMessageFlow?.isActive == true) return
-        if (enabled && proxyToClientEnabled) {
-            _proxyActive.value = true
-            mqttMessageFlow =
-                mqttRepository.proxyMessageFlow
-                    .onEach { message ->
+        mqttMessageFlow =
+            mqttRepository.proxyMessageFlow
+                .onEach { message ->
+                    recordIncomingMessage()
+                    message.data_?.let { data ->
+                        val bytes = data.toByteArray()
+                        val envelope = runCatching {
+                            org.meshtastic.proto.ServiceEnvelope.ADAPTER.decode(bytes)
+                        }
+                            .getOrNull()
+                        val meshPacket =
+                            envelope?.packet
+                                ?: runCatching {
+                                    org.meshtastic.proto.MeshPacket.ADAPTER.decode(bytes)
+                                }
+                                    .getOrNull()
+                        if (meshPacket != null) {
+                            topologyManager.value.processPacket(
+                                packet = meshPacket,
+                                source = TopologySource.MQTT,
+                                gatewayId = envelope?.gateway_id,
+                            )
+                        }
+                    }
+                    if (_proxyActive.value) {
                         packetHandler.sendToRadio(
                             ToRadio.Builder().also { wb -> wb.mqttClientProxyMessage = message }.build(),
                         )
                     }
-                    .catch { throwable ->
-                        _proxyActive.value = false
-                        // safeCatchingAll swallows the Skiko ExceptionInInitializerError that
-                        // compose-resources raises on headless JVM tests; production resolves the
-                        // localized string and the error is still surfaced either way.
-                        val message =
-                            safeCatchingAll {
-                                when {
-                                    throwable is MqttException.ConnectionRejected &&
-                                        throwable.isCredentialRejection() ->
-                                        getStringSuspend(Res.string.mqtt_error_credentials_rejected)
+                }
+                .catch { throwable ->
+                    _proxyActive.value = false
+                    _isClientEnabled.value = false
+                    stopRateTracking()
+                    val message = safeCatchingAll {
+                        when {
+                            throwable is MqttException.ConnectionRejected && throwable.isCredentialRejection() ->
+                                getStringSuspend(Res.string.mqtt_error_credentials_rejected)
 
-                                    throwable is MqttException.ConnectionRejected ->
-                                        getStringSuspend(Res.string.mqtt_error_rejected, throwable.detail())
+                            throwable is MqttException.ConnectionRejected ->
+                                getStringSuspend(Res.string.mqtt_error_rejected, throwable.detail())
 
-                                    throwable is MqttException.ConnectionLost ->
-                                        getStringSuspend(Res.string.mqtt_error_connection_lost)
+                            throwable is MqttException.ConnectionLost ->
+                                getStringSuspend(Res.string.mqtt_error_connection_lost)
 
-                                    else -> getStringSuspend(Res.string.mqtt_error_proxy_failed, throwable.detail())
-                                }
-                            }
-                                .getOrDefault("")
-                        serviceStateWriter.setErrorMessage(text = message, severity = Severity.Warn)
+                            else -> getStringSuspend(Res.string.mqtt_error_proxy_failed, throwable.detail())
+                        }
                     }
-                    .launchIn(scope)
-        }
+                        .getOrDefault("")
+                    serviceStateWriter.setErrorMessage(text = message, severity = Severity.Warn)
+                }
+                .launchIn(scope)
     }
 
-    override fun stop() {
+    private fun stopMqttStream() {
         if (mqttMessageFlow?.isActive == true) {
-            Logger.i { "Stopping MqttClientProxy" }
+            Logger.i { "Stopping MQTT connection" }
             mqttMessageFlow?.cancel()
             mqttMessageFlow = null
         }
-        _proxyActive.value = false
+        stopRateTracking()
+    }
+
+    private fun recordIncomingMessage() {
+        val now = nowMillis
+        scope.launch {
+            rateMutex.withLock {
+                messageTimestamps.addLast(now)
+                pruneTimestamps(now)
+                _messageRate.value = messageTimestamps.size / RATE_WINDOW_SECONDS
+                decayJob?.cancel()
+                decayJob = scope.launch {
+                    delay(RATE_WINDOW_MS)
+                    rateMutex.withLock {
+                        pruneTimestamps(nowMillis)
+                        _messageRate.value = messageTimestamps.size / RATE_WINDOW_SECONDS
+                    }
+                }
+            }
+        }
+    }
+
+    private fun pruneTimestamps(now: Long) {
+        val windowStart = now - RATE_WINDOW_MS
+        while (messageTimestamps.isNotEmpty() && messageTimestamps.first() < windowStart) {
+            messageTimestamps.removeFirst()
+        }
+    }
+
+    private fun stopRateTracking() {
+        decayJob?.cancel()
+        decayJob = null
+        messageTimestamps.clear()
+        _messageRate.value = 0f
     }
 
     override fun handleMqttProxyMessage(message: MqttClientProxyMessage) {
@@ -203,14 +301,13 @@ class MqttManagerImpl(
     private fun ProbeResult.toAppStatus(): MqttProbeStatus = when (this) {
         is ProbeResult.Success -> {
             val info = serverInfo
-            val summary =
-                buildList {
-                    info.assignedClientIdentifier?.let { add("client=$it") }
-                    info.maximumQosOrdinal?.let { add("maxQoS=$it") }
-                    info.serverKeepAliveSeconds?.let { add("keepalive=${it}s") }
-                }
-                    .joinToString(", ")
-                    .ifEmpty { null }
+            val summary = buildList {
+                info.assignedClientIdentifier?.let { add("client=$it") }
+                info.maximumQosOrdinal?.let { add("maxQoS=$it") }
+                info.serverKeepAliveSeconds?.let { add("keepalive=${it}s") }
+            }
+                .joinToString(", ")
+                .ifEmpty { null }
             MqttProbeStatus.Success(serverInfo = summary)
         }
 

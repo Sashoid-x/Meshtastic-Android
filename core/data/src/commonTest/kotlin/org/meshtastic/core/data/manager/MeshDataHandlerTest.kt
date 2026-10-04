@@ -185,6 +185,7 @@ class MeshDataHandlerTest {
                 activeConversationTracker = activeConversationTracker,
                 uiPrefs = fakeAppPreferences.ui,
                 scope = testScope.asServiceScope(),
+                topologyManager = mock(MockMode.autofill),
             )
 
         everySuspend { radioInterfaceService.runWithSessionLease(any(), any()) } calls

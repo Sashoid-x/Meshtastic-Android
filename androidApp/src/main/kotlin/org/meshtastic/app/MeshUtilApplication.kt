@@ -60,6 +60,7 @@ import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.discovery_interrupted_scan_restored
 import org.meshtastic.core.resources.getStringSuspend
 import org.meshtastic.core.service.worker.MeshLogCleanupWorker
+import org.meshtastic.core.service.worker.TopologyDiscoveryWorker
 import org.meshtastic.feature.discovery.DiscoveryScanEngine
 import org.meshtastic.feature.widget.LocalStatsWidgetReceiver
 import kotlin.time.Duration.Companion.hours
@@ -119,6 +120,7 @@ open class MeshUtilApplication :
         // Schedule periodic MeshLog cleanup. Off-main: WorkManager uses on-demand init here
         // (the startup provider is removed), so getInstance() opens WorkManager's Room DB.
         applicationScope.launch { scheduleMeshLogCleanup() }
+        applicationScope.launch { scheduleTopologyDiscovery() }
 
         // ApplicationExitInfo requires API 30+. A "MemoryLimiter:AnonSwap" reason means Android 17's per-app
         // memory ceiling zram-swapped then killed the previous process — see reportMemoryLimiterExitIfPresent.
@@ -265,6 +267,18 @@ open class MeshUtilApplication :
                 MeshLogCleanupWorker.WORK_NAME,
                 ExistingPeriodicWorkPolicy.UPDATE,
                 cleanupRequest,
+            )
+    }
+
+    private fun scheduleTopologyDiscovery() {
+        val discoveryRequest =
+            PeriodicWorkRequestBuilder<TopologyDiscoveryWorker>(repeatInterval = 4.hours.toJavaDuration()).build()
+
+        WorkManager.getInstance(this)
+            .enqueueUniquePeriodicWork(
+                TopologyDiscoveryWorker.WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                discoveryRequest,
             )
     }
 

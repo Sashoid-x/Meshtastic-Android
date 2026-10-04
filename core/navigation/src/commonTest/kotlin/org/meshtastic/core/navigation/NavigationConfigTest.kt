@@ -110,6 +110,19 @@ class NavigationConfigTest {
             WifiProvisionRoute.WifiProvisionGraph,
             WifiProvisionRoute.WifiProvision(address = "AA:BB:CC:DD:EE:FF"),
             WifiProvisionRoute.WifiProvision(),
+            // AutomationRoute
+            AutomationRoute.AutomationGraph,
+            AutomationRoute.AutomationList,
+            AutomationRoute.AutomationBuilder(),
+            AutomationRoute.AutomationBuilder(ruleId = "rule-123"),
+            AutomationRoute.AutomationLogs(ruleId = "rule-123"),
+            // DiscoveryRoute
+            DiscoveryRoute.DiscoveryGraph,
+            DiscoveryRoute.DiscoveryScan,
+            DiscoveryRoute.DiscoverySummary(sessionId = 1L),
+            DiscoveryRoute.DiscoveryHistory,
+            DiscoveryRoute.DiscoveryHistoryDetail(sessionId = 1L),
+            DiscoveryRoute.DiscoveryMap(sessionId = 1L),
         )
 
     @Test
@@ -143,6 +156,8 @@ class NavigationConfigTest {
                         is SettingsRoute -> "SettingsRoute"
                         is FirmwareRoute -> "FirmwareRoute"
                         is WifiProvisionRoute -> "WifiProvisionRoute"
+                        is AutomationRoute -> "AutomationRoute"
+                        is DiscoveryRoute -> "DiscoveryRoute"
                         else -> "Unknown(${route::class.simpleName})"
                     }
                 }
@@ -150,9 +165,11 @@ class NavigationConfigTest {
 
         val expectedInterfaces =
             setOf(
+                "AutomationRoute",
                 "ChannelsRoute",
                 "ConnectionsRoute",
                 "ContactsRoute",
+                "DiscoveryRoute",
                 "MapRoute",
                 "NodesRoute",
                 "NodeDetailRoute",
@@ -180,6 +197,7 @@ class NavigationConfigTest {
                 SettingsRoute.Settings() to SettingsRoute.Settings(destNum = null),
                 ConnectionsRoute.Connections() to ConnectionsRoute.Connections(address = null),
                 WifiProvisionRoute.WifiProvision() to WifiProvisionRoute.WifiProvision(address = null),
+                AutomationRoute.AutomationBuilder() to AutomationRoute.AutomationBuilder(ruleId = null),
             )
 
         routesWithDefaults.forEach { (defaultInstance, explicitNullInstance) ->

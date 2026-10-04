@@ -47,6 +47,7 @@ import org.meshtastic.core.ui.component.MeshtasticAppShell
 import org.meshtastic.core.ui.component.MeshtasticNavDisplay
 import org.meshtastic.core.ui.component.MeshtasticNavigationSuite
 import org.meshtastic.core.ui.viewmodel.UIViewModel
+import org.meshtastic.feature.automation.navigation.automationGraph
 import org.meshtastic.feature.connections.navigation.connectionsGraph
 import org.meshtastic.feature.discovery.navigation.discoveryGraph
 import org.meshtastic.feature.docs.navigation.docsEntries
@@ -110,6 +111,7 @@ fun MainScreen() {
                     channelsGraph(backStack)
                     connectionsGraph(backStack)
                     discoveryGraph(backStack)
+                    automationGraph(backStack)
                     settingsGraph(backStack, settingsRadioConfigViewModelProvider)
                     docsEntries(backStack)
                     firmwareGraph(backStack)

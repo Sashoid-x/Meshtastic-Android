@@ -47,6 +47,7 @@ import org.meshtastic.core.service.di.CoreServiceAndroidModule
 import org.meshtastic.core.service.di.CoreServiceModule
 import org.meshtastic.core.takserver.di.CoreTakServerModule
 import org.meshtastic.core.ui.di.CoreUiModule
+import org.meshtastic.feature.automation.di.FeatureAutomationModule
 import org.meshtastic.feature.connections.di.FeatureConnectionsModule
 import org.meshtastic.feature.discovery.di.FeatureDiscoveryModule
 import org.meshtastic.feature.docs.di.FeatureDocsModule
@@ -64,6 +65,7 @@ import org.meshtastic.feature.wifiprovision.di.FeatureWifiProvisionModule
     [
         org.meshtastic.app.MainKoinModule::class,
         org.meshtastic.core.di.di.CoreDiModule::class,
+        org.meshtastic.core.automation.di.CoreAutomationModule::class,
         CoreCommonModule::class,
         CoreBleModule::class,
         CoreBleAndroidModule::class,
@@ -88,6 +90,7 @@ import org.meshtastic.feature.wifiprovision.di.FeatureWifiProvisionModule
         FeatureConnectionsModule::class,
         FeatureMapModule::class,
         FeatureSettingsModule::class,
+        FeatureAutomationModule::class,
         FeatureDiscoveryModule::class,
         FeatureDocsModule::class,
         FeatureFirmwareModule::class,

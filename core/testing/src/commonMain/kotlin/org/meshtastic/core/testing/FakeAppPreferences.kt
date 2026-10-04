@@ -277,6 +277,12 @@ class FakeUiPrefs : UiPrefs {
         pressureInMmHg.value = enabled
     }
 
+    override val autoTopologyDiscoveryEnabled = MutableStateFlow(false)
+
+    override fun setAutoTopologyDiscoveryEnabled(enabled: Boolean) {
+        autoTopologyDiscoveryEnabled.value = enabled
+    }
+
     override val eventThemeEnabled = MutableStateFlow(true)
 
     override fun setEventThemeEnabled(enabled: Boolean) {

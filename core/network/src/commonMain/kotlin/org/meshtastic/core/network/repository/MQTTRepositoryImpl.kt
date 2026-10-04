@@ -178,10 +178,17 @@ class MQTTRepositoryImpl(
                         }
                         newClient.connect(endpoint)
                         if (!isActiveSession(session)) return@launch
+                        val loraConfig = channelSet.lora_config ?: org.meshtastic.core.model.Channel.default.loraConfig
+                        val configuredChannels =
+                            channelSet.settings
+                                .map { org.meshtastic.core.model.Channel(it, loraConfig).name }
+                                .filter { it.isNotBlank() }
+                        val subscribeList = channelSet.subscribeList.ifEmpty { configuredChannels }
+
                         // Built here, not before connect: the option set depends on the version the broker accepted.
                         val subscriptions =
                             buildSubscriptions(
-                                globalIds = channelSet.subscribeList,
+                                globalIds = subscribeList,
                                 rootTopic = rootTopic,
                                 jsonEnabled = mqttConfig?.json_enabled == true,
                                 version = newClient.negotiatedProtocolVersion,
@@ -341,6 +348,17 @@ class MQTTRepositoryImpl(
                     noLocal = noLocal,
                 ),
             )
+            // If the root topic is regional or multi-segment (e.g. "msh/RU/SAR"),
+            // subscribe to the subtopic wildcard so all nodes/gateways on the regional mesh are heard for topology
+            if (rootTopic.contains('/')) {
+                add(
+                    Subscription(
+                        "$rootTopic$DEFAULT_TOPIC_LEVEL#",
+                        maxQos = QoS.AT_LEAST_ONCE,
+                        noLocal = noLocal,
+                    ),
+                )
+            }
         }
     }
 

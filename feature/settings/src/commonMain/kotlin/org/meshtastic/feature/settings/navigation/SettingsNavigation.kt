@@ -463,6 +463,10 @@ fun EntryProviderScope<NavKey>.settingsGraph(
             settingsViewModel = settingsViewModel,
             onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },
             onNavigateToAppearance = dropUnlessResumed { backStack.add(SettingsRoute.AppearanceSettings) },
+            onNavigateToAutomation =
+            dropUnlessResumed {
+                backStack.add(org.meshtastic.core.navigation.AutomationRoute.AutomationList)
+            },
         )
     }
     entry<SettingsRoute.AppearanceSettings> {
