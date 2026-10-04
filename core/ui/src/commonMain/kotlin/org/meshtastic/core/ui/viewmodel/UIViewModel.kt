@@ -41,6 +41,7 @@ import kotlinx.coroutines.flow.onEach
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import org.koin.core.annotation.KoinViewModel
+import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.model.AppUpdateCheckState
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.EventFirmwareEdition
