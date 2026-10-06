@@ -24,6 +24,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -31,9 +33,23 @@ import kotlin.test.assertNull
 
 class LinkPreviewServiceTest {
 
+    @BeforeTest
+    fun setUp() {
+        SafeUrlValidator.dnsResolverForTesting = { listOf("93.184.216.34") }
+        SafeUrlValidator.skipHostNameFilterForTesting = true
+    }
+
+    @AfterTest
+    fun tearDown() {
+        SafeUrlValidator.dnsResolverForTesting = null
+        SafeUrlValidator.skipHostNameFilterForTesting = false
+    }
+
+    private val dummyClient = HttpClient(MockEngine { respond(content = "", status = HttpStatusCode.BadRequest) })
+
     @Test
     fun `parseHtml extracts opengraph metadata and unescapes html`() {
-        val service = LinkPreviewServiceImpl()
+        val service = LinkPreviewServiceImpl(dummyClient)
         val html =
             """
             <!DOCTYPE html>
@@ -60,7 +76,7 @@ class LinkPreviewServiceTest {
 
     @Test
     fun `parseHtml falls back to standard html title and description with host siteName`() {
-        val service = LinkPreviewServiceImpl()
+        val service = LinkPreviewServiceImpl(dummyClient)
         val html =
             """
             <!DOCTYPE html>
@@ -84,7 +100,7 @@ class LinkPreviewServiceTest {
 
     @Test
     fun `parseHtml resolves relative image URL`() {
-        val service = LinkPreviewServiceImpl()
+        val service = LinkPreviewServiceImpl(dummyClient)
         val html =
             """
             <html>
@@ -103,7 +119,7 @@ class LinkPreviewServiceTest {
 
     @Test
     fun `parseHtml returns null when no title description or image found`() {
-        val service = LinkPreviewServiceImpl()
+        val service = LinkPreviewServiceImpl(dummyClient)
         val html = "<html><head></head><body>No metadata here</body></html>"
         val preview = service.parseHtml("https://example.com/empty", html)
         assertNull(preview)

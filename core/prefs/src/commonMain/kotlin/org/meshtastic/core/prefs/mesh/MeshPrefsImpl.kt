@@ -16,6 +16,7 @@
  */
 package org.meshtastic.core.prefs.mesh
 
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -41,6 +42,7 @@ class MeshPrefsImpl(private val dataStore: MeshDataStore, dispatchers: Coroutine
     private val scope = CoroutineScope(SupervisorJob() + dispatchers.default)
 
     private val storeForwardFlows = atomic(persistentMapOf<String?, Lazy<StateFlow<Int>>>())
+    private val mqttClientFlows = atomic(persistentMapOf<String?, Lazy<StateFlow<Boolean>>>())
 
     override val deviceAddress: StateFlow<String?> =
         dataStore.data
@@ -81,6 +83,31 @@ class MeshPrefsImpl(private val dataStore: MeshDataStore, dispatchers: Coroutine
     }
 
     private fun storeForwardKey(address: String?): String = "store-forward-last-request-${normalizeAddress(address)}"
+
+    override fun getMqttClientEnabled(address: String?): StateFlow<Boolean> = cachedFlow(mqttClientFlows, address) {
+        val key = booleanPreferencesKey(mqttClientKey(address))
+        dataStore.data.map { it[key] ?: false }.stateIn(scope, SharingStarted.Eagerly, false)
+    }
+
+    override fun setMqttClientEnabled(address: String?, enabled: Boolean) {
+        scope.launch {
+            dataStore.edit { prefs ->
+                val key = booleanPreferencesKey(mqttClientKey(address))
+                if (!enabled) {
+                    prefs.remove(key)
+                } else {
+                    prefs[key] = true
+                }
+            }
+        }
+    }
+
+    override suspend fun awaitMqttClientEnabled(address: String?): Boolean {
+        val key = booleanPreferencesKey(mqttClientKey(address))
+        return dataStore.data.first()[key] ?: false
+    }
+
+    private fun mqttClientKey(address: String?): String = "mqtt-client-enabled-${normalizeAddress(address)}"
 
     companion object {
         val KEY_DEVICE_ADDRESS_PREF = stringPreferencesKey("device_address")

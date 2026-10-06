@@ -33,7 +33,8 @@ class ImgBBServiceTest {
 
     @Test
     fun `empty api key returns failure with ImgbbApiKeyMissingException`() = runTest {
-        val service = ImgBBServiceImpl()
+        val service =
+            ImgBBServiceImpl(HttpClient(MockEngine { respond(content = "", status = HttpStatusCode.BadRequest) }))
         val result = service.uploadImage(byteArrayOf(1, 2, 3), apiKey = "   ", expiration = ImgbbExpiration.DAYS_1)
 
         assertTrue(result.isFailure)

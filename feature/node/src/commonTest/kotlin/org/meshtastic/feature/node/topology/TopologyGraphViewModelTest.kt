@@ -29,6 +29,7 @@ import org.meshtastic.core.model.TopologySource
 import org.meshtastic.core.repository.MqttManager
 import org.meshtastic.core.repository.TopologyManager
 import org.meshtastic.core.testing.FakeNodeRepository
+import org.meshtastic.core.testing.TestDataFactory
 import org.meshtastic.proto.MeshPacket
 import org.meshtastic.proto.MqttClientProxyMessage
 import kotlin.test.BeforeTest
@@ -44,6 +45,9 @@ private class FakeTopologyManager : TopologyManager {
 
     override val allEdgesFlow: Flow<List<TopologyEdge>> = edgesFlow
     override val activeMqttNodesCount: Flow<Int> = mqttNodesCountFlow
+
+    override fun getActiveMqttNodesCount(periodStart: Long): Flow<Int> = mqttNodesCountFlow
+
     override val isMqttActive: StateFlow<Boolean> = mqttActiveFlow
 
     override fun processPacket(packet: MeshPacket, source: TopologySource, gatewayId: String?) {}
@@ -67,6 +71,8 @@ private class FakeMqttManager : MqttManager {
     override fun setClientEnabled(enabled: Boolean) {
         clientEnabledFlow.value = enabled
     }
+
+    override fun restoreClientState() {}
 
     override fun startProxy(enabled: Boolean, proxyToClientEnabled: Boolean) {}
 
@@ -245,6 +251,106 @@ class TopologyGraphViewModelTest {
             }
             assertEquals(MqttConnectionState.Connected, state.mqttConnectionState)
             assertEquals(5.5f, state.mqttMessageRate)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `uniqueNodeNums includes isolated ourNode even without edges`() = runTest {
+        nodeRepository.setOurNode(TestDataFactory.createTestNode(num = 42))
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.ourNode?.num != 42) {
+                state = awaitItem()
+            }
+            assertEquals(setOf(42), state.uniqueNodeNums)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `selection mutual exclusion selectNode clears edge and selectEdge clears node`() = runTest {
+        val edge = TopologyEdge.create(1, 2, 5f, -80, nowMillis, TopologySource.LOCAL_RADIO)
+        viewModel.uiState.test {
+            var state = awaitItem()
+            viewModel.selectNode(1)
+            while (state.selectedNodeNum != 1 || state.selectedEdge != null) {
+                state = awaitItem()
+            }
+            assertEquals(1, state.selectedNodeNum)
+            assertEquals(null, state.selectedEdge)
+
+            viewModel.selectEdge(edge)
+            while (state.selectedEdge != edge || state.selectedNodeNum != null) {
+                state = awaitItem()
+            }
+            assertEquals(edge, state.selectedEdge)
+            assertEquals(null, state.selectedNodeNum)
+
+            viewModel.selectNode(2)
+            while (state.selectedNodeNum != 2 || state.selectedEdge != null) {
+                state = awaitItem()
+            }
+            assertEquals(2, state.selectedNodeNum)
+            assertEquals(null, state.selectedEdge)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `combined filter correctly tracks hiddenByPeriodCount and hiddenByMqttCount`() = runTest {
+        val now = nowMillis
+        val recentLocal = TopologyEdge.create(1, 2, 5f, -80, now - 10_000L, TopologySource.LOCAL_RADIO)
+        val recentMqtt = TopologyEdge.create(2, 3, 5f, -80, now - 20_000L, TopologySource.MQTT)
+        val oldLocal = TopologyEdge.create(3, 4, 5f, -80, now - 2 * 3600_000L, TopologySource.LOCAL_RADIO)
+        val oldMqtt = TopologyEdge.create(4, 5, 5f, -80, now - 3 * 3600_000L, TopologySource.MQTT)
+
+        topologyManager.edgesFlow.value = listOf(recentLocal, recentMqtt, oldLocal, oldMqtt)
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.totalEdgesCount != 4) {
+                state = awaitItem()
+            }
+            assertEquals(4, state.edges.size)
+            assertEquals(0, state.hiddenByPeriodCount)
+            assertEquals(0, state.hiddenByMqttCount)
+
+            viewModel.setTimePeriod(TopologyTimePeriod.ONE_HOUR)
+            state = awaitItem()
+            assertEquals(2, state.edges.size)
+            assertEquals(2, state.hiddenByPeriodCount)
+            assertEquals(0, state.hiddenByMqttCount)
+
+            viewModel.setShowMqttData(false)
+            state = awaitItem()
+            assertEquals(1, state.edges.size)
+            assertEquals(listOf(recentLocal), state.edges)
+            assertEquals(2, state.hiddenByPeriodCount)
+            assertEquals(1, state.hiddenByMqttCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `activeMqttNodesCount reflects unique MQTT nodes within active period`() = runTest {
+        val now = nowMillis
+        val recentMqtt1 = TopologyEdge.create(10, 20, 5f, -80, now - 10_000L, TopologySource.MQTT)
+        val recentMqtt2 = TopologyEdge.create(20, 30, 5f, -80, now - 20_000L, TopologySource.MQTT)
+        val oldMqtt = TopologyEdge.create(40, 50, 5f, -80, now - 5 * 3600_000L, TopologySource.MQTT)
+
+        topologyManager.edgesFlow.value = listOf(recentMqtt1, recentMqtt2, oldMqtt)
+
+        viewModel.uiState.test {
+            var state = awaitItem()
+            while (state.totalEdgesCount != 3) {
+                state = awaitItem()
+            }
+            assertEquals(5, state.activeMqttNodesCount)
+
+            viewModel.setTimePeriod(TopologyTimePeriod.ONE_HOUR)
+            state = awaitItem()
+            assertEquals(3, state.activeMqttNodesCount)
             cancelAndIgnoreRemainingEvents()
         }
     }

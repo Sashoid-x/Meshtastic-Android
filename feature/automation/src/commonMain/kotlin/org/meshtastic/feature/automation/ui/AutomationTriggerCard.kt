@@ -23,14 +23,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
@@ -38,11 +35,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.stringResource
@@ -53,6 +49,7 @@ import org.meshtastic.core.automation.model.EnvironmentMetricType
 import org.meshtastic.core.automation.model.GeofenceTransition
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.automation_channel_label
 import org.meshtastic.core.resources.automation_direct_message_only
 import org.meshtastic.core.resources.automation_distance_km
 import org.meshtastic.core.resources.automation_emoji_reaction
@@ -61,26 +58,47 @@ import org.meshtastic.core.resources.automation_message_pattern
 import org.meshtastic.core.resources.automation_min_distance_meters
 import org.meshtastic.core.resources.automation_min_hops
 import org.meshtastic.core.resources.automation_radius_meters
-import org.meshtastic.core.resources.automation_step_1_trigger
 import org.meshtastic.core.resources.automation_threshold_percent
 import org.meshtastic.core.resources.automation_threshold_value
 import org.meshtastic.core.resources.automation_timeout_minutes
+import org.meshtastic.core.resources.automation_trigger_air_node
 import org.meshtastic.core.resources.automation_trigger_air_quality
+import org.meshtastic.core.resources.automation_trigger_battery_node
+import org.meshtastic.core.resources.automation_trigger_cron_label
 import org.meshtastic.core.resources.automation_trigger_device_battery_low
+import org.meshtastic.core.resources.automation_trigger_env_node
 import org.meshtastic.core.resources.automation_trigger_environment
 import org.meshtastic.core.resources.automation_trigger_geofence
+import org.meshtastic.core.resources.automation_trigger_geofence_node
 import org.meshtastic.core.resources.automation_trigger_hop_limit
+import org.meshtastic.core.resources.automation_trigger_latitude
+import org.meshtastic.core.resources.automation_trigger_longitude
 import org.meshtastic.core.resources.automation_trigger_message_received
 import org.meshtastic.core.resources.automation_trigger_node_appeared
+import org.meshtastic.core.resources.automation_trigger_node_appeared_label
 import org.meshtastic.core.resources.automation_trigger_node_battery_low
 import org.meshtastic.core.resources.automation_trigger_node_disappeared
+import org.meshtastic.core.resources.automation_trigger_node_disappeared_label
 import org.meshtastic.core.resources.automation_trigger_node_moved
+import org.meshtastic.core.resources.automation_trigger_node_status_changed
+import org.meshtastic.core.resources.automation_trigger_position_desc
+import org.meshtastic.core.resources.automation_trigger_position_source
+import org.meshtastic.core.resources.automation_trigger_position_updated
 import org.meshtastic.core.resources.automation_trigger_proximity
+import org.meshtastic.core.resources.automation_trigger_proximity_node
 import org.meshtastic.core.resources.automation_trigger_radio_connected
+import org.meshtastic.core.resources.automation_trigger_radio_connection_changed
 import org.meshtastic.core.resources.automation_trigger_radio_disconnected
 import org.meshtastic.core.resources.automation_trigger_reaction_received
+import org.meshtastic.core.resources.automation_trigger_reaction_sender
 import org.meshtastic.core.resources.automation_trigger_schedule
+import org.meshtastic.core.resources.automation_trigger_schedule_tick
+import org.meshtastic.core.resources.automation_trigger_sender_node
 import org.meshtastic.core.resources.automation_trigger_soil_moisture
+import org.meshtastic.core.resources.automation_trigger_soil_node
+import org.meshtastic.core.resources.automation_trigger_telemetry_desc
+import org.meshtastic.core.resources.automation_trigger_telemetry_received
+import org.meshtastic.core.resources.automation_trigger_telemetry_source
 import org.meshtastic.core.resources.filter_regex_pattern
 
 private const val DEFAULT_TIMEOUT_MINUTES = 30
@@ -96,35 +114,6 @@ private const val BATTERY_SLIDER_MIN = 5f
 private const val BATTERY_SLIDER_MAX = 50f
 private const val BATTERY_SLIDER_STEPS = 8
 
-@Suppress("LongMethod", "CyclomaticComplexMethod")
-@Composable
-fun TriggerCard(
-    trigger: AutomationTrigger,
-    onTriggerChange: (AutomationTrigger) -> Unit,
-    nodes: Map<Int, Node>,
-    modifier: Modifier = Modifier,
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(
-                text = stringResource(Res.string.automation_step_1_trigger),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-
-            TriggerSelectionContent(
-                trigger = trigger,
-                onTriggerChange = onTriggerChange,
-                nodes = nodes,
-            )
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TriggerSelectionContent(
@@ -133,7 +122,7 @@ fun TriggerSelectionContent(
     nodes: Map<Int, Node>,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         ExposedDropdownMenuBox(
@@ -183,11 +172,11 @@ private fun ColumnScope.TriggerDropdownItems(onSelect: (AutomationTrigger) -> Un
         onSelect(AutomationTrigger.NodeBatteryLow(thresholdPercent = DEFAULT_BATTERY_THRESHOLD))
     }
     DropdownMenuItem(
-        text = { Text("📊 Получена телеметрия (Любая / Пороги в ЕСЛИ)") },
+        text = { Text(stringResource(Res.string.automation_trigger_telemetry_desc)) },
         onClick = { onSelect(AutomationTrigger.TelemetryReceived()) },
     )
     DropdownMenuItem(
-        text = { Text("📍 Получены координаты (Геопозиция в ЕСЛИ)") },
+        text = { Text(stringResource(Res.string.automation_trigger_position_desc)) },
         onClick = { onSelect(AutomationTrigger.PositionUpdated()) },
     )
     TriggerMenuItem(Res.string.automation_trigger_environment) {
@@ -243,9 +232,6 @@ private fun ColumnScope.TriggerDropdownItems(onSelect: (AutomationTrigger) -> Un
     TriggerMenuItem(Res.string.automation_trigger_schedule) {
         onSelect(AutomationTrigger.Schedule(cronExpression = "* * * * *"))
     }
-    TriggerMenuItem(Res.string.automation_trigger_device_battery_low) {
-        onSelect(AutomationTrigger.DeviceBatteryLow(thresholdPercent = DEFAULT_BATTERY_THRESHOLD))
-    }
     TriggerMenuItem(Res.string.automation_trigger_radio_connected) {
         onSelect(AutomationTrigger.RadioConnected)
     }
@@ -272,12 +258,12 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.fromNodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(fromNodeId = it)) },
-                label = "Отправитель сообщения",
+                label = stringResource(Res.string.automation_trigger_sender_node),
             )
             ChannelPickerBox(
                 selectedChannel = trigger.channelIndex,
                 onSelectChannel = { onTriggerChange(trigger.copy(channelIndex = it)) },
-                label = "Канал сообщений",
+                label = stringResource(Res.string.automation_channel_label),
             )
             OutlinedTextField(
                 value = trigger.pattern,
@@ -312,12 +298,12 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.fromNodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(fromNodeId = it)) },
-                label = "Отправитель реакции",
+                label = stringResource(Res.string.automation_trigger_reaction_sender),
             )
             ChannelPickerBox(
                 selectedChannel = trigger.channelIndex,
                 onSelectChannel = { onTriggerChange(trigger.copy(channelIndex = it)) },
-                label = "Канал",
+                label = stringResource(Res.string.automation_channel_label),
             )
             OutlinedTextField(
                 value = trigger.emoji,
@@ -332,7 +318,7 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.nodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(nodeId = it)) },
-                label = "Нода",
+                label = stringResource(Res.string.automation_trigger_battery_node),
             )
             Text(stringResource(Res.string.automation_threshold_percent, trigger.thresholdPercent))
             Slider(
@@ -348,7 +334,7 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.fromNodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(fromNodeId = it)) },
-                label = "Нода-источник телеметрии",
+                label = stringResource(Res.string.automation_trigger_telemetry_source),
             )
         }
 
@@ -357,7 +343,7 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.fromNodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(fromNodeId = it)) },
-                label = "Нода с обновлением позиции",
+                label = stringResource(Res.string.automation_trigger_position_source),
             )
         }
 
@@ -366,7 +352,7 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.nodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(nodeId = it)) },
-                label = "Нода, которая появилась в сети",
+                label = stringResource(Res.string.automation_trigger_node_appeared_label),
             )
         }
 
@@ -375,7 +361,7 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.nodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(nodeId = it)) },
-                label = "Нода, которая пропала из сети",
+                label = stringResource(Res.string.automation_trigger_node_disappeared_label),
             )
             OutlinedTextField(
                 value = trigger.timeoutMinutes.toString(),
@@ -393,7 +379,7 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.nodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(nodeId = it)) },
-                label = "Нода с датчиком",
+                label = stringResource(Res.string.automation_trigger_env_node),
             )
             OutlinedTextField(
                 value = trigger.thresholdValue.toString(),
@@ -411,7 +397,7 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.nodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(nodeId = it)) },
-                label = "Нода с датчиком воздуха",
+                label = stringResource(Res.string.automation_trigger_air_node),
             )
             OutlinedTextField(
                 value = trigger.thresholdValue.toString(),
@@ -429,7 +415,7 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.nodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(nodeId = it)) },
-                label = "Нода с датчиком влажности почвы",
+                label = stringResource(Res.string.automation_trigger_soil_node),
             )
             OutlinedTextField(
                 value = trigger.thresholdPercent.toString(),
@@ -447,24 +433,24 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.nodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(nodeId = it)) },
-                label = "Отслеживаемая нода",
+                label = stringResource(Res.string.automation_trigger_geofence_node),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
-                    value = trigger.centerLatitude.toString(),
+                    value = trigger.centerLatitude?.toString().orEmpty(),
                     onValueChange = {
-                        onTriggerChange(trigger.copy(centerLatitude = it.toDoubleOrNull() ?: trigger.centerLatitude))
+                        onTriggerChange(trigger.copy(centerLatitude = it.toDoubleOrNull()))
                     },
-                    label = { Text("Широта (Lat)") },
+                    label = { Text(stringResource(Res.string.automation_trigger_latitude)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                 )
                 OutlinedTextField(
-                    value = trigger.centerLongitude.toString(),
+                    value = trigger.centerLongitude?.toString().orEmpty(),
                     onValueChange = {
-                        onTriggerChange(trigger.copy(centerLongitude = it.toDoubleOrNull() ?: trigger.centerLongitude))
+                        onTriggerChange(trigger.copy(centerLongitude = it.toDoubleOrNull()))
                     },
-                    label = { Text("Долгота (Lon)") },
+                    label = { Text(stringResource(Res.string.automation_trigger_longitude)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.weight(1f),
                 )
@@ -485,7 +471,7 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.nodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(nodeId = it)) },
-                label = "Нода для дистанции",
+                label = stringResource(Res.string.automation_trigger_proximity_node),
             )
             OutlinedTextField(
                 value = trigger.distanceKilometers.toString(),
@@ -505,7 +491,7 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.nodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(nodeId = it)) },
-                label = "Нода",
+                label = stringResource(Res.string.automation_trigger_geofence_node),
             )
             OutlinedTextField(
                 value = trigger.minDistanceMeters.toString(),
@@ -523,7 +509,7 @@ private fun ColumnScope.TriggerFormFields(
                 selectedNodeId = trigger.nodeId,
                 nodes = nodes,
                 onSelectNode = { onTriggerChange(trigger.copy(nodeId = it)) },
-                label = "Нода",
+                label = stringResource(Res.string.automation_trigger_sender_node),
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -547,7 +533,7 @@ private fun ColumnScope.TriggerFormFields(
             OutlinedTextField(
                 value = trigger.cronExpression,
                 onValueChange = { onTriggerChange(trigger.copy(cronExpression = it)) },
-                label = { Text("Cron выражение (* * * * *)") },
+                label = { Text(stringResource(Res.string.automation_trigger_cron_label)) },
                 modifier = Modifier.fillMaxWidth(),
             )
         }
@@ -569,25 +555,47 @@ private fun ColumnScope.TriggerFormFields(
 @Composable
 fun triggerLabel(trigger: AutomationTrigger): String = when (trigger) {
     is AutomationTrigger.NodeAppeared -> stringResource(Res.string.automation_trigger_node_appeared)
+
     is AutomationTrigger.NodeDisappeared -> stringResource(Res.string.automation_trigger_node_disappeared)
+
     is AutomationTrigger.NodeBatteryLow -> stringResource(Res.string.automation_trigger_node_battery_low)
+
     is AutomationTrigger.EnvironmentThreshold -> stringResource(Res.string.automation_trigger_environment)
+
     is AutomationTrigger.AirQualityThreshold -> stringResource(Res.string.automation_trigger_air_quality)
+
     is AutomationTrigger.SoilMoistureThreshold -> stringResource(Res.string.automation_trigger_soil_moisture)
+
     is AutomationTrigger.NodeGeofence -> stringResource(Res.string.automation_trigger_geofence)
+
     is AutomationTrigger.NodeProximity -> stringResource(Res.string.automation_trigger_proximity)
+
     is AutomationTrigger.NodeMoved -> stringResource(Res.string.automation_trigger_node_moved)
+
     is AutomationTrigger.HopLimitChanged -> stringResource(Res.string.automation_trigger_hop_limit)
+
     is AutomationTrigger.ReactionReceived -> stringResource(Res.string.automation_trigger_reaction_received)
+
     is AutomationTrigger.MessageReceived -> stringResource(Res.string.automation_trigger_message_received)
+
     is AutomationTrigger.Schedule -> stringResource(Res.string.automation_trigger_schedule)
+
     is AutomationTrigger.DeviceBatteryLow -> stringResource(Res.string.automation_trigger_device_battery_low)
+
     is AutomationTrigger.RadioConnected -> stringResource(Res.string.automation_trigger_radio_connected)
+
     is AutomationTrigger.RadioDisconnected -> stringResource(Res.string.automation_trigger_radio_disconnected)
-    is AutomationTrigger.TelemetryReceived -> "📊 Получена телеметрия"
-    is AutomationTrigger.PositionUpdated -> "📍 Получены координаты ноды"
-    is AutomationTrigger.NodeStatusChanged -> "📶 Изменение статуса ноды"
-    is AutomationTrigger.RadioConnectionChanged -> "📻 Подключение к радио"
-    is AutomationTrigger.DeviceBatteryChanged -> "🔋 Батарея смартфона"
-    is AutomationTrigger.ScheduleTick -> "⏱️ Периодический таймер"
+
+    is AutomationTrigger.TelemetryReceived -> stringResource(Res.string.automation_trigger_telemetry_received)
+
+    is AutomationTrigger.PositionUpdated -> stringResource(Res.string.automation_trigger_position_updated)
+
+    is AutomationTrigger.NodeStatusChanged -> stringResource(Res.string.automation_trigger_node_status_changed)
+
+    is AutomationTrigger.RadioConnectionChanged ->
+        stringResource(Res.string.automation_trigger_radio_connection_changed)
+
+    is AutomationTrigger.DeviceBatteryChanged -> stringResource(Res.string.automation_trigger_device_battery_low)
+
+    is AutomationTrigger.ScheduleTick -> stringResource(Res.string.automation_trigger_schedule_tick)
 }

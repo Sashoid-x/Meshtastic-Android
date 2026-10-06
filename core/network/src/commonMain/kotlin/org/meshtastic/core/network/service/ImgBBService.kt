@@ -80,7 +80,7 @@ interface ImgBBService {
 }
 
 @Single
-class ImgBBServiceImpl(private val httpClient: HttpClient = HttpClient()) : ImgBBService {
+class ImgBBServiceImpl(private val httpClient: HttpClient) : ImgBBService {
 
     private val json = Json {
         ignoreUnknownKeys = true

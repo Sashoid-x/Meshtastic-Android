@@ -39,6 +39,8 @@ You are an expert Android/KMP engineer. Maintain architectural boundaries, use M
 - **Verify Before Push:** Treat any "push" as verify-then-push. CI has failed repeatedly due to skipped local checks.
 - **Never Touch Protos or Secrets:** Protobuf models come from the upstream `org.meshtastic:protobufs` Maven dependency (pinned in `gradle/libs.versions.toml`) — bump the version upstream, never hand-edit generated proto. Secrets are git-ignored.
 - **Privacy First:** Never log or expose PII, location, or cryptographic keys.
+- **Lookahead & Cache Window:** NEVER use `LazyLayoutCacheWindow` in `ListDetailSceneStrategy` detail panes (`Message.kt`): items prefetched outside viewport crash with `IllegalStateException: LookaheadDelegate has not been measured yet`.
+- **Desktop Coil Parity:** NEVER add `coil-gif` to `desktopApp`: `coil-gif` publishes only Android AAR (no `-jvm` artifact on Maven Central).
 </rules>
 
 <forks_and_rebrands>

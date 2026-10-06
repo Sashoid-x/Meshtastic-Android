@@ -32,26 +32,20 @@ import org.meshtastic.feature.automation.ui.AutomationLogsScreen
 
 /** Registers the automation feature screen entries into the Navigation 3 entry provider. */
 fun EntryProviderScope<NavKey>.automationGraph(backStack: NavBackStack<NavKey>) {
-    entry<AutomationRoute.AutomationGraph> {
-        val viewModel = koinViewModel<AutomationListViewModel>()
-        AutomationListScreen(
-            viewModel = viewModel,
-            onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },
-            onNavigateToBuilder = { ruleId -> backStack.add(AutomationRoute.AutomationBuilder(ruleId)) },
-            onNavigateToLogs = { ruleId -> backStack.add(AutomationRoute.AutomationLogs(ruleId)) },
-        )
-    }
     entry<AutomationRoute.AutomationList> {
         val viewModel = koinViewModel<AutomationListViewModel>()
         AutomationListScreen(
             viewModel = viewModel,
             onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },
             onNavigateToBuilder = { ruleId -> backStack.add(AutomationRoute.AutomationBuilder(ruleId)) },
+            onNavigateToBuilderWithTemplate = { templateId ->
+                backStack.add(AutomationRoute.AutomationBuilder(templateId = templateId))
+            },
             onNavigateToLogs = { ruleId -> backStack.add(AutomationRoute.AutomationLogs(ruleId)) },
         )
     }
     entry<AutomationRoute.AutomationBuilder> { route ->
-        val viewModel = koinViewModel<AutomationBuilderViewModel> { parametersOf(route.ruleId) }
+        val viewModel = koinViewModel<AutomationBuilderViewModel> { parametersOf(route.ruleId, route.templateId) }
         AutomationBuilderScreen(
             viewModel = viewModel,
             onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },

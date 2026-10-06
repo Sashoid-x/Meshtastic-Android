@@ -49,7 +49,6 @@ data class AutomationRule(
             conditionOperator == other.conditionOperator &&
             conditions == other.conditions &&
             actions == other.actions &&
-            name == other.name &&
             isEnabled == other.isEnabled
     }
 }

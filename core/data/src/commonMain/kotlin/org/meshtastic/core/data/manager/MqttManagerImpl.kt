@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
@@ -34,6 +36,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.koin.core.annotation.Single
 import org.meshtastic.core.common.di.ServiceScope
+import org.meshtastic.core.common.util.isValidDeviceAddress
 import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.common.util.safeCatchingAll
 import org.meshtastic.core.model.MqttConnectionState
@@ -44,6 +47,7 @@ import org.meshtastic.core.network.repository.MQTT_KEEPALIVE_SECONDS
 import org.meshtastic.core.network.repository.isCredentialRejection
 import org.meshtastic.core.network.repository.mqttTlsConfig
 import org.meshtastic.core.network.repository.resolveEndpoint
+import org.meshtastic.core.repository.MeshPrefs
 import org.meshtastic.core.repository.MqttManager
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.PacketHandler
@@ -80,6 +84,7 @@ class MqttManagerImpl(
     private val nodeRepository: NodeRepository,
     private val scope: ServiceScope,
     private val topologyManager: Lazy<TopologyManager>,
+    private val meshPrefs: MeshPrefs,
 ) : MqttManager {
     private var mqttMessageFlow: Job? = null
     private val _proxyActive = MutableStateFlow(false)
@@ -96,6 +101,19 @@ class MqttManagerImpl(
     private val messageTimestamps = ArrayDeque<Long>()
     private val rateMutex = Mutex()
     private var decayJob: Job? = null
+
+    init {
+        nodeRepository.myId
+            .filterNotNull()
+            .filter { isValidDeviceAddress(it) }
+            .onEach {
+                restoreClientState()
+            }
+            .launchIn(scope)
+    }
+
+    private fun currentDeviceAddress(): String? = nodeRepository.myId.value?.takeIf { isValidDeviceAddress(it) }
+        ?: meshPrefs.deviceAddress.value?.takeIf { isValidDeviceAddress(it) }
 
     override val mqttConnectionState: StateFlow<MqttConnectionState> =
         combine(isRunningFlow, mqttRepository.connectionState, mqttRepository.subscriptionRefusal) {
@@ -123,8 +141,21 @@ class MqttManagerImpl(
     }
 
     override fun setClientEnabled(enabled: Boolean) {
+        val currentDevice = currentDeviceAddress()
+        meshPrefs.setMqttClientEnabled(currentDevice, enabled)
         _isClientEnabled.value = enabled
         syncConnection()
+    }
+
+    override fun restoreClientState() {
+        val currentDevice = currentDeviceAddress()
+        scope.launch {
+            val persistedEnabled = meshPrefs.awaitMqttClientEnabled(currentDevice)
+            if (_isClientEnabled.value != persistedEnabled) {
+                _isClientEnabled.value = persistedEnabled
+                syncConnection()
+            }
+        }
     }
 
     override fun stop() {

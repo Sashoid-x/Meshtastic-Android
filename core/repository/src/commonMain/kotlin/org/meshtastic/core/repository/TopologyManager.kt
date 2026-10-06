@@ -31,6 +31,9 @@ interface TopologyManager {
     /** Number of unique nodes discovered via MQTT links. */
     val activeMqttNodesCount: Flow<Int>
 
+    /** Number of unique nodes discovered via MQTT links since [periodStart] timestamp. */
+    fun getActiveMqttNodesCount(periodStart: Long): Flow<Int>
+
     /** Observable state indicating whether MQTT is currently active (connected or proxy active). */
     val isMqttActive: StateFlow<Boolean>
 

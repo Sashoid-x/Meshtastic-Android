@@ -488,6 +488,17 @@ class FakeMeshPrefs : MeshPrefs {
     override fun setStoreForwardLastRequest(address: String?, timestamp: Int) {
         lastRequest.getOrPut(address) { MutableStateFlow(timestamp) }.value = timestamp
     }
+
+    private val mqttClientEnabled = mutableMapOf<String?, MutableStateFlow<Boolean>>()
+
+    override fun getMqttClientEnabled(address: String?): StateFlow<Boolean> =
+        mqttClientEnabled.getOrPut(address) { MutableStateFlow(false) }
+
+    override fun setMqttClientEnabled(address: String?, enabled: Boolean) {
+        mqttClientEnabled.getOrPut(address) { MutableStateFlow(enabled) }.value = enabled
+    }
+
+    override suspend fun awaitMqttClientEnabled(address: String?): Boolean = mqttClientEnabled[address]?.value ?: false
 }
 
 class FakeAppFunctionsPrefs : AppFunctionsPrefs {

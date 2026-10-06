@@ -21,6 +21,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import co.touchlab.kermit.Logger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -54,7 +56,6 @@ import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.network.service.ImgBBService
-import org.meshtastic.core.network.service.ImgBBServiceImpl
 import org.meshtastic.core.network.service.ImgbbApiKeyMissingException
 import org.meshtastic.core.network.service.ImgbbInvalidApiKeyException
 import org.meshtastic.core.network.service.JunkDataService
@@ -138,10 +139,10 @@ class MessageViewModel(
     private val snackbarManager: SnackbarManager,
     private val adminController: AdminController,
     private val fileTransferManager: FileTransferManager? = null,
-    private val meshPicService: MeshPicService = MeshPicServiceImpl(),
-    private val junkDataService: JunkDataService = JunkDataServiceImpl(),
-    private val meshFilesService: MeshFilesService = MeshFilesServiceImpl(),
-    private val imgbbService: ImgBBService = ImgBBServiceImpl(),
+    private val meshPicService: MeshPicService,
+    private val junkDataService: JunkDataService,
+    private val meshFilesService: MeshFilesService,
+    private val imgbbService: ImgBBService,
 ) : ViewModel() {
     val fileTransferOutgoingState: StateFlow<TransferState> =
         fileTransferManager?.outgoingState ?: MutableStateFlow(TransferState.Idle)
@@ -229,11 +230,12 @@ class MessageViewModel(
         _draftMessage.value = text
         val contactKey = draftContactKey ?: return
         pendingDraftPersistence?.cancel()
-        pendingDraftPersistence = viewModelScope.launch {
-            delay(DRAFT_PERSISTENCE_DELAY_MS)
-            savedStateHandle[draftKey(contactKey)] = text
-            withContext(ioDispatcher) { packetRepository.setDraft(contactKey, text) }
-        }
+        pendingDraftPersistence =
+            safeLaunch(tag = "setDraftMessage") {
+                delay(DRAFT_PERSISTENCE_DELAY_MS)
+                savedStateHandle[draftKey(contactKey)] = text
+                withContext(ioDispatcher) { packetRepository.setDraft(contactKey, text) }
+            }
     }
 
     fun clearDraftMessage() {
@@ -419,7 +421,15 @@ class MessageViewModel(
 
     init {
         viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            sendErrorEvents.collect { snackbarManager.showSnackbar(MessagingUiTextResolver.resolve(it)) }
+            sendErrorEvents.collect {
+                runCatching {
+                    snackbarManager.showSnackbar(MessagingUiTextResolver.resolve(it))
+                }
+                    .onFailure { ex ->
+                        if (ex is CancellationException) throw ex
+                        Logger.e(ex) { "Failed to show send error snackbar" }
+                    }
+            }
         }
         val contactKey = savedStateHandle.get<String>("contactKey")
         if (contactKey != null) {
@@ -536,6 +546,22 @@ class MessageViewModel(
         }
     }
 
+    fun resendImageMessage(uuid: Long, imageBytes: ByteArray, contactKey: String, replyId: Int? = null) {
+        if (ContactKey(contactKey).isRetired) return
+        safeLaunch(errorEvents = sendErrorEvents, tag = "resendImageMessage") {
+            packetRepository.replaceMessage(uuid) {
+                sendMessageUseCase.invoke(
+                    text = "",
+                    contactKey = contactKey,
+                    replyId = replyId,
+                    dataType = org.meshtastic.proto.PortNum.PRIVATE_APP.value,
+                    bytes = okio.ByteString.of(*imageBytes),
+                )
+            }
+            updateGlobalImageCooldown(nowMillis)
+        }
+    }
+
     fun resetImageCooldown() {
         updateGlobalImageCooldown(null)
     }
@@ -558,46 +584,49 @@ class MessageViewModel(
         images: List<Pair<ByteArray, String>>,
         contactKey: String = "0${NodeAddress.ID_BROADCAST}",
     ) {
-        viewModelScope.launch {
-            if (images.isEmpty()) return@launch
+        safeLaunch(errorEvents = sendErrorEvents, tag = "uploadAndSendPhotos") {
+            if (images.isEmpty()) return@safeLaunch
             _isUploadingPhoto.value = true
-            snackbarManager.showSnackbar(MessagingUiTextResolver.resolve(UiText.Resource(Res.string.uploading_photo)))
-            val provider = uiPrefs.photoHostingProvider.value
+            try {
+                val uploadingText = MessagingUiTextResolver.resolve(UiText.Resource(Res.string.uploading_photo))
+                snackbarManager.showSnackbar(uploadingText)
+                val provider = uiPrefs.photoHostingProvider.value
 
-            val links = mutableListOf<String>()
-            var anyFailed = false
-            var failureMessage: UiText? = null
+                val links = mutableListOf<String>()
+                var anyFailed = false
+                var failureMessage: UiText? = null
 
-            for ((imageBytes, fileName) in images) {
-                uploadSingleImage(imageBytes, fileName, provider)
-                    .onSuccess { idOrUrl ->
-                        val link = formatProviderLink(provider, idOrUrl)
-                        if (link.isNotEmpty()) {
-                            links.add(link)
+                for ((imageBytes, fileName) in images) {
+                    uploadSingleImage(imageBytes, fileName, provider)
+                        .onSuccess { idOrUrl ->
+                            val link = formatProviderLink(provider, idOrUrl)
+                            if (link.isNotEmpty()) {
+                                links.add(link)
+                            }
                         }
-                    }
-                    .onFailure { error ->
-                        anyFailed = true
-                        if (failureMessage == null) {
-                            failureMessage = resolveUploadError(error)
+                        .onFailure { error ->
+                            anyFailed = true
+                            if (failureMessage == null) {
+                                failureMessage = resolveUploadError(error)
+                            }
                         }
-                    }
-            }
-
-            _isUploadingPhoto.value = false
-
-            if (links.isNotEmpty()) {
-                val joinedLinks = links.joinToString(" ")
-                if (uiPrefs.insertPhotoLinkEnabled.value) {
-                    _photoLinkReady.emit(joinedLinks)
-                } else {
-                    sendMessage(str = joinedLinks, contactKey = contactKey, replyId = null, compress = false)
                 }
-            }
 
-            if (anyFailed) {
-                val errorText = failureMessage ?: UiText.Resource(Res.string.upload_photo_failed)
-                snackbarManager.showSnackbar(MessagingUiTextResolver.resolve(errorText))
+                if (links.isNotEmpty()) {
+                    val joinedLinks = links.joinToString(" ")
+                    if (uiPrefs.insertPhotoLinkEnabled.value) {
+                        _photoLinkReady.emit(joinedLinks)
+                    } else {
+                        sendMessage(str = joinedLinks, contactKey = contactKey, replyId = null, compress = false)
+                    }
+                }
+
+                if (anyFailed) {
+                    val errorText = failureMessage ?: UiText.Resource(Res.string.upload_photo_failed)
+                    snackbarManager.showSnackbar(MessagingUiTextResolver.resolve(errorText))
+                }
+            } finally {
+                _isUploadingPhoto.value = false
             }
         }
     }

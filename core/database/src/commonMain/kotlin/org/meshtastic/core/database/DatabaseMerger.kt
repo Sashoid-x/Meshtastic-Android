@@ -38,6 +38,7 @@ import org.meshtastic.core.database.entity.MergeMarkerEntity
  */
 internal class StaleAssociationException : Exception("Transport session no longer authorizes database association")
 
+@Suppress("TooManyFunctions")
 object DatabaseMerger {
 
     /**
@@ -81,6 +82,7 @@ object DatabaseMerger {
                 mergeLogs(source, dest)
                 mergeTraceroutePositions(source, dest)
                 mergeDiscovery(source, dest)
+                mergeTopologyEdges(source, dest)
                 dest.mergeMarkerDao().insertMarker(MergeMarkerEntity(sourceDbName = sourceName, mergedAt = nowMillis))
                 // Keep the defensive authority check as the final transaction statement. The caller-held lifecycle
                 // lease prevents rollover until commit returns; this check still rolls back if authority was lost
@@ -202,6 +204,17 @@ object DatabaseMerger {
                 val nodes = src.getDiscoveredNodes(preset.id).map { it.copy(id = 0, presetResultId = newPresetId) }
                 if (nodes.isNotEmpty()) dst.insertDiscoveredNodes(nodes)
             }
+        }
+    }
+
+    /**
+     * Merges network topology edges using smart priority: preserves the highest signal readings and newest observation.
+     */
+    private suspend fun mergeTopologyEdges(source: MeshtasticDatabase, dest: MeshtasticDatabase) {
+        val edges = source.topologyEdgeDao().getAllEdgesSnapshot()
+        val destDao = dest.topologyEdgeDao()
+        for (edge in edges) {
+            destDao.upsertEdgeWithPriority(edge)
         }
     }
 }

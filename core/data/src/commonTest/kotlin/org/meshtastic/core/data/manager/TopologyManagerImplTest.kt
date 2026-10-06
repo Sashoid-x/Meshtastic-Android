@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import okio.ByteString
 import okio.ByteString.Companion.toByteString
 import org.meshtastic.core.common.di.asServiceScope
 import org.meshtastic.core.database.dao.TopologyEdgeDao
@@ -64,15 +65,7 @@ class FakeTopologyEdgeDao : TopologyEdgeDao {
         if (existing == null) {
             edges[key] = edge
         } else {
-            val shouldUpdateSnr = edge.source == TopologySource.MQTT || edge.bestSnr > existing.bestSnr
-            val updated =
-                existing.copy(
-                    bestSnr = if (shouldUpdateSnr) edge.bestSnr else existing.bestSnr,
-                    bestRssi = if (shouldUpdateSnr) edge.bestRssi else maxOf(existing.bestRssi, edge.bestRssi),
-                    lastSeen = edge.lastSeen,
-                    source = if (edge.source == TopologySource.MQTT) TopologySource.MQTT else existing.source,
-                )
-            edges[key] = updated
+            edges[key] = TopologyEdgeDao.mergeEdges(existing, edge)
         }
         edgesFlow.value = edges.values.toList()
     }
@@ -91,10 +84,28 @@ class FakeTopologyEdgeDao : TopologyEdgeDao {
 
     override fun getAllEdgesFlow(): Flow<List<TopologyEdge>> = edgesFlow
 
+    override suspend fun getAllEdgesSnapshot(): List<TopologyEdge> = edges.values.toList()
+
     override fun getActiveMqttNodesCount(): Flow<Int> =
         MutableStateFlow(edges.values.count { it.source == TopologySource.MQTT })
 
+    override fun getActiveMqttNodesCount(periodStart: Long): Flow<Int> {
+        val mqttNodes =
+            edges.values
+                .filter { it.source == TopologySource.MQTT && it.lastSeen >= periodStart }
+                .flatMap { listOf(it.node1, it.node2) }
+                .filter { it != 0 && it != -1 }
+                .distinct()
+                .size
+        return MutableStateFlow(mqttNodes)
+    }
+
     override suspend fun getEdge(node1: Int, node2: Int): TopologyEdge? = edges[node1 to node2]
+
+    override suspend fun pruneEdgesBefore(cutoff: Long) {
+        edges.entries.removeAll { it.value.lastSeen < cutoff }
+        edgesFlow.value = edges.values.toList()
+    }
 
     override suspend fun clearAllEdges() {
         edges.clear()
@@ -519,5 +530,165 @@ class TopologyManagerImplTest {
         harness.isClientEnabledFlow.value = false
         runCurrent()
         assertFalse(harness.manager.isMqttActive.value)
+    }
+
+    @Test
+    fun `routingApp packet with empty payload produces no edges`() = runTest {
+        val harness = createHarness(this, myNodeNum = 999)
+        val data =
+            Data.Builder()
+                .portnum(PortNum.ROUTING_APP)
+                .payload(ByteString.EMPTY)
+                .want_response(false)
+                .source(100)
+                .dest(999)
+                .build()
+        val packet = MeshPacket.Builder().from(100).to(999).decoded(data).rx_snr(10.0f).rx_rssi(-70).build()
+
+        harness.manager.processPacket(packet, TopologySource.LOCAL_RADIO)
+        runCurrent()
+
+        assertEquals(0, harness.dao.edges.size)
+    }
+
+    @Test
+    fun `tracerouteApp packet with empty payload produces no edges`() = runTest {
+        val harness = createHarness(this, myNodeNum = 999)
+        val data =
+            Data.Builder()
+                .portnum(PortNum.TRACEROUTE_APP)
+                .payload(ByteString.EMPTY)
+                .want_response(false)
+                .source(100)
+                .dest(999)
+                .build()
+        val packet = MeshPacket.Builder().from(100).to(999).decoded(data).rx_snr(10.0f).rx_rssi(-70).build()
+
+        harness.manager.processPacket(packet, TopologySource.LOCAL_RADIO)
+        runCurrent()
+
+        assertEquals(0, harness.dao.edges.size)
+    }
+
+    @Test
+    fun `traceroute with return route generates return edges correctly`() = runTest {
+        val harness = createHarness(this, myNodeNum = 999)
+        val discovery =
+            RouteDiscovery.Builder()
+                .route(listOf(200))
+                .snr_towards(listOf((10.0f * 4).toInt()))
+                .route_back(listOf(300))
+                .snr_back(listOf((8.0f * 4).toInt()))
+                .build()
+        val payload = RouteDiscovery.ADAPTER.encode(discovery).toByteString()
+        val data =
+            Data.Builder()
+                .portnum(PortNum.TRACEROUTE_APP)
+                .payload(payload)
+                .want_response(false)
+                .source(400)
+                .dest(100)
+                .build()
+        val packet = MeshPacket.Builder().from(400).to(100).decoded(data).rx_snr(5.0f).rx_rssi(-80).build()
+
+        harness.manager.processPacket(packet, TopologySource.MQTT)
+        runCurrent()
+
+        // Forward: 100 -> 200 -> 400
+        val fwd1 = harness.dao.getEdge(100, 200)
+        assertNotNull(fwd1)
+        assertEquals(10.0f, fwd1.bestSnr)
+
+        // Return: 400 -> 300 -> 100
+        val ret1 = harness.dao.getEdge(300, 400)
+        assertNotNull(ret1)
+        assertEquals(8.0f, ret1.bestSnr)
+
+        val ret2 = harness.dao.getEdge(100, 300)
+        assertNotNull(ret2)
+        assertEquals(0.0f, ret2.bestSnr)
+    }
+
+    @Test
+    fun `neighborInfo plausibility filter rejects implausible snr`() = runTest {
+        val harness = createHarness(this, myNodeNum = 999)
+        val neighborBad1 = Neighbor.Builder().node_id(200).snr(-128.0f).build()
+        val neighborBad2 = Neighbor.Builder().node_id(300).snr(1000.0f).build()
+        val neighborGood = Neighbor.Builder().node_id(400).snr(7.5f).build()
+        val neighborInfo =
+            NeighborInfo.Builder().node_id(100).neighbors(listOf(neighborBad1, neighborBad2, neighborGood)).build()
+        val payload = NeighborInfo.ADAPTER.encode(neighborInfo).toByteString()
+        val data = Data.Builder().portnum(PortNum.NEIGHBORINFO_APP).payload(payload).build()
+        val packet = MeshPacket.Builder().from(100).to(0xFFFFFFFF.toInt()).decoded(data).build()
+
+        harness.manager.processPacket(packet, TopologySource.MQTT)
+        runCurrent()
+
+        val edge1 = harness.dao.getEdge(100, 200)
+        assertNotNull(edge1)
+        assertEquals(0.0f, edge1.bestSnr)
+
+        val edge2 = harness.dao.getEdge(100, 300)
+        assertNotNull(edge2)
+        assertEquals(0.0f, edge2.bestSnr)
+
+        val edge3 = harness.dao.getEdge(100, 400)
+        assertNotNull(edge3)
+        assertEquals(7.5f, edge3.bestSnr)
+    }
+
+    @Test
+    fun `mergeEdges preserves negative snr against zero sentinel`() {
+        val existing =
+            TopologyEdge.create(
+                100,
+                200,
+                bestSnr = -5.5f,
+                bestRssi = -70,
+                lastSeen = 1000L,
+                source = TopologySource.LOCAL_RADIO,
+            )
+        val incomingZero =
+            TopologyEdge.create(
+                100,
+                200,
+                bestSnr = 0.0f,
+                bestRssi = 0,
+                lastSeen = 2000L,
+                source = TopologySource.LOCAL_RADIO,
+            )
+
+        val merged = TopologyEdgeDao.mergeEdges(existing, incomingZero)
+        assertEquals(-5.5f, merged.bestSnr)
+        assertEquals(-70, merged.bestRssi)
+        assertEquals(2000L, merged.lastSeen)
+    }
+
+    @Test
+    fun `mergeEdges elevates source to MQTT and updates max rssi`() {
+        val existing =
+            TopologyEdge.create(
+                100,
+                200,
+                bestSnr = -10.0f,
+                bestRssi = -90,
+                lastSeen = 1000L,
+                source = TopologySource.LOCAL_RADIO,
+            )
+        val incoming =
+            TopologyEdge.create(
+                100,
+                200,
+                bestSnr = -2.0f,
+                bestRssi = -60,
+                lastSeen = 1500L,
+                source = TopologySource.MQTT,
+            )
+
+        val merged = TopologyEdgeDao.mergeEdges(existing, incoming)
+        assertEquals(-2.0f, merged.bestSnr)
+        assertEquals(-60, merged.bestRssi)
+        assertEquals(TopologySource.MQTT, merged.source)
+        assertEquals(1500L, merged.lastSeen)
     }
 }

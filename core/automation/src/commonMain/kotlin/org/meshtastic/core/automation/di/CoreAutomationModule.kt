@@ -25,6 +25,8 @@ import org.meshtastic.core.automation.repository.AutomationRepository
 import org.meshtastic.core.automation.repository.AutomationRepositoryImpl
 import org.meshtastic.core.automation.trigger.TriggerSource
 import org.meshtastic.core.database.dao.AutomationDao
+import org.meshtastic.core.repository.NodeRepository
+import org.meshtastic.core.repository.ServiceRepository
 
 @Module
 @ComponentScan("org.meshtastic.core.automation")
@@ -49,5 +51,13 @@ class CoreAutomationModule {
         repository: AutomationRepository,
         triggerSource: TriggerSource,
         actionExecutor: ActionExecutor,
-    ): AutomationEngine = AutomationEngine(repository, triggerSource, actionExecutor)
+        nodeRepository: NodeRepository,
+        serviceRepository: ServiceRepository,
+    ): AutomationEngine = AutomationEngine(
+        repository = repository,
+        triggerSource = triggerSource,
+        actionExecutor = actionExecutor,
+        nodeRepository = nodeRepository,
+        serviceRepository = serviceRepository,
+    )
 }

@@ -41,7 +41,12 @@ class NeighborInfoHandlerImpl(
 
     override fun handleNeighborInfo(packet: MeshPacket) {
         val payload = packet.decoded?.payload ?: return
-        val ni = NeighborInfo.ADAPTER.decode(payload)
+        val ni =
+            runCatching { NeighborInfo.ADAPTER.decode(payload) }.getOrNull()
+                ?: run {
+                    Logger.w { "Dropping malformed NeighborInfo from ${packet.from}" }
+                    return
+                }
 
         // Store the last neighbor info from our connected radio
         val from = packet.from

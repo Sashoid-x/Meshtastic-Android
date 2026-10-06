@@ -23,6 +23,7 @@ import org.meshtastic.core.automation.engine.AutomationEngine
 import org.meshtastic.core.automation.model.AutomationLog
 import org.meshtastic.core.automation.model.AutomationRule
 import org.meshtastic.core.automation.model.toDomain
+import org.meshtastic.core.automation.model.toDomainOrNull
 import org.meshtastic.core.automation.model.toEntity
 import org.meshtastic.core.common.util.ioDispatcher
 import org.meshtastic.core.database.dao.AutomationDao
@@ -30,13 +31,21 @@ import org.meshtastic.core.database.dao.AutomationDao
 class AutomationRepositoryImpl(private val dao: AutomationDao) : AutomationRepository {
 
     override fun observeRules(): Flow<List<AutomationRule>> =
-        dao.observeAllRules().map { entities -> entities.map { it.toDomain() } }
+        dao.observeAllRules().map { entities -> entities.mapNotNull { it.toDomainOrNull() } }
 
-    override fun observeEnabledRules(): Flow<List<AutomationRule>> =
-        dao.observeEnabledRules().map { entities -> entities.map { it.toDomain() } }
+    override fun observeEnabledRules(): Flow<List<AutomationRule>> = dao.observeEnabledRules().map { entities ->
+        entities.mapNotNull { entity ->
+            val domain = entity.toDomainOrNull()
+            if (domain == null) {
+                // Disable corrupt rule in the database so it does not fail open or repeatedly trigger errors
+                dao.setEnabled(entity.id, false)
+            }
+            domain
+        }
+    }
 
     override suspend fun getRule(id: String): AutomationRule? =
-        withContext(ioDispatcher) { dao.getRule(id)?.toDomain() }
+        withContext(ioDispatcher) { dao.getRule(id)?.toDomainOrNull() }
 
     override suspend fun saveRule(rule: AutomationRule) = withContext(ioDispatcher) { dao.upsertRule(rule.toEntity()) }
 
@@ -53,8 +62,7 @@ class AutomationRepositoryImpl(private val dao: AutomationDao) : AutomationRepos
 
     override suspend fun addLog(log: AutomationLog) {
         withContext(ioDispatcher) {
-            dao.insertLog(log.toEntity())
-            dao.pruneOldLogs(log.ruleId, AutomationEngine.MAX_LOG_ENTRIES_PER_RULE)
+            dao.insertLogAndPrune(log.toEntity(), AutomationEngine.MAX_LOG_ENTRIES_PER_RULE)
         }
     }
 }

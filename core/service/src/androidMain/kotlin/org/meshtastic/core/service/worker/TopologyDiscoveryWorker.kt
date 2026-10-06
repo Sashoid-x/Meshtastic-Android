@@ -23,12 +23,14 @@ import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import org.koin.android.annotation.KoinWorker
+import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.repository.CommandSender
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.RadioController
 import org.meshtastic.core.repository.TopologyManager
 import org.meshtastic.core.repository.UiPrefs
+import kotlin.random.Random
 
 /**
  * Background worker that performs periodic topology discovery when the app is in "Local Radio" mode.
@@ -49,7 +51,7 @@ class TopologyDiscoveryWorker(
 
     private val logger = Logger.withTag(WORK_NAME)
 
-    @Suppress("TooGenericExceptionCaught")
+    @Suppress("TooGenericExceptionCaught", "MagicNumber")
     override suspend fun doWork(): Result = try {
         // 1. Check user preference (must be explicitly enabled)
         if (!uiPrefs.autoTopologyDiscoveryEnabled.value) {
@@ -64,22 +66,32 @@ class TopologyDiscoveryWorker(
             logger.d { "Radio is not connected; will retry." }
             Result.retry()
         } else {
-            // 4. Select 3-5 active candidate nodes
+            // 4. Select top active candidate nodes not recently tracerouted
+            val now = nowMillis
             val ourNodeNum = nodeRepository.ourNodeInfo.value?.num ?: 0
             val candidates =
                 nodeRepository.nodeDBbyNum.value.values
-                    .filter { it.num != 0 && it.num != ourNodeNum && !it.isIgnored && it.lastHeard > 0 }
+                    .filter {
+                        it.num != 0 &&
+                            it.num != ourNodeNum &&
+                            !it.isIgnored &&
+                            it.lastHeard > 0 &&
+                            !isRecentlyTraced(it.num, now)
+                    }
                     .sortedByDescending { it.lastHeard }
                     .take(DISCOVERY_CANDIDATE_LIMIT)
 
             if (candidates.isEmpty()) {
-                logger.d { "No eligible candidate nodes for topology discovery." }
+                logger.d { "No eligible candidate nodes for topology discovery (or all recently traced)." }
             } else {
                 logger.i { "Starting auto-topology discovery for ${candidates.size} nodes." }
                 for (node in candidates) {
                     logger.d { "Sending RouteDiscovery request to node 0x${node.num.toString(16)}" }
                     commandSender.requestTraceroute(requestId = 0, destNum = node.num)
-                    delay(INTER_PACKET_DELAY_MS)
+                    recordTraced(node.num, nowMillis)
+                    val jitter = Random.nextLong(-JITTER_MS, JITTER_MS + 1)
+                    val delayMs = (BASE_INTER_PACKET_DELAY_MS + jitter).coerceAtLeast(1_000L)
+                    delay(delayMs)
                 }
             }
             Result.success()
@@ -91,9 +103,27 @@ class TopologyDiscoveryWorker(
         Result.failure()
     }
 
+    @Suppress("MagicNumber")
     companion object {
         const val WORK_NAME = "topology_discovery_worker"
-        private const val DISCOVERY_CANDIDATE_LIMIT = 4
-        private const val INTER_PACKET_DELAY_MS = 8_000L
+        const val DISCOVERY_CANDIDATE_LIMIT = 4
+        const val BASE_INTER_PACKET_DELAY_MS = 8_000L
+        const val JITTER_MS = 2_000L
+        const val RECENT_TRACE_COOLDOWN_MS = 24 * 60 * 60 * 1000L // 24 hours
+
+        private val lastTracedTimestamps = mutableMapOf<Int, Long>()
+
+        fun recordTraced(nodeNum: Int, timestamp: Long) {
+            lastTracedTimestamps[nodeNum] = timestamp
+        }
+
+        fun isRecentlyTraced(nodeNum: Int, now: Long, cooldownMs: Long = RECENT_TRACE_COOLDOWN_MS): Boolean {
+            val last = lastTracedTimestamps[nodeNum] ?: return false
+            return (now - last) < cooldownMs
+        }
+
+        fun clearTraceHistory() {
+            lastTracedTimestamps.clear()
+        }
     }
 }

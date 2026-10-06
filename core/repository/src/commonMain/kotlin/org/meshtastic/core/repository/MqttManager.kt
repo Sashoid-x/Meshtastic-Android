@@ -45,6 +45,9 @@ interface MqttManager {
     /** Enables or disables the MQTT client independently of the radio node's MQTT config. */
     fun setClientEnabled(enabled: Boolean)
 
+    /** Restores the persisted MQTT client state for the currently connected radio node / device. */
+    fun restoreClientState()
+
     /** Starts the MQTT proxy with the given settings. */
     fun startProxy(enabled: Boolean, proxyToClientEnabled: Boolean)
 

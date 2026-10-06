@@ -16,7 +16,6 @@
  */
 package org.meshtastic.core.automation.model
 
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.meshtastic.core.database.entity.AutomationLogEntity
 import org.meshtastic.core.database.entity.AutomationRuleEntity
@@ -30,10 +29,10 @@ private val json = Json {
 private fun decodeConditions(conditionsJson: String): Pair<LogicalOperator, List<AutomationCondition>> {
     val trimmed = conditionsJson.trim()
     if (trimmed.startsWith("{")) {
-        val block = runCatching { json.decodeFromString<ConditionBlock>(trimmed) }.getOrNull()
-        if (block != null) return block.operator to block.conditions
+        val block = json.decodeFromString<ConditionBlock>(trimmed)
+        return block.operator to block.conditions
     }
-    val list = runCatching { json.decodeFromString<List<AutomationCondition>>(trimmed) }.getOrDefault(emptyList())
+    val list = json.decodeFromString<List<AutomationCondition>>(trimmed)
     return LogicalOperator.AND to list
 }
 
@@ -54,6 +53,8 @@ fun AutomationRuleEntity.toDomain(): AutomationRule {
         fireCount = fireCount,
     )
 }
+
+fun AutomationRuleEntity.toDomainOrNull(): AutomationRule? = runCatching { toDomain() }.getOrNull()
 
 fun AutomationRule.toEntity(): AutomationRuleEntity = AutomationRuleEntity(
     id = id,

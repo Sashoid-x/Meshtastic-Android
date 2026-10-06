@@ -14,30 +14,38 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+@file:Suppress("MagicNumber")
+
 package org.meshtastic.core.network.service
 
 import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
-import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpHeaders
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
+import org.koin.core.annotation.Single
 import org.meshtastic.core.model.LinkPreview
 
 interface LinkPreviewService {
     suspend fun getLinkPreview(url: String): LinkPreview?
 }
 
+@Single
 @Suppress("TooManyFunctions")
-class LinkPreviewServiceImpl(private val httpClient: HttpClient = HttpClient()) : LinkPreviewService {
+class LinkPreviewServiceImpl(private val httpClient: HttpClient) : LinkPreviewService {
     private val logger = Logger.withTag("LinkPreviewService")
     private val cache = atomic(mapOf<String, LinkPreview?>())
+    private val client = httpClient.config {
+        followRedirects = false
+    }
 
     companion object {
         private const val MAX_CACHE_SIZE = 300
         private const val EVICTION_COUNT = 30
+        private const val MAX_REDIRECT_HOPS = 5
         private const val MAX_HTML_BYTES = 32768
         private const val USER_AGENT =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -90,27 +98,75 @@ class LinkPreviewServiceImpl(private val httpClient: HttpClient = HttpClient()) 
             )
     }
 
-    @Suppress("ReturnCount")
+    @Suppress("ReturnCount", "ComplexMethod")
     override suspend fun getLinkPreview(url: String): LinkPreview? {
         cache.value[url]?.let {
             return it
         }
         if (cache.value.containsKey(url)) return null
 
+        if (!SafeUrlValidator.isSafeUrl(url)) {
+            putInCache(url, null)
+            return null
+        }
+
         return try {
-            val response =
-                httpClient.get(url) {
-                    header(HttpHeaders.UserAgent, USER_AGENT)
-                    header(HttpHeaders.Range, "bytes=0-$MAX_HTML_BYTES")
+            var currentUrl = url
+            var hops = 0
+            var finalResponse: HttpResponse? = null
+
+            while (hops < MAX_REDIRECT_HOPS) {
+                if (!SafeUrlValidator.isSafeUrl(currentUrl)) {
+                    putInCache(url, null)
+                    return null
                 }
-            val contentType = response.headers[HttpHeaders.ContentType]?.lowercase() ?: ""
+
+                val response =
+                    client.get(currentUrl) {
+                        header(HttpHeaders.UserAgent, USER_AGENT)
+                        header(HttpHeaders.Range, "bytes=0-$MAX_HTML_BYTES")
+                    }
+
+                if (response.status.value in 300..399) {
+                    val location = response.headers[HttpHeaders.Location]
+                    if (location.isNullOrBlank()) {
+                        putInCache(url, null)
+                        return null
+                    }
+                    currentUrl = SafeUrlValidator.resolveRelativeUrl(currentUrl, location)
+                    hops++
+                } else {
+                    finalResponse = response
+                    break
+                }
+            }
+
+            if (finalResponse == null || finalResponse.status.value !in 200..299) {
+                putInCache(url, null)
+                return null
+            }
+
+            val contentType = finalResponse.headers[HttpHeaders.ContentType]?.lowercase() ?: ""
+            if (contentType.startsWith("image/")) {
+                val preview =
+                    LinkPreview(
+                        url = url,
+                        title = null,
+                        description = null,
+                        imageUrl = currentUrl,
+                        siteName = extractHost(currentUrl),
+                    )
+                putInCache(url, preview)
+                return preview
+            }
+
             if (!contentType.contains("text/html") && !contentType.contains("application/xhtml+xml")) {
                 putInCache(url, null)
                 return null
             }
 
-            val html = response.bodyAsText()
-            val preview = parseHtml(url, html)
+            val html = finalResponse.readBoundedText(MAX_HTML_BYTES)
+            val preview = parseHtml(currentUrl, html)?.copy(url = url)
             putInCache(url, preview)
             preview
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
@@ -170,22 +226,8 @@ class LinkPreviewServiceImpl(private val httpClient: HttpClient = HttpClient()) 
         return clean.removePrefix("www.").takeIf { it.isNotBlank() }
     }
 
-    internal fun resolveRelativeUrl(baseUrl: String, relativeUrl: String): String = when {
-        relativeUrl.startsWith("http://") || relativeUrl.startsWith("https://") -> relativeUrl
-
-        relativeUrl.startsWith("//") -> "https:$relativeUrl"
-
-        else -> {
-            val uriParts = baseUrl.split("://", limit = 2)
-            val scheme = if (uriParts.size > 1) uriParts[0] else "https"
-            val host = (if (uriParts.size > 1) uriParts[1] else baseUrl).substringBefore('/')
-            if (relativeUrl.startsWith("/")) {
-                "$scheme://$host$relativeUrl"
-            } else {
-                "$scheme://$host/$relativeUrl"
-            }
-        }
-    }
+    internal fun resolveRelativeUrl(baseUrl: String, relativeUrl: String): String =
+        SafeUrlValidator.resolveRelativeUrl(baseUrl, relativeUrl)
 
     internal fun unescapeHtml(input: String): String = input
         .replace("&amp;", "&")

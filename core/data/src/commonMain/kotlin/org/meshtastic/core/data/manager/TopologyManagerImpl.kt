@@ -44,6 +44,8 @@ import org.meshtastic.proto.RouteDiscovery
 private const val QUARTER_DB_SCALE = 4.0f
 private const val UNKNOWN_SNR_SENTINEL = -128
 private const val MIN_PLAUSIBLE_SNR = -100
+private const val MAX_PLAUSIBLE_SNR = 50.0f
+private const val RETENTION_WINDOW_MS = 604_800_000L // 7 days in ms
 
 @Single(binds = [TopologyManager::class])
 class TopologyManagerImpl(
@@ -60,6 +62,8 @@ class TopologyManagerImpl(
         scope.launch {
             runCatching {
                 topologyEdgeDao.deleteInvalidEdges()
+                val cutoff = nowMillis - RETENTION_WINDOW_MS
+                topologyEdgeDao.pruneEdgesBefore(cutoff)
             }
                 .onFailure { e ->
                     logger.w(e) { "Failed to clean invalid topology edges on startup" }
@@ -70,6 +74,9 @@ class TopologyManagerImpl(
     override val allEdgesFlow: Flow<List<TopologyEdge>> = topologyEdgeDao.getAllEdgesFlow()
 
     override val activeMqttNodesCount: Flow<Int> = topologyEdgeDao.getActiveMqttNodesCount()
+
+    override fun getActiveMqttNodesCount(periodStart: Long): Flow<Int> =
+        topologyEdgeDao.getActiveMqttNodesCount(periodStart)
 
     override val isMqttActive: StateFlow<Boolean> =
         combine(
@@ -171,12 +178,15 @@ class TopologyManagerImpl(
     }
 
     private fun decodeTraceroutePayload(decoded: Data): RouteDiscovery? {
-        val isTraceroutePort = decoded.portnum == PortNum.TRACEROUTE_APP || decoded.portnum == PortNum.ROUTING_APP
-        return if (isTraceroutePort) {
-            runCatching { RouteDiscovery.ADAPTER.decode(decoded.payload) }.getOrNull()
-        } else {
-            null
-        }
+        if (decoded.portnum != PortNum.TRACEROUTE_APP || decoded.payload.size == 0) return null
+        return runCatching { RouteDiscovery.ADAPTER.decode(decoded.payload) }
+            .getOrNull()
+            ?.takeIf {
+                it.route.isNotEmpty() ||
+                    it.route_back.isNotEmpty() ||
+                    it.snr_towards.isNotEmpty() ||
+                    it.snr_back.isNotEmpty()
+            }
     }
 
     private suspend fun processRouteEdges(
@@ -239,18 +249,25 @@ class TopologyManagerImpl(
             }
             val isDirectToUs = myNodeNum != 0 && (reporterNode == myNodeNum || neighborId == myNodeNum)
             val edgeRssi = if (isDirectToUs) packet.rx_rssi ?: 0 else 0
+            val snr = neighbor.snr
+            val knownSnr =
+                if (snr.toInt() != UNKNOWN_SNR_SENTINEL && snr > MIN_PLAUSIBLE_SNR && snr <= MAX_PLAUSIBLE_SNR) {
+                    snr
+                } else {
+                    0.0f
+                }
             val edge =
                 TopologyEdge.create(
                     from = reporterNode,
                     to = neighborId,
-                    bestSnr = neighbor.snr,
+                    bestSnr = knownSnr,
                     bestRssi = edgeRssi,
                     lastSeen = now,
                     source = source,
                 )
             topologyEdgeDao.upsertEdgeWithPriority(edge)
             logger.d {
-                "NeighborInfo edge: $reporterNode <-> $neighborId (${neighbor.snr} dB, $edgeRssi dBm) from $source"
+                "NeighborInfo edge: $reporterNode <-> $neighborId ($knownSnr dB, $edgeRssi dBm) from $source"
             }
         }
     }

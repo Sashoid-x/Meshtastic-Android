@@ -64,7 +64,7 @@ private data class NodeState(val nodeMap: Map<Int, Node>, val ourNode: Node?)
 
 private data class MqttState(
     val isMqttActive: Boolean,
-    val activeMqttEdgesCount: Int,
+    val totalMqttNodesCount: Int,
     val isClientEnabled: Boolean,
     val connectionState: MqttConnectionState,
     val messageRate: Float,
@@ -75,10 +75,13 @@ private data class SelectionState(val selectedNum: Int?, val selectedEdge: Topol
 data class TopologyGraphUiState(
     val edges: List<TopologyEdge> = emptyList(),
     val totalEdgesCount: Int = 0,
+    val hiddenByPeriodCount: Int = 0,
+    val hiddenByMqttCount: Int = 0,
     val nodesByNum: Map<Int, Node> = emptyMap(),
     val ourNode: Node? = null,
     val isMqttActive: Boolean = false,
-    val activeMqttEdgesCount: Int = 0,
+    val activeMqttNodesCount: Int = 0,
+    val hasAnyMqttData: Boolean = false,
     val isMqttClientEnabled: Boolean = false,
     val mqttConnectionState: MqttConnectionState = MqttConnectionState.Disconnected(null),
     val mqttMessageRate: Float = 0f,
@@ -88,7 +91,7 @@ data class TopologyGraphUiState(
     val selectedEdge: TopologyEdge? = null,
 ) {
     val isMqttMode: Boolean
-        get() = isMqttActive || activeMqttEdgesCount > 0 || isMqttClientEnabled
+        get() = isMqttActive || activeMqttNodesCount > 0 || hasAnyMqttData || isMqttClientEnabled
 
     val uniqueNodeNums: Set<Int> by lazy {
         val set = mutableSetOf<Int>()
@@ -154,20 +157,49 @@ class TopologyGraphViewModel(
             selectionStateFlow,
         ) { rawEdges, nodeState, mqttState, filterState, selectionState ->
             val now = nowMillis
-            val filteredEdges = rawEdges.filter { edge ->
-                val mqttOk = filterState.showMqtt || edge.source != TopologySource.MQTT
-                val timeOk =
-                    filterState.period.durationMs == null || edge.lastSeen >= (now - filterState.period.durationMs)
-                mqttOk && timeOk
-            }
+            val durationMs = filterState.period.durationMs
+            val cutoff = if (durationMs != null) now - durationMs else 0L
+
+            val periodEdges =
+                if (durationMs != null) {
+                    rawEdges.filter { it.lastSeen >= cutoff }
+                } else {
+                    rawEdges
+                }
+            val hiddenByPeriod = rawEdges.size - periodEdges.size
+
+            val filteredEdges =
+                if (!filterState.showMqtt) {
+                    periodEdges.filter { it.source != TopologySource.MQTT }
+                } else {
+                    periodEdges
+                }
+            val hiddenByMqtt = periodEdges.size - filteredEdges.size
+
+            val periodMqttNodesCount =
+                mutableSetOf<Int>()
+                    .apply {
+                        periodEdges.forEach { edge ->
+                            if (edge.source == TopologySource.MQTT) {
+                                add(edge.node1)
+                                add(edge.node2)
+                            }
+                        }
+                    }
+                    .size
+
+            val hasMqtt = rawEdges.any { it.source == TopologySource.MQTT } || mqttState.totalMqttNodesCount > 0
 
             TopologyGraphUiState(
                 edges = filteredEdges,
                 totalEdgesCount = rawEdges.size,
+                hiddenByPeriodCount = hiddenByPeriod,
+                hiddenByMqttCount = hiddenByMqtt,
                 nodesByNum = nodeState.nodeMap,
                 ourNode = nodeState.ourNode,
                 isMqttActive = mqttState.isMqttActive,
-                activeMqttEdgesCount = mqttState.activeMqttEdgesCount,
+                activeMqttNodesCount = periodMqttNodesCount,
+                hasAnyMqttData = hasMqtt,
                 isMqttClientEnabled = mqttState.isClientEnabled,
                 mqttConnectionState = mqttState.connectionState,
                 mqttMessageRate = mqttState.messageRate,

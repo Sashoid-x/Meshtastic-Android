@@ -107,6 +107,39 @@ class MessageViewModelTest {
     private val messageTranslationService: MessageTranslationService = mock(MockMode.autofill)
     private val snackbarManager: SnackbarManager = SnackbarManager()
     private val adminController: AdminController = mock(MockMode.autofill)
+    private val meshPicService: org.meshtastic.core.network.service.MeshPicService = mock(MockMode.autofill)
+    private val junkDataService: JunkDataService = mock(MockMode.autofill)
+    private val meshFilesService: org.meshtastic.core.network.service.MeshFilesService = mock(MockMode.autofill)
+    private val imgbbService: ImgBBService = mock(MockMode.autofill)
+
+    private fun createMessageViewModel(
+        meshPicService: org.meshtastic.core.network.service.MeshPicService = this.meshPicService,
+        junkDataService: JunkDataService = this.junkDataService,
+        meshFilesService: org.meshtastic.core.network.service.MeshFilesService = this.meshFilesService,
+        imgbbService: ImgBBService = this.imgbbService,
+    ) = MessageViewModel(
+        savedStateHandle = savedStateHandle,
+        nodeRepository = nodeRepository,
+        radioConfigRepository = radioConfigRepository,
+        quickChatActionRepository = quickChatActionRepository,
+        connectionStateProvider = connectionStateProvider,
+        messagingController = messagingController,
+        packetRepository = packetRepository,
+        sendMessageUseCase = sendMessageUseCase,
+        customEmojiPrefs = customEmojiPrefs,
+        homoglyphEncodingPrefs = homoglyphPrefs,
+        filterPrefs = filterPrefs,
+        uiPrefs = uiPrefs,
+        meshNotificationManager = meshNotificationManager,
+        activeConversationTracker = activeConversationTracker,
+        messageTranslationService = messageTranslationService,
+        snackbarManager = snackbarManager,
+        adminController = adminController,
+        meshPicService = meshPicService,
+        junkDataService = junkDataService,
+        meshFilesService = meshFilesService,
+        imgbbService = imgbbService,
+    )
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -210,26 +243,7 @@ class MessageViewModelTest {
 
         every { quickChatActionRepository.getAllActions() } returns MutableStateFlow(emptyList())
 
-        viewModel =
-            MessageViewModel(
-                savedStateHandle = savedStateHandle,
-                nodeRepository = nodeRepository,
-                radioConfigRepository = radioConfigRepository,
-                quickChatActionRepository = quickChatActionRepository,
-                connectionStateProvider = connectionStateProvider,
-                messagingController = messagingController,
-                packetRepository = packetRepository,
-                sendMessageUseCase = sendMessageUseCase,
-                customEmojiPrefs = customEmojiPrefs,
-                homoglyphEncodingPrefs = homoglyphPrefs,
-                filterPrefs = filterPrefs,
-                uiPrefs = uiPrefs,
-                meshNotificationManager = meshNotificationManager,
-                activeConversationTracker = activeConversationTracker,
-                messageTranslationService = messageTranslationService,
-                snackbarManager = snackbarManager,
-                adminController = adminController,
-            )
+        viewModel = createMessageViewModel()
     }
 
     @AfterTest
@@ -548,27 +562,7 @@ class MessageViewModelTest {
                     retentionHours: Int,
                 ): Result<String> = Result.success("abc123xyz")
             }
-        val vm =
-            MessageViewModel(
-                savedStateHandle = savedStateHandle,
-                nodeRepository = nodeRepository,
-                radioConfigRepository = radioConfigRepository,
-                quickChatActionRepository = quickChatActionRepository,
-                connectionStateProvider = connectionStateProvider,
-                messagingController = messagingController,
-                packetRepository = packetRepository,
-                sendMessageUseCase = sendMessageUseCase,
-                customEmojiPrefs = customEmojiPrefs,
-                homoglyphEncodingPrefs = homoglyphPrefs,
-                filterPrefs = filterPrefs,
-                uiPrefs = uiPrefs,
-                meshNotificationManager = meshNotificationManager,
-                activeConversationTracker = activeConversationTracker,
-                messageTranslationService = messageTranslationService,
-                snackbarManager = snackbarManager,
-                adminController = adminController,
-                meshPicService = fakeService,
-            )
+        val vm = createMessageViewModel(meshPicService = fakeService)
 
         vm.photoLinkReady.test {
             vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
@@ -596,29 +590,9 @@ class MessageViewModelTest {
                     retentionHours: Int,
                 ): Result<String> = Result.success("abc123xyz")
             }
-        val vm =
-            MessageViewModel(
-                savedStateHandle = savedStateHandle,
-                nodeRepository = nodeRepository,
-                radioConfigRepository = radioConfigRepository,
-                quickChatActionRepository = quickChatActionRepository,
-                connectionStateProvider = connectionStateProvider,
-                messagingController = messagingController,
-                packetRepository = packetRepository,
-                sendMessageUseCase = sendMessageUseCase,
-                customEmojiPrefs = customEmojiPrefs,
-                homoglyphEncodingPrefs = homoglyphPrefs,
-                filterPrefs = filterPrefs,
-                uiPrefs = uiPrefs,
-                meshNotificationManager = meshNotificationManager,
-                activeConversationTracker = activeConversationTracker,
-                messageTranslationService = messageTranslationService,
-                snackbarManager = snackbarManager,
-                adminController = adminController,
-                meshPicService = fakeService,
-            )
+        val vm = createMessageViewModel(meshPicService = fakeService)
 
-        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns 1
+        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns SendMessageOutcome.Queued(1)
 
         vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
         advanceUntilIdle()
@@ -637,29 +611,9 @@ class MessageViewModelTest {
                     retentionHours: Int,
                 ): Result<String> = Result.success("ty8tjhs")
             }
-        val vm =
-            MessageViewModel(
-                savedStateHandle = savedStateHandle,
-                nodeRepository = nodeRepository,
-                radioConfigRepository = radioConfigRepository,
-                quickChatActionRepository = quickChatActionRepository,
-                connectionStateProvider = connectionStateProvider,
-                messagingController = messagingController,
-                packetRepository = packetRepository,
-                filterPrefs = filterPrefs,
-                uiPrefs = uiPrefs,
-                customEmojiPrefs = customEmojiPrefs,
-                homoglyphEncodingPrefs = homoglyphPrefs,
-                meshNotificationManager = meshNotificationManager,
-                activeConversationTracker = activeConversationTracker,
-                sendMessageUseCase = sendMessageUseCase,
-                messageTranslationService = messageTranslationService,
-                snackbarManager = snackbarManager,
-                adminController = adminController,
-                junkDataService = fakeJunkDataService,
-            )
+        val vm = createMessageViewModel(junkDataService = fakeJunkDataService)
 
-        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns 1
+        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns SendMessageOutcome.Queued(1)
 
         vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
         advanceUntilIdle()
@@ -675,29 +629,9 @@ class MessageViewModelTest {
                 override suspend fun uploadImage(imageBytes: ByteArray, filename: String): Result<String> =
                     Result.success("https://d.privatepractice.app/xyz789")
             }
-        val vm =
-            MessageViewModel(
-                savedStateHandle = savedStateHandle,
-                nodeRepository = nodeRepository,
-                radioConfigRepository = radioConfigRepository,
-                quickChatActionRepository = quickChatActionRepository,
-                connectionStateProvider = connectionStateProvider,
-                messagingController = messagingController,
-                packetRepository = packetRepository,
-                sendMessageUseCase = sendMessageUseCase,
-                customEmojiPrefs = customEmojiPrefs,
-                homoglyphEncodingPrefs = homoglyphPrefs,
-                filterPrefs = filterPrefs,
-                uiPrefs = uiPrefs,
-                meshNotificationManager = meshNotificationManager,
-                activeConversationTracker = activeConversationTracker,
-                messageTranslationService = messageTranslationService,
-                snackbarManager = snackbarManager,
-                adminController = adminController,
-                meshFilesService = fakeMeshFilesService,
-            )
+        val vm = createMessageViewModel(meshFilesService = fakeMeshFilesService)
 
-        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns 1
+        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns SendMessageOutcome.Queued(1)
 
         vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
         advanceUntilIdle()
@@ -717,29 +651,9 @@ class MessageViewModelTest {
                     filename: String,
                 ): Result<String> = Result.success("https://ibb.co/2ndCYJK")
             }
-        val vm =
-            MessageViewModel(
-                savedStateHandle = savedStateHandle,
-                nodeRepository = nodeRepository,
-                radioConfigRepository = radioConfigRepository,
-                quickChatActionRepository = quickChatActionRepository,
-                connectionStateProvider = connectionStateProvider,
-                messagingController = messagingController,
-                packetRepository = packetRepository,
-                sendMessageUseCase = sendMessageUseCase,
-                customEmojiPrefs = customEmojiPrefs,
-                homoglyphEncodingPrefs = homoglyphPrefs,
-                filterPrefs = filterPrefs,
-                uiPrefs = uiPrefs,
-                meshNotificationManager = meshNotificationManager,
-                activeConversationTracker = activeConversationTracker,
-                messageTranslationService = messageTranslationService,
-                snackbarManager = snackbarManager,
-                adminController = adminController,
-                imgbbService = fakeImgbbService,
-            )
+        val vm = createMessageViewModel(imgbbService = fakeImgbbService)
 
-        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns 1
+        everySuspend { sendMessageUseCase.invoke(any(), any(), any()) } returns SendMessageOutcome.Queued(1)
 
         vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
         advanceUntilIdle()
@@ -759,27 +673,7 @@ class MessageViewModelTest {
                     filename: String,
                 ): Result<String> = Result.failure(ImgbbApiKeyMissingException())
             }
-        val vm =
-            MessageViewModel(
-                savedStateHandle = savedStateHandle,
-                nodeRepository = nodeRepository,
-                radioConfigRepository = radioConfigRepository,
-                quickChatActionRepository = quickChatActionRepository,
-                connectionStateProvider = connectionStateProvider,
-                messagingController = messagingController,
-                packetRepository = packetRepository,
-                sendMessageUseCase = sendMessageUseCase,
-                customEmojiPrefs = customEmojiPrefs,
-                homoglyphEncodingPrefs = homoglyphPrefs,
-                filterPrefs = filterPrefs,
-                uiPrefs = uiPrefs,
-                meshNotificationManager = meshNotificationManager,
-                activeConversationTracker = activeConversationTracker,
-                messageTranslationService = messageTranslationService,
-                snackbarManager = snackbarManager,
-                adminController = adminController,
-                imgbbService = fakeImgbbService,
-            )
+        val vm = createMessageViewModel(imgbbService = fakeImgbbService)
 
         snackbarManager.events.test {
             vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
@@ -805,27 +699,7 @@ class MessageViewModelTest {
                     filename: String,
                 ): Result<String> = Result.failure(ImgbbInvalidApiKeyException())
             }
-        val vm =
-            MessageViewModel(
-                savedStateHandle = savedStateHandle,
-                nodeRepository = nodeRepository,
-                radioConfigRepository = radioConfigRepository,
-                quickChatActionRepository = quickChatActionRepository,
-                connectionStateProvider = connectionStateProvider,
-                messagingController = messagingController,
-                packetRepository = packetRepository,
-                sendMessageUseCase = sendMessageUseCase,
-                customEmojiPrefs = customEmojiPrefs,
-                homoglyphEncodingPrefs = homoglyphPrefs,
-                filterPrefs = filterPrefs,
-                uiPrefs = uiPrefs,
-                meshNotificationManager = meshNotificationManager,
-                activeConversationTracker = activeConversationTracker,
-                messageTranslationService = messageTranslationService,
-                snackbarManager = snackbarManager,
-                adminController = adminController,
-                imgbbService = fakeImgbbService,
-            )
+        val vm = createMessageViewModel(imgbbService = fakeImgbbService)
 
         snackbarManager.events.test {
             vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
@@ -849,27 +723,7 @@ class MessageViewModelTest {
                     retentionHours: Int,
                 ): Result<String> = Result.failure(RuntimeException("Upload error"))
             }
-        val vm =
-            MessageViewModel(
-                savedStateHandle = savedStateHandle,
-                nodeRepository = nodeRepository,
-                radioConfigRepository = radioConfigRepository,
-                quickChatActionRepository = quickChatActionRepository,
-                connectionStateProvider = connectionStateProvider,
-                messagingController = messagingController,
-                packetRepository = packetRepository,
-                sendMessageUseCase = sendMessageUseCase,
-                customEmojiPrefs = customEmojiPrefs,
-                homoglyphEncodingPrefs = homoglyphPrefs,
-                filterPrefs = filterPrefs,
-                uiPrefs = uiPrefs,
-                meshNotificationManager = meshNotificationManager,
-                activeConversationTracker = activeConversationTracker,
-                messageTranslationService = messageTranslationService,
-                snackbarManager = snackbarManager,
-                adminController = adminController,
-                meshPicService = fakeService,
-            )
+        val vm = createMessageViewModel(meshPicService = fakeService)
 
         vm.uploadAndSendPhoto(byteArrayOf(1, 2, 3), contactKey = "0^all", fileName = "test.jpg")
         advanceUntilIdle()

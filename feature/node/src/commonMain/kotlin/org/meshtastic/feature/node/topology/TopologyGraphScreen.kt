@@ -70,6 +70,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -82,6 +83,7 @@ import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -120,8 +122,10 @@ import org.meshtastic.core.resources.topology_clear_edges
 import org.meshtastic.core.resources.topology_clear_edges_confirm
 import org.meshtastic.core.resources.topology_edges_count
 import org.meshtastic.core.resources.topology_empty_desc
+import org.meshtastic.core.resources.topology_empty_filtered_desc
 import org.meshtastic.core.resources.topology_empty_title
 import org.meshtastic.core.resources.topology_filter_mqtt
+import org.meshtastic.core.resources.topology_filtered_hint
 import org.meshtastic.core.resources.topology_filters
 import org.meshtastic.core.resources.topology_graph_title
 import org.meshtastic.core.resources.topology_link_details_title
@@ -161,10 +165,7 @@ import org.meshtastic.core.ui.icon.Refresh
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
-import kotlin.math.sqrt
 import kotlin.random.Random
-
-private class SimulationNode(val num: Int, var x: Float, var y: Float, var vx: Float = 0f, var vy: Float = 0f)
 
 private const val MAX_ANIMATED_NODES = 150
 private const val STATIC_RELAXATION_STEPS = 45
@@ -234,21 +235,30 @@ fun TopologyGraphScreen(
 
     // Force-directed physics loop
     val isStatic = uiState.uniqueNodeNums.size > MAX_ANIMATED_NODES
-    LaunchedEffect(uiState.edges, uiState.uniqueNodeNums, isStatic, simulationWakeUp) {
+    val structureKey =
+        remember(uiState.edges, uiState.uniqueNodeNums) {
+            val nodeSet = uiState.uniqueNodeNums
+            val edgePairs = uiState.edges.map { minOf(it.node1, it.node2) to maxOf(it.node1, it.node2) }.toSet()
+            nodeSet to edgePairs
+        }
+    val currentEdges by rememberUpdatedState(uiState.edges)
+    val currentDraggedNodeNum by rememberUpdatedState(draggedNodeNum)
+
+    LaunchedEffect(structureKey, isStatic, simulationWakeUp) {
         if (simulationNodes.isEmpty()) return@LaunchedEffect
 
         if (isStatic) {
             repeat(STATIC_RELAXATION_STEPS) {
-                runSimulationStep(simulationNodes.values.toList(), uiState.edges, draggedNodeNum)
+                runSimulationStep(simulationNodes.values.toList(), currentEdges, currentDraggedNodeNum)
             }
             stepTrigger++
         } else {
             var frame = 0
-            while (frame < 120 || draggedNodeNum != null) {
-                val energy = runSimulationStep(simulationNodes.values.toList(), uiState.edges, draggedNodeNum)
+            while (frame < 120 || currentDraggedNodeNum != null) {
+                val energy = runSimulationStep(simulationNodes.values.toList(), currentEdges, currentDraggedNodeNum)
                 stepTrigger++
                 frame++
-                if (draggedNodeNum == null && energy < 0.25f && frame > 30) {
+                if (currentDraggedNodeNum == null && energy < 0.25f && frame > 30) {
                     break
                 }
                 delay(16)
@@ -345,7 +355,14 @@ fun TopologyGraphScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = stringResource(Res.string.topology_empty_desc),
+                        text =
+                        stringResource(
+                            if (uiState.totalEdgesCount > 0) {
+                                Res.string.topology_empty_filtered_desc
+                            } else {
+                                Res.string.topology_empty_desc
+                            },
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -364,6 +381,10 @@ fun TopologyGraphScreen(
                 val strokePoor = Color(COLOR_SNR_POOR)
                 val strokeCritical = Color(COLOR_SNR_CRITICAL)
                 val dashEffect = remember { PathEffect.dashPathEffect(floatArrayOf(14f, 10f), 0f) }
+                val textLayoutCache =
+                    remember(onPrimaryColor, onSurfaceColor) {
+                        mutableMapOf<Pair<String, Boolean>, TextLayoutResult>()
+                    }
 
                 Box(
                     modifier =
@@ -594,15 +615,17 @@ fun TopologyGraphScreen(
                                         ?: num.toUInt().toString(16).takeLast(4).uppercase()
 
                                 val textLayout =
-                                    textMeasurer.measure(
-                                        text = shortName,
-                                        style =
-                                        TextStyle(
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isOur) onPrimaryColor else onSurfaceColor,
-                                        ),
-                                    )
+                                    textLayoutCache.getOrPut(shortName to isOur) {
+                                        textMeasurer.measure(
+                                            text = shortName,
+                                            style =
+                                            TextStyle(
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isOur) onPrimaryColor else onSurfaceColor,
+                                            ),
+                                        )
+                                    }
 
                                 drawText(
                                     textLayoutResult = textLayout,
@@ -738,6 +761,19 @@ fun TopologyGraphScreen(
                                         },
                                     )
                                 }
+                            }
+                            if (uiState.totalEdgesCount > uiState.edges.size) {
+                                Text(
+                                    text =
+                                    stringResource(
+                                        Res.string.topology_filtered_hint,
+                                        uiState.edges.size,
+                                        uiState.totalEdgesCount,
+                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 2.dp),
+                                )
                             }
                         }
                     }
@@ -1393,70 +1429,4 @@ private fun runSimulationStep(
     nodes: List<SimulationNode>,
     edges: List<TopologyEdge>,
     pinnedNodeNum: Int? = null,
-): Float {
-    val nodeCount = nodes.size
-    if (nodeCount == 0) return 0f
-
-    // 1. Repulsion between all pairs
-    for (i in 0 until nodeCount) {
-        val n1 = nodes[i]
-        for (j in i + 1 until nodeCount) {
-            val n2 = nodes[j]
-            val dx = n1.x - n2.x
-            val dy = n1.y - n2.y
-            val distSq = dx * dx + dy * dy + 150f
-            val dist = sqrt(distSq)
-            val force = (28000f / (distSq * dist)).coerceAtMost(30f)
-            val fx = dx * force
-            val fy = dy * force
-            n1.vx += fx
-            n1.vy += fy
-            n2.vx -= fx
-            n2.vy -= fy
-        }
-    }
-
-    // 2. Spring attraction along edges
-    val nodeMap = nodes.associateBy { it.num }
-    for (edge in edges) {
-        val n1 = nodeMap[edge.node1]
-        val n2 = nodeMap[edge.node2]
-        if (n1 == null || n2 == null) continue
-
-        val dx = n2.x - n1.x
-        val dy = n2.y - n1.y
-        val dist = sqrt(dx * dx + dy * dy).coerceAtLeast(1f)
-
-        val snrClamped = edge.bestSnr.coerceIn(-15f, 15f)
-        val targetDist = 240f - (snrClamped * 5f)
-        val delta = dist - targetDist
-        val force = (delta * 0.04f).coerceIn(-25f, 25f)
-        val fx = (dx / dist) * force
-        val fy = (dy / dist) * force
-
-        n1.vx += fx
-        n1.vy += fy
-        n2.vx -= fx
-        n2.vy -= fy
-    }
-
-    // 3. Gravity and damping
-    var totalEnergy = 0f
-    val kGravity = 0.008f
-    val damping = 0.82f
-    for (n in nodes) {
-        if (n.num == pinnedNodeNum) {
-            n.vx = 0f
-            n.vy = 0f
-        } else {
-            n.vx -= n.x * kGravity
-            n.vy -= n.y * kGravity
-            n.vx *= damping
-            n.vy *= damping
-            n.x += n.vx
-            n.y += n.vy
-            totalEnergy += n.vx * n.vx + n.vy * n.vy
-        }
-    }
-    return totalEnergy
-}
+): Float = TopologySimulation.runStep(nodes, edges, pinnedNodeNum)

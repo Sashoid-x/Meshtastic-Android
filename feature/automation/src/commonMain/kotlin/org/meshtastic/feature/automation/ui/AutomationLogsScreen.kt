@@ -17,13 +17,11 @@
 package org.meshtastic.feature.automation.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -48,9 +46,12 @@ import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.automation.model.AutomationLog
 import org.meshtastic.core.common.util.DateFormatter
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.automation_log_failure
+import org.meshtastic.core.resources.automation_log_success
 import org.meshtastic.core.resources.automation_logs
 import org.meshtastic.core.resources.automation_logs_empty
 import org.meshtastic.core.resources.back
+import org.meshtastic.core.ui.component.EmptyState
 import org.meshtastic.core.ui.icon.ArrowBack
 import org.meshtastic.core.ui.icon.CheckCircle
 import org.meshtastic.core.ui.icon.History
@@ -77,25 +78,11 @@ fun AutomationLogsScreen(viewModel: AutomationLogsViewModel, onNavigateUp: () ->
         },
     ) { padding ->
         if (logs.isEmpty()) {
-            Box(
+            EmptyState(
+                icon = MeshtasticIcons.History,
+                title = stringResource(Res.string.automation_logs_empty),
                 modifier = Modifier.padding(padding).fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        MeshtasticIcons.History,
-                        contentDescription = null,
-                        modifier = Modifier.size(48.dp),
-                        tint = MaterialTheme.colorScheme.outline,
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = stringResource(Res.string.automation_logs_empty),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
+            )
         } else {
             LazyColumn(
                 modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp),
@@ -121,7 +108,10 @@ private fun LogItemCard(log: AutomationLog, modifier: Modifier = Modifier) {
         ) {
             Icon(
                 imageVector = if (log.success) MeshtasticIcons.CheckCircle else MeshtasticIcons.Warning,
-                contentDescription = null,
+                contentDescription =
+                stringResource(
+                    if (log.success) Res.string.automation_log_success else Res.string.automation_log_failure,
+                ),
                 tint = if (log.success) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
                 modifier = Modifier.size(24.dp),
             )

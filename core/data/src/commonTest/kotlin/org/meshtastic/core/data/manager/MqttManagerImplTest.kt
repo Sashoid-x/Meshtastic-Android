@@ -32,6 +32,7 @@ import org.meshtastic.core.network.repository.MQTTRepository
 import org.meshtastic.core.repository.PacketHandler
 import org.meshtastic.core.repository.ServiceStateWriter
 import org.meshtastic.core.repository.TopologyManager
+import org.meshtastic.core.testing.FakeMeshPrefs
 import org.meshtastic.core.testing.FakeNodeRepository
 import org.meshtastic.mqtt.ConnectionState
 import org.meshtastic.mqtt.MqttException
@@ -39,6 +40,8 @@ import org.meshtastic.mqtt.ReasonCode
 import org.meshtastic.proto.MqttClientProxyMessage
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class MqttManagerImplTest {
 
@@ -105,6 +108,50 @@ class MqttManagerImplTest {
         assertEquals(MqttConnectionState.Reconnecting(attempt = 1), harness.manager.mqttConnectionState.value)
     }
 
+    @Test
+    fun `client state persists across stop and recovers on restoreClientState`() = runTest {
+        val nodeRepo = FakeNodeRepository()
+        nodeRepo.setMyId("!1234abcd")
+        val meshPrefs = FakeMeshPrefs()
+        val harness = createHarness(nodeRepository = nodeRepo, meshPrefs = meshPrefs)
+
+        harness.manager.setClientEnabled(true)
+        runCurrent()
+        assertTrue(harness.manager.isClientEnabled.value)
+        assertTrue(meshPrefs.awaitMqttClientEnabled("!1234abcd"))
+
+        // Simulate disconnect
+        harness.manager.stop()
+        runCurrent()
+        assertFalse(harness.manager.isClientEnabled.value)
+        // Preference remains true in storage
+        assertTrue(meshPrefs.awaitMqttClientEnabled("!1234abcd"))
+
+        // Simulate reconnect
+        harness.manager.restoreClientState()
+        runCurrent()
+        assertTrue(harness.manager.isClientEnabled.value)
+    }
+
+    @Test
+    fun `client state is isolated per device`() = runTest {
+        val nodeRepo = FakeNodeRepository()
+        nodeRepo.setMyId("!deviceA")
+        val meshPrefs = FakeMeshPrefs()
+        val harness = createHarness(nodeRepository = nodeRepo, meshPrefs = meshPrefs)
+
+        harness.manager.setClientEnabled(true)
+        runCurrent()
+        assertTrue(meshPrefs.awaitMqttClientEnabled("!deviceA"))
+        assertFalse(meshPrefs.awaitMqttClientEnabled("!deviceB"))
+
+        // Switch to device B
+        nodeRepo.setMyId("!deviceB")
+        runCurrent()
+        // Device B was never enabled, so client should not be enabled
+        assertFalse(harness.manager.isClientEnabled.value)
+    }
+
     private fun refusal(refused: Map<String, ReasonCode>, granted: List<String>) = MqttException.SubscriptionRefused(
         reasonCode = refused.values.first(),
         message = "refused",
@@ -112,16 +159,20 @@ class MqttManagerImplTest {
         granted = granted,
     )
 
-    private fun TestScope.createHarness(): Harness {
+    private fun TestScope.createHarness(
+        nodeRepository: FakeNodeRepository = FakeNodeRepository(),
+        meshPrefs: FakeMeshPrefs = FakeMeshPrefs(),
+    ): Harness {
         val repository = FakeMqttRepository()
         val manager =
             MqttManagerImpl(
                 mqttRepository = repository,
                 packetHandler = mock<PacketHandler>(),
                 serviceStateWriter = mock<ServiceStateWriter>(),
-                nodeRepository = FakeNodeRepository(),
+                nodeRepository = nodeRepository,
                 scope = CoroutineScope(StandardTestDispatcher(testScheduler)).asServiceScope(),
                 topologyManager = lazy { mock<TopologyManager>(MockMode.autofill) },
+                meshPrefs = meshPrefs,
             )
         return Harness(manager, repository)
     }

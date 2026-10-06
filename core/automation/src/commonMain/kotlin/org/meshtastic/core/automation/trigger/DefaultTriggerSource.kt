@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.isActive
+import kotlinx.datetime.TimeZone
 import org.koin.core.annotation.Single
 import org.meshtastic.core.automation.engine.TriggerEvent
 import org.meshtastic.core.automation.model.AirQualityMetricType
@@ -31,12 +32,15 @@ import org.meshtastic.core.automation.model.AutomationTrigger
 import org.meshtastic.core.automation.model.EnvironmentMetricType
 import org.meshtastic.core.automation.model.GeofenceTransition
 import org.meshtastic.core.automation.model.NodeStatusType
+import org.meshtastic.core.automation.util.CronExpression
 import org.meshtastic.core.automation.util.calculateDistanceMeters
 import org.meshtastic.core.automation.util.matchesOperator
 import org.meshtastic.core.model.ConnectionState
+import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.ServiceRepository
+import org.meshtastic.proto.MeshPacket
 import org.meshtastic.proto.PortNum
 import org.meshtastic.proto.Position
 import org.meshtastic.proto.Telemetry
@@ -46,6 +50,9 @@ private const val SCHEDULE_INTERVAL_MS = 60_000L
 private const val NODE_LOST_CHECK_INTERVAL_MS = 30_000L
 private const val LAT_LON_SCALE = 1e-7
 private const val METERS_PER_KM = 1000.0
+private const val HEX_RADIX = 16
+private const val HEX_NODE_ID_LENGTH = 8
+private const val DEFAULT_SHORT_NAME_LENGTH = 4
 private const val MS_PER_MINUTE = 60_000L
 private const val MS_PER_SECOND = 1000L
 
@@ -69,7 +76,7 @@ class DefaultTriggerSource(
         is AutomationTrigger.NodeAppeared -> createNodeAppearedFlow(trigger)
         is AutomationTrigger.NodeDisappeared -> createNodeLostFlow(trigger)
         is AutomationTrigger.HopLimitChanged -> createHopLimitChangedFlow(trigger)
-        is AutomationTrigger.Schedule -> createScheduleFlow()
+        is AutomationTrigger.Schedule -> createScheduleFlow(trigger)
         is AutomationTrigger.DeviceBatteryLow -> emptyFlow()
         is AutomationTrigger.RadioConnected -> createRadioConnectedFlow()
         is AutomationTrigger.RadioDisconnected -> createRadioDisconnectedFlow()
@@ -86,7 +93,7 @@ class DefaultTriggerSource(
         return serviceRepository.meshPacketFlow
             .filter { packet ->
                 val decoded = packet.decoded
-                if (decoded?.portnum != PortNum.TEXT_MESSAGE_APP) return@filter false
+                if (decoded?.portnum != PortNum.TEXT_MESSAGE_APP || decoded.emoji != 0) return@filter false
                 if (trigger.channelIndex != null && packet.channel != trigger.channelIndex) return@filter false
                 if (trigger.fromNodeId != null && packet.from != trigger.fromNodeId) return@filter false
                 if (trigger.isDirectMessage && packet.to == NodeAddress.NODENUM_BROADCAST) return@filter false
@@ -104,15 +111,8 @@ class DefaultTriggerSource(
                 true
             }
             .mapNotNull { packet ->
-                val text = packet.decoded?.payload?.utf8() ?: ""
-                val user = nodeRepository.getUser(packet.from)
-                TriggerEvent(
-                    nodeId = packet.from,
-                    nodeName = user.long_name.ifBlank { "Node ${packet.from}" },
-                    channelIndex = packet.channel,
-                    messageText = text,
-                    packetId = packet.id,
-                )
+                val text = packet.decoded?.payload?.utf8().orEmpty()
+                extractMessageTriggerEvent(packet = packet, text = text)
             }
     }
 
@@ -128,48 +128,95 @@ class DefaultTriggerSource(
                 true
             }
             .mapNotNull { packet ->
-                val emoji = packet.decoded?.payload?.utf8() ?: ""
-                val user = nodeRepository.getUser(packet.from)
-                TriggerEvent(
-                    nodeId = packet.from,
-                    nodeName = user.long_name.ifBlank { "Node ${packet.from}" },
-                    channelIndex = packet.channel,
-                    emoji = emoji,
-                    packetId = packet.id,
-                )
+                val emoji = packet.decoded?.payload?.utf8().orEmpty()
+                extractMessageTriggerEvent(packet = packet, emoji = emoji)
             }
 
-    private fun createNodeBatteryLowFlow(trigger: AutomationTrigger.NodeBatteryLow): Flow<TriggerEvent> {
+    private fun extractMessageTriggerEvent(
+        packet: MeshPacket,
+        text: String? = null,
+        emoji: String? = null,
+    ): TriggerEvent {
+        val user = nodeRepository.getUser(packet.from)
+        val isDm = packet.to != NodeAddress.NODENUM_BROADCAST
+        val fromHex = packet.from.toUInt().toString(HEX_RADIX).padStart(HEX_NODE_ID_LENGTH, '0')
+        val contactKey = if (isDm) "0!$fromHex" else "${packet.channel}^all"
+        val hopCount =
+            if (packet.hop_start == 0 || packet.hop_limit > packet.hop_start) {
+                0
+            } else {
+                packet.hop_start - packet.hop_limit
+            }
+        val relayNode = packet.relay_node
+        val lastHopStr =
+            if (relayNode != 0) {
+                val nodeList = nodeRepository.nodeDBbyNum.value.values.toList()
+                val myNodeNum = nodeRepository.ourNodeInfo.value?.num
+                val relay = Node.getRelayNode(relayNode, nodeList, myNodeNum)
+                relay?.user?.short_name?.ifBlank { relay.user.long_name }
+                    ?: "0x${relayNode.toUInt().toString(HEX_RADIX).uppercase()}"
+            } else if (hopCount == 0) {
+                "Direct"
+            } else {
+                "unknown"
+            }
+        val transportStr = if (packet.via_mqtt == true) "MQTT" else "LoRa"
+
+        return TriggerEvent(
+            nodeId = packet.from,
+            nodeName = user.long_name.ifBlank { "Node ${packet.from}" },
+            shortName = user.short_name.ifBlank { fromHex.takeLast(DEFAULT_SHORT_NAME_LENGTH) },
+            channelIndex = packet.channel,
+            messageText = text,
+            emoji = emoji,
+            packetId = packet.id,
+            hops = hopCount,
+            snr = packet.rx_snr,
+            rssi = packet.rx_rssi,
+            lastHop = lastHopStr,
+            transport = transportStr,
+            contactKey = contactKey,
+        )
+    }
+
+    private fun createNodeBatteryLowFlow(trigger: AutomationTrigger.NodeBatteryLow): Flow<TriggerEvent> = flow {
         val previousBatteryMap = mutableMapOf<Int, Int>()
-        return nodeRepository.nodeDBbyNum.mapNotNull { nodesMap ->
-            nodesMap.entries.firstNotNullOfOrNull { (num, node) ->
-                if (trigger.nodeId != null && num != trigger.nodeId) {
-                    null
-                } else {
-                    val currentBattery = node.batteryLevel
-                    val voltage = node.voltage
-                    if (currentBattery != null && currentBattery > 0) {
-                        val prev = previousBatteryMap[num]
-                        previousBatteryMap[num] = currentBattery
-                        val percentFired =
-                            prev != null &&
-                                prev > trigger.thresholdPercent &&
-                                currentBattery <= trigger.thresholdPercent
-                        val voltageFired =
-                            trigger.thresholdVoltage != null && voltage != null && voltage <= trigger.thresholdVoltage
-                        if (percentFired || voltageFired) {
-                            TriggerEvent(
-                                nodeId = num,
-                                nodeName = node.user.long_name,
-                                batteryLevel = currentBattery,
-                                voltage = voltage,
-                            )
-                        } else {
-                            null
-                        }
-                    } else {
-                        null
+        val previousVoltageMap = mutableMapOf<Int, Float>()
+
+        nodeRepository.nodeDBbyNum.collect { nodesMap ->
+            for ((num, node) in nodesMap) {
+                if (trigger.nodeId != null && num != trigger.nodeId) continue
+
+                val currentBattery = node.batteryLevel
+                val voltage = node.voltage
+
+                var percentFired = false
+                if (currentBattery != null && currentBattery > 0) {
+                    val prev = previousBatteryMap[num]
+                    previousBatteryMap[num] = currentBattery
+                    if (prev != null && prev > trigger.thresholdPercent && currentBattery <= trigger.thresholdPercent) {
+                        percentFired = true
                     }
+                }
+
+                var voltageFired = false
+                if (trigger.thresholdVoltage != null && voltage != null && voltage > 0f) {
+                    val prevV = previousVoltageMap[num]
+                    previousVoltageMap[num] = voltage
+                    if (prevV != null && prevV > trigger.thresholdVoltage && voltage <= trigger.thresholdVoltage) {
+                        voltageFired = true
+                    }
+                }
+
+                if (percentFired || voltageFired) {
+                    emit(
+                        TriggerEvent(
+                            nodeId = num,
+                            nodeName = node.user.long_name,
+                            batteryLevel = currentBattery,
+                            voltage = voltage,
+                        ),
+                    )
                 }
             }
         }
@@ -183,7 +230,8 @@ class DefaultTriggerSource(
                 true
             }
             .mapNotNull { packet ->
-                val telemetry = runCatching { Telemetry.ADAPTER.decode(packet.decoded!!.payload) }.getOrNull()
+                val payload = packet.decoded?.payload ?: return@mapNotNull null
+                val telemetry = runCatching { Telemetry.ADAPTER.decode(payload) }.getOrNull()
                 val env = telemetry?.environment_metrics ?: return@mapNotNull null
                 val value =
                     when (trigger.metricType) {
@@ -217,7 +265,8 @@ class DefaultTriggerSource(
                 true
             }
             .mapNotNull { packet ->
-                val telemetry = runCatching { Telemetry.ADAPTER.decode(packet.decoded!!.payload) }.getOrNull()
+                val payload = packet.decoded?.payload ?: return@mapNotNull null
+                val telemetry = runCatching { Telemetry.ADAPTER.decode(payload) }.getOrNull()
                 val aq = telemetry?.air_quality_metrics
                 val env = telemetry?.environment_metrics
                 val value =
@@ -249,7 +298,8 @@ class DefaultTriggerSource(
                 true
             }
             .mapNotNull { packet ->
-                val telemetry = runCatching { Telemetry.ADAPTER.decode(packet.decoded!!.payload) }.getOrNull()
+                val payload = packet.decoded?.payload ?: return@mapNotNull null
+                val telemetry = runCatching { Telemetry.ADAPTER.decode(payload) }.getOrNull()
                 val moisture = telemetry?.environment_metrics?.soil_moisture ?: return@mapNotNull null
                 if (matchesOperator(moisture.toFloat(), trigger.operator, trigger.thresholdPercent)) {
                     val user = nodeRepository.getUser(packet.from)
@@ -272,10 +322,13 @@ class DefaultTriggerSource(
                 true
             }
             .mapNotNull { packet ->
-                val pos = runCatching { Position.ADAPTER.decode(packet.decoded!!.payload) }.getOrNull()
+                val payload = packet.decoded?.payload ?: return@mapNotNull null
+                val pos = runCatching { Position.ADAPTER.decode(payload) }.getOrNull()
                 val lat = pos?.latitude_i?.times(LAT_LON_SCALE) ?: return@mapNotNull null
                 val lon = pos.longitude_i?.times(LAT_LON_SCALE) ?: return@mapNotNull null
-                val dist = calculateDistanceMeters(lat, lon, trigger.centerLatitude, trigger.centerLongitude)
+                val centerLat = trigger.centerLatitude ?: return@mapNotNull null
+                val centerLon = trigger.centerLongitude ?: return@mapNotNull null
+                val dist = calculateDistanceMeters(lat, lon, centerLat, centerLon)
                 val isInside = dist <= trigger.radiusMeters
                 val prev = previousInsideMap[packet.from]
                 previousInsideMap[packet.from] = isInside
@@ -309,7 +362,8 @@ class DefaultTriggerSource(
                 true
             }
             .mapNotNull { packet ->
-                val pos = runCatching { Position.ADAPTER.decode(packet.decoded!!.payload) }.getOrNull()
+                val payload = packet.decoded?.payload ?: return@mapNotNull null
+                val pos = runCatching { Position.ADAPTER.decode(payload) }.getOrNull()
                 val lat = pos?.latitude_i?.times(LAT_LON_SCALE) ?: return@mapNotNull null
                 val lon = pos.longitude_i?.times(LAT_LON_SCALE) ?: return@mapNotNull null
 
@@ -343,7 +397,8 @@ class DefaultTriggerSource(
                 true
             }
             .mapNotNull { packet ->
-                val pos = runCatching { Position.ADAPTER.decode(packet.decoded!!.payload) }.getOrNull()
+                val payload = packet.decoded?.payload ?: return@mapNotNull null
+                val pos = runCatching { Position.ADAPTER.decode(payload) }.getOrNull()
                 val lat = pos?.latitude_i?.times(LAT_LON_SCALE) ?: return@mapNotNull null
                 val lon = pos.longitude_i?.times(LAT_LON_SCALE) ?: return@mapNotNull null
 
@@ -454,10 +509,26 @@ class DefaultTriggerSource(
             }
     }
 
-    private fun createScheduleFlow(): Flow<TriggerEvent> = flow {
+    private fun createScheduleFlow(trigger: AutomationTrigger.Schedule): Flow<TriggerEvent> = flow {
+        val cron = CronExpression.parse(trigger.cronExpression.trim())
+        if (cron == null) {
+            while (currentCoroutineContext().isActive) {
+                delay(SCHEDULE_INTERVAL_MS)
+                emit(TriggerEvent())
+            }
+            return@flow
+        }
+        val tz = TimeZone.currentSystemDefault()
         while (currentCoroutineContext().isActive) {
-            delay(SCHEDULE_INTERVAL_MS)
-            emit(TriggerEvent())
+            val now = Clock.System.now()
+            val next = cron.nextExecution(now, tz)
+            if (next != null) {
+                val delayMs = (next.toEpochMilliseconds() - now.toEpochMilliseconds()).coerceAtLeast(MS_PER_SECOND)
+                delay(delayMs)
+                emit(TriggerEvent())
+            } else {
+                delay(SCHEDULE_INTERVAL_MS)
+            }
         }
     }
 
@@ -487,7 +558,8 @@ class DefaultTriggerSource(
                 true
             }
             .mapNotNull { packet ->
-                val telemetry = runCatching { Telemetry.ADAPTER.decode(packet.decoded!!.payload) }.getOrNull()
+                val payload = packet.decoded?.payload ?: return@mapNotNull null
+                val telemetry = runCatching { Telemetry.ADAPTER.decode(payload) }.getOrNull()
                 val dev = telemetry?.device_metrics
                 val env = telemetry?.environment_metrics
                 val aq = telemetry?.air_quality_metrics
@@ -515,7 +587,8 @@ class DefaultTriggerSource(
                 true
             }
             .mapNotNull { packet ->
-                val pos = runCatching { Position.ADAPTER.decode(packet.decoded!!.payload) }.getOrNull()
+                val payload = packet.decoded?.payload ?: return@mapNotNull null
+                val pos = runCatching { Position.ADAPTER.decode(payload) }.getOrNull()
                 val lat = pos?.latitude_i?.times(LAT_LON_SCALE) ?: return@mapNotNull null
                 val lon = pos.longitude_i?.times(LAT_LON_SCALE) ?: return@mapNotNull null
 

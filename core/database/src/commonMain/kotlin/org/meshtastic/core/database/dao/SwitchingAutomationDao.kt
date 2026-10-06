@@ -68,6 +68,10 @@ class SwitchingAutomationDao(private val dbManager: DatabaseProvider) : Automati
         dbManager.withDb { it.automationDao().insertLog(log) }
     }
 
+    override suspend fun insertLogAndPrune(log: AutomationLogEntity, keep: Int) {
+        dbManager.withDb { it.automationDao().insertLogAndPrune(log, keep) }
+    }
+
     override suspend fun pruneOldLogs(ruleId: String, keep: Int) {
         dbManager.withDb { it.automationDao().pruneOldLogs(ruleId, keep) }
     }

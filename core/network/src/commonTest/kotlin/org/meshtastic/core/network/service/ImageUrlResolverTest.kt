@@ -24,6 +24,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -31,6 +33,16 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ImageUrlResolverTest {
+
+    @BeforeTest
+    fun setUp() {
+        SafeUrlValidator.dnsResolverForTesting = { listOf("93.184.216.34") }
+    }
+
+    @AfterTest
+    fun tearDown() {
+        SafeUrlValidator.dnsResolverForTesting = null
+    }
 
     @Test
     fun testExtractFirstUrl() {

@@ -44,7 +44,7 @@ interface MeshFilesService {
 }
 
 @Single
-class MeshFilesServiceImpl(private val httpClient: HttpClient = HttpClient()) : MeshFilesService {
+class MeshFilesServiceImpl(private val httpClient: HttpClient) : MeshFilesService {
 
     private val json = Json {
         ignoreUnknownKeys = true

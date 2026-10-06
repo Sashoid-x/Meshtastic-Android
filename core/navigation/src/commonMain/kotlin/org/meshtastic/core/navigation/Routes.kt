@@ -206,11 +206,10 @@ sealed interface SettingsRoute : Route {
 
 @Serializable
 sealed interface AutomationRoute : Route {
-    @Serializable data object AutomationGraph : AutomationRoute, Graph
-
     @Serializable data object AutomationList : AutomationRoute
 
-    @Serializable data class AutomationBuilder(val ruleId: String? = null) : AutomationRoute
+    @Serializable
+    data class AutomationBuilder(val ruleId: String? = null, val templateId: String? = null) : AutomationRoute
 
     @Serializable data class AutomationLogs(val ruleId: String) : AutomationRoute
 }

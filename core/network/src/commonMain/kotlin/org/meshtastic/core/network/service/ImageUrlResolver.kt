@@ -14,14 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+@file:Suppress(
+    "MagicNumber",
+    "NestedBlockDepth",
+    "LoopWithTooManyJumpStatements",
+    "ReturnCount",
+    "LongMethod",
+    "ComplexMethod",
+    "TooManyFunctions",
+)
+
 package org.meshtastic.core.network.service
 
 import co.touchlab.kermit.Logger
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
 import io.ktor.client.request.head
 import io.ktor.client.request.header
-import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.HttpResponse
 import io.ktor.http.HttpHeaders
 import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.update
@@ -31,8 +42,14 @@ object ImageUrlResolver {
     private val cache = atomic(mapOf<String, String?>())
     private const val MAX_CACHE_SIZE = 500
     private const val EVICTION_COUNT = 50
+    private const val MAX_REDIRECT_HOPS = 5
+    private const val MAX_HTML_BYTES = 65_536
+    private const val TIMEOUT_MS = 15_000L
 
     private val KNOWN_IMAGE_EXTENSIONS = setOf("png", "jpg", "jpeg", "webp", "gif", "bmp", "svg", "avif")
+    private val KNOWN_SHORTENER_DOMAINS =
+        setOf("clck.ru", "bit.ly", "tinyurl.com", "t.co", "is.gd", "cutt.ly", "rb.gy", "shorturl.at", "vk.cc")
+
     private val MESHPIC_REGEX =
         Regex("""https?://(?:www\.)?meshpic\.org/(?:image/|i/)?([A-Za-z0-9_-]+)/?""", RegexOption.IGNORE_CASE)
     private val JUNKDATA_REGEX =
@@ -60,7 +77,16 @@ object ImageUrlResolver {
     private const val USER_AGENT =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
 
-    private val sharedHttpClient by lazy { HttpClient() }
+    private val sharedHttpClient by lazy {
+        HttpClient {
+            followRedirects = false
+            install(HttpTimeout) {
+                requestTimeoutMillis = TIMEOUT_MS
+                connectTimeoutMillis = TIMEOUT_MS
+                socketTimeoutMillis = TIMEOUT_MS
+            }
+        }
+    }
 
     fun extractFirstUrl(text: String): String? {
         val match = GENERAL_URL_REGEX.find(text) ?: return null
@@ -75,10 +101,16 @@ object ImageUrlResolver {
     }
 
     fun isPhotoHostingOrDirectImageUrl(url: String): Boolean {
-        if (isKnownPhotoHost(url)) return true
+        if (isKnownPhotoHost(url) || isKnownShortener(url)) return true
         val cleanUrl = url.substringBefore('?').substringBefore('#')
         val ext = cleanUrl.substringAfterLast('.', "").lowercase()
         return ext in KNOWN_IMAGE_EXTENSIONS
+    }
+
+    fun isKnownShortener(url: String): Boolean {
+        val host =
+            url.removePrefix("http://").removePrefix("https://").substringBefore('/').substringBefore(':').lowercase()
+        return host in KNOWN_SHORTENER_DOMAINS
     }
 
     fun isKnownPhotoHost(url: String): Boolean {
@@ -143,51 +175,85 @@ object ImageUrlResolver {
         return null
     }
 
-    @Suppress("ReturnCount")
     suspend fun resolveImageUrl(url: String, httpClient: HttpClient = sharedHttpClient): String? {
         getFastPathImageUrl(url)?.let {
             return it
         }
         if (cache.value.containsKey(url)) return cache.value[url]
 
+        if (!SafeUrlValidator.isSafeUrl(url)) {
+            putInCache(url, null)
+            return null
+        }
+
+        val client = httpClient.config {
+            followRedirects = false
+        }
+
         return try {
-            val headResponse = runCatching {
-                httpClient.head(url) { header(HttpHeaders.UserAgent, USER_AGENT) }
-            }
-                .getOrNull()
+            var currentUrl = url
+            var hops = 0
 
-            val headContentType = headResponse?.headers?.get(HttpHeaders.ContentType)?.lowercase()
-            if (headContentType != null && headContentType.startsWith("image/")) {
-                putInCache(url, url)
-                return url
-            }
+            while (hops < MAX_REDIRECT_HOPS) {
+                if (!SafeUrlValidator.isSafeUrl(currentUrl)) {
+                    putInCache(url, null)
+                    return null
+                }
 
-            // Only inspect HTML body if it is a designated photo host page (such as ibb.co/<id>)
-            if (isKnownPhotoHost(url)) {
-                val getResponse = runCatching {
-                    httpClient.get(url) {
-                        header(HttpHeaders.UserAgent, USER_AGENT)
-                        header(HttpHeaders.Range, "bytes=0-65536")
-                    }
+                val headResponse = runCatching {
+                    client.head(currentUrl) { header(HttpHeaders.UserAgent, USER_AGENT) }
                 }
                     .getOrNull()
 
-                val getContentType = getResponse?.headers?.get(HttpHeaders.ContentType)?.lowercase()
-                if (getContentType != null && getContentType.startsWith("image/")) {
-                    putInCache(url, url)
-                    return url
+                if (headResponse != null && headResponse.status.value in 300..399) {
+                    val location = headResponse.headers[HttpHeaders.Location]
+                    if (location.isNullOrBlank()) {
+                        putInCache(url, null)
+                        return null
+                    }
+                    currentUrl = SafeUrlValidator.resolveRelativeUrl(currentUrl, location)
+                    hops++
+                    continue
                 }
 
-                if (getContentType != null && getContentType.contains("text/html")) {
-                    val body = runCatching { getResponse.bodyAsText() }.getOrDefault("")
-                    val ogMatch = OG_IMAGE_REGEX.find(body) ?: OG_IMAGE_REVERSE_REGEX.find(body)
-                    val ogImage = ogMatch?.groupValues?.getOrNull(1)
-                    if (!ogImage.isNullOrBlank()) {
-                        val resolved = resolveRelativeUrl(url, ogImage)
+                val headContentType = headResponse?.headers?.get(HttpHeaders.ContentType)?.lowercase()
+                if (headContentType != null && headContentType.startsWith("image/")) {
+                    putInCache(url, currentUrl)
+                    return currentUrl
+                }
+
+                // If HTML, check OpenGraph / Twitter meta tags
+                val shouldInspectHtml =
+                    isKnownPhotoHost(currentUrl) ||
+                        isKnownShortener(url) ||
+                        (headContentType != null && headContentType.contains("text/html"))
+
+                if (shouldInspectHtml) {
+                    val getResponse = runCatching {
+                        client.get(currentUrl) {
+                            header(HttpHeaders.UserAgent, USER_AGENT)
+                            header(HttpHeaders.Range, "bytes=0-$MAX_HTML_BYTES")
+                        }
+                    }
+                        .getOrNull()
+
+                    if (getResponse != null && getResponse.status.value in 300..399) {
+                        val location = getResponse.headers[HttpHeaders.Location]
+                        if (!location.isNullOrBlank()) {
+                            currentUrl = SafeUrlValidator.resolveRelativeUrl(currentUrl, location)
+                            hops++
+                            continue
+                        }
+                    }
+
+                    val resolved = inspectHtmlForImage(currentUrl, getResponse)
+                    if (resolved != null) {
                         putInCache(url, resolved)
                         return resolved
                     }
                 }
+
+                break
             }
 
             putInCache(url, null)
@@ -199,18 +265,24 @@ object ImageUrlResolver {
         }
     }
 
-    @Suppress("ReturnCount")
-    private fun resolveRelativeUrl(baseUrl: String, relativeUrl: String): String {
-        if (relativeUrl.startsWith("http://") || relativeUrl.startsWith("https://")) return relativeUrl
-        if (relativeUrl.startsWith("//")) return "https:$relativeUrl"
-        val uriParts = baseUrl.split("://", limit = 2)
-        val scheme = if (uriParts.size > 1) uriParts[0] else "https"
-        val host = (if (uriParts.size > 1) uriParts[1] else baseUrl).substringBefore('/')
-        return if (relativeUrl.startsWith("/")) {
-            "$scheme://$host$relativeUrl"
-        } else {
-            "$scheme://$host/$relativeUrl"
+    private suspend fun inspectHtmlForImage(currentUrl: String, response: HttpResponse?): String? {
+        if (response == null) return null
+        val getContentType = response.headers[HttpHeaders.ContentType]?.lowercase()
+        if (getContentType != null && getContentType.startsWith("image/")) {
+            return currentUrl
         }
+        if (getContentType != null && getContentType.contains("text/html")) {
+            val body = runCatching { response.readBoundedText(MAX_HTML_BYTES) }.getOrDefault("")
+            val ogMatch = OG_IMAGE_REGEX.find(body) ?: OG_IMAGE_REVERSE_REGEX.find(body)
+            val ogImage = ogMatch?.groupValues?.getOrNull(1)
+            if (!ogImage.isNullOrBlank()) {
+                val resolved = SafeUrlValidator.resolveRelativeUrl(currentUrl, ogImage)
+                if (SafeUrlValidator.isSafeUrl(resolved)) {
+                    return resolved
+                }
+            }
+        }
+        return null
     }
 
     private fun putInCache(url: String, result: String?) {

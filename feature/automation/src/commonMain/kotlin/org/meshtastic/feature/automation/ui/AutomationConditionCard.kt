@@ -42,13 +42,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.automation.model.AutomationCondition
 import org.meshtastic.core.automation.model.AutomationTrigger
@@ -59,20 +60,63 @@ import org.meshtastic.core.automation.model.TelemetryMetricType
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.automation_add_condition
+import org.meshtastic.core.resources.automation_channel_label
 import org.meshtastic.core.resources.automation_condition_channel
+import org.meshtastic.core.resources.automation_condition_comparison_label
 import org.meshtastic.core.resources.automation_condition_days_of_week
+import org.meshtastic.core.resources.automation_condition_end_hour
+import org.meshtastic.core.resources.automation_condition_location_closer
+import org.meshtastic.core.resources.automation_condition_location_filter_menu
+import org.meshtastic.core.resources.automation_condition_location_further
+import org.meshtastic.core.resources.automation_condition_location_outside
+import org.meshtastic.core.resources.automation_condition_location_type
+import org.meshtastic.core.resources.automation_condition_location_within
+import org.meshtastic.core.resources.automation_condition_message_contains
+import org.meshtastic.core.resources.automation_condition_message_filter_menu
+import org.meshtastic.core.resources.automation_condition_metric_battery
+import org.meshtastic.core.resources.automation_condition_metric_co2
+import org.meshtastic.core.resources.automation_condition_metric_humidity
+import org.meshtastic.core.resources.automation_condition_metric_iaq
+import org.meshtastic.core.resources.automation_condition_metric_pm25
+import org.meshtastic.core.resources.automation_condition_metric_pressure
+import org.meshtastic.core.resources.automation_condition_metric_soil
+import org.meshtastic.core.resources.automation_condition_metric_temperature
+import org.meshtastic.core.resources.automation_condition_metric_voltage
+import org.meshtastic.core.resources.automation_condition_name_contains
+import org.meshtastic.core.resources.automation_condition_node_filter_menu
 import org.meshtastic.core.resources.automation_condition_node_is_favorite
+import org.meshtastic.core.resources.automation_condition_node_list_hint
 import org.meshtastic.core.resources.automation_condition_node_name
 import org.meshtastic.core.resources.automation_condition_not_fired_recently
+import org.meshtastic.core.resources.automation_condition_only_favorites
+import org.meshtastic.core.resources.automation_condition_operator_greater
+import org.meshtastic.core.resources.automation_condition_operator_less
 import org.meshtastic.core.resources.automation_condition_radio_connected
+import org.meshtastic.core.resources.automation_condition_reaction_label
+import org.meshtastic.core.resources.automation_condition_remove
+import org.meshtastic.core.resources.automation_condition_required_node
+import org.meshtastic.core.resources.automation_condition_start_hour
+import org.meshtastic.core.resources.automation_condition_telemetry_parameter
+import org.meshtastic.core.resources.automation_condition_telemetry_threshold_menu
+import org.meshtastic.core.resources.automation_condition_threshold_label
 import org.meshtastic.core.resources.automation_condition_time_of_day
 import org.meshtastic.core.resources.automation_conditions_match_all
 import org.meshtastic.core.resources.automation_conditions_match_any
+import org.meshtastic.core.resources.automation_day_fri
+import org.meshtastic.core.resources.automation_day_mon
+import org.meshtastic.core.resources.automation_day_sat
+import org.meshtastic.core.resources.automation_day_sun
+import org.meshtastic.core.resources.automation_day_thu
+import org.meshtastic.core.resources.automation_day_tue
+import org.meshtastic.core.resources.automation_day_wed
+import org.meshtastic.core.resources.automation_distance_km
+import org.meshtastic.core.resources.automation_radius_meters
 import org.meshtastic.core.resources.automation_step_1_conditions
 import org.meshtastic.core.resources.automation_step_1_event
 import org.meshtastic.core.resources.automation_step_1_filter_conditions
 import org.meshtastic.core.resources.automation_step_1_no_conditions_hint
-import org.meshtastic.core.resources.automation_step_2_conditions
+import org.meshtastic.core.resources.automation_trigger_latitude
+import org.meshtastic.core.resources.automation_trigger_longitude
 import org.meshtastic.core.resources.filter_regex_pattern
 import org.meshtastic.core.ui.icon.Close
 import org.meshtastic.core.ui.icon.MeshtasticIcons
@@ -196,63 +240,10 @@ fun ConditionsUnifiedCard(
     }
 }
 
-@Suppress("LongMethod")
-@Composable
-fun ConditionsCard(
-    conditionOperator: LogicalOperator,
-    onConditionOperatorChange: (LogicalOperator) -> Unit,
-    conditions: List<AutomationCondition>,
-    onAddCondition: (AutomationCondition) -> Unit,
-    onUpdateCondition: (Int, AutomationCondition) -> Unit,
-    onRemoveCondition: (Int) -> Unit,
-    nodes: Map<Int, Node>,
-    modifier: Modifier = Modifier,
-) {
-    Card(modifier = modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text(
-                text = stringResource(Res.string.automation_step_2_conditions),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-            )
-
-            if (conditions.size >= 2) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    FilterChip(
-                        selected = conditionOperator == LogicalOperator.AND,
-                        onClick = { onConditionOperatorChange(LogicalOperator.AND) },
-                        label = { Text(stringResource(Res.string.automation_conditions_match_all)) },
-                    )
-                    FilterChip(
-                        selected = conditionOperator == LogicalOperator.OR,
-                        onClick = { onConditionOperatorChange(LogicalOperator.OR) },
-                        label = { Text(stringResource(Res.string.automation_conditions_match_any)) },
-                    )
-                }
-            }
-
-            conditions.forEachIndexed { index, condition ->
-                ConditionItemRow(
-                    condition = condition,
-                    onUpdate = { onUpdateCondition(index, it) },
-                    onRemove = { onRemoveCondition(index) },
-                    nodes = nodes,
-                )
-            }
-
-            AddConditionMenu(onAddCondition = onAddCondition)
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddConditionMenu(onAddCondition: (AutomationCondition) -> Unit, modifier: Modifier = Modifier) {
-    var menuExpanded by remember { mutableStateOf(false) }
+    var menuExpanded by rememberSaveable { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
         expanded = menuExpanded,
@@ -283,19 +274,19 @@ private fun AddConditionMenu(onAddCondition: (AutomationCondition) -> Unit, modi
 @Composable
 private fun ColumnScope.ConditionMenuItems(onSelect: (AutomationCondition) -> Unit) {
     DropdownMenuItem(
-        text = { Text("👤 Фильтр по ноде (Выбор, Имя, Избранное)") },
+        text = { Text(stringResource(Res.string.automation_condition_node_filter_menu)) },
         onClick = { onSelect(AutomationCondition.NodeFilter()) },
     )
     DropdownMenuItem(
-        text = { Text("📊 Порог телеметрии (Батарея, Вольты, Сенсоры)") },
+        text = { Text(stringResource(Res.string.automation_condition_telemetry_threshold_menu)) },
         onClick = { onSelect(AutomationCondition.TelemetryThreshold()) },
     )
     DropdownMenuItem(
-        text = { Text("📍 Геозона / Дистанция (Внутри, Снаружи, Ближе, Дальше)") },
+        text = { Text(stringResource(Res.string.automation_condition_location_filter_menu)) },
         onClick = { onSelect(AutomationCondition.LocationFilter()) },
     )
     DropdownMenuItem(
-        text = { Text("💬 Фильтр текста или реакции") },
+        text = { Text(stringResource(Res.string.automation_condition_message_filter_menu)) },
         onClick = { onSelect(AutomationCondition.MessageFilter()) },
     )
     DropdownMenuItem(
@@ -314,6 +305,34 @@ private fun ColumnScope.ConditionMenuItems(onSelect: (AutomationCondition) -> Un
         text = { Text(stringResource(Res.string.automation_condition_not_fired_recently)) },
         onClick = { onSelect(AutomationCondition.NotFiredRecently(DEFAULT_COOLDOWN_SECONDS)) },
     )
+}
+
+@Suppress("MagicNumber")
+@Composable
+private fun DaysOfWeekPicker(selectedDays: List<Int>, onToggleDay: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val dayLabels =
+        listOf(
+            1 to Res.string.automation_day_mon,
+            2 to Res.string.automation_day_tue,
+            3 to Res.string.automation_day_wed,
+            4 to Res.string.automation_day_thu,
+            5 to Res.string.automation_day_fri,
+            6 to Res.string.automation_day_sat,
+            7 to Res.string.automation_day_sun,
+        )
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        dayLabels.forEach { (dayIndex, labelRes) ->
+            FilterChip(
+                selected = selectedDays.contains(dayIndex),
+                onClick = { onToggleDay(dayIndex) },
+                label = { Text(stringResource(labelRes)) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
 }
 
 @Suppress("LongMethod", "CyclomaticComplexMethod")
@@ -340,12 +359,12 @@ private fun ConditionItemRow(
                             selectedNodeId = condition.nodeId,
                             nodes = nodes,
                             onSelectNode = { onUpdate(condition.copy(nodeId = it)) },
-                            label = "Требуемая нода",
+                            label = stringResource(Res.string.automation_condition_required_node),
                         )
                         OutlinedTextField(
                             value = condition.nameContains,
                             onValueChange = { onUpdate(condition.copy(nameContains = it)) },
-                            label = { Text("Имя содержит подстроку") },
+                            label = { Text(stringResource(Res.string.automation_condition_name_contains)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -354,7 +373,7 @@ private fun ConditionItemRow(
                                 onCheckedChange = { onUpdate(condition.copy(isFavoriteOnly = it)) },
                             )
                             Text(
-                                text = "Только избранные ноды (⭐)",
+                                text = stringResource(Res.string.automation_condition_only_favorites),
                                 modifier = Modifier.padding(start = 8.dp),
                             )
                         }
@@ -372,7 +391,7 @@ private fun ConditionItemRow(
                         OutlinedTextField(
                             value = condition.pattern,
                             onValueChange = { onUpdate(condition.copy(pattern = it)) },
-                            label = { Text("Текст сообщения содержит") },
+                            label = { Text(stringResource(Res.string.automation_condition_message_contains)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -388,7 +407,7 @@ private fun ConditionItemRow(
                         OutlinedTextField(
                             value = condition.emoji,
                             onValueChange = { onUpdate(condition.copy(emoji = it)) },
-                            label = { Text("Смайл / Реакция (например 🚨)") },
+                            label = { Text(stringResource(Res.string.automation_condition_reaction_label)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -409,7 +428,7 @@ private fun ConditionItemRow(
                                 val ids = input.split(",").mapNotNull { it.trim().toIntOrNull() }
                                 onUpdate(condition.copy(nodeIds = ids))
                             },
-                            label = { Text("Список Node ID через запятую") },
+                            label = { Text(stringResource(Res.string.automation_condition_node_list_hint)) },
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
@@ -425,7 +444,7 @@ private fun ConditionItemRow(
                         ChannelPickerBox(
                             selectedChannel = condition.channelIndex,
                             onSelectChannel = { onUpdate(condition.copy(channelIndex = it ?: 0)) },
-                            label = "Канал связи",
+                            label = stringResource(Res.string.automation_channel_label),
                             allowAll = false,
                         )
                     }
@@ -437,7 +456,7 @@ private fun ConditionItemRow(
                                 onValueChange = {
                                     onUpdate(condition.copy(startHour = it.toIntOrNull() ?: condition.startHour))
                                 },
-                                label = { Text("С (час 0-23)") },
+                                label = { Text(stringResource(Res.string.automation_condition_start_hour)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f),
                             )
@@ -446,7 +465,7 @@ private fun ConditionItemRow(
                                 onValueChange = {
                                     onUpdate(condition.copy(endHour = it.toIntOrNull() ?: condition.endHour))
                                 },
-                                label = { Text("По (час 0-23)") },
+                                label = { Text(stringResource(Res.string.automation_condition_end_hour)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f),
                             )
@@ -454,10 +473,24 @@ private fun ConditionItemRow(
                     }
 
                     is AutomationCondition.DaysOfWeek -> {
-                        Text(
-                            text = stringResource(Res.string.automation_condition_days_of_week),
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = stringResource(Res.string.automation_condition_days_of_week),
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                            DaysOfWeekPicker(
+                                selectedDays = condition.days,
+                                onToggleDay = { day ->
+                                    val newDays =
+                                        if (condition.days.contains(day)) {
+                                            if (condition.days.size > 1) condition.days - day else condition.days
+                                        } else {
+                                            (condition.days + day).sorted()
+                                        }
+                                    onUpdate(condition.copy(days = newDays))
+                                },
+                            )
+                        }
                     }
 
                     is AutomationCondition.RadioIsConnected -> {
@@ -488,10 +521,32 @@ private fun ConditionItemRow(
             }
 
             IconButton(onClick = onRemove) {
-                Icon(MeshtasticIcons.Close, contentDescription = "Remove Condition")
+                Icon(
+                    MeshtasticIcons.Close,
+                    contentDescription = stringResource(Res.string.automation_condition_remove),
+                )
             }
         }
     }
+}
+
+private fun metricTitle(metric: TelemetryMetricType): StringResource = when (metric) {
+    TelemetryMetricType.BATTERY_PERCENT -> Res.string.automation_condition_metric_battery
+    TelemetryMetricType.VOLTAGE -> Res.string.automation_condition_metric_voltage
+    TelemetryMetricType.TEMPERATURE -> Res.string.automation_condition_metric_temperature
+    TelemetryMetricType.HUMIDITY -> Res.string.automation_condition_metric_humidity
+    TelemetryMetricType.BAROMETRIC_PRESSURE -> Res.string.automation_condition_metric_pressure
+    TelemetryMetricType.AIR_QUALITY_IAQ -> Res.string.automation_condition_metric_iaq
+    TelemetryMetricType.AIR_QUALITY_CO2 -> Res.string.automation_condition_metric_co2
+    TelemetryMetricType.AIR_QUALITY_PM25 -> Res.string.automation_condition_metric_pm25
+    TelemetryMetricType.SOIL_MOISTURE -> Res.string.automation_condition_metric_soil
+}
+
+private fun locationTypeTitle(type: LocationConditionType): StringResource = when (type) {
+    LocationConditionType.WITHIN_GEOFENCE -> Res.string.automation_condition_location_within
+    LocationConditionType.OUTSIDE_GEOFENCE -> Res.string.automation_condition_location_outside
+    LocationConditionType.CLOSER_THAN -> Res.string.automation_condition_location_closer
+    LocationConditionType.FURTHER_THAN -> Res.string.automation_condition_location_further
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -501,19 +556,7 @@ private fun TelemetryMetricDropdown(
     onSelectMetric: (TelemetryMetricType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    val metricName =
-        when (metric) {
-            TelemetryMetricType.BATTERY_PERCENT -> "Батарея (%)"
-            TelemetryMetricType.VOLTAGE -> "Напряжение (В)"
-            TelemetryMetricType.TEMPERATURE -> "Температура (°C)"
-            TelemetryMetricType.HUMIDITY -> "Влажность (%)"
-            TelemetryMetricType.BAROMETRIC_PRESSURE -> "Давление (гПа)"
-            TelemetryMetricType.AIR_QUALITY_IAQ -> "Качество воздуха (IAQ)"
-            TelemetryMetricType.AIR_QUALITY_CO2 -> "CO2 (ppm)"
-            TelemetryMetricType.AIR_QUALITY_PM25 -> "PM2.5"
-            TelemetryMetricType.SOIL_MOISTURE -> "Влажность почвы (%)"
-        }
+    var expanded by rememberSaveable { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -521,10 +564,10 @@ private fun TelemetryMetricDropdown(
         modifier = modifier.fillMaxWidth(),
     ) {
         OutlinedTextField(
-            value = metricName,
+            value = stringResource(metricTitle(metric)),
             onValueChange = {},
             readOnly = true,
-            label = { Text("Параметр телеметрии") },
+            label = { Text(stringResource(Res.string.automation_condition_telemetry_parameter)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
         )
@@ -534,7 +577,7 @@ private fun TelemetryMetricDropdown(
         ) {
             TelemetryMetricType.entries.forEach { m ->
                 DropdownMenuItem(
-                    text = { Text(m.name) },
+                    text = { Text(stringResource(metricTitle(m))) },
                     onClick = {
                         onSelectMetric(m)
                         expanded = false
@@ -552,7 +595,7 @@ private fun TelemetryThresholdForm(
     onUpdate: (AutomationCondition) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var opMenuExpanded by remember { mutableStateOf(false) }
+    var opMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         TelemetryMetricDropdown(
@@ -567,23 +610,28 @@ private fun TelemetryThresholdForm(
                 modifier = Modifier.weight(1f),
             ) {
                 OutlinedTextField(
-                    value = if (condition.operator == ComparisonOperator.LESS_THAN) "Меньше (<)" else "Больше (>)",
+                    value =
+                    if (condition.operator == ComparisonOperator.LESS_THAN) {
+                        stringResource(Res.string.automation_condition_operator_less)
+                    } else {
+                        stringResource(Res.string.automation_condition_operator_greater)
+                    },
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Условие") },
+                    label = { Text(stringResource(Res.string.automation_condition_comparison_label)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = opMenuExpanded) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
                 )
                 ExposedDropdownMenu(expanded = opMenuExpanded, onDismissRequest = { opMenuExpanded = false }) {
                     DropdownMenuItem(
-                        text = { Text("Меньше (<)") },
+                        text = { Text(stringResource(Res.string.automation_condition_operator_less)) },
                         onClick = {
                             onUpdate(condition.copy(operator = ComparisonOperator.LESS_THAN))
                             opMenuExpanded = false
                         },
                     )
                     DropdownMenuItem(
-                        text = { Text("Больше (>)") },
+                        text = { Text(stringResource(Res.string.automation_condition_operator_greater)) },
                         onClick = {
                             onUpdate(condition.copy(operator = ComparisonOperator.GREATER_THAN))
                             opMenuExpanded = false
@@ -595,7 +643,7 @@ private fun TelemetryThresholdForm(
             OutlinedTextField(
                 value = condition.threshold.toString(),
                 onValueChange = { onUpdate(condition.copy(threshold = it.toFloatOrNull() ?: condition.threshold)) },
-                label = { Text("Порог") },
+                label = { Text(stringResource(Res.string.automation_condition_threshold_label)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.weight(1f),
             )
@@ -605,29 +653,29 @@ private fun TelemetryThresholdForm(
 
 @Composable
 private fun GeofenceInputs(
-    centerLatitude: Double,
-    centerLongitude: Double,
+    centerLatitude: Double?,
+    centerLongitude: Double?,
     radiusMeters: Double,
-    onUpdateCoords: (Double, Double, Double) -> Unit,
+    onUpdateCoords: (Double?, Double?, Double) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(
-                value = centerLatitude.toString(),
+                value = centerLatitude?.toString().orEmpty(),
                 onValueChange = {
-                    onUpdateCoords(it.toDoubleOrNull() ?: centerLatitude, centerLongitude, radiusMeters)
+                    onUpdateCoords(it.toDoubleOrNull(), centerLongitude, radiusMeters)
                 },
-                label = { Text("Широта") },
+                label = { Text(stringResource(Res.string.automation_trigger_latitude)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.weight(1f),
             )
             OutlinedTextField(
-                value = centerLongitude.toString(),
+                value = centerLongitude?.toString().orEmpty(),
                 onValueChange = {
-                    onUpdateCoords(centerLatitude, it.toDoubleOrNull() ?: centerLongitude, radiusMeters)
+                    onUpdateCoords(centerLatitude, it.toDoubleOrNull(), radiusMeters)
                 },
-                label = { Text("Долгота") },
+                label = { Text(stringResource(Res.string.automation_trigger_longitude)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.weight(1f),
             )
@@ -637,7 +685,7 @@ private fun GeofenceInputs(
             onValueChange = {
                 onUpdateCoords(centerLatitude, centerLongitude, it.toDoubleOrNull() ?: radiusMeters)
             },
-            label = { Text("Радиус зоны (метры)") },
+            label = { Text(stringResource(Res.string.automation_radius_meters)) },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth(),
         )
@@ -651,15 +699,7 @@ private fun LocationFilterForm(
     onUpdate: (AutomationCondition) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var typeMenuExpanded by remember { mutableStateOf(false) }
-
-    val typeLabel =
-        when (condition.type) {
-            LocationConditionType.WITHIN_GEOFENCE -> "Внутри геозоны (радиус от точки)"
-            LocationConditionType.OUTSIDE_GEOFENCE -> "Снаружи геозоны (за пределами)"
-            LocationConditionType.CLOSER_THAN -> "Ближе чем дистанция от нас"
-            LocationConditionType.FURTHER_THAN -> "Дальше чем дистанция от нас"
-        }
+    var typeMenuExpanded by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         ExposedDropdownMenuBox(
@@ -667,17 +707,17 @@ private fun LocationFilterForm(
             onExpandedChange = { typeMenuExpanded = it },
         ) {
             OutlinedTextField(
-                value = typeLabel,
+                value = stringResource(locationTypeTitle(condition.type)),
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Тип локации") },
+                label = { Text(stringResource(Res.string.automation_condition_location_type)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = typeMenuExpanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             )
             ExposedDropdownMenu(expanded = typeMenuExpanded, onDismissRequest = { typeMenuExpanded = false }) {
                 LocationConditionType.entries.forEach { t ->
                     DropdownMenuItem(
-                        text = { Text(t.name) },
+                        text = { Text(stringResource(locationTypeTitle(t))) },
                         onClick = {
                             onUpdate(condition.copy(type = t))
                             typeMenuExpanded = false
@@ -695,7 +735,7 @@ private fun LocationFilterForm(
                 onValueChange = {
                     onUpdate(condition.copy(distanceKm = it.toDoubleOrNull() ?: condition.distanceKm))
                 },
-                label = { Text("Дистанция (км)") },
+                label = { Text(stringResource(Res.string.automation_distance_km)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
             )

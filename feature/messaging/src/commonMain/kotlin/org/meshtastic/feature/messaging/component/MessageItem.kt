@@ -93,6 +93,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.SubcomposeAsyncImage
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
+import org.koin.mp.KoinPlatform
 import org.meshtastic.core.common.util.DateFormatter
 import org.meshtastic.core.model.LinkPreview
 import org.meshtastic.core.model.Message
@@ -101,7 +102,7 @@ import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.Reaction
 import org.meshtastic.core.model.isAckProofForged
 import org.meshtastic.core.network.service.ImageUrlResolver
-import org.meshtastic.core.network.service.LinkPreviewServiceImpl
+import org.meshtastic.core.network.service.LinkPreviewService
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.a11y_message_from
 import org.meshtastic.core.resources.action_show_message_status
@@ -203,6 +204,7 @@ fun MessageItem(
     onToggleTranslation: () -> Unit = {},
     onOpenImageViewer: (List<Triple<String, String?, String?>>, Int) -> Unit = { _, _ -> },
     onTogglePin: () -> Unit = {},
+    linkPreviewService: LinkPreviewService? = null,
 ) = Column(
     modifier =
     modifier
@@ -557,11 +559,18 @@ fun MessageItem(
                             }
                             value = resolvedList
                         }
+                    val resolvedLinkPreviewService =
+                        linkPreviewService
+                            ?: runCatching { KoinPlatform.getKoin().getOrNull<LinkPreviewService>() }.getOrNull()
                     val linkPreview by
                         produceState<LinkPreview?>(initialValue = null, webUrls, linkPreviewEnabled) {
-                            if (linkPreviewEnabled && webUrls.isNotEmpty() && searchQuery.isEmpty()) {
-                                val linkPreviewService = LinkPreviewServiceImpl()
-                                value = linkPreviewService.getLinkPreview(webUrls.first())
+                            if (
+                                linkPreviewEnabled &&
+                                webUrls.isNotEmpty() &&
+                                searchQuery.isEmpty() &&
+                                resolvedLinkPreviewService != null
+                            ) {
+                                value = resolvedLinkPreviewService.getLinkPreview(webUrls.first())
                             } else {
                                 value = null
                             }

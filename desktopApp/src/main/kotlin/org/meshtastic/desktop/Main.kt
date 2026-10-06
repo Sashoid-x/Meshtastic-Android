@@ -59,7 +59,6 @@ import coil3.ImageLoader
 import coil3.annotation.ExperimentalCoilApi
 import coil3.compose.setSingletonImageLoaderFactory
 import coil3.disk.DiskCache
-import coil3.gif.GifDecoder
 import coil3.memory.MemoryCache
 import coil3.network.DeDupeConcurrentRequestStrategy
 import coil3.network.ktor3.KtorNetworkFetcherFactory
@@ -545,7 +544,6 @@ private fun CoilImageLoaderSetup() {
                 // Render SVGs to a bitmap on Desktop to avoid Skiko vector rendering artifacts
                 // that show up as solid/black hardware images.
                 add(SvgDecoder.Factory(renderToBitmap = true))
-                add(GifDecoder.Factory())
             }
             .memoryCache { MemoryCache.Builder().maxSizeBytes(MEMORY_CACHE_MAX_BYTES).build() }
             .diskCache { DiskCache.Builder().directory(cacheDir.toPath()).maxSizeBytes(DISK_CACHE_MAX_BYTES).build() }

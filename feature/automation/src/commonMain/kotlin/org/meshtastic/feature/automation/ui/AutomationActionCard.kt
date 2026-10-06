@@ -43,10 +43,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -55,18 +57,29 @@ import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.automation.model.AutomationAction
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.automation_action_broadcast_label
 import org.meshtastic.core.resources.automation_action_broadcast_location
+import org.meshtastic.core.resources.automation_action_channel_send
 import org.meshtastic.core.resources.automation_action_copy_clipboard
+import org.meshtastic.core.resources.automation_action_location_disclaimer
+import org.meshtastic.core.resources.automation_action_next_rule_id
 import org.meshtastic.core.resources.automation_action_play_alarm
 import org.meshtastic.core.resources.automation_action_play_sound
+import org.meshtastic.core.resources.automation_action_recipient_label
 import org.meshtastic.core.resources.automation_action_remote_gpio
+import org.meshtastic.core.resources.automation_action_remove
+import org.meshtastic.core.resources.automation_action_reply_current
 import org.meshtastic.core.resources.automation_action_request_position
 import org.meshtastic.core.resources.automation_action_request_telemetry
+import org.meshtastic.core.resources.automation_action_select_node_prompt
 import org.meshtastic.core.resources.automation_action_send_message
 import org.meshtastic.core.resources.automation_action_send_reaction
+import org.meshtastic.core.resources.automation_action_send_reaction_to
 import org.meshtastic.core.resources.automation_action_send_traceroute
 import org.meshtastic.core.resources.automation_action_show_notification
 import org.meshtastic.core.resources.automation_action_speak_text
+import org.meshtastic.core.resources.automation_action_traceroute_target
+import org.meshtastic.core.resources.automation_action_trigger_rule_label
 import org.meshtastic.core.resources.automation_action_vibrate
 import org.meshtastic.core.resources.automation_add_action
 import org.meshtastic.core.resources.automation_duration_seconds
@@ -164,10 +177,10 @@ private data class ActionOption(val title: StringResource, val create: () -> Aut
 private val ACTION_OPTIONS =
     listOf(
         ActionOption(Res.string.automation_action_show_notification) {
-            AutomationAction.ShowNotification("Mesh Alert", "Событие от {node_name}")
+            AutomationAction.ShowNotification("Mesh Alert", "{node_name}: {text}")
         },
         ActionOption(Res.string.automation_action_send_message) {
-            AutomationAction.SendMessage("Авто-ответ: {node_name}")
+            AutomationAction.SendMessage("Ack: {node_name}")
         },
         ActionOption(Res.string.automation_action_play_sound) {
             AutomationAction.PlaySound("notification")
@@ -188,7 +201,7 @@ private val ACTION_OPTIONS =
             AutomationAction.PlayAlarm(alarmType = "siren", durationSeconds = DEFAULT_ALARM_DURATION_SECONDS)
         },
         ActionOption(Res.string.automation_action_speak_text) {
-            AutomationAction.SpeakText("Внимание! Уведомление от {node_name}", DEFAULT_SPEECH_RATE)
+            AutomationAction.SpeakText("Alert from {node_name}", DEFAULT_SPEECH_RATE)
         },
         ActionOption(Res.string.automation_action_request_position) {
             AutomationAction.RequestPosition(0)
@@ -199,15 +212,12 @@ private val ACTION_OPTIONS =
         ActionOption(Res.string.automation_action_send_traceroute) {
             AutomationAction.SendTraceroute(0)
         },
-        ActionOption(Res.string.automation_action_remote_gpio) {
-            AutomationAction.RemoteGpio(0, pin = 0, state = true)
-        },
     )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddActionMenu(onAddAction: (AutomationAction) -> Unit, modifier: Modifier = Modifier) {
-    var menuExpanded by remember { mutableStateOf(false) }
+    var menuExpanded by rememberSaveable { mutableStateOf(false) }
 
     ExposedDropdownMenuBox(
         expanded = menuExpanded,
@@ -264,7 +274,10 @@ private fun ActionItemRow(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     TestActionButton(onTest = onTest)
                     IconButton(onClick = onRemove) {
-                        Icon(MeshtasticIcons.Close, contentDescription = "Remove Action")
+                        Icon(
+                            MeshtasticIcons.Close,
+                            contentDescription = stringResource(Res.string.automation_action_remove),
+                        )
                     }
                 }
             }
@@ -370,13 +383,13 @@ private fun ColumnScope.MessageActionFields(
         selectedNodeId = action.destNodeId,
         nodes = nodes,
         onSelectNode = { onUpdate(action.copy(destNodeId = it)) },
-        label = "Получатель (нода или общий канал)",
-        nullLabel = "Отправка в канал (Broadcast)",
+        label = stringResource(Res.string.automation_action_recipient_label),
+        nullLabel = stringResource(Res.string.automation_action_broadcast_label),
     )
     ChannelPickerBox(
         selectedChannel = action.channelIndex,
         onSelectChannel = { onUpdate(action.copy(channelIndex = it ?: 0)) },
-        label = "Канал для отправки",
+        label = stringResource(Res.string.automation_action_channel_send),
         allowAll = false,
     )
 }
@@ -414,6 +427,7 @@ private fun ColumnScope.ReactionActionFields(
             AssistChip(
                 onClick = { onUpdate(action.copy(emoji = emoji)) },
                 label = { Text(emoji) },
+                modifier = Modifier.semantics { contentDescription = emoji },
             )
         }
     }
@@ -421,8 +435,8 @@ private fun ColumnScope.ReactionActionFields(
         selectedNodeId = action.destNodeId,
         nodes = nodes,
         onSelectNode = { onUpdate(action.copy(destNodeId = it)) },
-        label = "Целевая нода (или общий канал)",
-        nullLabel = "Ответ на сообщение / канал",
+        label = stringResource(Res.string.automation_action_send_reaction_to),
+        nullLabel = stringResource(Res.string.automation_action_reply_current),
     )
 }
 
@@ -433,7 +447,7 @@ private fun ColumnScope.LocationActionFields(
     nodes: Map<Int, Node>,
 ) {
     Text(
-        text = "При срабатывании правила устройство передаст свою текущую геопозицию в сеть Meshtastic.",
+        text = stringResource(Res.string.automation_action_location_disclaimer),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -441,8 +455,8 @@ private fun ColumnScope.LocationActionFields(
         selectedNodeId = action.destNodeId,
         nodes = nodes,
         onSelectNode = { onUpdate(action.copy(destNodeId = it)) },
-        label = "Получатель геопозиции",
-        nullLabel = "Широковещательно (Broadcast в канал)",
+        label = stringResource(Res.string.automation_action_recipient_label),
+        nullLabel = stringResource(Res.string.automation_action_broadcast_label),
     )
 }
 
@@ -490,8 +504,8 @@ private fun ColumnScope.TargetNodeField(nodeId: Int, nodes: Map<Int, Node>, onSe
         selectedNodeId = nodeId.takeIf { it != 0 },
         nodes = nodes,
         onSelectNode = { onSelect(it ?: 0) },
-        label = "Целевая нода",
-        nullLabel = "Выберите ноду для запроса",
+        label = stringResource(Res.string.automation_action_traceroute_target),
+        nullLabel = stringResource(Res.string.automation_action_select_node_prompt),
     )
 }
 
@@ -505,8 +519,8 @@ private fun ColumnScope.RemoteGpioFields(
         selectedNodeId = action.destNodeId.takeIf { it != 0 },
         nodes = nodes,
         onSelectNode = { onUpdate(action.copy(destNodeId = it ?: 0)) },
-        label = "Нода с реле/пином",
-        nullLabel = "Выберите ноду",
+        label = stringResource(Res.string.automation_action_recipient_label),
+        nullLabel = stringResource(Res.string.automation_action_select_node_prompt),
     )
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -532,7 +546,7 @@ private fun ColumnScope.TriggerRuleField(action: AutomationAction.TriggerRule, o
     OutlinedTextField(
         value = action.ruleId,
         onValueChange = { onUpdate(action.copy(ruleId = it)) },
-        label = { Text("ID следующего правила") },
+        label = { Text(stringResource(Res.string.automation_action_next_rule_id)) },
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -540,7 +554,7 @@ private fun ColumnScope.TriggerRuleField(action: AutomationAction.TriggerRule, o
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SoundPickerField(selectedSoundId: String, onSelectSound: (String) -> Unit, modifier: Modifier = Modifier) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     val currentOption = SOUND_OPTIONS.firstOrNull { it.id == selectedSoundId } ?: SOUND_OPTIONS.first()
 
     ExposedDropdownMenuBox(
@@ -580,7 +594,7 @@ private fun VibrationPickerField(
     onSelectPattern: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     val currentOption = VIBRATION_OPTIONS.firstOrNull { it.id == selectedPattern } ?: VIBRATION_OPTIONS.first()
 
     ExposedDropdownMenuBox(
@@ -616,17 +630,31 @@ private fun VibrationPickerField(
 @Composable
 private fun actionName(action: AutomationAction): String = when (action) {
     is AutomationAction.ShowNotification -> stringResource(Res.string.automation_action_show_notification)
+
     is AutomationAction.SendMessage -> stringResource(Res.string.automation_action_send_message)
+
     is AutomationAction.PlayAlarm -> stringResource(Res.string.automation_action_play_alarm)
+
     is AutomationAction.SpeakText -> stringResource(Res.string.automation_action_speak_text)
+
     is AutomationAction.RequestPosition -> stringResource(Res.string.automation_action_request_position)
+
     is AutomationAction.RequestTelemetry -> stringResource(Res.string.automation_action_request_telemetry)
+
     is AutomationAction.SendTraceroute -> stringResource(Res.string.automation_action_send_traceroute)
+
     is AutomationAction.RemoteGpio -> stringResource(Res.string.automation_action_remote_gpio)
+
     is AutomationAction.PlaySound -> stringResource(Res.string.automation_action_play_sound)
+
     is AutomationAction.VibrateDevice -> stringResource(Res.string.automation_action_vibrate)
+
     is AutomationAction.SendReaction -> stringResource(Res.string.automation_action_send_reaction)
+
     is AutomationAction.BroadcastLocation -> stringResource(Res.string.automation_action_broadcast_location)
+
     is AutomationAction.CopyToClipboard -> stringResource(Res.string.automation_action_copy_clipboard)
-    is AutomationAction.TriggerRule -> "Запуск другого правила"
+
+    is AutomationAction.TriggerRule ->
+        stringResource(Res.string.automation_action_trigger_rule_label, action.ruleId)
 }

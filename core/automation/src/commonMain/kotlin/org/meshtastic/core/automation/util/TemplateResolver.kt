@@ -16,69 +16,144 @@
  */
 package org.meshtastic.core.automation.util
 
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.meshtastic.core.automation.engine.TriggerEvent
+import kotlin.time.Clock
 
 /**
- * Replaces placeholders like `{node_name}`, `{node_id}`, `{battery_level}`, `{channel}`, `{text}` with actual metadata
- * from [TriggerEvent].
+ * Replaces placeholders like `{NODE_ID}`, `{LONG_NAME}`, `{SHORT_NAME}`, `{SNR}`, `{RSSI}`, `{HOPS}`, `{RABBIT_HOPS}`,
+ * `{LAST_HOP}`, `{CHANNEL}`, `{TRANSPORT}`, `{VERSION}`, `{DURATION}`, `{FEATURES}`, `{NODECOUNT}`, `{DIRECTCOUNT}`,
+ * `{TOTALNODES}`, `{ONLINENODES}`, `{DATE}`, `{TIME}`, etc. with actual metadata from [TriggerEvent].
  */
 object TemplateResolver {
     private const val HEX_RADIX = 16
     private const val HEX_NODE_ID_LENGTH = 8
     private const val METERS_PER_KM = 1000.0
+    private const val SECONDS_PER_MINUTE = 60L
+    private const val SECONDS_PER_HOUR = 3600L
+    private const val SECONDS_PER_DAY = 86400L
     private val placeholderRegex = Regex("""\{([a-zA-Z0-9_]+)\}""")
 
-    @Suppress("CyclomaticComplexMethod", "MagicNumber", "LongMethod")
+    @Suppress("CyclomaticComplexMethod", "MagicNumber", "LongMethod", "UseOrEmpty")
     fun resolve(template: String, event: TriggerEvent): String {
         if (!template.contains('{')) return template
         return placeholderRegex.replace(template) { matchResult ->
-            when (matchResult.groupValues[1]) {
-                "name",
-                "node_name",
-                -> event.nodeName ?: ""
+            when (matchResult.groupValues[1].uppercase()) {
+                "NODE_ID",
+                "NODE_HEX",
+                ->
+                    if (matchResult.groupValues[1] == "node_id") {
+                        event.nodeId?.toString().orEmpty()
+                    } else {
+                        event.nodeId
+                            ?.toUInt()
+                            ?.toString(HEX_RADIX)
+                            ?.padStart(HEX_NODE_ID_LENGTH, '0')
+                            ?.let { "!$it" }
+                            .orEmpty()
+                    }
 
-                "node_id" -> event.nodeId?.toString() ?: ""
+                "LONG_NAME",
+                "NAME",
+                "NODE_NAME",
+                -> event.nodeName.orEmpty()
 
-                "node_hex" ->
-                    event.nodeId?.toUInt()?.toString(HEX_RADIX)?.padStart(HEX_NODE_ID_LENGTH, '0')?.let { "!$it" } ?: ""
+                "SHORT_NAME" -> event.shortName.orEmpty()
 
-                "battery",
-                "battery_level",
-                -> event.batteryLevel?.toString() ?: ""
+                "SNR" -> event.snr?.let { "${((it * 10).toInt()) / 10.0} dB" }.orEmpty()
 
-                "voltage" -> event.voltage?.let { "${((it * 100).toInt()) / 100.0}V" } ?: ""
+                "RSSI" -> event.rssi?.let { "$it dBm" }.orEmpty()
 
-                "channel" -> event.channelIndex?.toString() ?: ""
+                "HOPS",
+                "NUMBER_HOPS",
+                -> (event.hops ?: 0).toString()
 
-                "text" -> event.messageText ?: ""
+                "RABBIT_HOPS" -> {
+                    val h = event.hops ?: 0
+                    if (h <= 0) "🎯" else "🐇".repeat(h)
+                }
 
-                "emoji" -> event.emoji ?: ""
+                "LAST_HOP" -> event.lastHop ?: "Direct"
 
-                "latitude" -> event.latitude?.let { "${((it * 10000).toInt()) / 10000.0}" } ?: ""
+                "CHANNEL" -> (event.channelIndex ?: 0).toString()
 
-                "longitude" -> event.longitude?.let { "${((it * 10000).toInt()) / 10000.0}" } ?: ""
+                "TRANSPORT" -> event.transport ?: "LoRa"
 
-                "distance",
-                "distance_km",
-                -> event.distanceMeters?.let { "${((it / METERS_PER_KM * 10).toInt()) / 10.0} km" } ?: ""
+                "VERSION" -> event.appVersion ?: "2.8.3"
 
-                "distance_m" -> event.distanceMeters?.toInt()?.toString() ?: ""
+                "DURATION" -> {
+                    val sec = event.uptimeSeconds ?: 0L
+                    val days = sec / SECONDS_PER_DAY
+                    val hours = (sec % SECONDS_PER_DAY) / SECONDS_PER_HOUR
+                    val minutes = (sec % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE
+                    when {
+                        days > 0 -> "${days}d ${hours}h"
+                        hours > 0 -> "${hours}h ${minutes}m"
+                        else -> "${minutes}m"
+                    }
+                }
 
-                "temperature" -> event.temperature?.let { "${((it * 10).toInt()) / 10.0}°C" } ?: ""
+                "FEATURES" -> event.features ?: "LoRa, MQTT, Automation"
 
-                "humidity" -> event.humidity?.let { "${it.toInt()}%" } ?: ""
+                "NODECOUNT" -> (event.recentNodes ?: event.totalNodes ?: 0).toString()
 
-                "pressure" -> event.pressure?.let { "${it.toInt()} hPa" } ?: ""
+                "DIRECTCOUNT" -> (event.directNodes ?: 0).toString()
 
-                "iaq" -> event.iaq?.toInt()?.toString() ?: ""
+                "TOTALNODES" -> (event.totalNodes ?: 0).toString()
 
-                "co2" -> event.co2?.toInt()?.toString() ?: ""
+                "ONLINENODES" -> (event.onlineNodes ?: 0).toString()
 
-                "pm25" -> event.pm25?.let { "${((it * 10).toInt()) / 10.0}" } ?: ""
+                "DATE" -> {
+                    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                    val month = now.monthNumber.toString().padStart(2, '0')
+                    val day = now.dayOfMonth.toString().padStart(2, '0')
+                    "${now.year}-$month-$day"
+                }
 
-                "soil_moisture" -> event.soilMoisture?.let { "${it.toInt()}%" } ?: ""
+                "TIME" -> {
+                    val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                    val hour = now.hour.toString().padStart(2, '0')
+                    val min = now.minute.toString().padStart(2, '0')
+                    "$hour:$min"
+                }
 
-                "hops" -> event.hops?.toString() ?: ""
+                "BATTERY",
+                "BATTERY_LEVEL",
+                -> event.batteryLevel?.toString().orEmpty()
+
+                "VOLTAGE" -> event.voltage?.let { "${((it * 100).toInt()) / 100.0}V" }.orEmpty()
+
+                "TEXT" -> event.messageText.orEmpty()
+
+                "EMOJI" -> event.emoji.orEmpty()
+
+                "LATITUDE" -> event.latitude?.let { "${((it * 10000).toInt()) / 10000.0}" }.orEmpty()
+
+                "LONGITUDE" -> event.longitude?.let { "${((it * 10000).toInt()) / 10000.0}" }.orEmpty()
+
+                "DISTANCE",
+                "DISTANCE_KM",
+                ->
+                    event.distanceMeters?.let { "${((it / METERS_PER_KM * 10).toInt()) / 10.0} km" }.orEmpty()
+
+                "DISTANCE_M" -> event.distanceMeters?.toInt()?.toString().orEmpty()
+
+                "TEMPERATURE",
+                "TEMP",
+                -> event.temperature?.let { "${((it * 10).toInt()) / 10.0}°C" }.orEmpty()
+
+                "HUMIDITY" -> event.humidity?.let { "${it.toInt()}%" }.orEmpty()
+
+                "PRESSURE" -> event.pressure?.let { "${it.toInt()} hPa" }.orEmpty()
+
+                "IAQ" -> event.iaq?.toInt()?.toString().orEmpty()
+
+                "CO2" -> event.co2?.toInt()?.toString().orEmpty()
+
+                "PM25" -> event.pm25?.let { "${((it * 10).toInt()) / 10.0}" }.orEmpty()
+
+                "SOIL_MOISTURE" -> event.soilMoisture?.let { "${it.toInt()}%" }.orEmpty()
 
                 else -> matchResult.value
             }

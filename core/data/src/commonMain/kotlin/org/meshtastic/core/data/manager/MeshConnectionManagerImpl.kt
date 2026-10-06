@@ -624,6 +624,7 @@ class MeshConnectionManagerImpl(
                 moduleConfig.mqtt?.enabled == true,
                 moduleConfig.mqtt?.proxy_to_client_enabled == true,
             )
+            mqttManager.restoreClientState()
         }
 
         reportConnection()

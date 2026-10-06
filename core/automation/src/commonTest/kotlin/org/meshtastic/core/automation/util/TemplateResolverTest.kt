@@ -54,6 +54,52 @@ class TemplateResolverTest {
     }
 
     @Test
+    fun `resolves reply and meshmonitor variables`() {
+        val event =
+            TriggerEvent(
+                nodeId = 0x12345678,
+                nodeName = "Relay Alpha",
+                shortName = "RALP",
+                channelIndex = 1,
+                hops = 3,
+                snr = 7.5f,
+                rssi = -68,
+                lastHop = "Beta",
+                transport = "LoRa",
+                appVersion = "2.8.3-advanced-3",
+                uptimeSeconds = 90000L, // 1d 1h
+                features = "LoRa, MQTT, Automation",
+                recentNodes = 15,
+                directNodes = 4,
+                totalNodes = 42,
+                onlineNodes = 8,
+            )
+
+        val template =
+            "From {NODE_ID} ({SHORT_NAME} / {LONG_NAME}) ch:{CHANNEL} via {TRANSPORT} SNR:{SNR} RSSI:{RSSI} hops:{HOPS}/{NUMBER_HOPS} {RABBIT_HOPS} via {LAST_HOP}. Ver:{VERSION} Up:{DURATION} [{FEATURES}] Nodes:{NODECOUNT} Dir:{DIRECTCOUNT} Tot:{TOTALNODES} On:{ONLINENODES}"
+        val resolved = TemplateResolver.resolve(template, event)
+
+        resolved shouldBe
+            "From !12345678 (RALP / Relay Alpha) ch:1 via LoRa SNR:7.5 dB RSSI:-68 dBm hops:3/3 🐇🐇🐇 via Beta. Ver:2.8.3-advanced-3 Up:1d 1h [LoRa, MQTT, Automation] Nodes:15 Dir:4 Tot:42 On:8"
+    }
+
+    @Test
+    fun `resolves zero hops with target emoji for rabbit hops`() {
+        val event = TriggerEvent(hops = 0)
+        val resolved = TemplateResolver.resolve("Hops: {HOPS} {RABBIT_HOPS}", event)
+        resolved shouldBe "Hops: 0 🎯"
+    }
+
+    @Test
+    fun `resolves current date and time tokens`() {
+        val event = TriggerEvent()
+        val resolved = TemplateResolver.resolve("{DATE} {TIME}", event)
+        // Date matches YYYY-MM-DD and time matches HH:MM
+        val regex = Regex("""\d{4}-\d{2}-\d{2} \d{2}:\d{2}""")
+        regex.matches(resolved) shouldBe true
+    }
+
+    @Test
     fun `leaves unknown variables untouched`() {
         val event = TriggerEvent(nodeName = "TestNode")
         val template = "Hello {node_name}, unknown {foo_bar}"

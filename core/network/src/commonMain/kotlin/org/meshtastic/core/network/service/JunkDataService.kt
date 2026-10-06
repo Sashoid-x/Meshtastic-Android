@@ -54,7 +54,7 @@ interface JunkDataService {
 }
 
 @Single
-class JunkDataServiceImpl(private val httpClient: HttpClient = HttpClient()) : JunkDataService {
+class JunkDataServiceImpl(private val httpClient: HttpClient) : JunkDataService {
 
     private val json = Json {
         ignoreUnknownKeys = true

@@ -94,7 +94,7 @@ internal data class MessageListHandlers(
     val onClickChip: (Node) -> Unit,
     val onDeleteMessages: (List<Long>) -> Unit,
     val onSendMessage: (String, String) -> Unit,
-    val onResendImage: (ByteArray, String) -> Unit = { _, _ -> },
+    val onResendImage: (Long, ByteArray, String) -> Unit = { _, _, _ -> },
     /** Replaces a failed message with a fresh send of its text; the action decides whether sending is allowed. */
     val onResendMessage: (Message) -> Unit,
     val onReply: (Message?) -> Unit,
@@ -118,6 +118,8 @@ internal data class MessageListPagedState(
     val searchQuery: String = "",
     val translationAvailable: Boolean = false,
     val showFullMessageTimestamps: Boolean = false,
+    val canReact: Boolean = true,
+    val canSend: Boolean = true,
     val textCompressionEnabled: Boolean = false,
     val pixelArtEnabled: Boolean = true,
     val photoHostingEnabled: Boolean = true,
@@ -155,14 +157,13 @@ internal fun MessageListPaged(
         MessageStatusDialog(
             message = message,
             isDirectMessage = isDirectMessageConversation,
-            resendOption = message.isStatusRetryable(isDirectMessageConversation),
+            resendOption = message.isStatusRetryable(isDirectMessageConversation) && state.canSend,
             onResend = {
-                handlers.onDeleteMessages(listOf(message.uuid))
                 val rawBytes = message.rawBytes
                 if (rawBytes != null && message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
-                    handlers.onResendImage(rawBytes, state.contactKey)
+                    handlers.onResendImage(message.uuid, rawBytes, state.contactKey)
                 } else {
-                    handlers.onSendMessage(message.text, state.contactKey)
+                    handlers.onResendMessage(message)
                 }
                 showStatusDialog = null
             },
@@ -175,6 +176,7 @@ internal fun MessageListPaged(
         ReactionDialog(
             reactions = reactions,
             myId = state.ourNode?.user?.id,
+            canReact = state.canReact,
             onDismiss = { showReactionDialog = null },
             onResend = { reaction ->
                 handlers.onSendReaction(reaction.emoji, reaction.replyId)
@@ -407,6 +409,8 @@ private fun RenderPagedChatMessageRow(
         message = message,
         selected = selected,
         inSelectionMode = inSelectionMode,
+        canReact = state.canReact,
+        canReply = state.canSend,
         quickReactionsOpen = openReactionBarFor == message.uuid,
         onQuickReactionsOpenChange = { open -> onOpenReactionBarChange(if (open) message.uuid else null) },
         // A tap that closes another row's bar is spent doing just that, the same way the owning row swallows it.

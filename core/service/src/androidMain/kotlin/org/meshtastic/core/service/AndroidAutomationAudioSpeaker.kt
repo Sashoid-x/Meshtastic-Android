@@ -47,6 +47,7 @@ private const val SIREN_DURATION_MS = 1500
 private const val SOS_DURATION_MS = 1000
 private const val TONE_MAX_VOLUME = 100
 private const val TONE_RELEASE_BUFFER_MS = 200
+private const val MAX_PENDING_TTS_QUEUE_SIZE = 10
 
 @Suppress("TooGenericExceptionCaught")
 @Single(binds = [AutomationAudioSpeaker::class])
@@ -82,8 +83,15 @@ class AndroidAutomationAudioSpeaker(private val context: Context) : AutomationAu
         mainHandler.post {
             try {
                 activeRingtone?.stop()
+                val (type, usage) =
+                    when (alarmType.lowercase()) {
+                        "ringtone" -> Pair(RingtoneManager.TYPE_RINGTONE, AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                        "notification" -> Pair(RingtoneManager.TYPE_NOTIFICATION, AudioAttributes.USAGE_NOTIFICATION)
+                        else -> Pair(RingtoneManager.TYPE_ALARM, AudioAttributes.USAGE_ALARM)
+                    }
                 val alarmUri =
-                    RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                    RingtoneManager.getDefaultUri(type)
+                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                         ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
                         ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
 
@@ -91,13 +99,14 @@ class AndroidAutomationAudioSpeaker(private val context: Context) : AutomationAu
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                     ringtone.audioAttributes =
                         AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setUsage(usage)
                             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                             .build()
                 }
                 activeRingtone = ringtone
                 ringtone.play()
 
+                val duration = durationSeconds.coerceAtLeast(1) * MILLIS_PER_SECOND
                 mainHandler.postDelayed(
                     {
                         if (activeRingtone == ringtone) {
@@ -105,10 +114,10 @@ class AndroidAutomationAudioSpeaker(private val context: Context) : AutomationAu
                             activeRingtone = null
                         }
                     },
-                    durationSeconds * MILLIS_PER_SECOND,
+                    duration,
                 )
             } catch (e: Exception) {
-                Logger.e(e) { "Failed to play automation alarm" }
+                Logger.e(e) { "Failed to play automation alarm ($alarmType)" }
             }
         }
     }
@@ -290,6 +299,9 @@ class AndroidAutomationAudioSpeaker(private val context: Context) : AutomationAu
                 speakInternal(text, speechRate)
             } else {
                 synchronized(pendingTtsQueue) {
+                    if (pendingTtsQueue.size >= MAX_PENDING_TTS_QUEUE_SIZE) {
+                        pendingTtsQueue.removeAt(0)
+                    }
                     pendingTtsQueue.add(text to speechRate)
                 }
             }

@@ -34,8 +34,18 @@ class SwitchingTopologyEdgeDao(private val dbManager: DatabaseProvider) : Topolo
         it.topologyEdgeDao().getAllEdgesFlow()
     }
 
+    override suspend fun getAllEdgesSnapshot(): List<TopologyEdge> = dbManager
+        .withDb {
+            it.topologyEdgeDao().getAllEdgesSnapshot()
+        }
+        .orEmpty()
+
     override fun getActiveMqttNodesCount(): Flow<Int> = dbManager.observeCurrentDb {
         it.topologyEdgeDao().getActiveMqttNodesCount()
+    }
+
+    override fun getActiveMqttNodesCount(periodStart: Long): Flow<Int> = dbManager.observeCurrentDb {
+        it.topologyEdgeDao().getActiveMqttNodesCount(periodStart)
     }
 
     override suspend fun getEdge(node1: Int, node2: Int): TopologyEdge? = dbManager.withDb {
@@ -48,6 +58,10 @@ class SwitchingTopologyEdgeDao(private val dbManager: DatabaseProvider) : Topolo
 
     override suspend fun deleteInvalidEdges() {
         dbManager.withDb { it.topologyEdgeDao().deleteInvalidEdges() }
+    }
+
+    override suspend fun pruneEdgesBefore(cutoff: Long) {
+        dbManager.withDb { it.topologyEdgeDao().pruneEdgesBefore(cutoff) }
     }
 
     override suspend fun clearAllEdges() {

@@ -111,7 +111,6 @@ class NavigationConfigTest {
             WifiProvisionRoute.WifiProvision(address = "AA:BB:CC:DD:EE:FF"),
             WifiProvisionRoute.WifiProvision(),
             // AutomationRoute
-            AutomationRoute.AutomationGraph,
             AutomationRoute.AutomationList,
             AutomationRoute.AutomationBuilder(),
             AutomationRoute.AutomationBuilder(ruleId = "rule-123"),

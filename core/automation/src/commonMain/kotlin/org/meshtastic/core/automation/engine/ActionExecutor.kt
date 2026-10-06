@@ -31,11 +31,14 @@ import org.meshtastic.core.automation.model.AutomationAction
 interface ActionExecutor {
 
     /**
-     * Executes [action] given [event] context (for template variable substitution).
+     * Executes [action] given [event] context (for template variable substitution). If [dryRun] is true, no
+     * side-effects (RF transmission, sound, vibration, notification, clipboard) are performed; instead, a
+     * human-readable preview of what would have been executed is returned.
      *
+     * @return Preview string if [dryRun] is true, or null if normal execution.
      * @throws ActionExecutionException if the action could not be completed.
      */
-    suspend fun execute(action: AutomationAction, event: TriggerEvent)
+    suspend fun execute(action: AutomationAction, event: TriggerEvent, dryRun: Boolean = false): String?
 }
 
 /** Thrown by [ActionExecutor.execute] to signal a recoverable execution failure. */

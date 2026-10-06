@@ -60,6 +60,12 @@ interface AutomationDao {
 
     @Upsert suspend fun insertLog(log: AutomationLogEntity)
 
+    @Transaction
+    suspend fun insertLogAndPrune(log: AutomationLogEntity, keep: Int) {
+        insertLog(log)
+        pruneOldLogs(log.ruleId, keep)
+    }
+
     /**
      * Prunes the oldest entries for [ruleId], keeping only the most recent [keep] rows. Called by the engine after each
      * successful log insert to cap log growth.

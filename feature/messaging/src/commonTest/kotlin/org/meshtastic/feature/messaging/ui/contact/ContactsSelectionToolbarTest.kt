@@ -46,6 +46,7 @@ import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.repository.ConnectionStateProvider
 import org.meshtastic.core.repository.PacketRepository
 import org.meshtastic.core.repository.RadioConfigRepository
+import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.core.testing.FakeNodeRepository
 import org.meshtastic.core.testing.TestDataFactory
 import org.meshtastic.core.ui.util.SnackbarManager
@@ -68,6 +69,7 @@ class ContactsSelectionToolbarTest {
     private val packetRepository: PacketRepository = mock(MockMode.autofill)
     private val radioConfigRepository: RadioConfigRepository = mock(MockMode.autofill)
     private val connectionStateProvider: ConnectionStateProvider = mock(MockMode.autofill)
+    private val uiPrefs: UiPrefs = mock(MockMode.autofill)
     private val pinWrites = MutableStateFlow(emptyList<Boolean>())
 
     @BeforeTest
@@ -77,6 +79,7 @@ class ContactsSelectionToolbarTest {
         every { connectionStateProvider.connectionState } returns MutableStateFlow(ConnectionState.Disconnected)
         every { packetRepository.getUnreadCountTotal() } returns MutableStateFlow(0)
         every { packetRepository.getContacts() } returns MutableStateFlow(emptyMap())
+        every { uiPrefs.textCompressionEnabled } returns MutableStateFlow(false)
         every { radioConfigRepository.channelSetFlow } returns
             MutableStateFlow(
                 ChannelSet.Builder().settings(listOf(ChannelSettings.Builder().name(CHANNEL_NAME).build())).build(),
@@ -98,6 +101,7 @@ class ContactsSelectionToolbarTest {
                 nodeRepository = nodeRepository,
                 packetRepository = packetRepository,
                 snackbarManager = SnackbarManager(),
+                uiPrefs = uiPrefs,
                 radioConfigRepository = radioConfigRepository,
                 connectionStateProvider = connectionStateProvider,
             )

@@ -50,4 +50,17 @@ if [ ${#VIOLATIONS[@]} -ne 0 ]; then
     exit 1
 fi
 
+# Check against known merge regressions
+if git diff --cached -S"LazyLayoutCacheWindow" --name-only | grep -q "feature/messaging/src/commonMain/kotlin/org/meshtastic/feature/messaging/Message.kt"; then
+    echo "❌ AI GUARDRAIL VIOLATION: LazyLayoutCacheWindow reintroduced in Message.kt!"
+    echo "   Inside ThreePaneScaffold's LookaheadScope, this causes 'LookaheadDelegate has not been measured yet' crash."
+    exit 1
+fi
+
+if git diff --cached -S"libs.coil.gif" --name-only | grep -q "desktopApp/build.gradle.kts"; then
+    echo "❌ AI GUARDRAIL VIOLATION: libs.coil.gif reintroduced in desktopApp!"
+    echo "   coil-gif has no JVM variant published on Maven Central and breaks desktop builds."
+    exit 1
+fi
+
 exit 0

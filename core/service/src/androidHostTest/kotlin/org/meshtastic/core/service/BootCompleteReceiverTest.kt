@@ -265,6 +265,12 @@ class BootCompleteReceiverTest {
         override fun getStoreForwardLastRequest(address: String?): StateFlow<Int> = MutableStateFlow(0)
 
         override fun setStoreForwardLastRequest(address: String?, timestamp: Int) = Unit
+
+        override fun getMqttClientEnabled(address: String?): StateFlow<Boolean> = MutableStateFlow(false)
+
+        override fun setMqttClientEnabled(address: String?, enabled: Boolean) = Unit
+
+        override suspend fun awaitMqttClientEnabled(address: String?): Boolean = false
     }
 
     private class StallingDispatcher : CoroutineDispatcher() {

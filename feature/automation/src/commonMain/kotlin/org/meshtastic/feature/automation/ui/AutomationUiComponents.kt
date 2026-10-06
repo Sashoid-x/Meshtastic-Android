@@ -52,13 +52,30 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.model.Node
+import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.automation_any_channel
+import org.meshtastic.core.resources.automation_any_node
+import org.meshtastic.core.resources.automation_channel_label
+import org.meshtastic.core.resources.automation_channel_num
+import org.meshtastic.core.resources.automation_insert_variable_hint
+import org.meshtastic.core.resources.automation_primary_channel
+import org.meshtastic.core.resources.automation_search_node_hint
+import org.meshtastic.core.resources.automation_select_node
+import org.meshtastic.core.resources.automation_test_action
+import org.meshtastic.core.resources.clear
+import org.meshtastic.core.resources.close
+import org.meshtastic.core.resources.favorite
+import org.meshtastic.core.resources.select
 import org.meshtastic.core.ui.icon.Close
+import org.meshtastic.core.ui.icon.Favorite
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Nodes
 import org.meshtastic.core.ui.icon.Person
@@ -70,7 +87,7 @@ private const val HEX_PAD = 8
 private const val MAX_PICKER_HEIGHT_DP = 400
 
 private fun formatHexNodeId(nodeId: Int?): String =
-    nodeId?.toUInt()?.toString(HEX_RADIX)?.padStart(HEX_PAD, '0')?.let { "!$it" } ?: ""
+    nodeId?.toUInt()?.toString(HEX_RADIX)?.padStart(HEX_PAD, '0')?.let { "!$it" }.orEmpty()
 
 @Composable
 fun NodePickerField(
@@ -79,9 +96,9 @@ fun NodePickerField(
     onSelectNode: (Int?) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
-    nullLabel: String = "Любая нода (Все)",
+    nullLabel: String = stringResource(Res.string.automation_any_node),
 ) {
-    var showDialog by remember { mutableStateOf(false) }
+    var showDialog by rememberSaveable { mutableStateOf(false) }
     val selectedNode = selectedNodeId?.let { nodes[it] }
 
     OutlinedCard(
@@ -134,7 +151,7 @@ fun NodePickerField(
             OutlinedButton(onClick = { showDialog = true }) {
                 Icon(MeshtasticIcons.Person, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Выбрать")
+                Text(stringResource(Res.string.select))
             }
         }
     }
@@ -160,9 +177,9 @@ fun NodePickerDialog(
     onDismiss: () -> Unit,
     onSelect: (Int?) -> Unit,
     modifier: Modifier = Modifier,
-    nullLabel: String = "Любая нода (Все)",
+    nullLabel: String = stringResource(Res.string.automation_any_node),
 ) {
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
 
     val filtered =
         remember(nodes, searchQuery) {
@@ -183,18 +200,18 @@ fun NodePickerDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         modifier = modifier,
-        title = { Text("Выберите ноду") },
+        title = { Text(stringResource(Res.string.automation_select_node)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth().heightIn(max = MAX_PICKER_HEIGHT_DP.dp)) {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    label = { Text("Поиск по имени или !HEX") },
+                    label = { Text(stringResource(Res.string.automation_search_node_hint)) },
                     leadingIcon = { Icon(MeshtasticIcons.Search, contentDescription = null) },
                     trailingIcon = {
                         if (searchQuery.isNotEmpty()) {
                             IconButton(onClick = { searchQuery = "" }) {
-                                Icon(MeshtasticIcons.Close, contentDescription = "Clear")
+                                Icon(MeshtasticIcons.Close, contentDescription = stringResource(Res.string.clear))
                             }
                         }
                     },
@@ -212,11 +229,12 @@ fun NodePickerDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Закрыть") }
+            TextButton(onClick = onDismiss) { Text(stringResource(Res.string.close)) }
         },
     )
 }
 
+@Suppress("LongMethod")
 @Composable
 private fun NodePickerList(
     filteredNodes: List<Node>,
@@ -279,7 +297,13 @@ private fun NodePickerList(
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             )
                             if (node.isFavorite) {
-                                Text(" ⭐", style = MaterialTheme.typography.bodySmall)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = MeshtasticIcons.Favorite,
+                                    contentDescription = stringResource(Res.string.favorite),
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.primary,
+                                )
                             }
                         }
                         Text(
@@ -302,16 +326,23 @@ fun ChannelPickerBox(
     selectedChannel: Int?,
     onSelectChannel: (Int?) -> Unit,
     modifier: Modifier = Modifier,
-    label: String = "Канал связи",
+    label: String = stringResource(Res.string.automation_channel_label),
     allowAll: Boolean = true,
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
 
     val currentText =
         when (selectedChannel) {
-            null -> if (allowAll) "Любой канал" else "Канал 0 (Primary)"
-            0 -> "Канал 0 (Primary)"
-            else -> "Канал $selectedChannel"
+            null ->
+                if (allowAll) {
+                    stringResource(Res.string.automation_any_channel)
+                } else {
+                    stringResource(Res.string.automation_primary_channel)
+                }
+
+            0 -> stringResource(Res.string.automation_primary_channel)
+
+            else -> stringResource(Res.string.automation_channel_num, selectedChannel)
         }
 
     ExposedDropdownMenuBox(
@@ -333,7 +364,7 @@ fun ChannelPickerBox(
         ) {
             if (allowAll) {
                 DropdownMenuItem(
-                    text = { Text("Любой канал") },
+                    text = { Text(stringResource(Res.string.automation_any_channel)) },
                     onClick = {
                         onSelectChannel(null)
                         expanded = false
@@ -342,7 +373,15 @@ fun ChannelPickerBox(
             }
             repeat(CHANNEL_COUNT) { ch ->
                 DropdownMenuItem(
-                    text = { Text(if (ch == 0) "Канал 0 (Primary)" else "Канал $ch") },
+                    text = {
+                        Text(
+                            if (ch == 0) {
+                                stringResource(Res.string.automation_primary_channel)
+                            } else {
+                                stringResource(Res.string.automation_channel_num, ch)
+                            },
+                        )
+                    },
                     onClick = {
                         onSelectChannel(ch)
                         expanded = false
@@ -357,21 +396,37 @@ data class TemplateChip(val label: String, val token: String)
 
 private val TEMPLATE_VARIABLES =
     listOf(
-        TemplateChip("+ Имя", "{node_name}"),
-        TemplateChip("+ !Hex", "{node_hex}"),
-        TemplateChip("+ Батарея", "{battery_level}%"),
-        TemplateChip("+ Текст", "{text}"),
-        TemplateChip("+ Канал", "{channel}"),
-        TemplateChip("+ Дистанция", "{distance_km}"),
-        TemplateChip("+ Температура", "{temperature}"),
-        TemplateChip("+ Влажность", "{humidity}"),
+        TemplateChip("+ Node ID", "{NODE_ID}"),
+        TemplateChip("+ Long Name", "{LONG_NAME}"),
+        TemplateChip("+ Short Name", "{SHORT_NAME}"),
+        TemplateChip("+ SNR", "{SNR}"),
+        TemplateChip("+ RSSI", "{RSSI}"),
+        TemplateChip("+ Hops", "{HOPS}"),
+        TemplateChip("+ 🐇 Hops", "{RABBIT_HOPS}"),
+        TemplateChip("+ Last Hop", "{LAST_HOP}"),
+        TemplateChip("+ Channel", "{CHANNEL}"),
+        TemplateChip("+ Transport", "{TRANSPORT}"),
+        TemplateChip("+ Version", "{VERSION}"),
+        TemplateChip("+ Duration", "{DURATION}"),
+        TemplateChip("+ Features", "{FEATURES}"),
+        TemplateChip("+ Nodes", "{NODECOUNT}"),
+        TemplateChip("+ Direct", "{DIRECTCOUNT}"),
+        TemplateChip("+ Total", "{TOTALNODES}"),
+        TemplateChip("+ Online", "{ONLINENODES}"),
+        TemplateChip("+ Date", "{DATE}"),
+        TemplateChip("+ Time", "{TIME}"),
+        TemplateChip("+ Text", "{TEXT}"),
+        TemplateChip("+ Battery", "{BATTERY_LEVEL}%"),
+        TemplateChip("+ Temp", "{TEMPERATURE}"),
+        TemplateChip("+ Humidity", "{HUMIDITY}"),
+        TemplateChip("+ Distance", "{DISTANCE_KM}"),
     )
 
 @Composable
 fun VariableChipsRow(onInsert: (String) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "Вставить переменную в текст:",
+            text = stringResource(Res.string.automation_insert_variable_hint),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.outline,
         )
@@ -397,6 +452,6 @@ fun TestActionButton(onTest: () -> Unit, modifier: Modifier = Modifier) {
     ) {
         Icon(MeshtasticIcons.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(modifier = Modifier.width(4.dp))
-        Text("Тест действия", style = MaterialTheme.typography.labelMedium)
+        Text(stringResource(Res.string.automation_test_action), style = MaterialTheme.typography.labelMedium)
     }
 }

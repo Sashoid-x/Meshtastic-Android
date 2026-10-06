@@ -77,6 +77,7 @@ import org.meshtastic.core.ui.icon.List
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.PermScanWifi
 import org.meshtastic.core.ui.icon.Wifi
+import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
 import org.meshtastic.feature.settings.component.AppVersionButton
 import org.meshtastic.feature.settings.component.CacheLimitPreference
 import org.meshtastic.feature.settings.component.ExpressiveSection

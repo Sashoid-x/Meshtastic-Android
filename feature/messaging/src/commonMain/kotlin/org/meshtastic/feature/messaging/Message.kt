@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.layout.LazyLayoutCacheWindow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -103,6 +102,7 @@ import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.QuickChatAction
 import org.meshtastic.core.model.util.getChannel
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.archived_channel_read_only
 import org.meshtastic.core.resources.byte_unit_symbol
 import org.meshtastic.core.resources.file_transfer
 import org.meshtastic.core.resources.file_transfer_size_limit
@@ -113,6 +113,7 @@ import org.meshtastic.core.resources.unknown_channel
 import org.meshtastic.core.ui.component.InlineStyle
 import org.meshtastic.core.ui.component.ShareContactDialog
 import org.meshtastic.core.ui.component.smartScrollToIndex
+import org.meshtastic.core.ui.icon.History
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Send
 import org.meshtastic.core.ui.theme.AppTheme
@@ -224,6 +225,7 @@ fun MessageScreen(
 
     val isDirectMessageConversation =
         remember(contactKey) { ContactKey(contactKey).addressString != NodeAddress.ID_BROADCAST }
+    val isRetiredChannel = remember(contactKey) { ContactKey(contactKey).isRetired }
     var showFileTransferWarning by rememberSaveable { mutableStateOf(false) }
     var fileTransferSizeError by rememberSaveable { mutableStateOf<String?>(null) }
     val outgoingTransferState by viewModel.fileTransferOutgoingState.collectAsStateWithLifecycle()
@@ -367,8 +369,9 @@ fun MessageScreen(
 
     val inSelectionMode by remember { derivedStateOf { selectedMessageIds.value.isNotEmpty() } }
 
-    // The message list is reverseLayout; ahead is still the scroll direction, toward older messages.
-    val listState = rememberLazyListState(cacheWindow = LazyLayoutCacheWindow(ahead = 300.dp, behind = 100.dp))
+    // No cache window here: this pane renders inside ThreePaneScaffold's LookaheadScope, where a
+    // prefetched item can reach the main placement pass before the lookahead pass has measured it.
+    val listState = rememberLazyListState()
 
     // Track unread messages using lightweight metadata queries
     val hasUnreadMessages by viewModel.hasUnreadMessages.collectAsStateWithLifecycle()
@@ -612,43 +615,53 @@ fun MessageScreen(
             }
         },
         bottomBar = {
-            Column {
-                AnimatedVisibility(visible = showQuickChat) {
-                    QuickChatRow(
-                        enabled = connectionState is ConnectionState.Connected,
-                        actions = quickChatActions,
-                        showBellButton = showBellButton,
-                        onClick = { action ->
-                            handleQuickChatAction(
-                                action = action,
-                                messageInputState = messageInputState,
-                                onSendMessage = { text -> onEvent(MessageScreenEvent.SendMessage(text)) },
-                            )
+            // A retired channel is read-only: there is no slot left to send on, so the composer and the quick-chat
+            // row are replaced outright rather than merely disabled.
+            if (isRetiredChannel) {
+                RetiredChannelNotice()
+            } else {
+                Column {
+                    AnimatedVisibility(visible = showQuickChat) {
+                        QuickChatRow(
+                            enabled = connectionState is ConnectionState.Connected,
+                            actions = quickChatActions,
+                            showBellButton = showBellButton,
+                            onClick = { action ->
+                                handleQuickChatAction(
+                                    action = action,
+                                    messageInputState = messageInputState,
+                                    onSendMessage = { text -> onEvent(MessageScreenEvent.SendMessage(text)) },
+                                )
+                            },
+                        )
+                    }
+                    ReplySnippet(
+                        originalMessage = originalMessage,
+                        onClearReply = { replyingToPacketId = null },
+                        ourNode = ourNode,
+                    )
+                    MessageInput(
+                        isEnabled = connectionState is ConnectionState.Connected,
+                        isHomoglyphEncodingEnabled = homoglyphEncodingEnabled,
+                        textFieldState = messageInputState,
+                        mentionCandidates = mentionCandidates,
+                        textCompressionEnabled = textCompressionEnabled,
+                        isOkToMqtt = okToMqtt,
+                        onToggleOkToMqtt = viewModel::toggleOkToMqtt,
+                        onSendMessage = { compress ->
+                            val messageText = messageInputState.text.toString().trim { it.isWhitespace() }
+                            if (messageText.isNotEmpty()) {
+                                onEvent(
+                                    MessageScreenEvent.SendMessage(
+                                        messageText,
+                                        replyingToPacketId,
+                                        compress = compress,
+                                    ),
+                                )
+                            }
                         },
                     )
                 }
-                ReplySnippet(
-                    originalMessage = originalMessage,
-                    onClearReply = { replyingToPacketId = null },
-                    ourNode = ourNode,
-                )
-                MessageInput(
-                    isEnabled = connectionState is ConnectionState.Connected,
-                    isHomoglyphEncodingEnabled = homoglyphEncodingEnabled,
-                    textFieldState = messageInputState,
-                    mentionCandidates = mentionCandidates,
-                    textCompressionEnabled = textCompressionEnabled,
-                    isOkToMqtt = okToMqtt,
-                    onToggleOkToMqtt = viewModel::toggleOkToMqtt,
-                    onSendMessage = { compress ->
-                        val messageText = messageInputState.text.toString().trim { it.isWhitespace() }
-                        if (messageText.isNotEmpty()) {
-                            onEvent(
-                                MessageScreenEvent.SendMessage(messageText, replyingToPacketId, compress = compress),
-                            )
-                        }
-                    },
-                )
             }
         },
     ) { paddingValues ->
@@ -801,6 +814,8 @@ fun MessageScreen(
                             searchQuery = if (isSearchActive) searchQuery else "",
                             translationAvailable = translationAvailable,
                             showFullMessageTimestamps = showFullMessageTimestamps,
+                            canReact = !isRetiredChannel,
+                            canSend = !isRetiredChannel,
                             textCompressionEnabled = textCompressionEnabled,
                             pixelArtEnabled = pixelArtEnabled,
                             photoHostingEnabled = photoHostingEnabled,
@@ -812,15 +827,23 @@ fun MessageScreen(
                             onUnreadChanged = { messageUuid, timestamp ->
                                 onEvent(MessageScreenEvent.ClearUnreadCount(messageUuid, timestamp))
                             },
-                            onSendReaction = { emoji, id -> onEvent(MessageScreenEvent.SendReaction(emoji, id)) },
+                            // A retired conversation is read-only; the send path refuses these anyway, so do not
+                            // offer
+                            // them.
+                            onSendReaction =
+                            if (isRetiredChannel) {
+                                { _, _ -> }
+                            } else {
+                                { emoji, id -> onEvent(MessageScreenEvent.SendReaction(emoji, id)) }
+                            },
                             onClickChip = { onEvent(MessageScreenEvent.NodeDetails(it)) },
                             onDeleteMessages = { viewModel.deleteMessages(it) },
                             onSendMessage = { text, key -> viewModel.sendMessage(text, key) },
-                            onResendImage = { bytes, key -> viewModel.sendImageMessage(bytes, contactKey = key) },
+                            onResendImage = { uuid, bytes, key -> viewModel.resendImageMessage(uuid, bytes, key) },
                             onResendMessage = { message ->
                                 viewModel.resendMessage(message.uuid, message.text, contactKey)
                             },
-                            onReply = { message -> replyingToPacketId = message?.packetId },
+                            onReply = { message -> if (!isRetiredChannel) replyingToPacketId = message?.packetId },
                             onTranslate = { onEvent(MessageScreenEvent.TranslateMessage(it)) },
                             onToggleTranslation = { onEvent(MessageScreenEvent.ToggleShowTranslated(it)) },
                             onOpenImageViewer = { images, initialIndex ->
@@ -1338,6 +1361,54 @@ fun MessageInputPreview() {
                     // Each char is 3 bytes, so "こん" (6 bytes) is ok, "こんに" (9 bytes) is ok, "こんにち"
                     // (12 bytes) is over
                 )
+            }
+        }
+    }
+}
+
+/**
+ * Notice shown in place of the message composer when viewing an archived (retired) channel.
+ *
+ * The history is kept and still searchable, but there is no slot left to send on, so the affordance is removed rather
+ * than disabled — a greyed-out composer reads as "not connected yet", which this is not.
+ */
+@Composable
+internal fun RetiredChannelNotice(modifier: Modifier = Modifier) {
+    Surface(modifier = modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Icon(
+                imageVector = MeshtasticIcons.History,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = stringResource(Res.string.archived_channel_read_only),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@PreviewLightDark
+@Composable
+fun RetiredChannelNoticePreview() {
+    AppTheme {
+        Surface {
+            Column(modifier = Modifier.padding(8.dp)) {
+                MessageInput(
+                    isEnabled = true,
+                    isHomoglyphEncodingEnabled = false,
+                    mentionCandidates = persistentMapOf(),
+                    textFieldState = rememberTextFieldState("Still on the air"),
+                    onSendMessage = {},
+                )
+                Spacer(Modifier.size(16.dp))
+                RetiredChannelNotice()
             }
         }
     }

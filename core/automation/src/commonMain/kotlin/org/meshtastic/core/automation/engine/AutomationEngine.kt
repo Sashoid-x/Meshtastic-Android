@@ -17,6 +17,8 @@
 package org.meshtastic.core.automation.engine
 
 import co.touchlab.kermit.Logger
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collectLatest
@@ -57,7 +59,8 @@ private val logger = Logger.withTag("AutomationEngine")
  *
  * ### Safety guarantees
  * - **Rate limiting:** A rule cannot fire more than [MAX_FIRES_PER_WINDOW] times within [RATE_LIMIT_WINDOW_MS].
- *   Subsequent events are silently dropped until the window expires.
+ *   Subsequent events are silently dropped until the window expires. Rate limit is checked *after* conditions pass, so
+ *   non-matching events do not consume quota.
  * - **Loop prevention:** [AutomationCondition.NotFiredRecently] can be added to any rule that might generate its own
  *   trigger event (e.g. send-message → message-received loop).
  * - **Chain depth limit:** [TriggerRule] actions are tracked via a call-depth counter; chains deeper than
@@ -73,6 +76,7 @@ class AutomationEngine(
     private val actionExecutor: ActionExecutor,
     private val nodeRepository: NodeRepository? = null,
     private val serviceRepository: ServiceRepository? = null,
+    private val clock: Clock = Clock.System,
 ) {
     private val mutex = Mutex()
 
@@ -88,6 +92,10 @@ class AutomationEngine(
     private var engineScope: CoroutineScope? = null
     private var supervisorJob: Job? = null
 
+    private val exceptionHandler = CoroutineExceptionHandler { _, throwable ->
+        logger.e(throwable) { "Unhandled exception in AutomationEngine" }
+    }
+
     // ─── Public API ──────────────────────────────────────────────────────────
 
     /**
@@ -98,11 +106,12 @@ class AutomationEngine(
     fun start(scope: CoroutineScope) {
         if (engineScope != null) return
         engineScope = scope
-        supervisorJob = scope.launch {
-            repository.observeEnabledRules().distinctUntilChanged().collectLatest { rules ->
-                reconcileRules(rules, scope)
+        supervisorJob =
+            scope.launch(exceptionHandler) {
+                repository.observeEnabledRules().distinctUntilChanged().collectLatest { rules ->
+                    reconcileRules(rules, scope)
+                }
             }
-        }
         logger.i { "AutomationEngine started" }
     }
 
@@ -138,14 +147,14 @@ class AutomationEngine(
                 val existing = activeRules[rule.id]
                 if (existing == null) {
                     activeRules[rule.id] = rule
-                    ruleJobs[rule.id] = scope.launch { observeRule(rule.id) }
+                    ruleJobs[rule.id] = scope.launch(exceptionHandler) { observeRule(rule.id) }
                     logger.d { "Started observer for rule '${rule.name}' (${rule.id})" }
                 } else if (!existing.hasSameConfiguration(rule)) {
                     // Rule configuration (trigger/conditions/actions/operator) changed:
                     // update stored rule and restart its flow observer
                     activeRules[rule.id] = rule
                     ruleJobs.remove(rule.id)?.cancel()
-                    ruleJobs[rule.id] = scope.launch { observeRule(rule.id) }
+                    ruleJobs[rule.id] = scope.launch(exceptionHandler) { observeRule(rule.id) }
                     logger.d { "Restarted observer for updated rule '${rule.name}' (${rule.id})" }
                 } else {
                     // Only runtime execution stats changed (e.g. fireCount, lastFiredAt)
@@ -155,11 +164,18 @@ class AutomationEngine(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught")
     private suspend fun observeRule(ruleId: String) {
         val initialRule = mutex.withLock { activeRules[ruleId] } ?: return
-        triggerSource.flowFor(initialRule.trigger).collect { event ->
-            val currentRule = mutex.withLock { activeRules[ruleId] } ?: return@collect
-            handleEvent(currentRule, event)
+        try {
+            triggerSource.flowFor(initialRule.trigger).collect { event ->
+                val currentRule = mutex.withLock { activeRules[ruleId] } ?: return@collect
+                handleEvent(currentRule, event)
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.e(e) { "Error observing rule $ruleId" }
         }
     }
 
@@ -171,63 +187,88 @@ class AutomationEngine(
             return
         }
 
-        if (!checkRateLimit(rule.id)) {
-            logger.d { "Rule '${rule.name}' rate-limited, skipping" }
-            return
-        }
-
+        // Evaluate conditions first so non-matching events do not consume rate-limit quota (P0-4)
         if (!evaluateConditions(rule, event)) {
             logger.d { "Rule '${rule.name}' conditions not met" }
             return
         }
 
-        val now = Clock.System.now().toEpochMilliseconds()
-        var success = true
-        var detail = "OK"
+        // Check and reserve rate-limit slot only after conditions pass (P0-4, P0-3)
+        if (!checkAndRecordRateLimit(rule.id)) {
+            logger.d { "Rule '${rule.name}' rate-limited, skipping" }
+            return
+        }
 
-        try {
-            rule.actions.forEach { action ->
+        val now = clock.now().toEpochMilliseconds()
+        val executionErrors = mutableListOf<String>()
+        var hasSuccessfulAction = false
+
+        for (action in rule.actions) {
+            try {
                 when (action) {
                     is AutomationAction.TriggerRule -> {
                         val chained = repository.getRule(action.ruleId)
                         if (chained != null && chained.isEnabled) {
                             handleEvent(chained, event, chainDepth + 1)
+                            hasSuccessfulAction = true
                         } else {
-                            logger.w { "Chained rule ${action.ruleId} not found or disabled" }
+                            val msg = "Chained rule ${action.ruleId} not found or disabled"
+                            logger.w { msg }
+                            executionErrors.add(msg)
                         }
                     }
 
-                    else -> actionExecutor.execute(action, event)
+                    else -> {
+                        actionExecutor.execute(action, event)
+                        hasSuccessfulAction = true
+                    }
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                val detail = e.message?.take(MAX_DETAIL_LENGTH) ?: e::class.simpleName ?: "Unknown error"
+                logger.e(e) { "Rule '${rule.name}' action failed: $detail" }
+                executionErrors.add(detail)
             }
-        } catch (e: Exception) {
-            success = false
-            detail = e.message?.take(MAX_DETAIL_LENGTH) ?: "Unknown error"
-            logger.e(e) { "Rule '${rule.name}' action failed: $detail" }
         }
 
-        repository.recordFire(rule.id, now)
-        repository.addLog(
-            AutomationLog(
-                id = Uuid.random().toString(),
-                ruleId = rule.id,
-                timestamp = now,
-                success = success,
-                detail = detail,
-            ),
-        )
+        val success = executionErrors.isEmpty()
+        val detail = if (success) "OK" else executionErrors.joinToString("; ").take(MAX_DETAIL_LENGTH)
+
+        try {
+            // Only count as fired in repository if at least one action succeeded (P0-4)
+            if (hasSuccessfulAction) {
+                repository.recordFire(rule.id, now)
+            }
+            repository.addLog(
+                AutomationLog(
+                    id = Uuid.random().toString(),
+                    ruleId = rule.id,
+                    timestamp = now,
+                    success = success,
+                    detail = detail,
+                ),
+            )
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            logger.e(e) { "Failed to record fire/log for rule ${rule.id}" }
+        }
     }
 
-    private fun checkRateLimit(ruleId: String): Boolean {
-        val now = Clock.System.now().toEpochMilliseconds()
+    private suspend fun checkAndRecordRateLimit(ruleId: String): Boolean = mutex.withLock {
+        val now = clock.now().toEpochMilliseconds()
         val times = fireTimes.getOrPut(ruleId) { ArrayDeque() }
         // Evict entries outside the window
         while (times.isNotEmpty() && (now - times.first()) > RATE_LIMIT_WINDOW_MS) {
             times.removeFirst()
         }
-        if (times.size >= MAX_FIRES_PER_WINDOW) return false
-        times.addLast(now)
-        return true
+        if (times.size >= MAX_FIRES_PER_WINDOW) {
+            false
+        } else {
+            times.addLast(now)
+            true
+        }
     }
 
     private suspend fun evaluateConditions(rule: AutomationRule, event: TriggerEvent): Boolean {
@@ -263,13 +304,16 @@ class AutomationEngine(
             event.channelIndex == null || event.channelIndex == condition.channelIndex
 
         is AutomationCondition.TimeOfDay -> {
-            val hour = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour
-            hour in condition.startHour..condition.endHour
+            val hour = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).hour
+            if (condition.startHour <= condition.endHour) {
+                hour in condition.startHour..condition.endHour
+            } else {
+                hour >= condition.startHour || hour <= condition.endHour
+            }
         }
 
         is AutomationCondition.DaysOfWeek -> {
-            val dayOfWeek =
-                Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).dayOfWeek.isoDayNumber
+            val dayOfWeek = clock.now().toLocalDateTime(TimeZone.currentSystemDefault()).dayOfWeek.isoDayNumber
             dayOfWeek in condition.days
         }
 
@@ -284,7 +328,7 @@ class AutomationEngine(
 
         is AutomationCondition.NotFiredRecently -> {
             val lastFired = repository.getRule(rule.id)?.lastFiredAt ?: 0L
-            val now = Clock.System.now().toEpochMilliseconds()
+            val now = clock.now().toEpochMilliseconds()
             (now - lastFired) > condition.windowSeconds * MILLIS_PER_SECOND
         }
 
@@ -309,15 +353,19 @@ class AutomationEngine(
         }
 
         is AutomationCondition.LocationFilter -> {
+            val centerLat = condition.centerLatitude
+            val centerLon = condition.centerLongitude
             when (condition.type) {
                 LocationConditionType.WITHIN_GEOFENCE -> {
-                    if (event.latitude != null && event.longitude != null) {
+                    if (
+                        event.latitude != null && event.longitude != null && centerLat != null && centerLon != null
+                    ) {
                         val dist =
                             calculateDistanceMeters(
                                 event.latitude,
                                 event.longitude,
-                                condition.centerLatitude,
-                                condition.centerLongitude,
+                                centerLat,
+                                centerLon,
                             )
                         dist <= condition.radiusMeters
                     } else {
@@ -326,13 +374,15 @@ class AutomationEngine(
                 }
 
                 LocationConditionType.OUTSIDE_GEOFENCE -> {
-                    if (event.latitude != null && event.longitude != null) {
+                    if (
+                        event.latitude != null && event.longitude != null && centerLat != null && centerLon != null
+                    ) {
                         val dist =
                             calculateDistanceMeters(
                                 event.latitude,
                                 event.longitude,
-                                condition.centerLatitude,
-                                condition.centerLongitude,
+                                centerLat,
+                                centerLon,
                             )
                         dist > condition.radiusMeters
                     } else {
@@ -342,41 +392,41 @@ class AutomationEngine(
 
                 LocationConditionType.CLOSER_THAN -> {
                     val dist =
-                        event.distanceMeters
-                            ?: (
-                                if (
-                                    event.latitude != null && event.longitude != null && condition.centerLatitude != 0.0
-                                ) {
-                                    calculateDistanceMeters(
-                                        event.latitude,
-                                        event.longitude,
-                                        condition.centerLatitude,
-                                        condition.centerLongitude,
-                                    )
-                                } else {
-                                    null
-                                }
-                                )
+                        if (
+                            event.latitude != null &&
+                            event.longitude != null &&
+                            centerLat != null &&
+                            centerLon != null
+                        ) {
+                            calculateDistanceMeters(
+                                event.latitude,
+                                event.longitude,
+                                centerLat,
+                                centerLon,
+                            )
+                        } else {
+                            event.distanceMeters
+                        }
                     if (dist != null) dist <= condition.distanceKm * METERS_PER_KM else false
                 }
 
                 LocationConditionType.FURTHER_THAN -> {
                     val dist =
-                        event.distanceMeters
-                            ?: (
-                                if (
-                                    event.latitude != null && event.longitude != null && condition.centerLatitude != 0.0
-                                ) {
-                                    calculateDistanceMeters(
-                                        event.latitude,
-                                        event.longitude,
-                                        condition.centerLatitude,
-                                        condition.centerLongitude,
-                                    )
-                                } else {
-                                    null
-                                }
-                                )
+                        if (
+                            event.latitude != null &&
+                            event.longitude != null &&
+                            centerLat != null &&
+                            centerLon != null
+                        ) {
+                            calculateDistanceMeters(
+                                event.latitude,
+                                event.longitude,
+                                centerLat,
+                                centerLon,
+                            )
+                        } else {
+                            event.distanceMeters
+                        }
                     if (dist != null) dist > condition.distanceKm * METERS_PER_KM else false
                 }
             }
@@ -402,7 +452,7 @@ class AutomationEngine(
             if (condition.emoji.isNotBlank() && event.emoji != condition.emoji) {
                 false
             } else if (condition.pattern.isNotBlank()) {
-                val text = event.messageText ?: ""
+                val text = event.messageText.orEmpty()
                 val matches =
                     if (condition.isRegex) {
                         runCatching { Regex(condition.pattern, RegexOption.IGNORE_CASE).containsMatchIn(text) }

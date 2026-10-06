@@ -25,7 +25,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -46,16 +45,18 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.automation.model.AutomationAction
 import org.meshtastic.core.automation.model.AutomationRule
+import org.meshtastic.core.automation.model.LogicalOperator
 import org.meshtastic.core.common.util.DateFormatter
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.automation
@@ -71,9 +72,12 @@ import org.meshtastic.core.resources.automation_action_send_reaction
 import org.meshtastic.core.resources.automation_action_send_traceroute
 import org.meshtastic.core.resources.automation_action_show_notification
 import org.meshtastic.core.resources.automation_action_speak_text
+import org.meshtastic.core.resources.automation_action_trigger_rule_label
 import org.meshtastic.core.resources.automation_action_vibrate
-import org.meshtastic.core.resources.automation_actions_header
+import org.meshtastic.core.resources.automation_conditions_match_all
+import org.meshtastic.core.resources.automation_conditions_match_any
 import org.meshtastic.core.resources.automation_delete_confirm
+import org.meshtastic.core.resources.automation_edit_rule
 import org.meshtastic.core.resources.automation_empty_description
 import org.meshtastic.core.resources.automation_empty_title
 import org.meshtastic.core.resources.automation_fires_count
@@ -81,10 +85,13 @@ import org.meshtastic.core.resources.automation_last_fired
 import org.meshtastic.core.resources.automation_logs
 import org.meshtastic.core.resources.automation_never_fired
 import org.meshtastic.core.resources.automation_new_rule
+import org.meshtastic.core.resources.automation_rule_summary_format
 import org.meshtastic.core.resources.automation_templates
 import org.meshtastic.core.resources.back
 import org.meshtastic.core.resources.cancel
 import org.meshtastic.core.resources.delete
+import org.meshtastic.core.ui.component.EmptyState
+import org.meshtastic.core.ui.component.MeshtasticDialog
 import org.meshtastic.core.ui.icon.Add
 import org.meshtastic.core.ui.icon.ArrowBack
 import org.meshtastic.core.ui.icon.Delete
@@ -103,12 +110,14 @@ fun AutomationListScreen(
     viewModel: AutomationListViewModel,
     onNavigateUp: () -> Unit,
     onNavigateToBuilder: (ruleId: String?) -> Unit,
+    onNavigateToBuilderWithTemplate: (templateId: String) -> Unit = {},
     onNavigateToLogs: (ruleId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val rules by viewModel.rules.collectAsStateWithLifecycle()
-    var ruleToDelete by remember { mutableStateOf<AutomationRule?>(null) }
-    var showTemplatesDialog by remember { mutableStateOf(false) }
+    var ruleToDeleteId by rememberSaveable { mutableStateOf<String?>(null) }
+    val ruleToDelete = rules.firstOrNull { it.id == ruleToDeleteId }
+    var showTemplatesDialog by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -137,7 +146,7 @@ fun AutomationListScreen(
             EmptyAutomationState(
                 onCreateRule = { onNavigateToBuilder(null) },
                 onSelectTemplate = { template ->
-                    viewModel.createFromTemplate(template)
+                    onNavigateToBuilderWithTemplate(template.id)
                 },
                 modifier = Modifier.padding(padding).fillMaxSize(),
             )
@@ -152,7 +161,7 @@ fun AutomationListScreen(
                         onToggle = { enabled -> viewModel.toggleRule(rule.id, enabled) },
                         onEdit = { onNavigateToBuilder(rule.id) },
                         onViewLogs = { onNavigateToLogs(rule.id) },
-                        onDelete = { ruleToDelete = rule },
+                        onDelete = { ruleToDeleteId = rule.id },
                     )
                 }
             }
@@ -172,8 +181,8 @@ fun AutomationListScreen(
                         Card(
                             modifier =
                             Modifier.fillMaxWidth().clickable {
-                                viewModel.createFromTemplate(template)
                                 showTemplatesDialog = false
+                                onNavigateToBuilderWithTemplate(template.id)
                             },
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                         ) {
@@ -204,25 +213,16 @@ fun AutomationListScreen(
     }
 
     ruleToDelete?.let { rule ->
-        AlertDialog(
-            onDismissRequest = { ruleToDelete = null },
-            title = { Text(stringResource(Res.string.delete)) },
-            text = { Text(stringResource(Res.string.automation_delete_confirm)) },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteRule(rule.id)
-                        ruleToDelete = null
-                    },
-                ) {
-                    Text(stringResource(Res.string.delete))
-                }
+        MeshtasticDialog(
+            titleRes = Res.string.delete,
+            messageRes = Res.string.automation_delete_confirm,
+            confirmTextRes = Res.string.delete,
+            onConfirm = {
+                viewModel.deleteRule(rule.id)
+                ruleToDeleteId = null
             },
-            dismissButton = {
-                TextButton(onClick = { ruleToDelete = null }) {
-                    Text(stringResource(Res.string.cancel))
-                }
-            },
+            dismissTextRes = Res.string.cancel,
+            onDismiss = { ruleToDeleteId = null },
         )
     }
 }
@@ -288,9 +288,12 @@ private fun AutomationRuleCard(
                     text = "$lastFiredText • ${stringResource(Res.string.automation_fires_count, rule.fireCount)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
 
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onViewLogs) {
                         Icon(
                             MeshtasticIcons.History,
@@ -301,7 +304,7 @@ private fun AutomationRuleCard(
                     IconButton(onClick = onEdit) {
                         Icon(
                             MeshtasticIcons.Edit,
-                            contentDescription = stringResource(Res.string.automation_actions_header),
+                            contentDescription = stringResource(Res.string.automation_edit_rule),
                         )
                     }
                     IconButton(onClick = onDelete) {
@@ -319,29 +322,58 @@ private fun AutomationRuleCard(
 
 @Composable
 private fun formatRuleSummary(rule: AutomationRule): String {
-    val triggerName = triggerLabel(rule.trigger)
-    val actionNames = rule.actions.map { actionLabel(it) }
-    val actionSummary = actionNames.joinToString(", ")
+    val triggerText = triggerLabel(rule.trigger)
+    val conditionsText =
+        if (rule.conditions.isNotEmpty()) {
+            val op =
+                if (rule.conditionOperator == LogicalOperator.AND) {
+                    stringResource(Res.string.automation_conditions_match_all)
+                } else {
+                    stringResource(Res.string.automation_conditions_match_any)
+                }
+            " ($op: ${rule.conditions.size})"
+        } else {
+            ""
+        }
+    val actionLabels = mutableListOf<String>()
+    for (action in rule.actions) {
+        actionLabels.add(actionLabel(action))
+    }
+    val actionSummary = actionLabels.joinToString(", ")
 
-    return "КОГДА $triggerName → ТО $actionSummary"
+    return stringResource(Res.string.automation_rule_summary_format, triggerText, conditionsText, actionSummary)
 }
 
 @Composable
 private fun actionLabel(action: AutomationAction): String = when (action) {
     is AutomationAction.SendMessage -> stringResource(Res.string.automation_action_send_message)
+
     is AutomationAction.RequestPosition -> stringResource(Res.string.automation_action_request_position)
+
     is AutomationAction.RequestTelemetry -> stringResource(Res.string.automation_action_request_telemetry)
+
     is AutomationAction.SendTraceroute -> stringResource(Res.string.automation_action_send_traceroute)
+
     is AutomationAction.RemoteGpio -> stringResource(Res.string.automation_action_remote_gpio)
+
     is AutomationAction.ShowNotification -> stringResource(Res.string.automation_action_show_notification)
+
     is AutomationAction.PlayAlarm -> stringResource(Res.string.automation_action_play_alarm)
+
     is AutomationAction.SpeakText -> stringResource(Res.string.automation_action_speak_text)
+
     is AutomationAction.PlaySound -> stringResource(Res.string.automation_action_play_sound)
+
     is AutomationAction.VibrateDevice -> stringResource(Res.string.automation_action_vibrate)
+
     is AutomationAction.SendReaction -> stringResource(Res.string.automation_action_send_reaction)
+
     is AutomationAction.BroadcastLocation -> stringResource(Res.string.automation_action_broadcast_location)
+
     is AutomationAction.CopyToClipboard -> stringResource(Res.string.automation_action_copy_clipboard)
-    is AutomationAction.TriggerRule -> "Trigger Rule (${action.ruleId})"
+
+    is AutomationAction.TriggerRule ->
+        stringResource(Res.string.automation_action_trigger_rule_label, action.ruleId)
 }
 
 @Composable
@@ -356,35 +388,19 @@ private fun EmptyAutomationState(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp),
-            ) {
-                Icon(
-                    MeshtasticIcons.Settings,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.outline,
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = stringResource(Res.string.automation_empty_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = stringResource(Res.string.automation_empty_description),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Button(onClick = onCreateRule) {
-                    Icon(MeshtasticIcons.Add, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(Res.string.automation_new_rule))
-                }
-            }
+            EmptyState(
+                icon = MeshtasticIcons.Settings,
+                title = stringResource(Res.string.automation_empty_title),
+                supportingText = stringResource(Res.string.automation_empty_description),
+                action = {
+                    Button(onClick = onCreateRule) {
+                        Icon(MeshtasticIcons.Add, contentDescription = null)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(Res.string.automation_new_rule))
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
         item {

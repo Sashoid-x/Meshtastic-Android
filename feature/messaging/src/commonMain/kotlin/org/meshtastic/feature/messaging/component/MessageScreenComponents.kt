@@ -251,7 +251,10 @@ fun ReplySnippet(originalMessage: Message?, onClearReply: () -> Unit, ourNode: N
                         val raw = message.text
                         val textToEllipsize =
                             if (org.meshtastic.feature.messaging.compress.MeshTextCompressor.isCompressed(raw)) {
-                                org.meshtastic.feature.messaging.compress.MeshTextCompressor.decompressSync(raw)
+                                runCatching {
+                                    org.meshtastic.feature.messaging.compress.MeshTextCompressor.decompressSync(raw)
+                                }
+                                    .getOrNull() ?: raw
                             } else {
                                 raw
                             }

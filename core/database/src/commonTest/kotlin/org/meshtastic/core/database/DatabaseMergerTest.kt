@@ -28,9 +28,11 @@ import org.meshtastic.core.database.entity.MyNodeEntity
 import org.meshtastic.core.database.entity.NodeEntity
 import org.meshtastic.core.database.entity.Packet
 import org.meshtastic.core.database.entity.ReactionEntity
+import org.meshtastic.core.database.entity.TopologyEdge
 import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
 import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.NodeAddress
+import org.meshtastic.core.model.TopologySource
 import org.meshtastic.proto.DeviceMetadata
 import org.meshtastic.proto.HardwareModel
 import org.meshtastic.proto.PortNum
@@ -320,5 +322,53 @@ class DatabaseMergerTest {
             dest.discoveryDao().getAllSessionsSnapshot().size,
             "discovery sessions not duplicated on retry",
         )
+    }
+
+    @Test
+    fun `topology edges are merged using priority merge`() = runTest {
+        val edgeInDest =
+            TopologyEdge.create(
+                100,
+                200,
+                bestSnr = 4.0f,
+                bestRssi = -80,
+                lastSeen = 1000L,
+                source = TopologySource.LOCAL_RADIO,
+            )
+        dest.topologyEdgeDao().upsertEdge(edgeInDest)
+
+        val edgeInSource =
+            TopologyEdge.create(
+                100,
+                200,
+                bestSnr = 8.0f,
+                bestRssi = -65,
+                lastSeen = 2000L,
+                source = TopologySource.MQTT,
+            )
+        val newEdgeInSource =
+            TopologyEdge.create(
+                200,
+                300,
+                bestSnr = 5.0f,
+                bestRssi = -75,
+                lastSeen = 1500L,
+                source = TopologySource.LOCAL_RADIO,
+            )
+        source.topologyEdgeDao().upsertEdge(edgeInSource)
+        source.topologyEdgeDao().upsertEdge(newEdgeInSource)
+
+        DatabaseMerger.merge(source, dest, "secondary_source.db")
+
+        val mergedFirst = dest.topologyEdgeDao().getEdge(100, 200)
+        assertNotNull(mergedFirst)
+        assertEquals(8.0f, mergedFirst.bestSnr)
+        assertEquals(-65, mergedFirst.bestRssi)
+        assertEquals(2000L, mergedFirst.lastSeen)
+        assertEquals(TopologySource.MQTT, mergedFirst.source)
+
+        val mergedSecond = dest.topologyEdgeDao().getEdge(200, 300)
+        assertNotNull(mergedSecond)
+        assertEquals(5.0f, mergedSecond.bestSnr)
     }
 }

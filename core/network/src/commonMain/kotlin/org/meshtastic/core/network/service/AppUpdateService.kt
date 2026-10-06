@@ -49,7 +49,7 @@ internal data class GitHubReleaseDto(
 @Single
 class AppUpdateServiceImpl(
     private val buildConfigProvider: BuildConfigProvider,
-    private val httpClient: HttpClient = HttpClient(),
+    private val httpClient: HttpClient,
     private val json: Json = Json {
         ignoreUnknownKeys = true
         isLenient = true

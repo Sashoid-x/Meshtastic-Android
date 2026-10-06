@@ -16,9 +16,11 @@
  */
 package org.meshtastic.core.common.di
 
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.core.annotation.Single
+import org.meshtastic.core.common.util.Exceptions
 import org.meshtastic.core.common.util.ioDispatcher
 
 /**
@@ -35,5 +37,10 @@ interface ApplicationCoroutineScope : CoroutineScope
 
 @Single(binds = [ApplicationCoroutineScope::class])
 internal class ApplicationCoroutineScopeImpl : ApplicationCoroutineScope {
-    override val coroutineContext = SupervisorJob() + ioDispatcher
+    override val coroutineContext =
+        SupervisorJob() +
+            ioDispatcher +
+            CoroutineExceptionHandler { _, throwable ->
+                Exceptions.report(throwable, "ApplicationCoroutineScope", "Uncaught exception in application scope")
+            }
 }

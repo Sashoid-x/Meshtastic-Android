@@ -61,6 +61,10 @@ class FakeCommandSender :
     val telemetryRequests: List<TelemetryRequest>
         get() = mutableTelemetryRequests.toList()
 
+    private val mutableTracerouteRequests = mutableListOf<Pair<Int, Int>>()
+    val tracerouteRequests: List<Pair<Int, Int>>
+        get() = mutableTracerouteRequests.toList()
+
     private var nextPacketId = 1
 
     var lastPassphrase: String? = null
@@ -184,6 +188,7 @@ class FakeCommandSender :
 
     override suspend fun requestTraceroute(requestId: Int, destNum: Int) {
         failCommandIfConfigured()
+        mutableTracerouteRequests += requestId to destNum
     }
 
     override suspend fun requestTelemetry(requestId: Int, destNum: Int, typeValue: Int) {

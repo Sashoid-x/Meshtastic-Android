@@ -51,7 +51,7 @@ interface MeshPicService {
 }
 
 @Single
-class MeshPicServiceImpl(private val httpClient: HttpClient = HttpClient()) : MeshPicService {
+class MeshPicServiceImpl(private val httpClient: HttpClient) : MeshPicService {
 
     private val json = Json {
         ignoreUnknownKeys = true

@@ -482,6 +482,12 @@ interface MeshPrefs {
     fun getStoreForwardLastRequest(address: String?): StateFlow<Int>
 
     fun setStoreForwardLastRequest(address: String?, timestamp: Int)
+
+    fun getMqttClientEnabled(address: String?): StateFlow<Boolean>
+
+    fun setMqttClientEnabled(address: String?, enabled: Boolean)
+
+    suspend fun awaitMqttClientEnabled(address: String?): Boolean
 }
 
 /** Reactive interface for TAK server settings. */

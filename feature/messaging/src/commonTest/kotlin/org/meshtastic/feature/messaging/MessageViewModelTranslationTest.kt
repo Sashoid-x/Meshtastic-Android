@@ -199,6 +199,10 @@ class MessageViewModelTranslationTest {
                 messageTranslationService = translationService,
                 snackbarManager = snackbarManager,
                 adminController = adminController,
+                meshPicService = mock<org.meshtastic.core.network.service.MeshPicService>(MockMode.autofill),
+                junkDataService = mock<org.meshtastic.core.network.service.JunkDataService>(MockMode.autofill),
+                meshFilesService = mock<org.meshtastic.core.network.service.MeshFilesService>(MockMode.autofill),
+                imgbbService = mock<org.meshtastic.core.network.service.ImgBBService>(MockMode.autofill),
             )
     }
 
