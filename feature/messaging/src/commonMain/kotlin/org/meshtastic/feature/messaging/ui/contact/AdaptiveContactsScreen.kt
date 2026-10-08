@@ -22,6 +22,7 @@ import androidx.navigation3.runtime.NavKey
 import kotlinx.coroutines.flow.Flow
 import org.koin.compose.viewmodel.koinViewModel
 import org.meshtastic.core.common.util.CommonUri
+import org.meshtastic.core.navigation.AutomationRoute
 import org.meshtastic.core.navigation.ChannelsRoute
 import org.meshtastic.core.navigation.ContactsRoute
 import org.meshtastic.core.navigation.NodesRoute
@@ -44,6 +45,7 @@ fun AdaptiveContactsScreen(
         onNavigateToMessages = { contactKey -> backStack.add(ContactsRoute.Messages(contactKey)) },
         onNavigateToNodeDetails = { backStack.add(NodesRoute.NodeDetail(it)) },
         onNavigateToFilterSettings = { backStack.add(SettingsRoute.FilterSettings) },
+        onNavigateToAutomation = { backStack.add(AutomationRoute.AutomationList) },
         scrollToTopEvents = scrollToTopEvents,
         activeContactKey = null,
     )

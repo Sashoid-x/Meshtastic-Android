@@ -403,6 +403,7 @@ private val TEMPLATE_VARIABLES =
         TemplateChip("+ RSSI", "{RSSI}"),
         TemplateChip("+ Hops", "{HOPS}"),
         TemplateChip("+ 🐇 Hops", "{RABBIT_HOPS}"),
+        TemplateChip("+ 🎯/1️⃣-7️⃣", "{HOP_REACTION}"),
         TemplateChip("+ Last Hop", "{LAST_HOP}"),
         TemplateChip("+ Channel", "{CHANNEL}"),
         TemplateChip("+ Transport", "{TRANSPORT}"),

@@ -35,6 +35,7 @@ import org.meshtastic.core.automation.model.AutomationLog
 import org.meshtastic.core.automation.model.AutomationRule
 import org.meshtastic.core.automation.model.AutomationTrigger
 import org.meshtastic.core.automation.repository.AutomationRepository
+import org.meshtastic.core.navigation.AutomationRoute
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -101,7 +102,7 @@ class AutomationBuilderViewModelTest {
     fun `templateId pre-populates state and marks dirty`() = runTest(testDispatcher) {
         val viewModel =
             AutomationBuilderViewModel(
-                templateId = "panic_button",
+                route = AutomationRoute.AutomationBuilder(templateId = "panic_button"),
                 repository = fakeRepo,
             )
 
@@ -110,6 +111,21 @@ class AutomationBuilderViewModelTest {
         state.name shouldBe "Panic Alarm (🚨)"
         state.trigger shouldBe AutomationTrigger.ReactionReceived(emoji = "🚨")
         state.actions.size shouldBe 2
+    }
+
+    @Test
+    fun `auto_responder template pre-populates state and marks dirty`() = runTest(testDispatcher) {
+        val viewModel =
+            AutomationBuilderViewModel(
+                route = AutomationRoute.AutomationBuilder(templateId = "auto_responder"),
+                repository = fakeRepo,
+            )
+
+        val state = viewModel.uiState.value
+        state.isDirty shouldBe true
+        state.name shouldBe "Auto-Responder (test)"
+        state.trigger shouldBe AutomationTrigger.MessageReceived(pattern = "test")
+        state.actions shouldBe listOf(AutomationAction.SendReaction(emoji = "{HOP_REACTION}"))
     }
 
     @Test

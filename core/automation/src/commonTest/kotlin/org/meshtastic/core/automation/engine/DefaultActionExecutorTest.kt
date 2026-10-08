@@ -211,6 +211,22 @@ class DefaultActionExecutorTest {
         sentReactions.first() shouldBe SentReactionRecord(emoji = "🔥", replyId = 99, contactKey = "0!00001234")
     }
 
+    @Test
+    fun `SendReaction resolves template variables in emoji`() = runTest {
+        val executor =
+            DefaultActionExecutor(
+                fakeSendMessageUseCase,
+                fakeNotificationManager,
+                messagingController = fakeMessagingController,
+            )
+        val event = TriggerEvent(nodeId = 1, packetId = 100, contactKey = "0^all", hops = 2)
+
+        executor.execute(AutomationAction.SendReaction(emoji = "{HOP_REACTION}"), event, dryRun = false)
+
+        sentReactions.size shouldBe 1
+        sentReactions.first() shouldBe SentReactionRecord(emoji = "2️⃣", replyId = 100, contactKey = "0^all")
+    }
+
     private data class SentMessageRecord(
         val text: String,
         val contactKey: String,

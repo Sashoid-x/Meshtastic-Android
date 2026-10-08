@@ -91,6 +91,18 @@ class TemplateResolverTest {
     }
 
     @Test
+    fun `resolves HOP_REACTION for multi-hop and direct packets`() {
+        val hopEvent = TriggerEvent(hops = 3, snr = 9.5f, rssi = -70)
+        TemplateResolver.resolve("{HOP_REACTION}", hopEvent) shouldBe "3️⃣"
+
+        val directEvent = TriggerEvent(hops = 0, snr = 10.5f, rssi = -75)
+        TemplateResolver.resolve("{HOP_REACTION}", directEvent) shouldBe "🎯 10.5dB/-75dBm"
+
+        val directNoMetrics = TriggerEvent(hops = 0)
+        TemplateResolver.resolve("{HOP_REACTION}", directNoMetrics) shouldBe "🎯"
+    }
+
+    @Test
     fun `resolves current date and time tokens`() {
         val event = TriggerEvent()
         val resolved = TemplateResolver.resolve("{DATE} {TIME}", event)

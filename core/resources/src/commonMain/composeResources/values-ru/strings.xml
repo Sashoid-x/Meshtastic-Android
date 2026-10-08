@@ -43,6 +43,7 @@
     <string name="action_select_device">Выберите устройство</string>
     <string name="action_select_message">Выбрать сообщение</string>
     <string name="action_select_network">Выбрать сеть</string>
+    <string name="action_send_hop_reaction">Отправить реакцию (хопы/сигнал)</string>
     <string name="action_send_reply">Отправить ответ</string>
     <string name="action_show_message_status">Показать статус сообщения</string>
     <string name="action_toggle_translation">Переключение между исходным и переведенным текстом</string>
@@ -371,6 +372,7 @@
     <string name="automation_sound_siren">Сирена экстренного оповещения</string>
     <string name="automation_sound_sos">Сигнал SOS (Морзе)</string>
     <string name="automation_action_vibrate">Вибрация устройства</string>
+    <string name="automation_action_send_hop_reaction">Отправить реакцию хопы/сигнал (🎯/1️⃣-7️⃣)</string>
     <string name="automation_action_send_reaction">Отправить реакцию (эмодзи)</string>
     <string name="automation_action_broadcast_location">Транслировать свою геопозицию</string>
     <string name="automation_action_copy_clipboard">Скопировать в буфер обмена</string>
@@ -382,8 +384,8 @@
     <string name="automation_reaction_emoji">Эмодзи реакции</string>
     <string name="automation_reaction_quick">Быстрые эмодзи</string>
     <string name="automation_summary">Создание правил ЕСЛИ → ТО для автоматизации действий</string>
-    <string name="automation_template_auto_responder">Автоответчик (?ping)</string>
-    <string name="automation_template_auto_responder_desc">Автоматический ответ на команду ?ping в эфире</string>
+    <string name="automation_template_auto_responder">Автоответчик (test)</string>
+    <string name="automation_template_auto_responder_desc">Отправка реакции с числом хопов или мишенью и сигналом на сообщения &quot;test&quot;</string>
     <string name="automation_template_geofence">Контроль геозоны</string>
     <string name="automation_template_geofence_desc">Голосовое оповещение (TTS) при выходе ноды за пределы периметра</string>
     <string name="automation_template_panic_button">Тревожная кнопка</string>

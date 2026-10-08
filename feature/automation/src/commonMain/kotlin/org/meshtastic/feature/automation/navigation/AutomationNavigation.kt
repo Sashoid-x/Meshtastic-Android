@@ -45,7 +45,10 @@ fun EntryProviderScope<NavKey>.automationGraph(backStack: NavBackStack<NavKey>) 
         )
     }
     entry<AutomationRoute.AutomationBuilder> { route ->
-        val viewModel = koinViewModel<AutomationBuilderViewModel> { parametersOf(route.ruleId, route.templateId) }
+        val viewModel =
+            koinViewModel<AutomationBuilderViewModel>(key = "builder_${route.ruleId}_${route.templateId}") {
+                parametersOf(route)
+            }
         AutomationBuilderScreen(
             viewModel = viewModel,
             onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },

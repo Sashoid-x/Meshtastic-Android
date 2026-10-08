@@ -95,6 +95,7 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatform
 import org.meshtastic.core.common.util.DateFormatter
+import org.meshtastic.core.common.util.HopReactionFormatter
 import org.meshtastic.core.model.LinkPreview
 import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.MessageStatus
@@ -229,6 +230,14 @@ fun MessageItem(
             enabledValues = setOf(SheetValue.Hidden, SheetValue.Expanded),
         )
     val isLocal = node.num == ourNode.num
+    val computedHopReaction =
+        remember(canReact, message.fromLocal, isLocal, message.hopsAway, message.snr, message.rssi) {
+            if (canReact && !message.fromLocal && !isLocal) {
+                HopReactionFormatter.format(message.hopsAway, message.snr, message.rssi)
+            } else {
+                null
+            }
+        }
     val timestamp = formatMessageTimestamp(message, showFullMessageTimestamp)
     val statusString = message.getStatusStringRes(isDirectMessage)
     val isDirectImplicitAck = message.status == MessageStatus.DELIVERED && isDirectMessage
@@ -308,6 +317,7 @@ fun MessageItem(
                             activeSheet = null
                             onTogglePin()
                         },
+                        hopReaction = computedHopReaction,
                     )
                 }
 
@@ -419,6 +429,7 @@ fun MessageItem(
                     onQuickReactionsOpenChange(false)
                     activeSheet = ActiveSheet.Actions
                 },
+                hopReaction = computedHopReaction,
             )
         }
     }

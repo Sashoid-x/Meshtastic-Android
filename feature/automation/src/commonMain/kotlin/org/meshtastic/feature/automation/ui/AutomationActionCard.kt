@@ -18,12 +18,14 @@
 
 package org.meshtastic.feature.automation.ui
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Card
@@ -72,6 +74,7 @@ import org.meshtastic.core.resources.automation_action_reply_current
 import org.meshtastic.core.resources.automation_action_request_position
 import org.meshtastic.core.resources.automation_action_request_telemetry
 import org.meshtastic.core.resources.automation_action_select_node_prompt
+import org.meshtastic.core.resources.automation_action_send_hop_reaction
 import org.meshtastic.core.resources.automation_action_send_message
 import org.meshtastic.core.resources.automation_action_send_reaction
 import org.meshtastic.core.resources.automation_action_send_reaction_to
@@ -190,6 +193,9 @@ private val ACTION_OPTIONS =
         },
         ActionOption(Res.string.automation_action_send_reaction) {
             AutomationAction.SendReaction("👍")
+        },
+        ActionOption(Res.string.automation_action_send_hop_reaction) {
+            AutomationAction.SendReaction("{HOP_REACTION}")
         },
         ActionOption(Res.string.automation_action_broadcast_location) {
             AutomationAction.BroadcastLocation()
@@ -418,11 +424,16 @@ private fun ColumnScope.ReactionActionFields(
         modifier = Modifier.fillMaxWidth(),
     )
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(stringResource(Res.string.automation_reaction_quick), style = MaterialTheme.typography.bodySmall)
+        AssistChip(
+            onClick = { onUpdate(action.copy(emoji = "{HOP_REACTION}")) },
+            label = { Text("🎯/1️⃣-7️⃣") },
+            modifier = Modifier.semantics { contentDescription = "Hop Reaction" },
+        )
         QUICK_EMOJIS.forEach { emoji ->
             AssistChip(
                 onClick = { onUpdate(action.copy(emoji = emoji)) },
@@ -431,6 +442,7 @@ private fun ColumnScope.ReactionActionFields(
             )
         }
     }
+    VariableChipsRow(onInsert = { onUpdate(action.copy(emoji = "${action.emoji} $it".trim())) })
     NodePickerField(
         selectedNodeId = action.destNodeId,
         nodes = nodes,

@@ -111,7 +111,8 @@ class DefaultActionExecutor(
                             resolvedEvent.channelIndex != null -> "channel ${resolvedEvent.channelIndex}"
                             else -> "channel ${action.channelIndex}"
                         }
-                    "Would send reaction ${action.emoji} to $target"
+                    val resolvedEmoji = TemplateResolver.resolve(action.emoji, resolvedEvent)
+                    "Would send reaction $resolvedEmoji to $target"
                 }
 
                 is AutomationAction.BroadcastLocation -> "Would broadcast device location"
@@ -233,8 +234,9 @@ class DefaultActionExecutor(
                         else -> "${action.channelIndex}^all"
                     }
 
-                Logger.i { "Automation executing SendReaction ${action.emoji} to $targetContactKey (replyId=$replyId)" }
-                controller.sendReaction(action.emoji, replyId, targetContactKey)
+                val resolvedEmoji = TemplateResolver.resolve(action.emoji, resolvedEvent)
+                Logger.i { "Automation executing SendReaction $resolvedEmoji to $targetContactKey (replyId=$replyId)" }
+                controller.sendReaction(resolvedEmoji, replyId, targetContactKey)
             }
 
             is AutomationAction.BroadcastLocation -> {

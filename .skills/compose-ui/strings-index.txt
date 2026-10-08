@@ -45,6 +45,7 @@ action_react_with_emoji
 action_select_device
 action_select_message
 action_select_network
+action_send_hop_reaction
 action_send_reply
 action_show_message_status
 action_toggle_translation
@@ -223,6 +224,7 @@ automation_action_reply_current
 automation_action_request_position
 automation_action_request_telemetry
 automation_action_select_node_prompt
+automation_action_send_hop_reaction
 automation_action_send_message
 automation_action_send_reaction
 automation_action_send_reaction_to

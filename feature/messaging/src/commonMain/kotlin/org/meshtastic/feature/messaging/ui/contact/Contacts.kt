@@ -87,6 +87,7 @@ import org.meshtastic.core.model.util.TimeConstants
 import org.meshtastic.core.model.util.formatMuteRemainingTime
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.are_you_sure
+import org.meshtastic.core.resources.automation
 import org.meshtastic.core.resources.cancel
 import org.meshtastic.core.resources.channel_invalid
 import org.meshtastic.core.resources.channels
@@ -130,6 +131,7 @@ import org.meshtastic.core.ui.component.ScrollToTopEvent
 import org.meshtastic.core.ui.component.smartScrollToTop
 import org.meshtastic.core.ui.icon.Close
 import org.meshtastic.core.ui.icon.Delete
+import org.meshtastic.core.ui.icon.ElectricPower
 import org.meshtastic.core.ui.icon.ExpandLess
 import org.meshtastic.core.ui.icon.ExpandMore
 import org.meshtastic.core.ui.icon.FilterList
@@ -157,6 +159,7 @@ fun ContactsScreen(
     onNavigateToFilterSettings: () -> Unit,
     scrollToTopEvents: Flow<ScrollToTopEvent>?,
     activeContactKey: String?,
+    onNavigateToAutomation: () -> Unit = {},
 ) {
     val showToast = rememberShowToastResource()
     val scope = rememberCoroutineScope()
@@ -255,6 +258,12 @@ fun ContactsScreen(
                 canNavigateUp = false,
                 onNavigateUp = {},
                 actions = {
+                    IconButton(onClick = onNavigateToAutomation) {
+                        Icon(
+                            MeshtasticIcons.ElectricPower,
+                            contentDescription = stringResource(Res.string.automation),
+                        )
+                    }
                     IconButton(onClick = onNavigateToFilterSettings) {
                         Icon(
                             MeshtasticIcons.FilterList,

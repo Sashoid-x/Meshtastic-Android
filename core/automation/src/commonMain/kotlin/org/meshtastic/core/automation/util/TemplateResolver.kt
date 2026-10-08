@@ -69,6 +69,29 @@ object TemplateResolver {
                 "NUMBER_HOPS",
                 -> (event.hops ?: 0).toString()
 
+                "HOP_REACTION",
+                "HOPS_REACTION",
+                "HOP_EMOJI",
+                "AUTO_ACK_REACTION",
+                ->
+                    org.meshtastic.core.common.util.HopReactionFormatter.format(event.hops, event.snr, event.rssi)
+
+                "HOP_KEYCAP",
+                "HOP_DIGIT",
+                -> {
+                    val h = event.hops ?: 0
+                    when {
+                        h <= 0 -> "🎯"
+                        h == 1 -> "1️⃣"
+                        h == 2 -> "2️⃣"
+                        h == 3 -> "3️⃣"
+                        h == 4 -> "4️⃣"
+                        h == 5 -> "5️⃣"
+                        h == 6 -> "6️⃣"
+                        else -> "7️⃣"
+                    }
+                }
+
                 "RABBIT_HOPS" -> {
                     val h = event.hops ?: 0
                     if (h <= 0) "🎯" else "🐇".repeat(h)

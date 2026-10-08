@@ -51,6 +51,7 @@ import org.meshtastic.core.resources.action_delete_message
 import org.meshtastic.core.resources.action_more_message_actions
 import org.meshtastic.core.resources.action_react_with_emoji
 import org.meshtastic.core.resources.action_select_message
+import org.meshtastic.core.resources.action_send_hop_reaction
 import org.meshtastic.core.resources.action_send_reply
 import org.meshtastic.core.resources.action_show_message_status
 import org.meshtastic.core.resources.action_toggle_translation
@@ -85,7 +86,7 @@ import org.meshtastic.core.ui.icon.ShieldCheck
 import org.meshtastic.core.ui.icon.Translate
 import org.meshtastic.proto.MeshPacket
 
-@Suppress("LongMethod", "CyclomaticComplexMethod")
+@Suppress("LongMethod", "CyclomaticComplexMethod", "LongParameterList")
 @Composable
 fun MessageActionsContent(
     quickEmojis: List<String>,
@@ -108,9 +109,15 @@ fun MessageActionsContent(
     pinnedMessagesEnabled: Boolean = false,
     isPinned: Boolean = false,
     onTogglePin: () -> Unit = {},
+    hopReaction: String? = null,
 ) {
     Column(modifier = modifier) {
-        QuickEmojiRow(quickEmojis = quickEmojis, onReact = onReact, onMoreReactions = onMoreReactions)
+        QuickEmojiRow(
+            quickEmojis = quickEmojis,
+            onReact = onReact,
+            onMoreReactions = onMoreReactions,
+            hopReaction = hopReaction,
+        )
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -175,6 +182,26 @@ fun MessageActionsContent(
                 onClick = onReply,
             ),
         )
+
+        if (hopReaction != null) {
+            ListItem(
+                headlineContent = { Text(stringResource(Res.string.action_send_hop_reaction)) },
+                supportingContent = { Text(hopReaction) },
+                leadingContent = {
+                    Icon(
+                        MeshtasticIcons.AddReaction,
+                        contentDescription = stringResource(Res.string.action_send_hop_reaction),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
+                modifier =
+                Modifier.clickable(
+                    onClickLabel = stringResource(Res.string.action_send_hop_reaction),
+                    role = Role.Button,
+                    onClick = { onReact(hopReaction) },
+                ),
+            )
+        }
 
         ListItem(
             headlineContent = { Text(stringResource(Res.string.copy)) },
@@ -295,6 +322,7 @@ internal fun QuickEmojiRow(
     onReact: (String) -> Unit,
     onMoreReactions: () -> Unit,
     onMoreActions: (() -> Unit)? = null,
+    hopReaction: String? = null,
 ) {
     Row(
         // Scrollable so seven 44dp touch targets never clip on narrow (320dp) sheets.
@@ -323,6 +351,10 @@ internal fun QuickEmojiRow(
             }
         }
 
+        if (hopReaction != null) {
+            HopReactionButton(hopReaction = hopReaction, onReact = onReact)
+        }
+
         IconButton(
             onClick = onMoreReactions,
             modifier = Modifier.size(44.dp).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape),
@@ -348,5 +380,29 @@ internal fun QuickEmojiRow(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun HopReactionButton(hopReaction: String, onReact: (String) -> Unit) {
+    Box(
+        modifier =
+        Modifier.defaultMinSize(minWidth = 44.dp, minHeight = 44.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.primaryContainer)
+            .clickable(
+                onClickLabel = stringResource(Res.string.action_send_hop_reaction),
+                role = Role.Button,
+            ) {
+                onReact(hopReaction)
+            }
+            .padding(horizontal = 8.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = hopReaction,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onPrimaryContainer,
+        )
     }
 }

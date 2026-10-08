@@ -107,9 +107,9 @@ object AutomationTemplates {
                 id = "auto_responder",
                 titleRes = Res.string.automation_template_auto_responder,
                 descriptionRes = Res.string.automation_template_auto_responder_desc,
-                initialRuleName = "Auto-Responder (?ping)",
-                trigger = AutomationTrigger.MessageReceived(pattern = "?ping"),
-                actions = listOf(AutomationAction.SendMessage(text = "pong (battery: {battery_level}%, hops: {hops})")),
+                initialRuleName = "Auto-Responder (test)",
+                trigger = AutomationTrigger.MessageReceived(pattern = "test"),
+                actions = listOf(AutomationAction.SendReaction(emoji = "{HOP_REACTION}")),
             ),
         )
 }

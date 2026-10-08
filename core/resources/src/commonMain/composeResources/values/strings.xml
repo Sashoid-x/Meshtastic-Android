@@ -66,6 +66,7 @@
     <string name="action_select_device">Select device</string>
     <string name="action_select_message">Select message</string>
     <string name="action_select_network">Select network</string>
+    <string name="action_send_hop_reaction">Send hop/signal reaction</string>
     <string name="action_send_reply">Send reply</string>
     <string name="action_show_message_status">Show message status</string>
     <string name="action_toggle_translation">Toggle between original and translated text</string>
@@ -244,6 +245,7 @@
     <string name="automation_action_request_position">Request Position</string>
     <string name="automation_action_request_telemetry">Request Telemetry</string>
     <string name="automation_action_select_node_prompt">Select node from list</string>
+    <string name="automation_action_send_hop_reaction">Send Hop/Signal Reaction (🎯/1️⃣-7️⃣)</string>
     <string name="automation_action_send_message">Send Message</string>
     <string name="automation_action_send_reaction">Send Reaction (Emoji)</string>
     <string name="automation_action_send_reaction_to">Node to react to</string>
@@ -379,8 +381,8 @@
     <string name="automation_step_3_details">Step 3: Rule Name &amp; Options</string>
     <string name="automation_step_4_details">Step 4: Rule Name &amp; Options</string>
     <string name="automation_summary">Create IF → THEN rules to automate actions</string>
-    <string name="automation_template_auto_responder">Auto-Responder (?ping)</string>
-    <string name="automation_template_auto_responder_desc">Automatic pong response to ?ping messages</string>
+    <string name="automation_template_auto_responder">Auto-Responder (test)</string>
+    <string name="automation_template_auto_responder_desc">Reaction with hop count or target and signal strength to "test" messages</string>
     <string name="automation_template_geofence">Geofence Perimeter</string>
     <string name="automation_template_geofence_desc">Voice alert (TTS) when node leaves designated perimeter</string>
     <string name="automation_template_panic_button">Panic Button</string>

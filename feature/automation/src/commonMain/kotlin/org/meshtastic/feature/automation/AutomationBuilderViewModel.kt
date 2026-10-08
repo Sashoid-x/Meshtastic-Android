@@ -37,6 +37,7 @@ import org.meshtastic.core.automation.model.LogicalOperator
 import org.meshtastic.core.automation.repository.AutomationRepository
 import org.meshtastic.core.automation.util.CronExpression
 import org.meshtastic.core.model.Node
+import org.meshtastic.core.navigation.AutomationRoute
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.feature.automation.model.AutomationTemplates
 import kotlin.time.Clock
@@ -69,12 +70,17 @@ private const val MAX_HOUR_OF_DAY = 23
 @Suppress("TooManyFunctions")
 @KoinViewModel
 class AutomationBuilderViewModel(
-    @InjectedParam val ruleId: String? = null,
-    @InjectedParam val templateId: String? = null,
+    @InjectedParam val route: AutomationRoute.AutomationBuilder? = null,
     private val repository: AutomationRepository,
     nodeRepository: NodeRepository? = null,
     private val actionExecutor: ActionExecutor? = null,
 ) : ViewModel() {
+
+    val ruleId: String?
+        get() = route?.ruleId
+
+    val templateId: String?
+        get() = route?.templateId
 
     val nodes: StateFlow<Map<Int, Node>> = nodeRepository?.nodeDBbyNum ?: MutableStateFlow(emptyMap())
 
@@ -88,9 +94,11 @@ class AutomationBuilderViewModel(
     val uiState: StateFlow<AutomationBuilderUiState> = _uiState.asStateFlow()
 
     init {
-        if (ruleId != null) {
+        val currentRuleId = ruleId
+        val currentTemplateId = templateId
+        if (currentRuleId != null) {
             viewModelScope.launch {
-                val rule = repository.getRule(ruleId)
+                val rule = repository.getRule(currentRuleId)
                 if (rule != null) {
                     _uiState.update { current ->
                         if (current.isDirty) {
@@ -115,8 +123,8 @@ class AutomationBuilderViewModel(
                     _uiState.update { it.copy(isLoading = false) }
                 }
             }
-        } else if (templateId != null) {
-            val template = AutomationTemplates.list.firstOrNull { it.id == templateId }
+        } else if (currentTemplateId != null) {
+            val template = AutomationTemplates.list.firstOrNull { it.id == currentTemplateId }
             if (template != null) {
                 _uiState.update {
                     it.copy(
@@ -128,7 +136,11 @@ class AutomationBuilderViewModel(
                         isDirty = true,
                     )
                 }
+            } else {
+                _uiState.update { it.copy(isLoading = false) }
             }
+        } else {
+            _uiState.update { it.copy(isLoading = false) }
         }
     }
 
