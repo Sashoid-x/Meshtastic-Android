@@ -48,6 +48,8 @@ import kotlinx.coroutines.withContext
 import org.koin.core.annotation.KoinViewModel
 import org.meshtastic.core.common.util.currentLocaleCode
 import org.meshtastic.core.common.util.ioDispatcher
+import org.meshtastic.core.common.util.nowMillis
+import org.meshtastic.core.model.ContactKey
 import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.Node
@@ -553,16 +555,10 @@ class MessageViewModel(
     fun resendImageMessage(uuid: Long, imageBytes: ByteArray, contactKey: String, replyId: Int? = null) {
         if (ContactKey(contactKey).isRetired) return
         safeLaunch(errorEvents = sendErrorEvents, tag = "resendImageMessage") {
-            packetRepository.replaceMessage(uuid) {
-                sendMessageUseCase.invoke(
-                    text = "",
-                    contactKey = contactKey,
-                    replyId = replyId,
-                    dataType = org.meshtastic.proto.PortNum.PRIVATE_APP.value,
-                    bytes = okio.ByteString.of(*imageBytes),
-                )
+            val outcome = sendMessageUseCase.resend(uuid, contactKey)
+            if (outcome is org.meshtastic.core.repository.usecase.SendMessageOutcome.Queued) {
+                updateGlobalImageCooldown(nowMillis)
             }
-            updateGlobalImageCooldown(nowMillis)
         }
     }
 
