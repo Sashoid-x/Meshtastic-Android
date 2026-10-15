@@ -214,4 +214,16 @@ class UiPrefsImplTest {
 
         assertTrue(prefs.customNodeNames.value.isEmpty())
     }
+
+    @Test
+    fun `chirpy hop best score keeps the highest score recorded`() = testScope.runTest {
+        assertEquals(0, prefs.chirpyHopBestScore.value)
+
+        prefs.recordChirpyHopScore(12)
+        prefs.recordChirpyHopScore(7)
+
+        val stored = dataStore.data.first()
+        assertEquals(12, stored[UiPrefsImpl.KEY_CHIRPY_HOP_BEST_SCORE])
+        assertEquals(12, prefs.chirpyHopBestScore.value)
+    }
 }

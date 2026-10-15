@@ -35,7 +35,7 @@ plugins {
     alias(libs.plugins.compose.multiplatform)
     // Adds `:desktopApp:hotRun` — the app relaunched with live recomposition on source edits.
     // Needs the JetBrains Runtime for enhanced class redefinition, which the jvmToolchain block
-    // below already pins (vendor JETBRAINS, resolved by the foojay resolver in settings.gradle.kts).
+    // below already pins (vendor JETBRAINS; foojay lists no JBR 25, so CI installs it with setup-java).
     // Version-less because the Compose Multiplatform plugin already carries hot-reload on the
     // build classpath; requesting a version fails resolution ("already on the classpath with an
     // unknown version"), the same reason Mokkery is applied bare below.
@@ -190,6 +190,12 @@ compose.desktop {
                 "jdk.unsupported", // sun.misc.Unsafe used by Coroutines & Okio
                 "java.sql", // Sometimes required by SQLite JNI
                 "java.naming", // Required by Ktor for DNS resolution
+                // dbus-java's SASL EXTERNAL handshake resolves the caller's uid through
+                // com.sun.security.auth.module.UnixSystem on every connect (SASL.java: `new
+                // UnixSystem().getUid()`), and that class lives here. Without it the jlink image has no
+                // such class, the handshake throws, and the Linux tray silently never appears in a
+                // packaged build while working fine in dev. Found in review of #7569 by @jamesarich.
+                "jdk.security.auth", // dbus-java SASL uid lookup for the Linux tray
             )
 
             // Default JVM arguments for the packaged application
@@ -428,6 +434,11 @@ dependencies {
     implementation(libs.androidx.sqlite.bundled)
 
     implementation(libs.jna)
+
+    // The Linux system tray talks StatusNotifierItem over D-Bus; AWT's tray is XEmbed, which GNOME and
+    // Plasma only surface through a proxy that drops clicks. See tray/SniTray.kt.
+    implementation(libs.dbus.java.core)
+    runtimeOnly(libs.dbus.java.transport.native.unixsocket)
 
     testRuntimeOnly(libs.junit.vintage.engine)
     testImplementation(projects.core.testing)

@@ -41,12 +41,17 @@ import org.meshtastic.feature.settings.navigation.ModuleRoute
  * @param description the schema's one-sentence explanation, where it has one. Matched as well as shown.
  * @param route where tapping the result goes.
  * @param screenTitle the destination's name, shown beside the result so "Enabled" says which Enabled it is.
+ * @param keywords the schema's `|`-separated extra search terms, where it has them. Matched, never shown.
+ * @param fieldKey the schema string key of the control, which a config screen's list item can carry as its key. Null
+ *   for a screen or an app-level setting, which has no single control to land on.
  */
 data class SettingsSearchEntry(
     val title: StringResource,
     val description: StringResource?,
     val route: Route,
     val screenTitle: StringResource,
+    val keywords: StringResource? = null,
+    val fieldKey: String? = null,
     /** True for settings that belong to this phone rather than to a radio, which a remote session must not offer. */
     val isAppLocal: Boolean = false,
 ) {
@@ -70,6 +75,9 @@ object SettingsSearchCatalog {
 
     /** Suffix the generator gives a field's explanation; the base key is its title. */
     private const val DESCRIPTION_SUFFIX = "_description"
+
+    /** Suffix the generator gives a field's extra search terms. */
+    private const val KEYWORDS_SUFFIX = "_keywords"
 
     private const val PREFIX = "schema_"
 
@@ -174,7 +182,7 @@ object SettingsSearchCatalog {
                 all.keys
                     .asSequence()
                     .filter { it.startsWith(messagePrefix) }
-                    .filterNot { it.endsWith(DESCRIPTION_SUFFIX) }
+                    .filterNot { it.endsWith(DESCRIPTION_SUFFIX) || it.endsWith(KEYWORDS_SUFFIX) }
                     .filterNot { key -> enumValuePrefixes.any { key.startsWith(it) } }
                     .sorted()
                     .map { key ->
@@ -183,11 +191,20 @@ object SettingsSearchCatalog {
                             description = all[key + DESCRIPTION_SUFFIX],
                             route = route,
                             screenTitle = screenTitle,
+                            keywords = all[key + KEYWORDS_SUFFIX],
+                            fieldKey = key,
                         )
                     }
                     .toList()
             }
         }
+    }
+
+    /** The schema keys of the controls [route] owns, which its list items carry so search can land on them. */
+    fun fieldKeys(route: Route): Set<String> = fieldKeysByRoute[route].orEmpty()
+
+    private val fieldKeysByRoute: Map<Route, Set<String>> by lazy {
+        schemaEntries().groupBy({ it.route }, { it.fieldKey }).mapValues { (_, keys) -> keys.filterNotNull().toSet() }
     }
 
     /** Everything searchable, screens before the controls on them. */

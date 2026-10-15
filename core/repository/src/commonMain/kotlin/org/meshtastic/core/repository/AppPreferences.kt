@@ -319,6 +319,12 @@ interface UiPrefs {
     val shouldShowTelemetry: StateFlow<Boolean>
 
     fun setShouldShowTelemetry(value: Boolean)
+
+    /** Highest Chirpy Hop score reached on this device. */
+    val chirpyHopBestScore: StateFlow<Int>
+
+    /** Stores [score] if it beats [chirpyHopBestScore]; lower scores are ignored. */
+    fun recordChirpyHopScore(score: Int)
 }
 
 /** Reactive interface for notification preferences. */
@@ -351,6 +357,22 @@ interface NotificationPrefs {
     val lowBatteryEnabled: StateFlow<Boolean>
 
     fun setLowBatteryEnabled(enabled: Boolean)
+
+    /** Desktop opt-in for emoji reaction notifications; Android uses the system channel setting instead. */
+    val reactionsEnabled: StateFlow<Boolean>
+
+    fun setReactionsEnabled(enabled: Boolean)
+
+    /** The persisted [reactionsEnabled] value; unlike the StateFlow it never reports the pre-load default. */
+    suspend fun loadReactionsEnabled(): Boolean
+
+    /** Desktop opt-in for new waypoint notifications; Android uses the system channel setting instead. */
+    val newWaypointsEnabled: StateFlow<Boolean>
+
+    fun setNewWaypointsEnabled(enabled: Boolean)
+
+    /** The persisted [newWaypointsEnabled] value; unlike the StateFlow it never reports the pre-load default. */
+    suspend fun loadNewWaypointsEnabled(): Boolean
 
     /**
      * Waypoint ids of foreign (not locally-created) geofences the user has opted in to receiving crossing alerts for.

@@ -68,6 +68,7 @@ import org.meshtastic.core.repository.HomoglyphPrefs
 import org.meshtastic.core.repository.LocationRepository
 import org.meshtastic.core.repository.LocationService
 import org.meshtastic.core.repository.MapConsentPrefs
+import org.meshtastic.core.repository.MeshConfigFlowManager
 import org.meshtastic.core.repository.MeshConnectionManager
 import org.meshtastic.core.repository.MqttManager
 import org.meshtastic.core.repository.NodeRestartTracker
@@ -76,6 +77,7 @@ import org.meshtastic.core.repository.SecurityKeyBackupStore
 import org.meshtastic.core.repository.ServiceRepository
 import org.meshtastic.core.repository.StoredSecurityKeys
 import org.meshtastic.core.repository.UiPrefs
+import org.meshtastic.core.testing.FakeApplicationCoroutineScope
 import org.meshtastic.core.testing.FakeLockdownCoordinator
 import org.meshtastic.core.testing.FakeNodeRepository
 import org.meshtastic.core.ui.util.SnackbarManager
@@ -412,6 +414,7 @@ class RadioConfigViewModelTest {
     private val securityKeyBackupStore: SecurityKeyBackupStore = mock(MockMode.autofill)
     private val snackbarManager: SnackbarManager = mock(MockMode.autofill)
     private val connectionManager: MeshConnectionManager = mock(MockMode.autofill)
+    private val meshConfigFlowManager: MeshConfigFlowManager = mock(MockMode.autofill)
     private val trackerScope = CoroutineScope(SupervisorJob())
     private val nodeRestartTracker = NodeRestartTracker(trackerScope)
 
@@ -486,6 +489,8 @@ class RadioConfigViewModelTest {
         snackbarManager = snackbarManager,
         nodeRestartTracker = nodeRestartTracker,
         connectionManager = connectionManager,
+        meshConfigFlowManager = meshConfigFlowManager,
+        applicationScope = FakeApplicationCoroutineScope(testDispatcher),
         installProfileUseCase = installProfileUseCase,
         radioConfigUseCase = radioConfigUseCase,
         adminActionsUseCase = adminActionsUseCase,
@@ -2472,6 +2477,21 @@ class RadioConfigViewModelTest {
     }
 
     @Test
+    fun `loadConfigRoute skips the fetch for local settings while disconnected`() = runTest {
+        val localNode = Node(num = 123, user = User.Builder().also { wb -> wb.id = "!123" }.build())
+        nodeRepository.setNodes(listOf(localNode))
+        nodeRepository.setMyNodeInfo(myNodeInfo(myNodeNum = 123))
+        every { serviceRepository.connectionState } returns MutableStateFlow(ConnectionState.Disconnected)
+        viewModel = createViewModel(destNum = null)
+
+        viewModel.loadConfigRoute(ConfigRoute.USER)
+        runCurrent()
+
+        assertTrue(viewModel.radioConfigState.value.responseState is ResponseState.Empty)
+        verifySuspend(exactly(0)) { radioConfigUseCase.getOwner(any(), any()) }
+    }
+
+    @Test
     fun `loadConfigRoute shows progress overlay for remote settings refresh`() = runTest {
         val localNode = Node(num = 100, user = User.Builder().also { wb -> wb.id = "!100" }.build())
         val remoteNode = Node(num = 456, user = User.Builder().also { wb -> wb.id = "!456" }.build())
@@ -2725,12 +2745,22 @@ class RadioConfigViewModelTest {
         // restoring it would wipe the device's real keys with blanks.
         viewModel.backupSecurityKeys(Config.SecurityConfig.Builder().build())
 
-        verify(exactly(0)) { securityKeyBackupStore.save(any(), any(), any(), any()) }
+        verify(exactly(0)) { securityKeyBackupStore.save(any(), any(), any(), any(), any()) }
     }
 
     @Test
-    fun `backupSecurityKeys persists real keys`() = runTest {
-        val node = Node(num = 123, user = User.Builder().also { wb -> wb.id = "!123" }.build())
+    fun `backupSecurityKeys persists real keys and the node's long name`() = runTest {
+        val node =
+            Node(
+                num = 123,
+                user =
+                User.Builder()
+                    .also { wb ->
+                        wb.id = "!123"
+                        wb.long_name = "Base Station"
+                    }
+                    .build(),
+            )
         nodeRepository.setNodes(listOf(node))
         viewModel = createViewModel()
 
@@ -2744,7 +2774,7 @@ class RadioConfigViewModelTest {
         viewModel.backupSecurityKeys(config)
 
         // Pin the exact base64 so a public/private swap or encoding change is caught.
-        verify { securityKeyBackupStore.save(123, "cHVi", "cHJpdg==", any()) }
+        verify { securityKeyBackupStore.save(123, "cHVi", "cHJpdg==", any(), "Base Station") }
     }
 
     @Test
@@ -2784,6 +2814,70 @@ class RadioConfigViewModelTest {
         }
     }
 
+    @Test
+    fun `restoreSecurityKeys from another node number pushes those keys to this node`() = runTest {
+        val node = Node(num = 123, user = User.Builder().also { wb -> wb.id = "!123" }.build())
+        nodeRepository.setNodes(listOf(node))
+        viewModel = createViewModel()
+
+        val stored = StoredSecurityKeys(publicKeyBase64 = "cHVi", privateKeyBase64 = "cHJpdg==", timestamp = 1L)
+        val decoded = Config.SecurityConfig.Builder().also { wb -> wb.public_key = "pub".encodeUtf8() }.build()
+        every { securityKeyBackupStore.get(456) } returns stored
+        every { importSecurityConfigUseCase(stored) } returns Result.success(decoded)
+        everySuspend { radioConfigUseCase.setConfig(any(), any(), any()) } returns 42
+
+        viewModel.restoreSecurityKeys(fromNodeNum = 456)
+
+        verifySuspend {
+            radioConfigUseCase.setConfig(123, Config.Builder().also { wb -> wb.security = decoded }.build(), any())
+        }
+    }
+
+    @Test
+    fun `securityKeyBackups lists this node first then newest first with known names`() = runTest {
+        val node = Node(num = 123, user = User.Builder().also { wb -> wb.id = "!123" }.build())
+        val oldSelf =
+            Node(
+                num = 456,
+                user =
+                User.Builder()
+                    .also { wb ->
+                        wb.id = "!456"
+                        wb.long_name = "Old Self"
+                    }
+                    .build(),
+            )
+        nodeRepository.setNodes(listOf(node, oldSelf))
+        viewModel = createViewModel()
+        every { securityKeyBackupStore.all() } returns
+            mapOf(
+                456 to StoredSecurityKeys("a", "b", timestamp = 3L),
+                789 to StoredSecurityKeys("c", "d", timestamp = 5L, longName = "Saved Name"),
+                321 to StoredSecurityKeys("g", "h", timestamp = 2L),
+                123 to StoredSecurityKeys("e", "f", timestamp = 1L),
+            )
+
+        val backups = viewModel.securityKeyBackups()
+
+        assertEquals(listOf(123, 789, 456, 321), backups.map { it.nodeNum })
+        assertEquals(listOf(true, false, false, false), backups.map { it.isCurrentNode })
+        assertEquals("Saved Name", backups[1].longName)
+        assertEquals("Old Self", backups[2].longName)
+        assertNull(backups[3].longName)
+    }
+
+    @Test
+    fun `deleteSecurityKeyBackup removes the backup under the picked node number`() = runTest {
+        val node = Node(num = 123, user = User.Builder().also { wb -> wb.id = "!123" }.build())
+        nodeRepository.setNodes(listOf(node))
+        viewModel = createViewModel()
+
+        viewModel.deleteSecurityKeyBackup(backupNodeNum = 456)
+
+        verify { securityKeyBackupStore.delete(456) }
+        verify(exactly(0)) { securityKeyBackupStore.delete(123) }
+    }
+
     private fun fourChannelFixture() = listOf(
         ChannelSettings.Builder().also { wb -> wb.name = "A" }.build(),
         ChannelSettings.Builder().also { wb -> wb.name = "B" }.build(),
@@ -2791,11 +2885,11 @@ class RadioConfigViewModelTest {
         ChannelSettings.Builder().also { wb -> wb.name = "D" }.build(),
     )
 
-    private fun myNodeInfo(myNodeNum: Int, pioEnv: String? = null) = MyNodeInfo(
+    private fun myNodeInfo(myNodeNum: Int, pioEnv: String? = null, firmwareVersion: String? = null) = MyNodeInfo(
         myNodeNum = myNodeNum,
         hasGPS = false,
         model = null,
-        firmwareVersion = null,
+        firmwareVersion = firmwareVersion,
         couldUpdate = false,
         shouldUpdate = false,
         currentPacketId = 0,
@@ -2808,6 +2902,116 @@ class RadioConfigViewModelTest {
         deviceId = null,
         pioEnv = pioEnv,
     )
+
+    private fun loraSave(region: Config.LoRaConfig.RegionCode = Config.LoRaConfig.RegionCode.US) = Config.Builder()
+        .also { wb -> wb.lora = Config.LoRaConfig.Builder().also { wb -> wb.region = region }.build() }
+        .build()
+
+    private suspend fun TestScope.saveLoraAndAck(
+        connFlow: MutableStateFlow<ConnectionState>,
+        firmwareVersion: String?,
+        config: Config = loraSave(),
+        clearViewModelBeforeAck: Boolean = false,
+        ack: Boolean = true,
+    ) {
+        nodeRepository.setNodes(listOf(Node(num = 123, user = User.Builder().also { wb -> wb.id = "!123" }.build())))
+        nodeRepository.setMyNodeInfo(myNodeInfo(myNodeNum = 123, firmwareVersion = firmwareVersion))
+        val packetFlow = MutableSharedFlow<MeshPacket>()
+        every { serviceRepository.meshPacketFlow } returns packetFlow
+        every { serviceRepository.connectionState } returns connFlow
+        everySuspend { radioConfigUseCase.setConfig(any(), any(), any()) } calls
+            {
+                it.args.onRequestIdArg()(77)
+                77
+            }
+        viewModel = createViewModel(processRadioResponseUseCase = ProcessRadioResponseUseCase())
+        runCurrent()
+
+        viewModel.setConfig(config)
+        runCurrent()
+        if (clearViewModelBeforeAck) viewModel.viewModelScope.cancel()
+        if (ack) packetFlow.emit(routingAck(requestId = 77, from = 123))
+        runCurrent()
+    }
+
+    @Test
+    fun `acked local LoRa save that does not reboot refreshes the node info exactly once`() = runTest {
+        val connFlow = MutableStateFlow<ConnectionState>(ConnectionState.Connected)
+        saveLoraAndAck(connFlow, firmwareVersion = "2.8.1")
+
+        advanceTimeBy(30_000)
+        runCurrent()
+
+        verify(exactly(1)) { meshConfigFlowManager.refreshNodeInfo() }
+        verify(exactly(0)) { connectionManager.startConfigOnly() }
+    }
+
+    @Test
+    fun `LoRa save acked after the ViewModel is cleared still refreshes the node info exactly once`() = runTest {
+        val connFlow = MutableStateFlow<ConnectionState>(ConnectionState.Connected)
+        saveLoraAndAck(connFlow, firmwareVersion = "2.8.1", clearViewModelBeforeAck = true)
+
+        advanceTimeBy(30_000)
+        runCurrent()
+
+        verify(exactly(1)) { meshConfigFlowManager.refreshNodeInfo() }
+    }
+
+    @Test
+    fun `LoRa save never acked does not refresh the node info`() = runTest {
+        val connFlow = MutableStateFlow<ConnectionState>(ConnectionState.Connected)
+        saveLoraAndAck(connFlow, firmwareVersion = "2.8.1", clearViewModelBeforeAck = true, ack = false)
+
+        advanceTimeBy(10 * 60_000L)
+        runCurrent()
+
+        verify(exactly(0)) { meshConfigFlowManager.refreshNodeInfo() }
+    }
+
+    @Test
+    fun `acked local LoRa save followed by a reboot does not refresh the node info`() = runTest {
+        val connFlow = MutableStateFlow<ConnectionState>(ConnectionState.Connected)
+        saveLoraAndAck(connFlow, firmwareVersion = "2.8.1")
+
+        advanceTimeBy(2_000)
+        connFlow.value = ConnectionState.Disconnected
+        advanceTimeBy(30_000)
+        runCurrent()
+
+        verify(exactly(0)) { meshConfigFlowManager.refreshNodeInfo() }
+    }
+
+    @Test
+    fun `LoRa save on firmware that does not report heard flags does not refresh the node info`() = runTest {
+        val connFlow = MutableStateFlow<ConnectionState>(ConnectionState.Connected)
+        saveLoraAndAck(connFlow, firmwareVersion = "2.8.0")
+
+        advanceTimeBy(30_000)
+        runCurrent()
+
+        verify(exactly(0)) { meshConfigFlowManager.refreshNodeInfo() }
+    }
+
+    @Test
+    fun `non-LoRa config save does not refresh the node info`() = runTest {
+        val connFlow = MutableStateFlow<ConnectionState>(ConnectionState.Connected)
+        saveLoraAndAck(
+            connFlow,
+            firmwareVersion = "2.8.1",
+            config =
+            Config.Builder()
+                .also { wb ->
+                    wb.device =
+                        Config.DeviceConfig.Builder().also { wb -> wb.led_heartbeat_disabled = true }.build()
+                }
+                .build(),
+        )
+
+        advanceTimeBy(30_000)
+        runCurrent()
+
+        verify(exactly(0)) { meshConfigFlowManager.refreshNodeInfo() }
+    }
 
     @Test
     fun `local reboot-applying config save opens the restart window`() = runTest {

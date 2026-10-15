@@ -63,6 +63,12 @@ val Project.configProperties: Properties
         return properties
     }
 
+internal val Project.compileSdkMajor: Int
+    get() = configProperties.getProperty("COMPILE_SDK").toInt()
+
+internal val Project.compileSdkMinorLevel: Int
+    get() = configProperties.getProperty("COMPILE_SDK_MINOR", "0").toInt()
+
 /** Configure common test options like parallel execution and logging. */
 internal fun Project.configureTestOptions() {
     // Only JUnit Platform test tasks need the launcher. Instrumented test APKs run under AndroidJUnitRunner, and a KMP
@@ -106,6 +112,8 @@ internal fun Project.configureTestOptions() {
 
         // JDK 24+ warns on every System.load from the class path (bundled SQLite, Skiko) unless native access is on.
         jvmArgs("--enable-native-access=ALL-UNNAMED")
+        // Same for sun.misc.Unsafe memory access (JDK 24+), which datastore's bundled protobuf still uses.
+        jvmArgs("--sun-misc-unsafe-memory-access=allow")
 
         // Numbers and units format in the OS locale, so the forked test JVMs are pinned to one: otherwise a
         // contributor whose machine defaults to de-DE gets "0,0°C" and fails every test that pins "0.0°C".

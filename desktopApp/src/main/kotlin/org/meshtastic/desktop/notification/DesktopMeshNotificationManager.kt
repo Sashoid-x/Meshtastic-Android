@@ -48,7 +48,10 @@ import org.meshtastic.proto.Telemetry
 @Suppress("TooManyFunctions")
 class DesktopMeshNotificationManager(private val notificationManager: NotificationManager) : MeshNotificationManager {
 
+    private val lowBatteryEpisodes = mutableMapOf<Int, Any>()
+
     override fun clearNotifications() {
+        synchronized(lowBatteryEpisodes) { lowBatteryEpisodes.clear() }
         notificationManager.cancelAll()
     }
 
@@ -86,7 +89,14 @@ class DesktopMeshNotificationManager(private val notificationManager: Notificati
         waypointId: Int,
         isSilent: Boolean,
     ) {
-        notificationManager.dispatch(Notification(title = name, message = message, isSilent = isSilent))
+        notificationManager.dispatch(
+            Notification(
+                title = name,
+                message = message,
+                category = Notification.Category.Waypoint,
+                isSilent = isSilent,
+            ),
+        )
     }
 
     override suspend fun updateReactionNotification(
@@ -98,7 +108,7 @@ class DesktopMeshNotificationManager(private val notificationManager: Notificati
         isSilent: Boolean,
     ) {
         notificationManager.dispatch(
-            Notification(title = name, message = emoji, category = Notification.Category.Message, isSilent = isSilent),
+            Notification(title = name, message = emoji, category = Notification.Category.Reaction, isSilent = isSilent),
         )
     }
 
@@ -133,23 +143,33 @@ class DesktopMeshNotificationManager(private val notificationManager: Notificati
         notificationManager.cancel(nodeNum)
     }
 
-    override suspend fun showLowBatteryNotification(node: Node, isRemote: Boolean) {
-        notificationManager.dispatch(
-            Notification(
-                title = getStringSuspend(Res.string.low_battery_title, node.user.short_name),
-                message = getStringSuspend(Res.string.low_battery_message, node.user.long_name, node.batteryLevel ?: 0),
-                category = Notification.Category.Battery,
-                id = node.num,
-            ),
-        )
+    // An OS notification cannot be refreshed in place, and re-posting would alert again, so only an episode's first
+    // reading shows.
+    override suspend fun notifyLowBattery(node: Node, isRemote: Boolean) {
+        val episode = Any()
+        if (synchronized(lowBatteryEpisodes) { lowBatteryEpisodes.putIfAbsent(node.num, episode) } != null) return
+        var shown = false
+        try {
+            val notification =
+                Notification(
+                    title = getStringSuspend(Res.string.low_battery_title, node.user.short_name),
+                    message =
+                    getStringSuspend(Res.string.low_battery_message, node.user.long_name, node.batteryLevel ?: 0),
+                    category = Notification.Category.Battery,
+                    id = node.num,
+                )
+            // Recovery may have ended this episode while its text was resolving.
+            if (synchronized(lowBatteryEpisodes) { lowBatteryEpisodes[node.num] !== episode }) return
+            shown = notificationManager.dispatch(notification)
+        } finally {
+            // A warning that never showed ends its own episode, so the next low reading tries again.
+            if (!shown) synchronized(lowBatteryEpisodes) { lowBatteryEpisodes.remove(node.num, episode) }
+        }
     }
 
-    override suspend fun updateLowBatteryNotification(node: Node, isRemote: Boolean) {
-        // No-op: an OS notification cannot be refreshed in place, and re-posting would alert again.
-    }
-
-    override fun cancelLowBatteryNotification(node: Node) {
-        notificationManager.cancel(node.num)
+    override fun cancelLowBatteryNotification(nodeNum: Int) {
+        synchronized(lowBatteryEpisodes) { lowBatteryEpisodes.remove(nodeNum) }
+        notificationManager.cancel(nodeNum)
     }
 
     override suspend fun showClientNotification(

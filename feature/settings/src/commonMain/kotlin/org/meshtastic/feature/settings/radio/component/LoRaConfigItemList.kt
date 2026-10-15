@@ -17,25 +17,33 @@
 package org.meshtastic.feature.settings.radio.component
 
 import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.stringResource
+import org.meshtastic.core.common.util.NumberFormatter
 import org.meshtastic.core.model.Capabilities
 import org.meshtastic.core.model.Channel
 import org.meshtastic.core.model.ChannelOption
 import org.meshtastic.core.model.RegionInfo
 import org.meshtastic.core.model.RegionPresetConstraint
 import org.meshtastic.core.model.constraintFor
+import org.meshtastic.core.model.isLegalInRegionWithoutMap
 import org.meshtastic.core.model.normalizeCodingRateOverride
 import org.meshtastic.core.model.numChannels
 import org.meshtastic.core.model.presetForRegionChange
+import org.meshtastic.core.model.schemaLabelRes
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.advanced
 import org.meshtastic.core.resources.bandwidth_default
@@ -76,6 +84,7 @@ import org.meshtastic.core.resources.schema_lora_tx_power
 import org.meshtastic.core.resources.schema_lora_tx_power_description
 import org.meshtastic.core.resources.schema_lora_use_preset
 import org.meshtastic.core.resources.schema_lora_use_preset_description
+import org.meshtastic.core.resources.slot_auto
 import org.meshtastic.core.ui.component.DropDownItem
 import org.meshtastic.core.ui.component.DropDownPreference
 import org.meshtastic.core.ui.component.EditTextPreference
@@ -100,6 +109,9 @@ private val CODING_RATE_RANGE = 5..8
  * ([Capabilities.supportsPreset]), restrict to the region's legal presets (R7), then always keep the current selection
  * present (disabled) so the field is never blank when the device's preset is illegal for the region.
  *
+ * With no [presetConstraint], a non-null [unmappedRegion] applies the static Lite/Narrow/Tiny fallback for a radio that
+ * sent no region preset map ([isLegalInRegionWithoutMap]).
+ *
  * Internal (not private): reused by the Mesh Beacon config editor's target-row preset pickers (design#140).
  */
 internal fun buildPresetItems(
@@ -107,18 +119,26 @@ internal fun buildPresetItems(
     presetsGated: Boolean,
     selectedPreset: ModemPreset,
     capabilities: Capabilities,
+    labels: Map<ModemPreset, String>,
+    unmappedRegion: RegionCode? = null,
 ): List<DropDownItem<ModemPreset>> {
+    fun labelOf(preset: ModemPreset) = labels[preset] ?: preset.name
     val items =
         ChannelOption.entries
             .filter { option -> capabilities.supportsPreset(option) }
             .filter { option -> presetConstraint == null || option.modemPreset in presetConstraint.presets }
+            .filter { option ->
+                presetConstraint != null ||
+                    unmappedRegion == null ||
+                    option.modemPreset.isLegalInRegionWithoutMap(unmappedRegion)
+            }
             .map { option ->
-                DropDownItem(value = option.modemPreset, label = option.modemPreset.name, enabled = !presetsGated)
+                DropDownItem(value = option.modemPreset, label = labelOf(option.modemPreset), enabled = !presetsGated)
             }
     return if (items.any { it.value == selectedPreset }) {
         items
     } else {
-        items + DropDownItem(value = selectedPreset, label = selectedPreset.name, enabled = false)
+        items + DropDownItem(value = selectedPreset, label = labelOf(selectedPreset), enabled = false)
     }
 }
 
@@ -126,10 +146,22 @@ internal fun buildPresetItems(
  * Builds the region dropdown items: hide regions the target firmware's region table doesn't have yet
  * ([Capabilities.supportsRegion]), but never hide the device's current selection.
  */
-private fun buildRegionItems(capabilities: Capabilities, selectedRegion: RegionCode): List<Pair<RegionCode, String>> =
-    RegionInfo.entries
-        .filter { capabilities.supportsRegion(it) || it.regionCode == selectedRegion }
-        .map { it.regionCode to it.description }
+private fun buildRegionItems(
+    capabilities: Capabilities,
+    selectedRegion: RegionCode,
+    labels: Map<RegionCode, String>,
+): List<Pair<RegionCode, String>> = RegionInfo.entries
+    .filter { capabilities.supportsRegion(it) || it.regionCode == selectedRegion }
+    .map { it.regionCode to (labels[it.regionCode] ?: it.description) }
+
+/** Each preset's schema label in the user's language. A preset the schema does not label is absent. */
+@Composable
+internal fun presetLabels(): Map<ModemPreset, String> =
+    ModemPreset.entries.mapNotNull { preset -> preset.schemaLabelRes()?.let { preset to stringResource(it) } }.toMap()
+
+@Composable
+private fun regionLabels(): Map<RegionCode, String> =
+    RegionCode.entries.mapNotNull { region -> region.schemaLabelRes()?.let { region to stringResource(it) } }.toMap()
 
 @Composable
 fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
@@ -144,6 +176,7 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
             configState = rememberConfigState(initialValue = loraConfig),
             enabled = false,
             responseState = state.responseState,
+            showConnectPrompt = state.connectPromptVisible,
             onDismissPacketResponse = viewModel::clearPacketResponse,
             onSave = {},
         ) {}
@@ -153,7 +186,7 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
     val formState = rememberConfigState(initialValue = loraConfig)
     val capabilities = remember(state.metadata?.firmware_version) { Capabilities(state.metadata?.firmware_version) }
 
-    val primaryChannel = remember(formState.value) { Channel(primarySettings, formState.value) }
+    val primaryChannel = remember(primarySettings, formState.value) { Channel(primarySettings, formState.value) }
     val focusManager = LocalFocusManager.current
     val bandwidthSelection =
         loRaBandwidthSelection(
@@ -171,6 +204,7 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
         enabled = state.connected,
         saveEnabled = customBandwidthIsValid,
         responseState = state.responseState,
+        showConnectPrompt = state.connectPromptVisible,
         onDismissPacketResponse = viewModel::clearPacketResponse,
         onSave = {
             val config = Config.Builder().also { wb -> wb.lora = it.withCodingRateOverrideFor(capabilities) }.build()
@@ -198,8 +232,10 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
                     summary = stringResource(Res.string.config_lora_region_summary),
                     enabled = state.connected,
                     items =
-                    remember(capabilities, formState.value.region) {
-                        buildRegionItems(capabilities, formState.value.region)
+                    regionLabels().let { labels ->
+                        remember(capabilities, formState.value.region, labels) {
+                            buildRegionItems(capabilities, formState.value.region, labels)
+                        }
                     },
                     selectedItem = formState.value.region,
                     onItemSelected = { region ->
@@ -239,9 +275,25 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
                     // unconstrained, so show every preset. Licensed-only regions disable their presets unless the
                     // device is flagged as a licensed operator (R8).
                     val selectedPreset = formState.value.modem_preset
+                    val labels = presetLabels()
                     val presetItems =
-                        remember(presetConstraint, presetsGated, selectedPreset, capabilities) {
-                            buildPresetItems(presetConstraint, presetsGated, selectedPreset, capabilities)
+                        remember(
+                            presetConstraint,
+                            presetsGated,
+                            selectedPreset,
+                            capabilities,
+                            labels,
+                            regionPresetMap,
+                            formState.value.region,
+                        ) {
+                            buildPresetItems(
+                                presetConstraint,
+                                presetsGated,
+                                selectedPreset,
+                                capabilities,
+                                labels,
+                                unmappedRegion = formState.value.region.takeIf { regionPresetMap == null },
+                            )
                         }
                     DropDownPreference(
                         title = stringResource(Res.string.schema_lora_modem_preset),
@@ -356,6 +408,16 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
                     enabled = state.connected,
                     keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
                     onFocusChanged = { isFocusedSlot = it.isFocused },
+                    trailingIcon =
+                    if (
+                        !isFocusedSlot &&
+                        formState.value.channel_num == 0 &&
+                        formState.value.override_frequency == 0f
+                    ) {
+                        { Text(stringResource(Res.string.slot_auto)) }
+                    } else {
+                        null
+                    },
                     onValueChanged = {
                         if (it <= formState.value.numChannels) { // total num of LoRa channels
                             formState.value = formState.value.newBuilder().also { wb -> wb.channel_num = it }.build()
@@ -375,19 +437,12 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
                     containerColor = CardDefaults.cardColors().containerColor,
                 )
                 HorizontalDivider()
-                var isFocusedOverride by remember { mutableStateOf(false) }
-                EditTextPreference(
-                    title = stringResource(Res.string.schema_lora_override_frequency),
-                    value =
-                    if (isFocusedOverride || formState.value.override_frequency != 0f) {
-                        formState.value.override_frequency
-                    } else {
-                        primaryChannel.radioFreq
-                    },
+                FrequencyOverridePreference(
+                    overrideFrequency = formState.value.override_frequency,
+                    autoFrequency = primaryChannel.radioFreq,
                     enabled = state.connected,
-                    keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                    onFocusChanged = { isFocusedOverride = it.isFocused },
-                    onValueChanged = {
+                    focusManager = focusManager,
+                    onValueChange = {
                         formState.value = formState.value.newBuilder().also { wb -> wb.override_frequency = it }.build()
                     },
                 )
@@ -418,6 +473,56 @@ fun LoRaConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit) {
             }
         }
     }
+}
+
+/** [mhz] as the override frequency field shows it: fixed three decimals, a dot separator, no grouping. */
+internal fun formatFrequencyMhz(mhz: Float): String = NumberFormatter.formatInvariant(mhz, FREQUENCY_DECIMALS)
+
+private const val FREQUENCY_DECIMALS = 3
+
+/**
+ * Frequency override in MHz. Unfocused it shows [formatFrequencyMhz] (or the auto slot's frequency with the auto label
+ * while unset); focused it keeps whatever the user types.
+ */
+@Composable
+private fun FrequencyOverridePreference(
+    overrideFrequency: Float,
+    autoFrequency: Float,
+    enabled: Boolean,
+    focusManager: FocusManager,
+    onValueChange: (Float) -> Unit,
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    var typed by remember { mutableStateOf<String?>(null) }
+    val shown = typed ?: formatFrequencyMhz(if (overrideFrequency != 0f) overrideFrequency else autoFrequency)
+    EditTextPreference(
+        title = stringResource(Res.string.schema_lora_override_frequency),
+        value = shown,
+        enabled = enabled,
+        isError = parseFrequencyOverride(shown) == null,
+        keyboardOptions =
+        KeyboardOptions.Default.copy(keyboardType = KeyboardType.DecimalSigned, imeAction = ImeAction.Done),
+        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+        onFocusChanged = {
+            isFocused = it.isFocused
+            if (!it.isFocused) typed = null
+        },
+        trailingIcon =
+        if (!isFocused && overrideFrequency == 0f) {
+            { Text(stringResource(Res.string.slot_auto)) }
+        } else {
+            null
+        },
+        onValueChanged = { text ->
+            val parsed = parseFrequencyOverride(text)
+            if (parsed != null) {
+                typed = text
+                onValueChange(parsed)
+            } else if (NumberFormatter.isPartialDecimal(text)) {
+                typed = text
+            }
+        },
+    )
 }
 
 private fun Config.LoRaConfig.withCodingRateOverrideFor(capabilities: Capabilities): Config.LoRaConfig =
@@ -465,7 +570,7 @@ private fun ManualModemSettings(
     config: Config.LoRaConfig,
     bandwidthSelection: LoRaBandwidthSelection,
     enabled: Boolean,
-    focusManager: androidx.compose.ui.focus.FocusManager,
+    focusManager: FocusManager,
     onConfigChange: (Config.LoRaConfig) -> Unit,
 ) {
     androidx.compose.foundation.layout.Column {
@@ -511,7 +616,7 @@ internal fun LoRaBandwidthPreference(
     config: Config.LoRaConfig,
     selection: LoRaBandwidthSelection,
     enabled: Boolean,
-    focusManager: androidx.compose.ui.focus.FocusManager,
+    focusManager: FocusManager,
     onConfigChange: (Config.LoRaConfig) -> Unit,
 ) {
     val options = selection.options

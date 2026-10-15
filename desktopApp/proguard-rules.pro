@@ -55,6 +55,26 @@
 -keep class * implements com.sun.jna.Callback { *; }
 -keep class * extends com.sun.jna.Structure { *; }
 
+# ---- dbus-java — Linux StatusNotifierItem tray (tray/SniTray.kt) -----------
+# The tray reaches D-Bus through reflection in three ways shrinking would break:
+#   * the Unix-socket transport is discovered only through ServiceLoader
+#     (META-INF/services/org.freedesktop.dbus.spi.transport.ITransportProvider ->
+#     org.freedesktop.dbus.transport.jre.NativeTransportProvider). Nothing
+#     references it statically, so the shrinker reads it as dead code and the
+#     connection then fails to open at all.
+#   * dbus-java builds each exported object's introspection from its interface
+#     methods, and reads struct members off @Position-annotated fields.
+#   * GetLayout's two out-arguments come from getGenericReturnType() on a generic
+#     Tuple, so the Signature attribute has to survive or dbus-java rejects
+#     DbusMenuLayout as a non-exportable type and the right-click menu dies.
+# Signature and *Annotation* are retained by shared-rules.pro's -keepattributes.
+# Do not narrow that list without re-testing a packaged release build's tray.
+# The tray's own interfaces are already covered by the org.meshtastic.desktop.**
+# keep above — in ProGuard, `-keep class` matches interfaces too.
+-keep class org.freedesktop.dbus.** { *; }
+-keep interface org.freedesktop.dbus.** { *; }
+-dontwarn org.freedesktop.dbus.**
+
 # ---- MapLibre's Panama FFI bindings - upcalls resolved by MethodHandle ------
 # Every callback maplibre-native makes back into Kotlin is an upcall stub built
 # from a MethodHandle the bindings look up by name at <clinit>: `upcallHandle`
@@ -71,6 +91,18 @@
 # rules R8 needs. The JVM bindings jar ships none.
 -keep class org.maplibre.nativeffi.** { *; }
 -keep interface org.maplibre.nativeffi.** { *; }
+
+# ---- LWJGL - the map bridge's Vulkan, OpenGL and Direct3D bindings -----------
+# LWJGL picks its memory backend at <clinit> by walking a list of class names
+# (`MemoryBackendUnsafe*`, `MemoryBackendFFM*`) through Class.forName, and the
+# JDK 25 FFM backend lives under META-INF/versions/25. Nothing names either
+# statically, so the shrinker drops them all and MemoryUtil dies with
+#   java.lang.Error: Failed to initialize a backend for MemoryUtil
+# on the first map. The desktop map swallows that into a blank surface
+# (#7216, #7604). The versioned FFM layer stays out either way, so LWJGL runs
+# its Unsafe backend; this keeps that backend and the bindings it serves.
+-keep class org.lwjgl.** { *; }
+-keep interface org.lwjgl.** { *; }
 
 # ---- jSerialComm Android stubs (cross-platform serial library) --------------
 # jSerialComm bundles Android shims that reference android.* classes; harmless

@@ -133,7 +133,7 @@ jobs:
 
       - name: Upload Google AAB artifact
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: google-aab
           path: androidApp/build/outputs/bundle/googleRelease/androidApp-google-release.aab
@@ -141,7 +141,7 @@ jobs:
 
       - name: Upload Google APK artifact
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: google-apk
           path: androidApp/build/outputs/apk/google/release/*.apk
@@ -154,7 +154,7 @@ jobs:
         run: gzip -c androidApp/build/outputs/mapping/googleRelease/mapping.txt > "mapping-google-$VERSION_CODE.txt.gz"
 
       - name: Upload the R8 mapping artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: google-mapping
           path: mapping-google-*.txt.gz
@@ -213,7 +213,7 @@ jobs:
 
       - name: Upload F-Droid APK artifact
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: fdroid-apk
           path: androidApp/build/outputs/apk/fdroid/release/*.apk
@@ -248,7 +248,6 @@ jobs:
           gradle_encryption_key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
           develocity_access_key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
           cache_read_only: 'false'
-          install_jetbrains_jdk: 'true'
 
       - name: Install dependencies for AppImage
         if: runner.os == 'Linux'
@@ -332,7 +331,7 @@ jobs:
 
       - name: Upload Desktop Artifacts
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: desktop-${{ runner.os }}-${{ runner.arch }}
           path: |
@@ -383,7 +382,6 @@ jobs:
           gradle_encryption_key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
           develocity_access_key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
           cache_read_only: 'true'
-          install_jetbrains_jdk: 'true'
 
       # Uses an isolated Gradle user home so every artifact actually traverses the
       # network — the flatpak-sources plugin captures URLs via BuildOperationListener and
@@ -406,7 +404,7 @@ jobs:
 
       - name: Upload Flatpak source artifacts
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: flatpak-multisrc-${{ runner.arch }}
           path: flatpak-sources.json
@@ -418,7 +416,7 @@ jobs:
     needs: [create-flatpak-src]
     steps:
       - name: Download Flatpak source artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: flatpak-multisrc-*
           path: flatpak-multisrc
@@ -437,7 +435,7 @@ jobs:
 
       - name: Upload combined Flatpak source artifact
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: flatpak-sources
           path: flatpak-sources.json
@@ -475,13 +473,13 @@ jobs:
           ref: ${{ inputs.tag_name }}
 
       - name: Download the Google AAB
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: google-aab
           path: ${{ runner.temp }}/google-aab
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@14594264cd68ce8a2345dd349bc3d138a4ef85c8 # v1.327.0
+        uses: ruby/setup-ruby@e81a8fa391b11a595c1b7ed84177cc0fe02faf83 # v1.328.0
         with:
           bundler-cache: true
 
@@ -512,7 +510,7 @@ jobs:
           ref: ${{ inputs.tag_name }}
 
       - name: Download all artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: ./artifacts
 
@@ -593,7 +591,7 @@ jobs:
 
       - name: Download the captures
         continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: store-screenshots-*
           path: shots

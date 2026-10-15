@@ -49,6 +49,17 @@ class DesktopMeshNotificationManagerTest {
     private val manager = DesktopMeshNotificationManager(notificationManager)
 
     @Test
+    fun `reactions and waypoints dispatch in their own categories`() = runTest {
+        manager.updateReactionNotification("c", "Ann", "+1", isBroadcast = false, channelName = null, isSilent = false)
+        manager.updateWaypointNotification("c", "Ann", "Camp", waypointId = 3, isSilent = false)
+
+        assertEquals(
+            listOf(Notification.Category.Reaction, Notification.Category.Waypoint),
+            notificationManager.dispatched.map { it.category },
+        )
+    }
+
+    @Test
     fun `critical alerts dispatch in the alert category`() = runTest {
         manager.showAlertNotification(contactKey = "contact-1", name = "Alert", alert = "Something happened")
 
@@ -74,10 +85,29 @@ class DesktopMeshNotificationManagerTest {
     }
 
     @Test
-    fun `a low-battery refresh never re-posts`() = runTest {
-        manager.updateLowBatteryNotification(Node(num = 7), isRemote = false)
+    fun `a low-battery warning shows once per episode`() = runTest {
+        manager.notifyLowBattery(Node(num = 7), isRemote = false)
+        manager.notifyLowBattery(Node(num = 7), isRemote = false)
+        assertEquals(1, notificationManager.dispatched.size)
 
-        assertTrue(notificationManager.dispatched.isEmpty())
+        manager.cancelLowBatteryNotification(7)
+        manager.notifyLowBattery(Node(num = 7), isRemote = false)
+        assertEquals(2, notificationManager.dispatched.size)
+
+        manager.clearNotifications()
+        manager.notifyLowBattery(Node(num = 7), isRemote = false)
+        assertEquals(3, notificationManager.dispatched.size)
+    }
+
+    @Test
+    fun `a low-battery warning that was not shown is tried again`() = runTest {
+        notificationManager.accepts = false
+        manager.notifyLowBattery(Node(num = 7), isRemote = false)
+
+        notificationManager.accepts = true
+        manager.notifyLowBattery(Node(num = 7), isRemote = false)
+
+        assertEquals(1, notificationManager.dispatched.size)
     }
 
     @Test

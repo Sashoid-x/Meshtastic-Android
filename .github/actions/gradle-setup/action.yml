@@ -2,23 +2,21 @@ name: Gradle Setup
 description: Setup Java and Gradle for KMP builds
 inputs:
   cache_read_only:
-    description: 'Whether the Gradle, Kotlin/Native and Robolectric caches are read-only'
+    description: 'Whether the Gradle and Kotlin/Native caches are read-only'
     default: 'true'
   cache_konan:
     description: 'Cache ~/.konan. Only jobs that run Kotlin/Native tasks read it.'
     default: 'false'
-  cache_robolectric:
-    description: 'Cache the Robolectric android-all jars in ~/.m2'
-    default: 'true'
   jdk_distribution:
     description: 'JDK distribution (temurin or jetbrains)'
     default: 'temurin'
   install_jetbrains_jdk:
     description: |
-      Also install JetBrains JDK 25 with setup-java. Gradle detects it through ~/.m2/toolchains.xml
-      instead of provisioning one through foojay, so the Linux release installers bundle this JBR
-      and flatpak-sources records no foojay download as a source.
-    default: 'false'
+      Also install JetBrains JDK 25 with setup-java. Gradle detects it through ~/.m2/toolchains.xml;
+      foojay lists no JBR 25, so without this Gradle finds one only in a restored toolchain cache.
+      Every job needs it: desktopApp resolves its JBR launcher while the build is configured.
+      The Linux release installers bundle this JBR and flatpak-sources records no foojay download.
+    default: 'true'
   gradle_encryption_key:
     description: 'Encryption key for Gradle remote cache'
     required: false
@@ -49,21 +47,17 @@ runs:
         distribution: ${{ inputs.jdk_distribution }}
         token: ${{ github.token }}
 
+    # Fatal: no build can configure without JBR. set-default: false keeps the Temurin above as the JVM
+    # running Gradle; toolchains.xml still lists JBR.
     - name: Set up JetBrains JDK 25
       if: inputs.install_jetbrains_jdk == 'true'
-      id: setup-jbr
-      continue-on-error: true
       uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
       with:
         java-version: '25'
         distribution: 'jetbrains'
         check-latest: false
+        set-default: false
         token: ${{ github.token }}
-
-    - name: JBR setup failed, Gradle will provision it through foojay
-      if: inputs.install_jetbrains_jdk == 'true' && steps.setup-jbr.outcome == 'failure'
-      shell: bash
-      run: echo "::warning::JBR setup-java failed (likely GitHub API rate limit). Gradle will auto-provision JBR via Foojay toolchain resolver."
 
     # ~/.konan and ~/.m2 sit outside the Gradle User Home, so setup-gradle does not cache them.
     # A save step here would run before ./gradlew, so writers rely on actions/cache's end-of-job save.
@@ -107,24 +101,6 @@ runs:
       run: |
         [ -d ~/.konan ] || exit 0
         find ~/.konan -mindepth 1 -maxdepth 1 -name 'kotlin-native-prebuilt-*' ! -name "kotlin-native-prebuilt-*-${KOTLIN_VERSION}" -print -exec rm -rf {} +
-
-    - name: Restore the Robolectric android-all jars
-      if: inputs.cache_robolectric == 'true' && inputs.cache_read_only == 'true'
-      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        path: ~/.m2/repository/org/robolectric
-        key: robolectric-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}
-        restore-keys: |
-          robolectric-${{ runner.os }}-${{ runner.arch }}-
-
-    - name: Cache the Robolectric android-all jars
-      if: inputs.cache_robolectric == 'true' && inputs.cache_read_only != 'true'
-      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        path: ~/.m2/repository/org/robolectric
-        key: robolectric-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}
-        restore-keys: |
-          robolectric-${{ runner.os }}-${{ runner.arch }}-
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6

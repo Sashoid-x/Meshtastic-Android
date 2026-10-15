@@ -32,6 +32,15 @@ class SettingsSearchMatcherTest {
     )
 
     @Test
+    fun aRankedResultKeepsTheFieldKeyOfTheControlItNames() {
+        val hopLimit = entry("Hop limit").copy(fieldKey = "schema_lora_hop_limit")
+
+        val ranked = SettingsSearchMatcher.rank(listOf(entry("Hops"), hopLimit), "hop limit")
+
+        assertEquals("schema_lora_hop_limit", ranked.single().fieldKey)
+    }
+
+    @Test
     fun blankQueryMatchesNothing() {
         assertEquals(emptyList(), SettingsSearchMatcher.rank(listOf(entry("Hop limit")), "   "))
     }
@@ -58,6 +67,23 @@ class SettingsSearchMatcherTest {
         val ranked = SettingsSearchMatcher.rank(listOf(nameOnly, both), "hop limit")
 
         assertEquals("Hop limit", ranked.first().title)
+    }
+
+    @Test
+    fun aKeywordFindsAnEntryWhoseNameDoesNotMentionIt() {
+        val hopLimit = entry("Hop limit").copy(keywords = listOf("hops", "ttl", "range"))
+
+        assertEquals(listOf("Hop limit"), SettingsSearchMatcher.rank(listOf(hopLimit), "ttl").map { it.title })
+    }
+
+    @Test
+    fun aKeywordHitOutranksAMentionInTheExplanation() {
+        val keyword = entry("Hop limit").copy(keywords = listOf("ttl"))
+        val explanation = entry("Rebroadcast mode", description = "Ignores the ttl")
+
+        val titles = SettingsSearchMatcher.rank(listOf(explanation, keyword), "ttl").map { it.title }
+
+        assertEquals(listOf("Hop limit", "Rebroadcast mode"), titles)
     }
 
     @Test

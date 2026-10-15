@@ -186,6 +186,16 @@
     <string name="analytics_platforms">Analytics platforms:</string>
     <string name="any">Any</string>
     <!-- APP -->
+    <string name="app_database_backup_disconnect_confirmation">The radio will be disconnected first. Reconnect from the Connections screen when you are done.</string>
+    <string name="app_database_backup_failed">Could not write the backup.</string>
+    <string name="app_database_backup_no_device">Connect to a radio first. There is no app data to back up or restore yet.</string>
+    <string name="app_database_backup_saved">Backup saved.</string>
+    <string name="app_database_restore_confirmation">Restoring replaces this radio's messages and nodes stored in the app with the contents of the backup. The change takes effect after you restart the app and reconnect to this radio.</string>
+    <string name="app_database_restore_corrupt">That backup is damaged or incomplete.</string>
+    <string name="app_database_restore_failed">Could not read the backup.</string>
+    <string name="app_database_restore_not_backup">That file is not an app data backup.</string>
+    <string name="app_database_restore_staged">Backup accepted. Restart the app and reconnect to this radio to finish restoring.</string>
+    <string name="app_database_restore_wrong_version">That backup is from a different app version (database version %1$d, this app uses %2$d).</string>
     <string name="app_functions_get_channel_info">Get channel info</string>
     <string name="app_functions_get_device_status">Get device status</string>
     <string name="app_functions_get_mesh_metrics">Get mesh metrics</string>
@@ -446,6 +456,7 @@
     <string name="automation_window_seconds">Window (seconds)</string>
     <string name="available_pins">Available pins</string>
     <string name="back">Back</string>
+    <string name="backup_app_database">Back up app data</string>
     <string name="backup_keys">Backup Keys</string>
     <string name="backup_keys_confirmation">Saves the public and private keys to secure, encrypted storage on this device.</string>
     <string name="backup_restore">Backup &amp; Restore</string>
@@ -546,6 +557,16 @@
     <string name="chirpy_error_unsupported_flavor">I'm operating on a limited frequency on this app flavor! 🔌 Try using a version with full AI Core integration.</string>
     <string name="chirpy_error_unsupported_platform">Oh no! My antenna can't seem to establish a connection on this platform. 📡 Please double-check your hardware compatibility!</string>
     <string name="chirpy_fallback_unavailable">AI assistant is not available on this platform. Here are pages that may help:</string>
+    <string name="chirpy_hop">Chirpy Hop</string>
+    <string name="chirpy_hop_back_to_update">Back to update</string>
+    <string name="chirpy_hop_best">HI %1$s</string>
+    <string name="chirpy_hop_controls">Tap to jump, swipe down to crouch</string>
+    <string name="chirpy_hop_game_over">GAME OVER</string>
+    <string name="chirpy_hop_play">Play Chirpy Hop</string>
+    <string name="chirpy_hop_play_again">Play again</string>
+    <string name="chirpy_hop_tap_to_start">TAP TO START</string>
+    <string name="chirpy_hop_update_complete">Update complete</string>
+    <string name="chirpy_hop_update_interrupted">Update interrupted</string>
     <string name="chirpy_intro">Hey there! 📡 I'm Chirpy, your on-device Meshtastic assistant! I can help with setup, configuration, troubleshooting, and mesh networking tips. What can I help you with?</string>
     <string name="chirpy_ready">Ask Chirpy</string>
     <string name="chirpy_search_placeholder">Ask about Meshtastic…</string>
@@ -575,6 +596,8 @@
     <string name="co2_temperature">CO₂ Temp</string>
     <string name="collapse_chart">Collapse chart</string>
     <string name="collapsed">Collapsed</string>
+    <string name="color_picker_presets">Preset colors</string>
+    <string name="color_rgb_description">Red %1$d, green %2$d, blue %3$d</string>
     <string name="communicate_off_the_grid">Communicate off-the-grid with your friends and community without cell service.</string>
     <!-- COMPASS -->
     <string name="compass_bearing">Bearing: %1$s</string>
@@ -614,6 +637,7 @@
     <string name="configure_notification_permissions">Configure notification permissions</string>
     <string name="connect">Connect</string>
     <string name="connect_radio_for_remote_admin">Connect to a radio to administer remote nodes.</string>
+    <string name="connect_radio_to_change_settings">Connect to a radio to change these settings.</string>
     <string name="connected">Connected</string>
     <string name="connected_device">Connected Device</string>
     <string name="connected_sleeping">Connected to radio, but it is sleeping</string>
@@ -685,6 +709,7 @@
     <string name="delete_for_me">Delete for me</string>
     <string name="delete_key_backup">Delete Key Backup</string>
     <string name="delete_key_backup_confirmation">Deletes the encrypted key backup stored on this device. This cannot be undone.</string>
+    <string name="delete_key_backup_pick">Pick the encrypted key backup to delete from this device. This cannot be undone.</string>
     <plurals name="delete_messages">
         <item quantity="one">Delete message?</item>
         <item quantity="other">Delete %1$s messages?</item>
@@ -1024,6 +1049,9 @@
     <string name="firmware_edition">Firmware Edition</string>
     <string name="firmware_event_ended_banner">%1$s has ended. Return to standard Meshtastic firmware to restore normal features.</string>
     <string name="firmware_event_ended_button">Update firmware</string>
+    <string name="firmware_gate_message">This radio's firmware (%1$s) is older than the minimum this app supports (%2$s). Update the firmware to keep using the app. Latest stable firmware version: %3$s</string>
+    <string name="firmware_gate_title">Firmware update required</string>
+    <string name="firmware_gate_update">Update firmware</string>
     <string name="firmware_maintenance_bootloader_available">Latest: %1$s</string>
     <string name="firmware_maintenance_bootloader_installed">Installed: %1$s</string>
     <string name="firmware_maintenance_bootloader_latest_hint">Latest version: %1$s. The installed version is shown once the device restarts into update mode.</string>
@@ -1274,6 +1302,7 @@
     <string name="jump_to_latest_from_and_more">%1$s +%2$d</string>
     <string name="jump_to_message">Jump to message</string>
     <!-- KEY -->
+    <string name="key_backup_choice">%1$s, backed up %2$s</string>
     <string name="key_backup_deleted">Key backup deleted</string>
     <string name="key_backup_not_found">No key backup found for this node</string>
     <string name="key_backup_restore_failed">Failed to restore keys from backup</string>
@@ -1395,10 +1424,13 @@
     <string name="logs">Logs</string>
     <string name="long_name">Long Name</string>
     <string name="longitude">Longitude</string>
+    <!-- LORA -->
     <string name="lora">LoRa</string>
     <string name="lora_config">LoRa</string>
     <string name="lora_config_change_value">%1$s: %2$s → %3$s</string>
     <string name="lora_config_changes">LoRa Configuration Changes:</string>
+    <string name="lora_preset_custom">Custom</string>
+    <string name="lora_preset_region">%1$s · %2$s</string>
     <string name="low_battery">Low Battery</string>
     <string name="low_battery_message">Node %1$s has a low battery (%2$d%)</string>
     <string name="low_battery_title">Low battery: %1$s</string>
@@ -1434,6 +1466,7 @@
     <string name="map_layer_too_large">Map files over %1$d MB can't be imported.</string>
     <string name="map_node_popup_details">%1$s&lt;br&gt;Last heard: %2$s&lt;br&gt;Last position: %3$s&lt;br&gt;Battery: %4$s</string>
     <string name="map_offline_banner">Offline — showing cached map data</string>
+    <string name="map_offline_create_failed">Couldn't save this area for offline use</string>
     <string name="map_offline_download_failed_build">No offline map data available right now — try again later</string>
     <string name="map_offline_download_failed_io">Download failed — check your connection and try again</string>
     <string name="map_offline_download_failed_region_limit">Too many offline regions downloaded already — delete one first</string>
@@ -1449,6 +1482,7 @@
     <string name="map_offline_terrain_download_failed_io">Terrain download failed — check your connection and try again</string>
     <string name="map_offline_terrain_download_failed_tile_limit">Selected area is too large for terrain — zoom in or pick a smaller region</string>
     <string name="map_offline_terrain_downloading_progress">Downloading terrain… %1$d / %2$d tiles</string>
+    <string name="map_offline_unavailable">Offline maps are unavailable on this device</string>
     <string name="map_overlay_hillshade">Hillshade</string>
     <string name="map_overlay_precipitation">Precipitation</string>
     <string name="map_overlay_weather_radar">Weather radar</string>
@@ -2065,8 +2099,10 @@
     <string name="resend">Resend</string>
     <string name="reset">Reset</string>
     <string name="reset_to_defaults">Reset to defaults</string>
+    <string name="restore_app_database">Restore app data</string>
     <string name="restore_keys">Restore Keys</string>
     <string name="restore_keys_confirmation">Restores the backed-up public and private keys to this node.</string>
+    <string name="restore_keys_pick_backup">Pick the backup to restore to this node. A factory reset or a new key changes the node's ID, so older backups stay under the old ID. Only restore a backup taken from this same radio: another radio's key gives both radios the same identity.</string>
     <string name="retry">Retry</string>
     <string name="ringtone">Ringtone</string>
     <string name="ringtone_file_empty">File is empty</string>
@@ -2206,8 +2242,6 @@
     <string name="share_your_location_in_real_time">Share your location in real-time and keep your group coordinated with integrated GPS features.</string>
     <string name="shared_contact_no_public_key">This contact has no public key, so it cannot be imported. A contact without one clears any key your radio already holds for that node. Ask the sender to share it again once their node has exchanged keys.</string>
     <string name="short_name">Short Name</string>
-    <string name="should_update">To benefit from the latest fixes and features, please update your node firmware.\n\nLatest stable firmware version: %1$s</string>
-    <string name="should_update_firmware">Firmware Update Recommended.</string>
     <!-- SHOW -->
     <string name="show_all_key_title">Encryption Key Meanings</string>
     <string name="show_bell_button">Quick Chat Bell Button</string>
@@ -2255,6 +2289,7 @@
     <string name="site_planner_use_node_location">Use current node location</string>
     <string name="skip">Skip</string>
     <string name="slot">Slot</string>
+    <string name="slot_auto">Auto</string>
     <string name="snr">SNR</string>
     <string name="snr_definition">Signal-to-Noise Ratio, a measure used in communications to quantify the level of a desired signal to the level of background noise. In Meshtastic and other wireless systems, a higher SNR indicates a clearer signal that can enhance the reliability and quality of data transmission.</string>
     <string name="soil_moisture">Soil Moist</string>

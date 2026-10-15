@@ -29,21 +29,44 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import com.squareup.wire.Message
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.connect_radio_to_change_settings
 import org.meshtastic.core.resources.discard_changes
 import org.meshtastic.core.resources.save_and_restart
 import org.meshtastic.core.resources.save_changes
 import org.meshtastic.core.ui.component.MainAppBar
 import org.meshtastic.core.ui.component.PreferenceFooter
+import org.meshtastic.feature.settings.radio.RadioConfigState
 import org.meshtastic.feature.settings.radio.RebootBehavior
 import org.meshtastic.feature.settings.radio.ResponseState
+import org.meshtastic.feature.settings.search.FieldFocusRequest
+import org.meshtastic.feature.settings.search.LocalSettingsFieldFocus
+
+/** The local radio's settings open read-only while disconnected; remote-admin screens never show the prompt. */
+internal val RadioConfigState.connectPromptVisible: Boolean
+    get() = !connected && isLocal
 
 @Suppress("LongMethod")
 @Composable
@@ -57,6 +80,7 @@ fun <T : Message<T, *>> RadioConfigScreenList(
     onSave: (T) -> Unit,
     modifier: Modifier = Modifier,
     saveEnabled: Boolean = enabled,
+    showConnectPrompt: Boolean = false,
     rebootBehavior: RebootBehavior = RebootBehavior.MAY_RESTART,
     actions: @Composable () -> Unit = {},
     additionalDirtyCheck: () -> Boolean = { false },
@@ -81,12 +105,50 @@ fun <T : Message<T, *>> RadioConfigScreenList(
         ) { innerPadding ->
             val showFooterButtons = configState.isDirty || additionalDirtyCheck()
 
+            val listState = rememberLazyListState()
+            val fieldFocus = LocalSettingsFieldFocus.current
+            val requestedField = fieldFocus?.pending?.collectAsState()?.value
+            val keyIndex = remember { FieldKeyIndex() }
+            var highlightKey by remember { mutableStateOf<String?>(null) }
+            var highlightActive by remember { mutableStateOf(false) }
+
+            // A request for a key no item carries stays pending until the screen closes, and the screen just opens.
+            LaunchedEffect(requestedField, fieldFocus) {
+                val request = requestedField ?: return@LaunchedEffect
+                val key = request.key
+                val target =
+                    snapshotFlow { listState.layoutInfo.totalItemsCount }
+                        .map { keyIndex.indexOf(key) }
+                        .first { it != null } ?: return@LaunchedEffect
+                listState.animateScrollToItem(target)
+                fieldFocus.consume(request)
+                highlightKey = key
+                highlightActive = true
+                delay(HIGHLIGHT_HOLD_MILLIS)
+                highlightActive = false
+            }
+            // Leaving clears only the request this screen saw, never a newer one made for the next destination.
+            val seenRequest = remember { mutableStateOf<FieldFocusRequest?>(null) }
+            SideEffect { if (requestedField != null) seenRequest.value = requestedField }
+            DisposableEffect(fieldFocus) { onDispose { fieldFocus?.clear(seenRequest.value) } }
+
             LazyColumn(
+                state = listState,
                 modifier = Modifier.padding(innerPadding).fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                content()
+                keyIndex.reset()
+                val recording = FieldKeyRecordingScope(this, keyIndex, highlightKey, highlightActive)
+                if (showConnectPrompt) {
+                    recording.item {
+                        Text(
+                            text = stringResource(Res.string.connect_radio_to_change_settings),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                recording.content()
 
                 item {
                     AnimatedVisibility(

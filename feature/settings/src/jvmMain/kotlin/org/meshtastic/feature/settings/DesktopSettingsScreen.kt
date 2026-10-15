@@ -43,6 +43,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.meshtastic.core.common.util.UnitsOverride
 import org.meshtastic.core.model.AppUpdateCheckState
 import org.meshtastic.core.navigation.DiscoveryRoute
+import org.meshtastic.core.navigation.FirmwareRoute
 import org.meshtastic.core.navigation.Route
 import org.meshtastic.core.navigation.SettingsRoute
 import org.meshtastic.core.navigation.WifiProvisionRoute
@@ -55,13 +56,19 @@ import org.meshtastic.core.resources.app_settings
 import org.meshtastic.core.resources.bottom_nav_settings
 import org.meshtastic.core.resources.device_links
 import org.meshtastic.core.resources.discovery_local_mesh
+import org.meshtastic.core.resources.fr_HT
 import org.meshtastic.core.resources.help_and_documentation
 import org.meshtastic.core.resources.info
 import org.meshtastic.core.resources.node_layout_section_title
 import org.meshtastic.core.resources.preferences_language
+import org.meshtastic.core.resources.preferences_system_default
+import org.meshtastic.core.resources.pt_BR
+import org.meshtastic.core.resources.supportedLocaleTags
 import org.meshtastic.core.resources.theme
 import org.meshtastic.core.resources.units
 import org.meshtastic.core.resources.wifi_devices
+import org.meshtastic.core.resources.zh_CN
+import org.meshtastic.core.resources.zh_TW
 import org.meshtastic.core.ui.component.BasicListItem
 import org.meshtastic.core.ui.component.ListItem
 import org.meshtastic.core.ui.component.MeshtasticDialog
@@ -77,8 +84,7 @@ import org.meshtastic.core.ui.icon.List
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.PermScanWifi
 import org.meshtastic.core.ui.icon.Wifi
-import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
-import org.meshtastic.feature.settings.component.AppVersionButton
+import org.meshtastic.feature.settings.component.AppVersionRows
 import org.meshtastic.feature.settings.component.CacheLimitPreference
 import org.meshtastic.feature.settings.component.ExpressiveSection
 import org.meshtastic.feature.settings.component.FullMessageTimestampsSetting
@@ -92,8 +98,10 @@ import org.meshtastic.feature.settings.navigation.ConfigRoute
 import org.meshtastic.feature.settings.navigation.ModuleRoute
 import org.meshtastic.feature.settings.radio.RadioConfigItemList
 import org.meshtastic.feature.settings.radio.RadioConfigViewModel
+import org.meshtastic.feature.settings.radio.rememberDatabaseBackupActions
 import org.meshtastic.feature.settings.search.SettingsSearchBar
 import org.meshtastic.feature.settings.search.SettingsSearchViewModel
+import java.util.Locale
 
 /**
  * Desktop-specific top-level settings screen. Replaces the Android `SettingsScreen` which uses Android-specific APIs
@@ -110,6 +118,7 @@ fun DesktopSettingsScreen(
     onNavigate: (Route) -> Unit,
 ) {
     val state by radioConfigViewModel.radioConfigState.collectAsStateWithLifecycle()
+    val databaseBackup = rememberDatabaseBackupActions()
     val destNode by radioConfigViewModel.destNode.collectAsStateWithLifecycle()
     val localConfig by settingsViewModel.localConfig.collectAsStateWithLifecycle()
     val homoglyphEnabled by radioConfigViewModel.homoglyphEncodingEnabledFlow.collectAsStateWithLifecycle(false)
@@ -183,6 +192,9 @@ fun DesktopSettingsScreen(
                         }
                     navRoute?.let { onNavigate(it) }
                 },
+                databaseBackupAvailable = databaseBackup.available,
+                onBackupDatabase = databaseBackup.onBackup,
+                onRestoreDatabase = databaseBackup.onRestore,
                 onNavigate = onNavigate,
                 onImport = {
                     // Profile import not yet supported on Desktop
@@ -286,6 +298,10 @@ fun DesktopSettingsScreen(
                     onToggleNodeEvents = { settingsViewModel.setNodeEventsEnabled(it) },
                     lowBatteryEnabled = settingsViewModel.lowBatteryEnabled.collectAsStateWithLifecycle().value,
                     onToggleLowBattery = { settingsViewModel.setLowBatteryEnabled(it) },
+                    reactionsEnabled = settingsViewModel.reactionsEnabled.collectAsStateWithLifecycle().value,
+                    onToggleReactions = { settingsViewModel.setReactionsEnabled(it) },
+                    newWaypointsEnabled = settingsViewModel.newWaypointsEnabled.collectAsStateWithLifecycle().value,
+                    onToggleNewWaypoints = { settingsViewModel.setNewWaypointsEnabled(it) },
                 )
 
                 ExpressiveSection(title = stringResource(Res.string.help_and_documentation)) {
@@ -303,6 +319,7 @@ fun DesktopSettingsScreen(
                     onUnlockHiddenFeatures = { settingsViewModel.unlockHiddenFeatures() },
                     onNavigateToAbout = { onNavigate(SettingsRoute.About) },
                     updateAvailable = updateAvailable,
+                    onPlayChirpyHop = { onNavigate(FirmwareRoute.ChirpyHop) },
                 )
             }
         }
@@ -316,6 +333,7 @@ private fun DesktopAppInfoSection(
     hiddenFeaturesUnlocked: Boolean,
     onUnlockHiddenFeatures: () -> Unit,
     onNavigateToAbout: () -> Unit,
+    onPlayChirpyHop: () -> Unit,
     updateAvailable: Boolean = false,
 ) {
     ExpressiveSection(title = stringResource(Res.string.info)) {
@@ -357,61 +375,34 @@ private fun DesktopAppInfoSection(
             }
         }
 
-        AppVersionButton(
+        AppVersionRows(
             hiddenFeaturesUnlocked = hiddenFeaturesUnlocked,
             appVersionName = appVersionName,
             onUnlockHiddenFeatures = onUnlockHiddenFeatures,
+            onPlayChirpyHop = onPlayChirpyHop,
         )
     }
 }
 
-/**
- * Supported languages — tag must match the CMP `values-<qualifier>` directory names. Empty tag means system default.
- * Display names are written in the native language for clarity.
- */
-private val SUPPORTED_LANGUAGES =
-    listOf(
-        "" to "System default",
-        "ar" to "العربية",
-        "be" to "Беларуская",
-        "bg" to "Български",
-        "ca" to "Català",
-        "cs" to "Čeština",
-        "de" to "Deutsch",
-        "el" to "Ελληνικά",
-        "en" to "English",
-        "es" to "Español",
-        "et" to "Eesti",
-        "fi" to "Suomi",
-        "fr" to "Français",
-        "ga" to "Gaeilge",
-        "gl" to "Galego",
-        "he" to "עברית",
-        "hr" to "Hrvatski",
-        "ht" to "Kreyòl Ayisyen",
-        "hu" to "Magyar",
-        "is" to "Íslenska",
-        "it" to "Italiano",
-        "ja" to "日本語",
-        "ko" to "한국어",
-        "lt" to "Lietuvių",
-        "nl" to "Nederlands",
-        "no" to "Norsk",
-        "pl" to "Polski",
-        "pt" to "Português",
-        "pt-BR" to "Português (Brasil)",
-        "ro" to "Română",
-        "ru" to "Русский",
-        "sk" to "Slovenčina",
-        "sl" to "Slovenščina",
-        "sq" to "Shqip",
-        "sr" to "Српски",
-        "sv" to "Svenska",
-        "tr" to "Türkçe",
-        "uk" to "Українська",
-        "zh-CN" to "中文 (简体)",
-        "zh-TW" to "中文 (繁體)",
-    )
+/** Empty tag means system default; the rest are the shipped locales, each named in its own language. */
+@Composable
+private fun languageOptions(): List<Pair<String, String>> {
+    val overrides =
+        mapOf(
+            "" to stringResource(Res.string.preferences_system_default),
+            "ht" to stringResource(Res.string.fr_HT),
+            "pt-BR" to stringResource(Res.string.pt_BR),
+            "zh-CN" to stringResource(Res.string.zh_CN),
+            "zh-TW" to stringResource(Res.string.zh_TW),
+        )
+    return (listOf("") + supportedLocaleTags).map { tag -> tag to (overrides[tag] ?: nativeLanguageName(tag)) }
+}
+
+internal fun nativeLanguageName(tag: String): String = Locale.forLanguageTag(tag).let { locale ->
+    locale.getDisplayName(locale).replaceFirstChar { char ->
+        if (char.isLowerCase()) char.titlecase(locale) else char.toString()
+    }
+}
 
 @Composable
 private fun LanguagePickerDialog(onSelectLanguage: (String) -> Unit, onDismiss: () -> Unit) {
@@ -419,8 +410,9 @@ private fun LanguagePickerDialog(onSelectLanguage: (String) -> Unit, onDismiss: 
         title = stringResource(Res.string.preferences_language),
         onDismiss = onDismiss,
         text = {
+            val options = languageOptions()
             LazyColumn {
-                items(SUPPORTED_LANGUAGES) { (tag, displayName) ->
+                items(options) { (tag, displayName) ->
                     ListItem(text = displayName, trailingIcon = null) {
                         onSelectLanguage(tag)
                         onDismiss()

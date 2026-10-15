@@ -22,6 +22,7 @@ import co.touchlab.kermit.Logger
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
@@ -32,6 +33,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
@@ -42,9 +44,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.KoinViewModel
+import org.meshtastic.core.common.di.ApplicationCoroutineScope
 import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.common.util.safeCatching
@@ -75,6 +79,7 @@ import org.meshtastic.core.repository.LocationService
 import org.meshtastic.core.repository.LockdownCoordinator
 import org.meshtastic.core.repository.LockdownPassphraseStore
 import org.meshtastic.core.repository.MapConsentPrefs
+import org.meshtastic.core.repository.MeshConfigFlowManager
 import org.meshtastic.core.repository.MeshConnectionManager
 import org.meshtastic.core.repository.MqttManager
 import org.meshtastic.core.repository.NodeRepository
@@ -124,6 +129,16 @@ import kotlin.time.Duration.Companion.seconds
 
 internal val MANUAL_CHANNEL_WRITE_DELAY: Duration = 1.seconds
 private val REMOTE_READ_LATE_RESPONSE_GRACE: Duration = 2.minutes
+private val LIVE_SAVE_ACK_TIMEOUT: Duration = 1.minutes
+private val LIVE_SAVE_REBOOT_WINDOW: Duration = 8.seconds
+
+/** One stored key backup offered for restore; [longName] is null when the node DB no longer knows [nodeNum]. */
+data class SecurityKeyBackupOption(
+    val nodeNum: Int,
+    val longName: String?,
+    val timestamp: Long,
+    val isCurrentNode: Boolean,
+)
 
 /** Data class that represents the current RadioConfig state. */
 data class RadioConfigState(
@@ -151,6 +166,8 @@ data class RadioConfigState(
     val analyticsEnabled: Boolean = true,
     val nodeDbResetPreserveFavorites: Boolean = false,
     val canRebootToDfu: Boolean = false,
+    /** Whether the hardware registry tags the board DIY; null when the registry does not know the board. */
+    val isDiyHardware: Boolean? = null,
 )
 
 @KoinViewModel
@@ -180,7 +197,9 @@ open class RadioConfigViewModel(
     private val snackbarManager: SnackbarManager,
     private val nodeRestartTracker: NodeRestartTracker,
     private val connectionManager: MeshConnectionManager,
+    private val meshConfigFlowManager: MeshConfigFlowManager,
     private val analytics: PlatformAnalytics,
+    private val applicationScope: ApplicationCoroutineScope,
 ) : ViewModel() {
 
     /**
@@ -336,12 +355,19 @@ open class RadioConfigViewModel(
             .distinctUntilChanged()
             .flatMapLatest { hwModel ->
                 if (hwModel == null) {
-                    flowOf(false)
+                    flowOf(null)
                 } else {
-                    deviceHardwareRepository.observeDeviceHardware(hwModel).map { it?.isNrf52Arc == true }
+                    deviceHardwareRepository.observeDeviceHardware(hwModel)
                 }
             }
-            .onEach { canDfu -> _radioConfigState.update { it.copy(canRebootToDfu = canDfu) } }
+            .onEach { hardware ->
+                _radioConfigState.update {
+                    it.copy(
+                        canRebootToDfu = hardware?.isNrf52Arc == true,
+                        isDiyHardware = hardware?.isDiy,
+                    )
+                }
+            }
             .launchIn(viewModelScope)
 
         radioConfigRepository.deviceProfileFlow.onEach { _currentDeviceProfile.value = it }.launchIn(viewModelScope)
@@ -614,7 +640,40 @@ open class RadioConfigViewModel(
                 )
             }
             expectRestartIfLocal(config.saveRebootBehavior())
-            radioConfigUseCase.setConfig(destNum, config, onRequestId = ::registerWriteRequestId)
+            val refreshNodeInfoAfterAck = config.lora != null && destNum == myNodeNum && reportsHeardOnCurrentLora()
+            radioConfigUseCase.setConfig(destNum, config) { packetId ->
+                registerWriteRequestId(packetId)
+                if (refreshNodeInfoAfterAck) refreshNodeInfoAfterLiveSave(packetId, destNum)
+            }
+        }
+    }
+
+    private fun reportsHeardOnCurrentLora() = Capabilities(myNodeInfo.value?.firmwareVersion).supportsHeardOnCurrentLora
+
+    /**
+     * Firmware applies a LoRa save without a reboot and reports `heard_on_current_lora` only during the node-info stage
+     * of the handshake, so once the save's routing ACK arrives (within [LIVE_SAVE_ACK_TIMEOUT]) the node DB is
+     * re-requested unless the transport drops inside [LIVE_SAVE_REBOOT_WINDOW]. Both the ACK wait and the refresh run
+     * on the application scope, started undispatched so the packet subscription precedes the ACK, and hold no ViewModel
+     * state, so leaving the screen right after the save does not strand stale flags.
+     */
+    private fun refreshNodeInfoAfterLiveSave(packetId: Int, destNum: Int) {
+        val serviceRepository = serviceRepository
+        val processRadioResponse = processRadioResponseUseCase
+        val meshConfigFlowManager = meshConfigFlowManager
+        applicationScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            val acked =
+                withTimeoutOrNull(LIVE_SAVE_ACK_TIMEOUT) {
+                    serviceRepository.meshPacketFlow.first {
+                        processRadioResponse(it, destNum, setOf(packetId)) is RadioResponseResult.Success
+                    }
+                }
+            if (acked == null) return@launch
+            val dropped =
+                withTimeoutOrNull(LIVE_SAVE_REBOOT_WINDOW) {
+                    serviceRepository.connectionState.first { it != ConnectionState.Connected }
+                }
+            if (dropped == null) meshConfigFlowManager.refreshNodeInfo()
         }
     }
 
@@ -736,12 +795,6 @@ open class RadioConfigViewModel(
         }
     }
 
-    /** Whether an encrypted key backup exists for the node currently being configured. */
-    fun securityKeyBackupExists(): Boolean {
-        val nodeNum = destNum ?: destNode.value?.num ?: return false
-        return securityKeyBackupStore.get(nodeNum) != null
-    }
-
     /** Saves the node's current public/private keys to OS-backed encrypted storage, keyed by node number. */
     fun backupSecurityKeys(securityConfig: Config.SecurityConfig, onComplete: () -> Unit = {}) {
         val nodeNum = destNum ?: destNode.value?.num ?: return
@@ -757,17 +810,40 @@ open class RadioConfigViewModel(
                 publicKeyBase64 = securityConfig.public_key.base64(),
                 privateKeyBase64 = securityConfig.private_key.base64(),
                 timestamp = nowMillis,
+                longName = nodeRepository.nodeDBbyNum.value[nodeNum]?.user?.long_name?.takeIf { it.isNotBlank() },
             )
             snackbarManager.showSnackbar(message = UiText.Resource(Res.string.key_backup_saved).resolve())
             onComplete()
         }
     }
 
-    /** Restores the previously backed-up keys for this node and pushes them to the device via admin config. */
-    fun restoreSecurityKeys() {
+    /** Every stored key backup, this node's own first, then newest first. */
+    fun securityKeyBackups(): List<SecurityKeyBackupOption> {
+        val nodeNum = destNum ?: destNode.value?.num
+        val nodes = nodeRepository.nodeDBbyNum.value
+        return securityKeyBackupStore
+            .all()
+            .map { (num, keys) ->
+                SecurityKeyBackupOption(
+                    nodeNum = num,
+                    longName = keys.longName ?: nodes[num]?.user?.long_name?.takeIf { it.isNotBlank() },
+                    timestamp = keys.timestamp,
+                    isCurrentNode = num == nodeNum,
+                )
+            }
+            .sortedWith(
+                compareByDescending<SecurityKeyBackupOption> { it.isCurrentNode }.thenByDescending { it.timestamp },
+            )
+    }
+
+    /**
+     * Restores the keys backed up under [fromNodeNum] (default: this node) and pushes them to the device via admin
+     * config.
+     */
+    fun restoreSecurityKeys(fromNodeNum: Int? = null) {
         val nodeNum = destNum ?: destNode.value?.num ?: return
         safeLaunch(tag = "restoreSecurityKeys") {
-            val stored = securityKeyBackupStore.get(nodeNum)
+            val stored = securityKeyBackupStore.get(fromNodeNum ?: nodeNum)
             if (stored == null) {
                 snackbarManager.showSnackbar(message = UiText.Resource(Res.string.key_backup_not_found).resolve())
                 return@safeLaunch
@@ -785,9 +861,9 @@ open class RadioConfigViewModel(
         }
     }
 
-    /** Deletes the encrypted key backup for this node, if any. */
-    fun deleteSecurityKeyBackup(onComplete: () -> Unit = {}) {
-        val nodeNum = destNum ?: destNode.value?.num ?: return
+    /** Deletes the encrypted key backup stored under [backupNodeNum] (default: this node), if any. */
+    fun deleteSecurityKeyBackup(backupNodeNum: Int? = null, onComplete: () -> Unit = {}) {
+        val nodeNum = backupNodeNum ?: destNum ?: destNode.value?.num ?: return
         safeLaunch(tag = "deleteSecurityKeyBackup") {
             securityKeyBackupStore.delete(nodeNum)
             snackbarManager.showSnackbar(message = UiText.Resource(Res.string.key_backup_deleted).resolve())
@@ -833,6 +909,7 @@ open class RadioConfigViewModel(
 
     /** Refreshes a config route while keeping the connect-time local snapshot visible. */
     fun loadConfigRoute(route: Enum<*>) {
+        if (destNum == null && serviceRepository.connectionState.value != ConnectionState.Connected) return
         setResponseStateLoading(route = route, showOverlay = destNum != null)
     }
 

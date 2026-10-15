@@ -37,6 +37,7 @@ import org.meshtastic.core.model.Capabilities
 import org.meshtastic.core.model.Channel
 import org.meshtastic.core.model.RegionInfo
 import org.meshtastic.core.model.RegionPresetConstraint
+import org.meshtastic.core.model.schemaLabelRes
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.config_lora_modem_preset_licensed_summary
 import org.meshtastic.core.resources.mesh_beacon
@@ -67,8 +68,10 @@ import org.meshtastic.core.ui.component.EditTextPreference
 import org.meshtastic.core.ui.component.RegularPreference
 import org.meshtastic.core.ui.component.SwitchPreference
 import org.meshtastic.core.ui.component.TitledCard
+import org.meshtastic.feature.settings.navigation.ModuleRoute
 import org.meshtastic.feature.settings.radio.RadioConfigViewModel
 import org.meshtastic.feature.settings.radio.RebootBehavior
+import org.meshtastic.feature.settings.search.SettingsSearchCatalog
 import org.meshtastic.feature.settings.util.FixedUpdateIntervals
 import org.meshtastic.feature.settings.util.IntervalConfiguration
 import org.meshtastic.feature.settings.util.toDisplayString
@@ -121,6 +124,7 @@ fun MeshBeaconConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, 
             configState = rememberConfigState(initialValue = meshBeaconConfig),
             enabled = false,
             responseState = state.responseState,
+            showConnectPrompt = state.connectPromptVisible,
             onDismissPacketResponse = viewModel::clearPacketResponse,
             onSave = {},
         ) {
@@ -184,18 +188,20 @@ fun MeshBeaconConfigScreen(viewModel: RadioConfigViewModel, onBack: () -> Unit, 
         meshBeaconSaveEnabled(state.connected, radioLora.use_preset, intervalValid, state.channelList.isNotEmpty()),
         rebootBehavior = RebootBehavior.NEVER,
         responseState = state.responseState,
+        showConnectPrompt = state.connectPromptVisible,
         onDismissPacketResponse = viewModel::clearPacketResponse,
         onSave = {
             val stamped = stampBeaconConfigForSave(it, meshBeaconConfig, radioLora, state.channelList)
             viewModel.setModuleConfig(ModuleConfig.Builder().also { wb -> wb.mesh_beacon = stamped }.build())
         },
     ) {
-        item {
+        fieldItem(SettingsSearchCatalog.fieldKeys(ModuleRoute.MESH_BEACON.route)) {
             TitledCard(title = stringResource(Res.string.mesh_beacon)) {
                 RegularPreference(
                     title = stringResource(Res.string.mesh_beacon_region_label),
                     subtitle =
-                    RegionInfo.fromRegionCode(radioLora.region)?.description
+                    radioLora.region.schemaLabelRes()?.let { stringResource(it) }
+                        ?: RegionInfo.fromRegionCode(radioLora.region)?.description
                         ?: radioLora.region.name.replace('_', ' '),
                     onClick = {},
                     enabled = false,
@@ -478,9 +484,16 @@ private fun BroadcastTargetRow(
         onItemSelected = { channelIndex -> onChange { selectBeaconTargetChannel(it, channelIndex, currentPreset) } },
     )
     val rowPreset = target.preset
+    val labels = presetLabels()
     val presetItems =
-        remember(presetConstraint, presetsGated, rowPreset, capabilities) {
-            buildPresetItems(presetConstraint, presetsGated, rowPreset ?: presetConstraint.defaultPreset, capabilities)
+        remember(presetConstraint, presetsGated, rowPreset, capabilities, labels) {
+            buildPresetItems(
+                presetConstraint,
+                presetsGated,
+                rowPreset ?: presetConstraint.defaultPreset,
+                capabilities,
+                labels,
+            )
         }
     val nullablePresetItems: List<DropDownItem<ModemPreset?>> =
         listOf(DropDownItem<ModemPreset?>(value = null, label = defaultLabel)) +
