@@ -552,6 +552,7 @@ class MessageViewModel(
         }
     }
 
+    @Suppress("UnusedParameter")
     fun resendImageMessage(uuid: Long, imageBytes: ByteArray, contactKey: String, replyId: Int? = null) {
         if (ContactKey(contactKey).isRetired) return
         safeLaunch(errorEvents = sendErrorEvents, tag = "resendImageMessage") {
