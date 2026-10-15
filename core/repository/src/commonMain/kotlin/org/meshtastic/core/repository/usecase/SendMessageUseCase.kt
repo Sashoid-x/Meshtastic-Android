@@ -170,7 +170,7 @@ class SendMessageUseCaseImpl(
     private suspend fun sendDirectMessageSideEffects(channel: Int?, dest: String, ourNode: Node?) {
         val isDirectMessage = channel == null || channel == NodeAddress.PKC_CHANNEL_INDEX
         if (!isDirectMessage) return
-        val destNode = nodeRepository.getNode(dest) ?: return
+        val destNode = nodeRepository.getNode(dest)
         val fwVersion = ourNode?.metadata?.firmware_version
         val isClientBase = ourNode?.user?.role == Config.DeviceConfig.Role.CLIENT_BASE
         val capabilities = Capabilities(fwVersion)
