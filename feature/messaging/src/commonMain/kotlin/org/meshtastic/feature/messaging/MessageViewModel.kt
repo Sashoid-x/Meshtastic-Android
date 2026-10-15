@@ -48,7 +48,6 @@ import kotlinx.coroutines.withContext
 import org.koin.core.annotation.KoinViewModel
 import org.meshtastic.core.common.util.currentLocaleCode
 import org.meshtastic.core.common.util.ioDispatcher
-
 import org.meshtastic.core.model.ContactSettings
 import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.Node
