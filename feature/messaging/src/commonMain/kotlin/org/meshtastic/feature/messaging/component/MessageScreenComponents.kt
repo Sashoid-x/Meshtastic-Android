@@ -912,8 +912,8 @@ fun MessageSearchBar(
     onClose: () -> Unit,
     resultCount: Int,
     currentIndex: Int = 0,
-    onPrevious: () -> Unit = {},
-    onNext: () -> Unit = {},
+    onNavigateUp: () -> Unit = {},
+    onNavigateDown: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     TopAppBar(
@@ -953,13 +953,13 @@ fun MessageSearchBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(end = 4.dp),
                 )
-                IconButton(onClick = onPrevious) {
+                IconButton(onClick = onNavigateUp) {
                     Icon(
                         imageVector = MeshtasticIcons.KeyboardArrowUp,
                         contentDescription = stringResource(Res.string.search_messages),
                     )
                 }
-                IconButton(onClick = onNext) {
+                IconButton(onClick = onNavigateDown) {
                     Icon(
                         imageVector = MeshtasticIcons.KeyboardArrowDown,
                         contentDescription = stringResource(Res.string.search_messages),

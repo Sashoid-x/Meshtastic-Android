@@ -403,6 +403,12 @@ class MessageViewModel(
         _searchResultIndex.update { if (it == 0) max - 1 else it - 1 }
     }
 
+    /** Navigates to the next older search result (visually up in the chat). */
+    fun navigateToOlderResult() = navigateToNextResult()
+
+    /** Navigates to the next newer search result (visually down in the chat). */
+    fun navigateToNewerResult() = navigateToPreviousResult()
+
     fun toggleSearch() {
         _isSearchActive.value = !_isSearchActive.value
         if (!_isSearchActive.value) {

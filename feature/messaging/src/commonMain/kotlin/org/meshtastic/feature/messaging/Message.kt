@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -87,16 +88,22 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toPersistentMap
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.common.util.HomoglyphCharacterStringTransformer
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.ContactKey
 import org.meshtastic.core.model.MENTION_TOKEN_REGEX
+import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.QuickChatAction
@@ -143,6 +150,7 @@ import org.meshtastic.feature.messaging.filetransfer.FileTransferWarningDialog
 import org.meshtastic.feature.messaging.filetransfer.MftProtocol
 import org.meshtastic.feature.messaging.filetransfer.TransferState
 import org.meshtastic.feature.messaging.image.MonochromeImageEditorDialog
+import kotlin.math.abs
 
 private const val ROUNDED_CORNER_PERCENT = 100
 private const val MAX_LINES = 3
@@ -425,10 +433,7 @@ fun MessageScreen(
     // Scroll to the current search result when navigating prev/next
     LaunchedEffect(currentSearchResult) {
         val targetUuid = currentSearchResult?.uuid ?: return@LaunchedEffect
-        val index = pagedMessages.itemSnapshotList.indexOfFirst { it?.uuid == targetUuid }
-        if (index != -1) {
-            listState.animateScrollToItem(index)
-        }
+        scrollToMessage(targetUuid, pagedMessages, listState)
     }
 
     // Who sent the newest unread message, for the jump-to-latest pill. Own messages are never unread, so this is
@@ -569,8 +574,8 @@ fun MessageScreen(
                     onClose = viewModel::closeSearch,
                     resultCount = searchResults.size,
                     currentIndex = searchResultIndex,
-                    onPrevious = viewModel::navigateToPreviousResult,
-                    onNext = viewModel::navigateToNextResult,
+                    onNavigateUp = viewModel::navigateToOlderResult,
+                    onNavigateDown = viewModel::navigateToNewerResult,
                 )
             } else {
                 MessageTopBar(
@@ -752,11 +757,7 @@ fun MessageScreen(
                 onJumpToMessage = { message ->
                     showPinnedSheet = false
                     coroutineScope.launch {
-                        val targetIndex =
-                            pagedMessages.itemSnapshotList.indexOfFirst { it?.uuid == message.uuid }.takeIf { it != -1 }
-                        if (targetIndex != null) {
-                            listState.animateScrollToItem(index = targetIndex)
-                        }
+                        scrollToMessage(message.uuid, pagedMessages, listState)
                     }
                 },
             )
@@ -1411,5 +1412,70 @@ fun RetiredChannelNoticePreview() {
                 RetiredChannelNotice()
             }
         }
+    }
+}
+
+private const val FAST_SCROLL_CHUNK_SIZE = 30
+private const val SCROLL_JUMP_OFFSET = 10
+private const val LOAD_TIMEOUT_MS = 5000L
+
+private suspend fun scrollToMessage(
+    targetUuid: Long,
+    pagedMessages: LazyPagingItems<Message>,
+    listState: LazyListState,
+) {
+    var index = pagedMessages.itemSnapshotList.indexOfFirst { it?.uuid == targetUuid }
+    if (index != -1) {
+        val diff = listState.firstVisibleItemIndex - index
+        if (abs(diff) > FAST_SCROLL_CHUNK_SIZE) {
+            val jumpIndex = if (diff > 0) index + SCROLL_JUMP_OFFSET else index - SCROLL_JUMP_OFFSET
+            listState.scrollToItem(jumpIndex.coerceIn(0, pagedMessages.itemCount - 1))
+        }
+        listState.animateScrollToItem(index)
+        return
+    }
+
+    // The target message is not in the currently loaded pages of pagedMessages.
+    // Progressively request subsequent pages by accessing the last loaded item until
+    // the target appears in the snapshot or end of pagination is reached.
+    while (
+        index == -1 &&
+        !pagedMessages.loadState.append.endOfPaginationReached &&
+        pagedMessages.loadState.append !is LoadState.Error
+    ) {
+        val lastIndex = pagedMessages.itemCount - 1
+        if (lastIndex >= 0) {
+            // Accessing the last item in LazyPagingItems sends a hint to PageFetcher to load the next page
+            pagedMessages[lastIndex]
+        }
+
+        val currentCount = pagedMessages.itemCount
+        val loaded =
+            withTimeoutOrNull(LOAD_TIMEOUT_MS) {
+                snapshotFlow {
+                    val found = pagedMessages.itemSnapshotList.indexOfFirst { it?.uuid == targetUuid }
+                    val countChanged = pagedMessages.itemCount > currentCount
+                    val endReached = pagedMessages.loadState.append.endOfPaginationReached
+                    val isError = pagedMessages.loadState.append is LoadState.Error
+                    found != -1 || countChanged || endReached || isError
+                }
+                    .filter { it }
+                    .first()
+            }
+
+        if (loaded == null) {
+            break
+        }
+
+        index = pagedMessages.itemSnapshotList.indexOfFirst { it?.uuid == targetUuid }
+    }
+
+    if (index != -1) {
+        val diff = listState.firstVisibleItemIndex - index
+        if (abs(diff) > FAST_SCROLL_CHUNK_SIZE) {
+            val jumpIndex = if (diff > 0) index + SCROLL_JUMP_OFFSET else index - SCROLL_JUMP_OFFSET
+            listState.scrollToItem(jumpIndex.coerceIn(0, pagedMessages.itemCount - 1))
+        }
+        listState.animateScrollToItem(index)
     }
 }
