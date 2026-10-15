@@ -654,16 +654,13 @@
     <string name="delete_for_me">Удалить у меня</string>
     <string name="delete_key_backup">Удалить резервную копию ключа</string>
     <string name="delete_key_backup_confirmation">Удалить зашифрованную резервную копию ключа, хранящуюся на этом устройстве. Это нельзя отменить.</string>
-<<<<<<< HEAD
-=======
     <string name="delete_key_backup_pick">Выбери резервную копию зашифрованного ключа для удаления с этого устройства. Это не может быть отменено.</string>
     <plurals name="delete_messages">
         <item quantity="one">Удалить сообщение?</item>
         <item quantity="few">Удалить %1$s сообщения?</item>
         <item quantity="many">Удалить %1$s сообщений?</item>
-        <item quantity="other">Удалить все сообщения? = Delete all messages?</item>
+        <item quantity="other">Удалить сообщения?</item>
     </plurals>
->>>>>>> main
     <string name="delete_messages_title">Удалить сообщения?</string>
     <string name="delete_selection">Удалить выбранное</string>
     <string name="delivery_confirmed">Доставка подтверждена</string>
@@ -791,11 +788,7 @@
     <string name="distance_filters_description">Фильтровать список нод и сеть на основе близости к вашему телефону.</string>
     <string name="distance_measurements">Измерения расстояния</string>
     <string name="distance_measurements_description">Показать расстояния между вашим телефоном и другими нодами Meshstatic с позициями.</string>
-<<<<<<< HEAD
-=======
-    <!-- DOC -->
     <string name="doc_auto_translated">Автоперевод</string>
->>>>>>> main
     <string name="doc_clear_search">Очистить условия поиска</string>
     <string name="doc_community_translated">Перевод сообщества</string>
     <string name="doc_keywords_app_functions">system ai,gemini,assistant,functions,automation,voice</string>
@@ -1239,12 +1232,8 @@
     <string name="json_output_enabled">Вывод JSON включен</string>
     <string name="jump_to_latest_from">%1$s</string>
     <string name="jump_to_latest_from_and_more">%1$s +%2$d</string>
-<<<<<<< HEAD
     <string name="jump_to_message">Перейти к сообщению</string>
-=======
-    <!-- KEY -->
     <string name="key_backup_choice">%1$s, резервное копирование %2$s</string>
->>>>>>> main
     <string name="key_backup_deleted">Резервная копия ключа удалена</string>
     <string name="key_backup_not_found">Для этой ноды не найдено резервной копии ключа</string>
     <string name="key_backup_restore_failed">Не удалось восстановить ключи из резервной копии</string>
@@ -1402,18 +1391,11 @@
     <string name="map_offline_region_label">%1$s, %2$s  %3$s</string>
     <string name="map_offline_show_on_map">Показать на карте</string>
     <string name="map_offline_terrain_contours">Контуры</string>
-<<<<<<< HEAD
-    <string name="map_offline_terrain_download_complete">Загрузка рельефа завершена</string>
-    <string name="map_offline_terrain_download_failed_io">Ошибка загрузки рельефа — проверьте соединение и попробуйте снова</string>
-    <string name="map_offline_terrain_download_failed_tile_limit">Выбранная область слишком велика для рельефа — увеличьте масштаб или выберите регион меньшего размера</string>
-    <string name="map_offline_terrain_downloading_progress">Загрузка рельефа… %1$d / %2$d тайлов</string>
-=======
     <string name="map_offline_terrain_download_complete">Загрузка местности завершена</string>
     <string name="map_offline_terrain_download_failed_io">Загрузка местности не удалась — проверь подключение и попробуй снова</string>
     <string name="map_offline_terrain_download_failed_tile_limit">Выбранная область слишком большая для местности — увеличь масштаб или выбери меньший участок</string>
     <string name="map_offline_terrain_downloading_progress">Загрузка местности… %1$d / %2$d плиток</string>
     <string name="map_offline_unavailable">Оффлайн карты недоступны на этом устройстве</string>
->>>>>>> main
     <string name="map_overlay_hillshade">Тень на склоне</string>
     <string name="map_overlay_precipitation">Осадки</string>
     <string name="map_overlay_weather_radar">Метеорадары</string>
@@ -1718,11 +1700,7 @@
     <string name="notification_permission_denied_notice">Без уведомлений Meshtastic не сможет оповещать тебя о новых сообщениях, новых нодах или низком заряде батареи, когда приложение работает в фоновом режиме.</string>
     <string name="notification_permission_rationale">Уведомления — это способ, которым Meshtastic связывается с тобой, когда приложение закрыто(в фоне): новые сообщения, обнаруженные ноды и низкий заряд батареи радио. Если ты откажешься, больше ничего не изменится.</string>
     <string name="notification_permissions_description">Meshtastic использует уведомления, чтобы держать вас в курсе новых сообщений и других важных событий. Вы можете обновить разрешения уведомлений в любое время из настроек.</string>
-<<<<<<< HEAD
-=======
     <string name="notification_reaction_to">%1$s к %2$s”</string>
-    <!-- NOTIFICATIONS -->
->>>>>>> main
     <string name="notifications_for_channel_and_direct_messages">Уведомления для каналов и личных сообщений.</string>
     <string name="notifications_for_low_battery_alerts">Уведомления о низком заряде батареи для подключенного устройства.</string>
     <string name="notifications_for_newly_discovered_nodes">Уведомления для новых обнаруженных нод.</string>
