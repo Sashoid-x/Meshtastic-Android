@@ -313,6 +313,16 @@ class FakeUiPrefs : UiPrefs {
         firmwareUpdateNotificationKeys.value += key
     }
 
+    override val keptUnheardNodes = MutableStateFlow<Set<Int>>(emptySet())
+
+    override fun keepUnheardNodes(nodeNums: Set<Int>) {
+        keptUnheardNodes.value += nodeNums
+    }
+
+    override fun forgetKeptUnheardNodes(nodeNums: Set<Int>) {
+        keptUnheardNodes.value -= nodeNums
+    }
+
     private val nodeLocationEnabled = mutableMapOf<Int, MutableStateFlow<Boolean>>()
 
     override fun shouldProvideNodeLocation(nodeNum: Int): StateFlow<Boolean> =
@@ -434,6 +444,12 @@ class FakeMapPrefs : MapPrefs {
     }
 
     override suspend fun awaitCameraPosition(): MapCameraPosition? = cameraPosition
+
+    override val meshHudCoachSeen = MutableStateFlow(false)
+
+    override fun setMeshHudCoachSeen(seen: Boolean) {
+        meshHudCoachSeen.value = seen
+    }
 }
 
 class FakeMapConsentPrefs : MapConsentPrefs {

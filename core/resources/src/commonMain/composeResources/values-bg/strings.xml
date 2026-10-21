@@ -156,6 +156,7 @@
     <!-- CHIRPY -->
     <string name="chirpy">Чирпи</string>
     <string name="chirpy_downloading_subtitle">Това се случва само веднъж. Chirpy скоро ще е готов!</string>
+    <string name="chirpy_hop_game_over">КРАЙ НА ИГРАТА</string>
     <string name="chirpy_hop_update_complete">Актуализацията е завършена</string>
     <string name="chirpy_hop_update_interrupted">Актуализацията е прекъсната</string>
     <string name="chirpy_ready">Попитайте Chirpy</string>
@@ -341,6 +342,7 @@
     <string name="distance_measurements">Измервания на разстояния</string>
     <string name="distance_measurements_description">Показване на разстоянието между вашия телефон и други възли на Meshtastic с позиции.</string>
     <!-- DOC -->
+    <string name="doc_auto_translated">Автоматично преведено</string>
     <string name="doc_clear_search">Изчистване на търсенето</string>
     <string name="doc_loading">Зареждане на документацията…</string>
     <string name="doc_no_content">Няма налично съдържание.</string>
@@ -503,6 +505,7 @@
     <string name="firmware_update_starting_dfu">Стартиране на DFU...</string>
     <string name="firmware_update_starting_ota">Стартиране на OTA актуализация...</string>
     <string name="firmware_update_success">Актуализацията е успешна!</string>
+    <string name="firmware_update_success_wiped">Устройството е върнато към фабричните настройки и трябва да бъде конфигурирано (и сдвоено) отново.</string>
     <string name="firmware_update_taking_a_while">Това може да отнеме минута...</string>
     <string name="firmware_update_target">Цел: %1$s</string>
     <string name="firmware_update_title">Актуализация на фърмуера</string>
@@ -510,6 +513,8 @@
     <string name="firmware_update_transfer_progress">%1$d% (%2$s/s, ETA: %3$ds)</string>
     <string name="firmware_update_unknown_error">Неизвестна грешка</string>
     <string name="firmware_update_unknown_hardware">Неизвестен модел хардуер: %1$d</string>
+    <string name="firmware_update_unsupported_transport">Актуализациите на фърмуера не се поддържат чрез тази връзка за това устройство. За да извършите актуализация, използвайте друг начин на свързване (напр. Bluetooth).</string>
+    <string name="firmware_update_unsupported_update_method">Локални файлове с фърмуер не се поддържат за този метод на актуализация.</string>
     <string name="firmware_update_uploading">Качване на фърмуера...</string>
     <string name="firmware_update_usb_bootloader_warning">%1$s обикновено се доставя с буутлоудър, който не поддържа OTA актуализации. Може да се наложи да флашнете OTA - съвместим буутлоудър през USB, преди да флашнете OTA.</string>
     <string name="firmware_update_usb_failed">Актуализацията през USB не е успешна</string>
@@ -519,6 +524,7 @@
     <string name="firmware_update_verifying">Проверка на актуализацията...</string>
     <string name="firmware_update_waiting_reboot">Изчаква се устройството да се рестартира в режим OTA...</string>
     <string name="firmware_update_waiting_reconnect">Чака се устройството да се свърже отново...</string>
+    <string name="firmware_update_wipe_label">Изтриване на устройството по време на актуализацията</string>
     <string name="firmware_version">Версия на фърмуера: %1$s</string>
     <string name="fixed_position">Фиксирана позиция</string>
     <string name="for_more_information_see_our_privacy_policy">За повече информация вижте нашата политика за поверителност.</string>
@@ -655,6 +661,7 @@
     <string name="lora">LoRa</string>
     <string name="lora_config">LoRa</string>
     <string name="lora_config_change_value">%1$s: %2$s → %3$s</string>
+    <string name="lora_preset_region">%1$s · %2$s</string>
     <string name="low_battery">Изтощена батерия</string>
     <string name="low_battery_message">%1$sВъзела %1$s има слаба батерия (%2$d%)</string>
     <string name="low_battery_title">Батерията е изтощена: %1$s</string>
@@ -733,6 +740,7 @@
     <string name="mesh_beacon_target_channel_index">Канал</string>
     <string name="mesh_beacon_target_default">По подразбиране</string>
     <string name="mesh_beacon_target_remove">Премахване на целта</string>
+    <string name="mesh_hud_joined">%1$s · %2$s</string>
     <string name="mesh_map_location">Местоположение на mesh карта</string>
     <string name="mesh_map_location_description">Активира синята точка за местоположение на телефона ви в mesh карта.</string>
     <!-- MESHTASTIC -->
@@ -781,6 +789,7 @@
     <!-- MQTT -->
     <string name="mqtt">MQTT</string>
     <string name="mqtt_config">Конфигуриране на MQTT</string>
+    <string name="mqtt_error_connection_lost">MQTT: връзката е загубена</string>
     <string name="mqtt_probe_dns_failure">Хостът не е намерен</string>
     <string name="mqtt_probe_other_failure">Връзката е неуспешна</string>
     <string name="mqtt_probe_success">Достъпен. Брокерът е приел идентификационните данни.</string>
@@ -865,7 +874,7 @@
     <string name="node_list_help_title">Помощ за списъка с възли</string>
     <string name="node_number">Номер на възела</string>
     <string name="node_restarting">Рестартиране…</string>
-    <string name="node_sort_alpha">А-Я</string>
+    <string name="node_sort_alpha">A-Z</string>
     <string name="node_sort_button">Опции за сортиране на възлите</string>
     <string name="node_sort_channel">Канал</string>
     <string name="node_sort_distance">Разстояние</string>
@@ -925,6 +934,7 @@
     <string name="open_wifi_settings">Отваряне на настройките на Wi-Fi</string>
     <string name="options">Опции</string>
     <!-- PACKET -->
+    <string name="packet_authenticity_level">Ниво на защита</string>
     <string name="password">Парола</string>
     <!-- PAX -->
     <string name="pax">PAX</string>
@@ -941,7 +951,12 @@
     <!-- PERMISSION -->
     <string name="permission_location_summary">Покажете местоположението си на картата и го споделете с mesh</string>
     <string name="permission_missing_31">Meshtastic се нуждае от активирани разрешения за "Устройства наблизо", за да намира и да се свързва с устройства чрез Bluetooth. Можете да ги дезактивирате, когато не се използват.</string>
+    <string name="permission_state_not_applicable">Не се изисква в тази версия на Android</string>
     <!-- PERMISSIONS -->
+    <string name="permissions">Разрешения</string>
+    <string name="permissions_all_allowed">Всичко е позволено</string>
+    <string name="permissions_hide">Скриване на разрешенията</string>
+    <string name="permissions_show">Показване на разрешенията</string>
     <string name="phone_location">Местоположение на телефона</string>
     <string name="phone_location_description">Meshtastic използва местоположението на телефона ви, за да активира редица функции. Можете да актуализирате разрешенията си за местоположение по всяко време от настройките.</string>
     <string name="pin_selected">ПИН</string>
@@ -969,6 +984,7 @@
     <string name="power">Захранване</string>
     <string name="power_config">Конфигуриране на захранването</string>
     <string name="power_metrics_log">Показатели на мощност</string>
+    <string name="powered">Външно захранване</string>
     <string name="ppm">ppm</string>
     <string name="precise_location">Точно местоположение</string>
     <string name="preferences_language">Език</string>
@@ -1003,6 +1019,7 @@
     <string name="range_test">Тест на обхвата</string>
     <string name="range_test_config">Конфигуриране на Тест на обхвата</string>
     <string name="reboot">Рестартиране</string>
+    <string name="reboot_into_dfu">Рестартиране в режим DFU</string>
     <string name="recent_network_devices">Скорошни мрежови устройства</string>
     <string name="reconnecting">Повторно свързване…</string>
     <string name="refresh">Опресняване</string>
@@ -1015,10 +1032,15 @@
     <string name="remote_hardware">Отдалечен хардуер</string>
     <string name="remote_hardware_config">Конфигуриране на отдалечения хардуер</string>
     <string name="remote_hardware_enabled">Отдалечен хардуер е активиран</string>
+    <string name="remote_shell_command_hint">Команда</string>
+    <string name="remote_shell_error_notice">Грешка от възела: %1$s</string>
     <string name="remote_shell_key_alt">н.в.</string>
     <string name="remote_shell_key_ctrl">Контрол</string>
+    <string name="remote_shell_menu_paste">Поставяне</string>
     <string name="remote_shell_modifier_locked">Заключен</string>
+    <string name="remote_shell_more_options">Още опции</string>
     <string name="remote_shell_send">Изпрати</string>
+    <string name="remote_shell_status_closing">Затваряне…</string>
     <string name="remote_shell_status_not_connected">Няма връзка</string>
     <string name="remotely_administrating">"[Отдалечен] %1$s"</string>
     <!-- REMOVE -->
@@ -1062,6 +1084,7 @@
     <string name="role_tak">TAK</string>
     <string name="role_tracker">Тракер</string>
     <!-- ROUTING -->
+    <string name="routing_error_bad_request">Невалидна заявка</string>
     <string name="routing_error_got_nak">Получено отрицателно потвърждение</string>
     <string name="routing_error_max_retransmit">Неуспешно доставяне към mesh</string>
     <string name="routing_error_no_interface">Няма радио интерфейс</string>
@@ -1109,6 +1132,7 @@
     <string name="security_signed_node">Подписан възел</string>
     <string name="security_signed_node_desc">Проверено автоматично</string>
     <string name="security_signed_verified">Подписано · проверено</string>
+    <string name="security_verified_contact">Потвърден контакт</string>
     <string name="select">Изберете</string>
     <string name="select_all">Избери всички</string>
     <string name="selected">Избрани</string>
@@ -1129,6 +1153,7 @@
     <!-- SHOW -->
     <string name="show_layer">Показване на слой</string>
     <string name="show_password">Показване на паролата</string>
+    <string name="show_translation">Показване на превода</string>
     <string name="show_waypoints">Показване на пътни точки</string>
     <string name="shutdown">Изключване</string>
     <string name="shutdown_node_name">Възел: %1$s</string>
@@ -1175,6 +1200,7 @@
     <string name="tak_server_section">Сървър</string>
     <string name="tak_server_status">Статус</string>
     <string name="tak_server_status_failed">Не може да се стартира TAK сървъра. Изключете го и го включете, за да опитате отново.</string>
+    <string name="tak_server_test_protocol_v2_label">V2 (фърмуер ≥ 2.8.0)</string>
     <string name="tak_server_test_result_bytes">%1$dB ✓</string>
     <string name="tak_server_test_result_unknown_error">✗</string>
     <string name="telemetry">Телеметрия</string>
@@ -1210,6 +1236,7 @@
     <!-- TRANSLATION -->
     <string name="translation_failed">Не може да се преведе съобщението</string>
     <string name="translation_model_download_failed">Изтеглянето на модела за превод не е успешно</string>
+    <string name="transmit_disabled">Предаването е деактивирано</string>
     <!-- TRANSPORT -->
     <string name="transport">Транспорт</string>
     <string name="transport_api">API</string>
@@ -1245,12 +1272,14 @@
     <string name="unmute">Включване на звука</string>
     <string name="unrecognized">Неразпознат</string>
     <string name="unset">Не е зададен - 0</string>
+    <string name="unsupported_device">Това устройство не се поддържа</string>
     <string name="updated">Актуализирано</string>
     <string name="uplink_feature_description">Съобщенията от mesh мрежата ще бъдат изпращани до публичния интернет през конфигурирания шлюз на всеки възел.</string>
     <string name="uptime">Време на работа</string>
     <!-- URL -->
     <string name="url">URL</string>
     <string name="url_cannot_be_empty">URL не може да бъде празен.</string>
+    <string name="url_must_be_http">URL трябва да започва с http:// или https://.</string>
     <string name="url_template">Шаблон за URL</string>
     <string name="usb">USB</string>
     <string name="use_homoglyph_characters_encoding">Компактно кодиране за Кирилица</string>
@@ -1268,12 +1297,17 @@
     <string name="view_release">Преглед на изданието</string>
     <string name="voltage">Напрежение</string>
     <string name="warning">Предупреждение</string>
+    <string name="water_ph">pH на водата</string>
     <string name="waypoint_delete">Изтриване на пътна точка?</string>
     <string name="waypoint_edit">Редактиране на пътна точка</string>
     <string name="waypoint_new">Нова пътна точка</string>
     <string name="waypoint_received">Получена пътна точка: %1$s</string>
+    <string name="website">Уебсайт</string>
     <string name="weight">Тегло</string>
+    <string name="what_is_meshtastic">Какво е Meshtastic?</string>
+    <string name="what_is_meshtastic_description">Мрежа с отворен код, работеща независимо от централизирана инфраструктура (off-grid), децентрализирана и изградена на принципа на мрежовата топология (mesh), която функционира чрез достъпни радиоустройства с ниска консумация на енергия.</string>
     <!-- WIFI -->
+    <string name="wifi_config">Опции за Wi-Fi</string>
     <string name="wifi_devices">Осигуряване на Wi-Fi за mPWRD-OS</string>
     <string name="wifi_provision_available_networks">Налични мрежи</string>
     <string name="wifi_provision_connect_failed">Не можа да се свърже: %1$s</string>
@@ -1281,12 +1315,16 @@
     <string name="wifi_provision_hidden_network">Скрита мрежа</string>
     <string name="wifi_provision_mpwrd_disclaimer">Научете повече за проекта mPWRD-OS \nhttps://github.com/mPWRD-OS</string>
     <string name="wifi_provision_no_networks">Няма намерени мрежи</string>
+    <string name="wifi_provision_scan_failed">Неуспешно сканиране за Wi-Fi мрежи: %1$s</string>
     <string name="wifi_provision_scan_networks">Сканиране за мрежи</string>
     <string name="wifi_provision_scanning_ble">Търси се устройство…</string>
     <string name="wifi_provision_scanning_wifi">Сканиране…</string>
+    <string name="wifi_provision_sending_credentials">Applying Wi-Fi configuration…</string>
     <string name="wifi_provision_signal_strength">%1$d%</string>
     <string name="wifi_provision_ssid_label">Име на мрежата (SSID)</string>
     <string name="wifi_provision_ssid_placeholder">Въведете или изберете мрежа</string>
+    <string name="wifi_provision_status_applied">Wi-Fi е конфигуриран успешно!</string>
+    <string name="wifi_provision_status_failed">Неуспешно прилагане на Wi-Fi конфигурацията</string>
     <string name="wifi_provision_success_description">Вашето mPWRD-OS устройство се е присъединило към Wi-Fi мрежата.</string>
     <string name="wifi_provision_success_device_connected">Устройството е свързано</string>
     <string name="wifi_provision_success_done">Готово</string>

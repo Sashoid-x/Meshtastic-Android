@@ -179,6 +179,15 @@ class NodeListViewModel(
             }
         }
 
+    /** The nodes the unheard banner offers for removal: see [selectRemovableUnheardNodes], less the ones kept. */
+    val unheardBannerNodes: StateFlow<List<Node>> =
+        combine(unfilteredNodeList, ourNodeInfo, nodeFilterPreferences.keptUnheardNodes) { nodes, ourNode, kept ->
+            selectRemovableUnheardNodes(nodes, ourNode?.num).filterNot { it.num in kept }
+        }
+            .stateInWhileSubscribed(initialValue = emptyList())
+
+    fun keepUnheardNodes(nodes: List<Node>) = nodeFilterPreferences.keepUnheardNodes(nodes.mapTo(HashSet()) { it.num })
+
     private val _deviceImageUrls = MutableStateFlow<Map<Int, String>>(emptyMap())
 
     /** Maps hw_model int value → device image URL from the flasher CDN. */
@@ -193,6 +202,24 @@ class NodeListViewModel(
                     resolveDeviceImageUrl(hwModel)
                 }
             }
+        }
+        // A kept node that is heard again leaves the kept set, so a later LoRa change offers it again. Reads the raw
+        // rows, and only once they are authoritative: unfilteredNodeList shows every node heard until then.
+        viewModelScope.launch {
+            combine(nodeRepository.getNodes(), unheardFilterAllowed, nodeFilterPreferences.keptUnheardNodes) {
+                    nodes,
+                    authoritative,
+                    kept,
+                ->
+                if (!authoritative || kept.isEmpty()) {
+                    emptySet()
+                } else {
+                    nodes.filter { it.num in kept && it.heardOnCurrentLora }.mapTo(HashSet()) { it.num }
+                }
+            }
+                .collect { heardAgain ->
+                    if (heardAgain.isNotEmpty()) nodeFilterPreferences.forgetKeptUnheardNodes(heardAgain)
+                }
         }
     }
 
@@ -227,7 +254,7 @@ class NodeListViewModel(
 
     fun muteNode(node: Node) = nodeManagementActions.requestMuteNode(viewModelScope, node)
 
-    fun removeNode(node: Node) = nodeManagementActions.requestRemoveNode(viewModelScope, node)
+    fun removeNodes(nodes: List<Node>) = nodeManagementActions.requestRemoveNodes(viewModelScope, nodes)
 
     /** Returns the contact key for navigating to a direct message conversation with this node. */
     fun getDirectMessageRoute(node: Node): String {
@@ -236,6 +263,9 @@ class NodeListViewModel(
         val channel = if (hasPKC) NodeAddress.PKC_CHANNEL_INDEX else node.channel
         return "${channel}${node.user.id}"
     }
+
+    /** Start time of the last traceroute, shared with the detail buttons: firmware allows one per 30 s window. */
+    val lastTracerouteTime: StateFlow<Long?> = nodeRequestActions.lastTracerouteTime
 
     /** Initiates a trace route request to the specified node. */
     fun traceRoute(node: Node) {

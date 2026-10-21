@@ -273,6 +273,14 @@ interface UiPrefs {
     /** Records a notification key after the platform notification has been scheduled successfully. */
     fun recordFirmwareUpdateNotificationKey(key: String)
 
+    /** Node nums the user chose to keep from the node list's unheard banner, so it stops offering them. */
+    val keptUnheardNodes: StateFlow<Set<Int>>
+
+    fun keepUnheardNodes(nodeNums: Set<Int>)
+
+    /** Drops [nodeNums] from [keptUnheardNodes], so the banner offers them again if they go unheard later. */
+    fun forgetKeptUnheardNodes(nodeNums: Set<Int>)
+
     fun shouldProvideNodeLocation(nodeNum: Int): StateFlow<Boolean>
 
     fun setShouldProvideNodeLocation(nodeNum: Int, provide: Boolean)
@@ -443,6 +451,11 @@ interface MapPrefs {
 
     /** Load the complete persisted camera, or null before the map has ever been positioned. */
     suspend fun awaitCameraPosition(): MapCameraPosition?
+
+    /** True once the user has dismissed the mesh view's first-run coaching. */
+    val meshHudCoachSeen: StateFlow<Boolean>
+
+    fun setMeshHudCoachSeen(seen: Boolean)
 }
 
 data class MapCameraPosition(val latitude: Double, val longitude: Double, val zoom: Double)
