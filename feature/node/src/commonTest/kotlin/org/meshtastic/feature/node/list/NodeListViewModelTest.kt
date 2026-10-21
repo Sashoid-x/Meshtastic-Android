@@ -94,7 +94,6 @@ class NodeListViewModelTest {
         every { nodeManager.reportsHeardOnCurrentLora } returns reportsHeard
         every { nodeManager.isNodeDbReady } returns nodeDbReady
 
-
         every { getFilteredNodesUseCase(any(), any()) } returns MutableStateFlow(emptyList())
         every { nodeRequestActions.lastTracerouteTime } returns MutableStateFlow(null)
 
