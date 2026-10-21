@@ -35,6 +35,7 @@ import org.meshtastic.core.testing.FakeLocaleUnitsProvider
 import org.meshtastic.core.testing.FakeMeshLogRepository
 import org.meshtastic.core.testing.FakeNodeRepository
 import org.meshtastic.core.testing.FakeRadioConfigRepository
+import org.meshtastic.core.testing.FakeUiPrefs
 import org.meshtastic.feature.node.detail.NodeRequestActions
 import org.meshtastic.feature.node.metrics.TracerouteKind
 import org.meshtastic.feature.node.metrics.resolveTraceroutePoints
@@ -80,6 +81,7 @@ class TracerouteHistoryUseCaseTest {
             firmwareReleaseRepository = FakeFirmwareReleaseRepository(),
             nodeRequestActions = nodeRequestActions,
             localeUnitsProvider = FakeLocaleUnitsProvider(),
+            uiPrefs = FakeUiPrefs(),
         )
 
     /** The first state for [nodeNum] whose logs have landed; earlier ones carry the flows' empty placeholders. */
