@@ -72,6 +72,7 @@ import org.meshtastic.feature.settings.radio.component.ExternalNotificationConfi
 import org.meshtastic.feature.settings.radio.component.LoRaConfigScreen
 import org.meshtastic.feature.settings.radio.component.MQTTConfigScreen
 import org.meshtastic.feature.settings.radio.component.MeshBeaconConfigScreen
+import org.meshtastic.feature.settings.radio.component.MeshBridgeScreen
 import org.meshtastic.feature.settings.radio.component.NeighborInfoConfigScreen
 import org.meshtastic.feature.settings.radio.component.NetworkConfigScreen
 import org.meshtastic.feature.settings.radio.component.PaxcounterConfigScreen
@@ -414,6 +415,8 @@ fun EntryProviderScope<NavKey>.settingsGraph(
 
     entry<SettingsRoute.TakServer> { TakServerScreen(onBack = dropUnlessResumed { backStack.removeLastOrNull() }) }
 
+    entry<SettingsRoute.MeshBridge> { MeshBridgeScreen(onBack = dropUnlessResumed { backStack.removeLastOrNull() }) }
+
     entry<SettingsRoute.DebugPanel> {
         val viewModel: DebugViewModel = koinViewModel()
         DebugScreen(viewModel = viewModel, onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() })
@@ -471,6 +474,7 @@ fun EntryProviderScope<NavKey>.settingsGraph(
             dropUnlessResumed {
                 backStack.add(org.meshtastic.core.navigation.AutomationRoute.AutomationList)
             },
+            onNavigateToMeshBridge = dropUnlessResumed { backStack.add(SettingsRoute.MeshBridge) },
         )
     }
     entry<SettingsRoute.AppearanceSettings> {

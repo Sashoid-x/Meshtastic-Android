@@ -37,8 +37,11 @@ import okio.ByteString.Companion.toByteString
 import org.meshtastic.core.common.database.DatabaseManager
 import org.meshtastic.core.common.util.safeCatchingAll
 import org.meshtastic.core.di.CoroutineDispatchers
+import org.meshtastic.core.meshbridge.MeshBridgeIntegration
+import org.meshtastic.core.meshbridge.MeshBridgeServerManager
 import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.repository.CommandSender
+import org.meshtastic.core.repository.MeshBridgePrefs
 import org.meshtastic.core.repository.MeshConfigHandler
 import org.meshtastic.core.repository.MeshConnectionManager
 import org.meshtastic.core.repository.MeshMessageProcessor
@@ -80,6 +83,8 @@ class MeshServiceOrchestratorTest {
     private val serviceNotifications: MeshNotificationManager = mock(MockMode.autofill)
     private val takServerManager: TAKServerManager = mock(MockMode.autofill)
     private val takPrefs: TakPrefs = mock(MockMode.autofill)
+    private val meshBridgeManager: MeshBridgeServerManager = mock(MockMode.autofill)
+    private val meshBridgePrefs: MeshBridgePrefs = mock(MockMode.autofill)
     private val nodeRepository: NodeRepository = mock(MockMode.autofill)
     private val databaseManager: DatabaseManager = mock(MockMode.autofill)
     private val connectionManager: MeshConnectionManager = mock(MockMode.autofill)
@@ -106,6 +111,8 @@ class MeshServiceOrchestratorTest {
         isSessionActive: (RadioSessionContext) -> Boolean = { activeSession.value == it },
         takEnabledFlow: MutableStateFlow<Boolean> = MutableStateFlow(false),
         takRunningFlow: MutableStateFlow<Boolean> = MutableStateFlow(false),
+        meshBridgeEnabledFlow: MutableStateFlow<Boolean> = MutableStateFlow(false),
+        meshBridgeRunningFlow: MutableStateFlow<Boolean> = MutableStateFlow(false),
         // Granted by default so every pre-existing test keeps reaching connect(); DEFAULT_ADDRESS is BLE
         // anyway, but the cold-start ordering test deliberately uses a TCP address.
         localNetworkAccess: LocalNetworkAccess = LocalNetworkAccess { true },
@@ -127,6 +134,10 @@ class MeshServiceOrchestratorTest {
         every { takPrefs.takServerChannel } returns MutableStateFlow(0)
         every { takServerManager.isRunning } returns takRunningFlow
         every { takServerManager.inboundMessages } returns MutableSharedFlow()
+        every { meshBridgePrefs.isMeshBridgeEnabled } returns meshBridgeEnabledFlow
+        every { meshBridgePrefs.meshBridgeChannel } returns MutableStateFlow(0)
+        every { meshBridgeManager.isRunning } returns meshBridgeRunningFlow
+        every { meshBridgeManager.inboundPayloads } returns MutableSharedFlow()
         every { nodeRepository.myNodeInfo } returns MutableStateFlow(null)
 
         // Deliberately its own dispatcher, not the class-level testDispatcher: the broadcaster's
@@ -155,6 +166,14 @@ class MeshServiceOrchestratorTest {
                 ),
             )
 
+        val meshBridgeIntegration =
+            MeshBridgeIntegration(
+                meshBridgeServerManager = meshBridgeManager,
+                commandSender = commandSender,
+                serviceRepository = serviceRepository,
+                meshBridgePrefs = meshBridgePrefs,
+            )
+
         return MeshServiceOrchestrator(
             radioInterfaceService = radioInterfaceService,
             serviceStateWriter = serviceRepository,
@@ -164,6 +183,9 @@ class MeshServiceOrchestratorTest {
             takServerManager = takServerManager,
             takMeshIntegration = takMeshIntegration,
             takPrefs = takPrefs,
+            meshBridgeManager = meshBridgeManager,
+            meshBridgeIntegration = meshBridgeIntegration,
+            meshBridgePrefs = meshBridgePrefs,
             databaseManager = databaseManager,
             connectionManager = connectionManager,
             dispatchers = dispatchers,
@@ -253,6 +275,34 @@ class MeshServiceOrchestratorTest {
         orchestrator.stop()
 
         assertEquals(listOf("start", "stop", "start", "stop"), lifecycleEvents)
+    }
+
+    @Test
+    fun testMeshBridgeLifecycle() {
+        val meshBridgeEnabledFlow = MutableStateFlow(false)
+        val meshBridgeRunningFlow = MutableStateFlow(false)
+        every { meshBridgeManager.start(any()) } returns Unit
+        every { meshBridgeManager.stop() } returns Unit
+        val orchestrator =
+            createOrchestrator(
+                meshBridgeEnabledFlow = meshBridgeEnabledFlow,
+                meshBridgeRunningFlow = meshBridgeRunningFlow,
+            )
+
+        orchestrator.start()
+
+        // Toggle on
+        meshBridgeEnabledFlow.value = true
+        verify { meshBridgeManager.start(any()) }
+
+        // Update running state
+        meshBridgeRunningFlow.value = true
+
+        // Toggle off
+        meshBridgeEnabledFlow.value = false
+        verify { meshBridgeManager.stop() }
+
+        orchestrator.stop()
     }
 
     @Test
@@ -537,9 +587,10 @@ class MeshServiceOrchestratorTest {
         // Pre-warm the resource: the first read completes on compose-resources' own Dispatchers.Default scope, so an
         // un-warmed lookup lands after the assertions (see ScannerViewModelTest's warmScanFailureStrings). The same
         // safeCatchingAll-with-fallback shape as production keeps the expected text identical either way.
-        val expectedMessage =
-            safeCatchingAll { getStringSuspend(Res.string.local_network_permission_denied_hint) }
-                .getOrDefault(UNTRANSLATED_LOCAL_NETWORK_PERMISSION_DENIED_HINT)
+        val expectedMessage = safeCatchingAll {
+            getStringSuspend(Res.string.local_network_permission_denied_hint)
+        }
+            .getOrDefault(UNTRANSLATED_LOCAL_NETWORK_PERMISSION_DENIED_HINT)
         val orchestrator =
             createOrchestrator(
                 currentDeviceAddressFlow = MutableStateFlow<String?>("t192.168.1.100"),

@@ -1504,6 +1504,22 @@ mesh_beacon_target_channel_index
 mesh_beacon_target_default
 mesh_beacon_target_remove
 mesh_beacon_targets
+mesh_bridge
+mesh_bridge_channel
+mesh_bridge_channel_desc
+mesh_bridge_channel_option
+mesh_bridge_enabled
+mesh_bridge_enabled_desc
+mesh_bridge_info_desc
+mesh_bridge_section
+mesh_bridge_status
+mesh_bridge_status_connected
+mesh_bridge_status_failed
+mesh_bridge_status_not_running
+mesh_bridge_status_off
+mesh_bridge_status_starting
+mesh_bridge_status_unavailable
+mesh_bridge_status_waiting
 mesh_map_location
 mesh_map_location_description
 ### MESHTASTIC ###

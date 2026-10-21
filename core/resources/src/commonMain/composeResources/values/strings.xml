@@ -1546,6 +1546,25 @@
     <string name="mesh_beacon_target_default">Default</string>
     <string name="mesh_beacon_target_remove">Remove target</string>
     <string name="mesh_beacon_targets">Broadcast targets</string>
+    <string name="mesh_bridge">Mesh Bridge</string>
+    <string name="mesh_bridge_channel">Mesh Bridge Channel</string>
+    <string name="mesh_bridge_channel_desc">Meshtastic channel used for Mesh Bridge traffic</string>
+    <string name="mesh_bridge_channel_option">%1$d: %2$s</string>
+    <string name="mesh_bridge_enabled">Enable Mesh Bridge Server</string>
+    <string name="mesh_bridge_enabled_desc">Starts a local TCP server on port 8090 for MeshGames (SIMULATOR_APP = 69, want_ack=false)</string>
+    <string name="mesh_bridge_info_desc">Local TCP bridge on 127.0.0.1:8090. Relays raw payloads to and from LoRa using portnum 69 (SIMULATOR_APP) with want_ack=false.</string>
+    <string name="mesh_bridge_section">Server</string>
+    <string name="mesh_bridge_status">Status</string>
+    <plurals name="mesh_bridge_status_connected">
+        <item quantity="one">%1$d client connected</item>
+        <item quantity="other">%1$d clients connected</item>
+    </plurals>
+    <string name="mesh_bridge_status_failed">Unable to start Mesh Bridge Server on 127.0.0.1:8090. Turn it off and on to retry.</string>
+    <string name="mesh_bridge_status_not_running">Mesh Bridge Server is not running</string>
+    <string name="mesh_bridge_status_off">Off</string>
+    <string name="mesh_bridge_status_starting">Starting Mesh Bridge Server</string>
+    <string name="mesh_bridge_status_unavailable">Local Mesh Bridge Server is not available on this platform</string>
+    <string name="mesh_bridge_status_waiting">Listening on 127.0.0.1:8090 — waiting for client</string>
     <string name="mesh_map_location">Mesh Map Location</string>
     <string name="mesh_map_location_description">Enables the blue location dot for your phone in the mesh map.</string>
     <!-- MESHTASTIC -->

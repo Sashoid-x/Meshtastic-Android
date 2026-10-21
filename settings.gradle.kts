@@ -105,6 +105,7 @@ include(
     ":core:repository",
     ":core:service",
     ":core:resources",
+    ":core:meshbridge",
     ":core:takserver",
     ":core:testing",
     ":core:ui",

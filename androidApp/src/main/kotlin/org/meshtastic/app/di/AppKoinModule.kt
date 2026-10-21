@@ -38,6 +38,7 @@ import org.meshtastic.core.database.di.CoreDatabaseAndroidModule
 import org.meshtastic.core.database.di.CoreDatabaseModule
 import org.meshtastic.core.datastore.di.CoreDatastoreAndroidModule
 import org.meshtastic.core.datastore.di.CoreDatastoreModule
+import org.meshtastic.core.meshbridge.di.CoreMeshBridgeModule
 import org.meshtastic.core.network.di.CoreNetworkAndroidModule
 import org.meshtastic.core.network.di.CoreNetworkModule
 import org.meshtastic.core.network.repository.ProbeTableProvider
@@ -83,6 +84,7 @@ import org.meshtastic.feature.wifiprovision.di.FeatureWifiProvisionModule
         CoreServiceAndroidModule::class,
         CoreNetworkModule::class,
         CoreNetworkAndroidModule::class,
+        CoreMeshBridgeModule::class,
         CoreTakServerModule::class,
         CoreUiModule::class,
         FeatureNodeModule::class,

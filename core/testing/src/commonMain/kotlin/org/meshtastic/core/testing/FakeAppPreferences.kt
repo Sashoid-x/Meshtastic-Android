@@ -599,3 +599,17 @@ class FakeTakPrefs : org.meshtastic.core.repository.TakPrefs {
         takServerChannel.value = index
     }
 }
+
+class FakeMeshBridgePrefs : org.meshtastic.core.repository.MeshBridgePrefs {
+    override val isMeshBridgeEnabled = MutableStateFlow(false)
+
+    override fun setMeshBridgeEnabled(enabled: Boolean) {
+        isMeshBridgeEnabled.value = enabled
+    }
+
+    override val meshBridgeChannel = MutableStateFlow(0)
+
+    override fun setMeshBridgeChannel(index: Int) {
+        meshBridgeChannel.value = index
+    }
+}

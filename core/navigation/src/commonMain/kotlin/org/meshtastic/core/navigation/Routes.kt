@@ -173,6 +173,8 @@ sealed interface SettingsRoute : Route {
 
     @Serializable data object TakServer : SettingsRoute
 
+    @Serializable data object MeshBridge : SettingsRoute
+
     @Serializable data object DebugPanel : SettingsRoute
 
     @Serializable data object About : SettingsRoute

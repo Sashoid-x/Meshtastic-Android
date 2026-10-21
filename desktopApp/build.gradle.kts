@@ -365,6 +365,7 @@ dependencies {
     implementation(projects.core.datastore)
     implementation(projects.core.prefs)
     implementation(projects.core.network)
+    implementation(projects.core.meshbridge)
     implementation(projects.core.takserver)
     implementation(projects.core.resources)
     implementation(projects.core.service)

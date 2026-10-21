@@ -535,6 +535,18 @@ interface TakPrefs {
     fun setTakServerChannel(index: Int)
 }
 
+/** Reactive interface for Mesh Bridge settings. */
+interface MeshBridgePrefs {
+    val isMeshBridgeEnabled: StateFlow<Boolean>
+
+    fun setMeshBridgeEnabled(enabled: Boolean)
+
+    /** Meshtastic channel index used for outbound Mesh Bridge traffic. Defaults to 0 (the primary channel). */
+    val meshBridgeChannel: StateFlow<Int>
+
+    fun setMeshBridgeChannel(index: Int)
+}
+
 /** One App Functions switch: the master toggle or a single function's. */
 enum class AppFunctionsSetting {
     MASTER,

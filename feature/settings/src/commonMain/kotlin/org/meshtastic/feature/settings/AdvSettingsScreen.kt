@@ -95,6 +95,8 @@ import org.meshtastic.core.resources.insert_photo_link
 import org.meshtastic.core.resources.insert_photo_link_summary
 import org.meshtastic.core.resources.link_preview_setting
 import org.meshtastic.core.resources.link_preview_setting_summary
+import org.meshtastic.core.resources.mesh_bridge
+import org.meshtastic.core.resources.mesh_bridge_enabled_desc
 import org.meshtastic.core.resources.okay
 import org.meshtastic.core.resources.photo_duration_12_hours
 import org.meshtastic.core.resources.photo_duration_14_days
@@ -161,6 +163,7 @@ fun AdvSettingsScreen(
     onNavigateUp: () -> Unit,
     onNavigateToAppearance: () -> Unit = {},
     onNavigateToAutomation: () -> Unit = {},
+    onNavigateToMeshBridge: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val ourNode by settingsViewModel.ourNodeInfo.collectAsStateWithLifecycle()
@@ -397,6 +400,7 @@ fun AdvSettingsScreen(
             onAutoTopologyDiscoveryChange = settingsViewModel::setAutoTopologyDiscoveryEnabled,
             onNavigateToAppearance = onNavigateToAppearance,
             onNavigateToAutomation = onNavigateToAutomation,
+            onNavigateToMeshBridge = onNavigateToMeshBridge,
             onExportMessages = { showExportTypeDialog = true },
             onImportMessages = { importMessagesLauncher("*/*") },
         )
@@ -436,6 +440,7 @@ private fun AdvSettingsContent(
     onAutoTopologyDiscoveryChange: (Boolean) -> Unit,
     onNavigateToAppearance: () -> Unit,
     onNavigateToAutomation: () -> Unit,
+    onNavigateToMeshBridge: () -> Unit,
     onExportMessages: () -> Unit,
     onImportMessages: () -> Unit,
     modifier: Modifier = Modifier,
@@ -618,6 +623,16 @@ private fun AdvSettingsContent(
                 leadingIcon = MeshtasticIcons.Settings,
                 trailingIcon = null,
                 onClick = onNavigateToAutomation,
+            )
+        }
+
+        ExpressiveSection(title = stringResource(Res.string.mesh_bridge)) {
+            ListItem(
+                text = stringResource(Res.string.mesh_bridge),
+                supportingText = stringResource(Res.string.mesh_bridge_enabled_desc),
+                leadingIcon = MeshtasticIcons.Settings,
+                trailingIcon = null,
+                onClick = onNavigateToMeshBridge,
             )
         }
 

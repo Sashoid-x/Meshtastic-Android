@@ -35,6 +35,7 @@ kotlin {
             implementation(projects.core.ble)
             implementation(projects.core.resources)
             implementation(libs.meshtastic.protobufs)
+            implementation(projects.core.meshbridge)
             implementation(projects.core.takserver)
             implementation(projects.core.automation)
 

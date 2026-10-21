@@ -34,8 +34,11 @@ import org.meshtastic.core.common.util.isValidDeviceAddress
 import org.meshtastic.core.common.util.safeCatching
 import org.meshtastic.core.common.util.safeCatchingAll
 import org.meshtastic.core.di.CoroutineDispatchers
+import org.meshtastic.core.meshbridge.MeshBridgeIntegration
+import org.meshtastic.core.meshbridge.MeshBridgeServerManager
 import org.meshtastic.core.model.DeviceAddress
 import org.meshtastic.core.model.InterfaceId
+import org.meshtastic.core.repository.MeshBridgePrefs
 import org.meshtastic.core.repository.MeshConnectionManager
 import org.meshtastic.core.repository.MeshMessageProcessor
 import org.meshtastic.core.repository.MeshNotificationManager
@@ -74,6 +77,9 @@ class MeshServiceOrchestrator(
     private val takServerManager: TAKServerManager,
     private val takMeshIntegration: TAKMeshIntegration,
     private val takPrefs: TakPrefs,
+    private val meshBridgeManager: MeshBridgeServerManager,
+    private val meshBridgeIntegration: MeshBridgeIntegration,
+    private val meshBridgePrefs: MeshBridgePrefs,
     private val databaseManager: DatabaseManager,
     private val connectionManager: MeshConnectionManager,
     private val dispatchers: CoroutineDispatchers,
@@ -180,6 +186,19 @@ class MeshServiceOrchestrator(
             }
             .launchIn(newScope)
 
+        // Observe Mesh Bridge server pref to start/stop
+        meshBridgePrefs.isMeshBridgeEnabled
+            .onEach { enabled ->
+                if (enabled && !meshBridgeManager.isRunning.value) {
+                    Logger.i { "Mesh Bridge enabled by preference, starting integration" }
+                    meshBridgeIntegration.start(newScope)
+                } else if (!enabled) {
+                    Logger.i { "Mesh Bridge disabled by preference, stopping integration" }
+                    meshBridgeIntegration.stop()
+                }
+            }
+            .launchIn(newScope)
+
         newScope.handledLaunch { coldStartConnect() }
 
         // Mid-session device-address transitions (late process-lifecycle devAddr propagation,
@@ -227,6 +246,7 @@ class MeshServiceOrchestrator(
     fun stop() {
         Logger.i { "Stopping mesh service orchestrator" }
         takMeshIntegration.stop()
+        meshBridgeIntegration.stop()
         automationEngine?.stop()
         // Best-effort polite goodbye on service teardown (onDestroy / process shutdown). We launch
         // on a fresh detached scope — not the orchestrator's per-start scope — so the subsequent

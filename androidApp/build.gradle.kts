@@ -213,6 +213,7 @@ dependencies {
     implementation(projects.core.resources)
     implementation(projects.core.ui)
     implementation(projects.core.barcode)
+    implementation(projects.core.meshbridge)
     implementation(projects.core.takserver)
     implementation(projects.feature.automation)
     implementation(projects.feature.intro)
