@@ -38,6 +38,9 @@ interface MeshBridgeServer {
     /** Callback invoked on the IO dispatcher for every valid inbound payload received from a client. */
     var onPayload: ((ByteArray) -> Unit)?
 
+    /** Callback invoked on the IO dispatcher when a client successfully connects. */
+    var onClientConnected: (() -> Unit)?
+
     /** Bind the TCP listener on 127.0.0.1:port and begin accepting connections. Idempotent if already running. */
     suspend fun start(scope: CoroutineScope): Result<Unit>
 
@@ -46,6 +49,9 @@ interface MeshBridgeServer {
 
     /** Broadcast a payload originating from the mesh to every currently-connected client. */
     suspend fun broadcastToClients(from: Int, to: Int, payload: ByteArray)
+
+    /** Send an already-encoded frame to every currently-connected client. */
+    suspend fun sendRawFrameToClients(frame: ByteArray)
 
     /** Returns true if at least one client is currently connected. */
     suspend fun hasConnections(): Boolean

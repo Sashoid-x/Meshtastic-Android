@@ -64,4 +64,34 @@ object MeshBridgeDefaults {
 
     /** Hexadecimal radix for formatting client IDs and node numbers in log messages. */
     const val HEX_RADIX = 16
+
+    /** Magic byte indicating a HELLO service frame ('I' = 0x49). */
+    const val MAGIC_HELLO: Byte = 0x49
+
+    /** Version byte of the HELLO service frame. */
+    const val HELLO_VERSION: Byte = 1
+
+    /** Maximum allowed node name bytes in HELLO frame (UTF-8). */
+    const val MAX_HELLO_NAME_BYTES = 32
+
+    /** Offset of the magic byte in the HELLO body. */
+    const val HELLO_OFFSET_MAGIC = 0
+
+    /** Offset of the version byte in the HELLO body. */
+    const val HELLO_OFFSET_VERSION = 1
+
+    /** Offset of the nodeId (u32 LE) in the HELLO body. */
+    const val HELLO_OFFSET_NODE_ID = 2
+
+    /** Offset of the name length byte (u8) in the HELLO body. */
+    const val HELLO_OFFSET_NAME_LEN = 6
+
+    /** Offset of the UTF-8 name start in the HELLO body. */
+    const val HELLO_OFFSET_NAME = 7
+
+    /** Fixed header size in bytes of the HELLO body before the name string. */
+    const val HELLO_BODY_HEADER_BYTES = 7
+
+    /** Full header size in bytes prepended to Server -> Client frames (16 bytes = 8 LoRa + 8 client wrapper). */
+    const val SERVER_FRAME_FULL_HEADER_BYTES = 16
 }

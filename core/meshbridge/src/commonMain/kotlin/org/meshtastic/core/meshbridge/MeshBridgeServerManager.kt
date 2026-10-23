@@ -42,6 +42,10 @@ interface MeshBridgeServerManager {
     fun stop()
 
     suspend fun broadcastToClients(from: Int, to: Int, payload: ByteArray)
+
+    suspend fun sendRawFrameToClients(frame: ByteArray)
+
+    var onClientConnected: (() -> Unit)?
 }
 
 class MeshBridgeServerManagerImpl(private val server: MeshBridgeServer) : MeshBridgeServerManager {
@@ -66,6 +70,8 @@ class MeshBridgeServerManagerImpl(private val server: MeshBridgeServer) : MeshBr
     private val _inboundPayloads = MutableSharedFlow<ByteArray>(extraBufferCapacity = 64)
     override val inboundPayloads: SharedFlow<ByteArray> = _inboundPayloads.asSharedFlow()
 
+    override var onClientConnected: (() -> Unit)? = null
+
     private val lifecycleMutex = Mutex()
 
     override fun start(scope: CoroutineScope) {
@@ -88,6 +94,7 @@ class MeshBridgeServerManagerImpl(private val server: MeshBridgeServer) : MeshBr
                         Logger.w { "MeshBridge inbound payload buffer full; dropping frame" }
                     }
                 }
+                server.onClientConnected = { onClientConnected?.invoke() }
 
                 val result = server.start(scope)
                 if (generation != startGeneration) {
@@ -103,6 +110,7 @@ class MeshBridgeServerManagerImpl(private val server: MeshBridgeServer) : MeshBr
                     _hasError.value = true
                     Logger.e(result.exceptionOrNull()) { "Failed to start Mesh Bridge Server" }
                     server.onPayload = null
+                    server.onClientConnected = null
                 }
             }
         }
@@ -115,6 +123,7 @@ class MeshBridgeServerManagerImpl(private val server: MeshBridgeServer) : MeshBr
         _hasError.value = false
         scope = null
         server.onPayload = null
+        server.onClientConnected = null
         server.stop()
         Logger.i { "Mesh Bridge Server stopped" }
     }
@@ -122,5 +131,10 @@ class MeshBridgeServerManagerImpl(private val server: MeshBridgeServer) : MeshBr
     override suspend fun broadcastToClients(from: Int, to: Int, payload: ByteArray) {
         if (!_isRunning.value) return
         server.broadcastToClients(from, to, payload)
+    }
+
+    override suspend fun sendRawFrameToClients(frame: ByteArray) {
+        if (!_isRunning.value) return
+        server.sendRawFrameToClients(frame)
     }
 }

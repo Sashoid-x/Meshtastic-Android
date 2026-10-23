@@ -121,6 +121,7 @@ internal class MeshBridgeServerJvm(
     override val connectionCount: StateFlow<Int> = _connectionCount.asStateFlow()
 
     override var onPayload: ((ByteArray) -> Unit)? = null
+    override var onClientConnected: (() -> Unit)? = null
 
     override suspend fun start(scope: CoroutineScope): Result<Unit> {
         if (running) {
@@ -223,6 +224,7 @@ internal class MeshBridgeServerJvm(
         }
 
         connection.start()
+        onClientConnected?.invoke()
     }
 
     private fun removeConnection(connectionId: String) {
@@ -256,6 +258,22 @@ internal class MeshBridgeServerJvm(
         Logger.i { "Mesh Bridge Server stopped" }
     }
 
+    override suspend fun sendRawFrameToClients(frame: ByteArray) {
+        val activeConnections = connectionsLock.withLock { connections.values.toList() }
+        if (activeConnections.isEmpty()) {
+            return
+        }
+        activeConnections.forEach { client ->
+            try {
+                client.send(frame)
+            } catch (e: Exception) {
+                Logger.w(e) { "Failed to send frame to client ${client.id}, closing" }
+                client.close()
+                removeConnection(client.id)
+            }
+        }
+    }
+
     override suspend fun broadcastToClients(from: Int, to: Int, payload: ByteArray) {
         val frameBytes = MeshBridgeFrameCodec.encodeServerFrame(from = from, to = to, payload = payload)
         val activeConnections = connectionsLock.withLock { connections.values.toList() }
@@ -264,15 +282,7 @@ internal class MeshBridgeServerJvm(
             return
         }
         Logger.d { "MeshBridge broadcast: sending ${payload.size} bytes to ${activeConnections.size} client(s)" }
-        activeConnections.forEach { client ->
-            try {
-                client.send(frameBytes)
-            } catch (e: Exception) {
-                Logger.w(e) { "Failed to send frame to client ${client.id}, closing" }
-                client.close()
-                removeConnection(client.id)
-            }
-        }
+        sendRawFrameToClients(frameBytes)
     }
 
     override suspend fun hasConnections(): Boolean = connectionsLock.withLock { connections.isNotEmpty() }

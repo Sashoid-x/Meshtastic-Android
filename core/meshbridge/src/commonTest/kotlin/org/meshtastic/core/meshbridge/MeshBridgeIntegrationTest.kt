@@ -67,6 +67,13 @@ class MeshBridgeIntegrationTest {
         override suspend fun broadcastToClients(from: Int, to: Int, payload: ByteArray) {
             broadcasts += BroadcastRecord(from, to, payload)
         }
+
+        override var onClientConnected: (() -> Unit)? = null
+        val rawFrames = mutableListOf<ByteArray>()
+
+        override suspend fun sendRawFrameToClients(frame: ByteArray) {
+            rawFrames += frame
+        }
     }
 
     @Test
@@ -317,6 +324,232 @@ class MeshBridgeIntegrationTest {
         assertEquals(expectedAddress, packet.to)
         assertEquals(PortNum.SIMULATOR_APP.value, packet.dataType)
         assertFalse(packet.wantAck)
+
+        integration.stop()
+    }
+
+    @Test
+    fun `when client connects and node info is known HELLO frame is sent to client`() = testScope.runTest {
+        val commandSender = FakeCommandSender()
+        val serviceRepository = FakeServiceRepository()
+        val serverManager = FakeMeshBridgeServerManager()
+        val meshBridgePrefs = FakeMeshBridgePrefs()
+        val nodeRepository = org.meshtastic.core.testing.FakeNodeRepository()
+
+        val myNodeNum = 0x12345678
+        val longName = "Alice Node"
+        nodeRepository.setMyNodeInfo(
+            org.meshtastic.core.testing.TestDataFactory.createMyNodeInfo(myNodeNum = myNodeNum),
+        )
+        nodeRepository.setOurNode(
+            org.meshtastic.core.testing.TestDataFactory.createTestNode(num = myNodeNum, longName = longName),
+        )
+
+        val integration =
+            MeshBridgeIntegration(
+                meshBridgeServerManager = serverManager,
+                commandSender = commandSender,
+                serviceRepository = serviceRepository,
+                meshBridgePrefs = meshBridgePrefs,
+                nodeRepository = nodeRepository,
+            )
+
+        integration.start(this)
+
+        // Simulate client connection
+        serverManager.connectionCount.value = 1
+        serverManager.onClientConnected?.invoke()
+
+        assertEquals(1, serverManager.rawFrames.size)
+        val frame = serverManager.rawFrames.first()
+
+        val buffer = okio.Buffer().write(frame)
+        val len = buffer.readIntLe()
+        assertEquals(16 + 7 + longName.encodeToByteArray().size, len)
+        assertEquals(0, buffer.readIntLe()) // loraFrom
+        assertEquals(0, buffer.readIntLe()) // loraTo
+        assertEquals(0, buffer.readIntLe()) // from
+        assertEquals(0, buffer.readIntLe()) // to
+        assertEquals(MeshBridgeDefaults.MAGIC_HELLO, buffer.readByte())
+        assertEquals(MeshBridgeDefaults.HELLO_VERSION, buffer.readByte())
+        assertEquals(myNodeNum, buffer.readIntLe())
+        val nameLen = buffer.readByte().toInt() and 0xFF
+        assertEquals(longName.encodeToByteArray().size, nameLen)
+        assertEquals(longName, buffer.readUtf8(nameLen.toLong()))
+
+        integration.stop()
+    }
+
+    @Test
+    fun `when longName changes updated HELLO frame is sent to connected client`() = testScope.runTest {
+        val commandSender = FakeCommandSender()
+        val serviceRepository = FakeServiceRepository()
+        val serverManager = FakeMeshBridgeServerManager()
+        val meshBridgePrefs = FakeMeshBridgePrefs()
+        val nodeRepository = org.meshtastic.core.testing.FakeNodeRepository()
+
+        val myNodeNum = 0x12345678
+        nodeRepository.setMyNodeInfo(
+            org.meshtastic.core.testing.TestDataFactory.createMyNodeInfo(myNodeNum = myNodeNum),
+        )
+        nodeRepository.setOurNode(
+            org.meshtastic.core.testing.TestDataFactory.createTestNode(num = myNodeNum, longName = "Alice"),
+        )
+
+        val integration =
+            MeshBridgeIntegration(
+                meshBridgeServerManager = serverManager,
+                commandSender = commandSender,
+                serviceRepository = serviceRepository,
+                meshBridgePrefs = meshBridgePrefs,
+                nodeRepository = nodeRepository,
+            )
+
+        integration.start(this)
+
+        // Client is connected
+        serverManager.connectionCount.value = 1
+        serverManager.onClientConnected?.invoke()
+        assertEquals(1, serverManager.rawFrames.size)
+
+        // Change longName
+        nodeRepository.setOurNode(
+            org.meshtastic.core.testing.TestDataFactory.createTestNode(num = myNodeNum, longName = "Bob"),
+        )
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(2, serverManager.rawFrames.size)
+        val secondFrame = serverManager.rawFrames[1]
+        val buffer = okio.Buffer().write(secondFrame)
+        buffer.skip(20) // skip len(4) + loraFrom(4) + loraTo(4) + from(4) + to(4)
+        assertEquals(MeshBridgeDefaults.MAGIC_HELLO, buffer.readByte())
+        assertEquals(MeshBridgeDefaults.HELLO_VERSION, buffer.readByte())
+        assertEquals(myNodeNum, buffer.readIntLe())
+        val nameLen = buffer.readByte().toInt() and 0xFF
+        assertEquals("Bob".encodeToByteArray().size, nameLen)
+        assertEquals("Bob", buffer.readUtf8(nameLen.toLong()))
+
+        integration.stop()
+    }
+
+    @Test
+    fun `when node info is not available no HELLO frame is sent`() = testScope.runTest {
+        val commandSender = FakeCommandSender()
+        val serviceRepository = FakeServiceRepository()
+        val serverManager = FakeMeshBridgeServerManager()
+        val meshBridgePrefs = FakeMeshBridgePrefs()
+        val nodeRepository = org.meshtastic.core.testing.FakeNodeRepository()
+
+        val integration =
+            MeshBridgeIntegration(
+                meshBridgeServerManager = serverManager,
+                commandSender = commandSender,
+                serviceRepository = serviceRepository,
+                meshBridgePrefs = meshBridgePrefs,
+                nodeRepository = nodeRepository,
+            )
+
+        integration.start(this)
+
+        serverManager.connectionCount.value = 1
+        serverManager.onClientConnected?.invoke()
+
+        assertTrue(serverManager.rawFrames.isEmpty())
+
+        integration.stop()
+    }
+
+    @Test
+    fun `when node info becomes available after client connected HELLO frame is sent`() = testScope.runTest {
+        val commandSender = FakeCommandSender()
+        val serviceRepository = FakeServiceRepository()
+        val serverManager = FakeMeshBridgeServerManager()
+        val meshBridgePrefs = FakeMeshBridgePrefs()
+        val nodeRepository = org.meshtastic.core.testing.FakeNodeRepository()
+
+        val integration =
+            MeshBridgeIntegration(
+                meshBridgeServerManager = serverManager,
+                commandSender = commandSender,
+                serviceRepository = serviceRepository,
+                meshBridgePrefs = meshBridgePrefs,
+                nodeRepository = nodeRepository,
+            )
+
+        integration.start(this)
+
+        // Client connects while node info is not yet available
+        serverManager.connectionCount.value = 1
+        serverManager.onClientConnected?.invoke()
+        assertTrue(serverManager.rawFrames.isEmpty())
+
+        // Radio connects and node info becomes available
+        val myNodeNum = 0x19887766
+        nodeRepository.setMyNodeInfo(
+            org.meshtastic.core.testing.TestDataFactory.createMyNodeInfo(myNodeNum = myNodeNum),
+        )
+        nodeRepository.setOurNode(
+            org.meshtastic.core.testing.TestDataFactory.createTestNode(num = myNodeNum, longName = "Late Node"),
+        )
+        testScheduler.advanceUntilIdle()
+
+        assertEquals(2, serverManager.rawFrames.size)
+        val frame = serverManager.rawFrames.last()
+        val buffer = okio.Buffer().write(frame)
+        buffer.skip(20)
+        assertEquals(MeshBridgeDefaults.MAGIC_HELLO, buffer.readByte())
+        assertEquals(MeshBridgeDefaults.HELLO_VERSION, buffer.readByte())
+        assertEquals(myNodeNum, buffer.readIntLe())
+        val nameLen = buffer.readByte().toInt() and 0xFF
+        assertEquals("Late Node", buffer.readUtf8(nameLen.toLong()))
+
+        integration.stop()
+    }
+
+    @Test
+    fun `when longName is blank shortName is used in HELLO frame`() = testScope.runTest {
+        val commandSender = FakeCommandSender()
+        val serviceRepository = FakeServiceRepository()
+        val serverManager = FakeMeshBridgeServerManager()
+        val meshBridgePrefs = FakeMeshBridgePrefs()
+        val nodeRepository = org.meshtastic.core.testing.FakeNodeRepository()
+
+        val myNodeNum = 0x55443322
+        nodeRepository.setMyNodeInfo(
+            org.meshtastic.core.testing.TestDataFactory.createMyNodeInfo(myNodeNum = myNodeNum),
+        )
+        nodeRepository.setOurNode(
+            org.meshtastic.core.testing.TestDataFactory.createTestNode(
+                num = myNodeNum,
+                longName = "",
+                shortName = "SN",
+            ),
+        )
+
+        val integration =
+            MeshBridgeIntegration(
+                meshBridgeServerManager = serverManager,
+                commandSender = commandSender,
+                serviceRepository = serviceRepository,
+                meshBridgePrefs = meshBridgePrefs,
+                nodeRepository = nodeRepository,
+            )
+
+        integration.start(this)
+
+        serverManager.connectionCount.value = 1
+        serverManager.onClientConnected?.invoke()
+
+        assertEquals(1, serverManager.rawFrames.size)
+        val frame = serverManager.rawFrames.first()
+        val buffer = okio.Buffer().write(frame)
+        buffer.skip(20)
+        assertEquals(MeshBridgeDefaults.MAGIC_HELLO, buffer.readByte())
+        assertEquals(MeshBridgeDefaults.HELLO_VERSION, buffer.readByte())
+        assertEquals(myNodeNum, buffer.readIntLe())
+        val nameLen = buffer.readByte().toInt() and 0xFF
+        assertEquals(2, nameLen)
+        assertEquals("SN", buffer.readUtf8(nameLen.toLong()))
 
         integration.stop()
     }

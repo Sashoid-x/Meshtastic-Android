@@ -23,6 +23,8 @@ import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import okio.ByteString.Companion.toByteString
@@ -30,6 +32,7 @@ import org.meshtastic.core.model.DataPacket
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.repository.CommandSender
 import org.meshtastic.core.repository.MeshBridgePrefs
+import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.ServiceRepository
 import org.meshtastic.proto.MeshPacket
 import org.meshtastic.proto.PortNum
@@ -49,42 +52,92 @@ class MeshBridgeIntegration(
     private val commandSender: CommandSender,
     private val serviceRepository: ServiceRepository,
     private val meshBridgePrefs: MeshBridgePrefs,
+    private val nodeRepository: NodeRepository? = null,
     val peerMap: MeshBridgePeerMap = MeshBridgePeerMap(),
 ) {
     private val isRunning = atomic(false)
 
     @Volatile private var jobs: List<Job> = emptyList()
 
+    @Volatile private var currentIdentity: MeshBridgeNodeIdentity? = null
+
+    private data class MeshBridgeNodeIdentity(val nodeId: Int, val name: String?)
+
     fun start(scope: CoroutineScope) {
         if (!isRunning.compareAndSet(expect = false, update = true)) return
 
+        meshBridgeServerManager.onClientConnected = {
+            scope.launch {
+                sendHelloIfAvailable()
+            }
+        }
+
         meshBridgeServerManager.start(scope)
 
-        val newJobs =
-            listOf(
-                // Outbound: Client -> Mesh
-                scope.launch {
-                    meshBridgeServerManager.inboundPayloads.collect { payload ->
-                        handleClientPayload(payload)
+        val newJobs = mutableListOf<Job>()
+        // Outbound: Client -> Mesh
+        newJobs += scope.launch {
+            meshBridgeServerManager.inboundPayloads.collect { payload ->
+                handleClientPayload(payload)
+            }
+        }
+        // Inbound: Mesh -> Client
+        newJobs += scope.launch {
+            serviceRepository.meshPacketFlow
+                .filter { packet ->
+                    packet.decoded?.portnum == PortNum.SIMULATOR_APP && packet.decoded?.payload != null
+                }
+                .collect { packet ->
+                    handleMeshPacket(packet)
+                }
+        }
+
+        // HELLO: observe our node identity and dispatch on initial ready / changed
+        if (nodeRepository != null) {
+            newJobs += scope.launch {
+                combine(nodeRepository.myNodeInfo, nodeRepository.ourNodeInfo) { myNode, ourNode ->
+                    val nodeId = myNode?.myNodeNum ?: ourNode?.num
+                    if (nodeId == null) {
+                        null
+                    } else {
+                        val name =
+                            MeshBridgeHello.resolveNodeName(
+                                longName = ourNode?.user?.long_name,
+                                shortName = ourNode?.user?.short_name,
+                            )
+                        MeshBridgeNodeIdentity(nodeId = nodeId, name = name)
                     }
-                },
-                // Inbound: Mesh -> Client
-                scope.launch {
-                    serviceRepository.meshPacketFlow
-                        .filter { packet ->
-                            packet.decoded?.portnum == PortNum.SIMULATOR_APP && packet.decoded?.payload != null
+                }
+                    .distinctUntilChanged()
+                    .collect { identity ->
+                        currentIdentity = identity
+                        if (identity != null) {
+                            sendHelloToClients(identity)
                         }
-                        .collect { packet ->
-                            handleMeshPacket(packet)
-                        }
-                },
-            )
+                    }
+            }
+        }
 
         jobs = newJobs
         Logger.i {
             "Mesh Bridge Integration started on port ${MeshBridgeDefaults.DEFAULT_PORT} " +
                 "for portnum ${PortNum.SIMULATOR_APP.value}"
         }
+    }
+
+    private suspend fun sendHelloIfAvailable() {
+        val identity = currentIdentity ?: return
+        sendHelloToClients(identity)
+    }
+
+    private suspend fun sendHelloToClients(identity: MeshBridgeNodeIdentity) {
+        if (meshBridgeServerManager.connectionCount.value <= 0) return
+        val frame = MeshBridgeHello.buildHelloFrame(nodeId = identity.nodeId, name = identity.name)
+        val nodeHex =
+            (identity.nodeId.toLong() and MeshBridgeDefaults.UINT32_MASK).toString(MeshBridgeDefaults.HEX_RADIX)
+        val logName = identity.name.orEmpty()
+        Logger.d { "meshbridge: HELLO → client nodeId=0x$nodeHex name=$logName" }
+        meshBridgeServerManager.sendRawFrameToClients(frame)
     }
 
     private suspend fun resolveRoute(payload: ByteArray): Pair<String, String> {
@@ -187,6 +240,8 @@ class MeshBridgeIntegration(
 
     fun stop() {
         if (!isRunning.compareAndSet(expect = true, update = false)) return
+        meshBridgeServerManager.onClientConnected = null
+        currentIdentity = null
         val toCancel = jobs
         jobs = emptyList()
         toCancel.forEach(Job::cancel)

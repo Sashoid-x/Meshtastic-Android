@@ -26,6 +26,7 @@ import org.meshtastic.core.meshbridge.MeshBridgeServerManagerImpl
 import org.meshtastic.core.meshbridge.createMeshBridgeServer
 import org.meshtastic.core.repository.CommandSender
 import org.meshtastic.core.repository.MeshBridgePrefs
+import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.ServiceRepository
 
 @Module
@@ -44,10 +45,12 @@ class CoreMeshBridgeModule {
         commandSender: CommandSender,
         serviceRepository: ServiceRepository,
         meshBridgePrefs: MeshBridgePrefs,
+        nodeRepository: NodeRepository,
     ): MeshBridgeIntegration = MeshBridgeIntegration(
         meshBridgeServerManager = meshBridgeServerManager,
         commandSender = commandSender,
         serviceRepository = serviceRepository,
         meshBridgePrefs = meshBridgePrefs,
+        nodeRepository = nodeRepository,
     )
 }

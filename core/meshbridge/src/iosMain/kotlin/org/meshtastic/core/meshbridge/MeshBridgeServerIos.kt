@@ -27,12 +27,15 @@ private class NoopMeshBridgeServer : MeshBridgeServer {
     private val _connectionCount = MutableStateFlow(0)
     override val connectionCount: StateFlow<Int> = _connectionCount.asStateFlow()
     override var onPayload: ((ByteArray) -> Unit)? = null
+    override var onClientConnected: (() -> Unit)? = null
 
     override suspend fun start(scope: CoroutineScope): Result<Unit> = Result.success(Unit)
 
     override fun stop() = Unit
 
     override suspend fun broadcastToClients(from: Int, to: Int, payload: ByteArray) = Unit
+
+    override suspend fun sendRawFrameToClients(frame: ByteArray) = Unit
 
     override suspend fun hasConnections(): Boolean = false
 }
