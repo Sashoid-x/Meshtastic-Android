@@ -188,8 +188,10 @@
     <string name="hops_away">Скокова удаљено</string>
     <string name="humidity">Влажност</string>
     <string name="i_know_what_i_m_doing">Знам шта радим.</string>
+    <!-- IAQ -->
     <string name="iaq">IAQ</string>
     <string name="iaq_definition">(Kvalitet vazduha u zatvorenom prostoru) relativna skala vrednosti IAQ merena Bosch BME680. Raspon vrednosti 0–500.</string>
+    <string name="iaq_level_good">Dobro</string>
     <string name="ignore">Игнориши</string>
     <string name="ignore_add">Додати '%1$s' на листу игнорисаних?</string>
     <string name="ignore_remove">Уклнити '%1$s' на листу игнорисаних?</string>
@@ -204,6 +206,9 @@
     <string name="latitude">Ширина</string>
     <!-- LAYER -->
     <!-- LICENSED -->
+    <!-- LIVE -->
+    <string name="live_update_direct">Direktno</string>
+    <string name="live_update_start">Почетак</string>
     <!-- LOAD -->
     <!-- LOCAL -->
     <!-- LOCATION -->
@@ -267,6 +272,7 @@
     <string name="mqtt_config">MQTT подешавања</string>
     <string name="mqtt_status_connected">Блутут повезан</string>
     <string name="mqtt_status_disconnected">Raskačeno</string>
+    <string name="mqtt_topic_finder_level_region">Регион</string>
     <string name="must_set_region">Мораш одабрати регион!</string>
     <string name="must_update">Morate da ažurirate ovu aplikaciju na prodavnici aplikacija (ili Github-u). Previše je stara da bi razgovarala sa ovim radio firmverom. Molimo vas da pročitate naše <a href="https://meshtastic.org/docs/software/android/installation">dokumente</a> o ovoj temi.</string>
     <!-- MUTE -->

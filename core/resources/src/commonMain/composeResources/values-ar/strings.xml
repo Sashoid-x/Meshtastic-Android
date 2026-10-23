@@ -104,7 +104,9 @@
     <!-- GEOFENCE -->
     <string name="good">جيد</string>
     <string name="i_know_what_i_m_doing">أنا أعرف ما أفعله.</string>
+    <!-- IAQ -->
     <string name="iaq">معدل جودة الهواء الداخلي</string>
+    <string name="iaq_level_good">جيد</string>
     <string name="ignore">تجاهل</string>
     <string name="ignore_add">أضف '%1$s' إلى قائمة التجاهل؟</string>
     <!-- IMPORT -->
@@ -114,6 +116,8 @@
     <!-- KEY -->
     <!-- LAYER -->
     <!-- LICENSED -->
+    <!-- LIVE -->
+    <string name="live_update_direct">مباشره</string>
     <!-- LOAD -->
     <!-- LOCAL -->
     <!-- LOCATION -->
@@ -148,6 +152,7 @@
     <!-- MQTT -->
     <string name="mqtt">MQTT</string>
     <string name="mqtt_status_disconnected">انقطع الاتصال</string>
+    <string name="mqtt_topic_finder_level_region">الجهة</string>
     <string name="must_set_region">واجب إدخال المنطقة!</string>
     <!-- MUTE -->
     <string name="mute_1_week">أسبوع 1</string>

@@ -86,6 +86,7 @@
     <string name="firmware_update_failed">העדכון נכשל</string>
     <!-- FORMAT -->
     <!-- GEOFENCE -->
+    <!-- IAQ -->
     <string name="ignore">התעלם</string>
     <string name="ignore_add">הוסף '%1$s' לרשימת ההתעלמות? המכשיר יתחיל מחדש.</string>
     <string name="ignore_remove">הורד '%1$s' מרשימת ההתעלמות? המכשיר יתחיל מחדש.</string>
@@ -97,6 +98,7 @@
     <!-- KEY -->
     <!-- LAYER -->
     <!-- LICENSED -->
+    <!-- LIVE -->
     <!-- LOAD -->
     <!-- LOCAL -->
     <!-- LOCATION -->
@@ -135,6 +137,7 @@
     <string name="module_settings">הגדרות מודולות</string>
     <!-- MQTT -->
     <string name="mqtt_status_disconnected">מנותק</string>
+    <string name="mqtt_topic_finder_level_region">אזור</string>
     <string name="must_set_region">חובה לבחור אזור!</string>
     <string name="must_update">נדרש להתקין עדכון לאפליקציה זו דרך חנות האפליקציות (או Github). גרסת האפליקציה ישנה מדי בכדי לתקשר עם מכשיר זה. בבקשה קרא <a href="https://meshtastic.org/docs/software/android/installation">מסמכי עזרה</a> בנושא זה.</string>
     <!-- MUTE -->

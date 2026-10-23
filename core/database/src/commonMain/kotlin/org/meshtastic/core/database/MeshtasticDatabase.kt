@@ -39,6 +39,7 @@ import org.meshtastic.core.database.dao.FirmwareReleaseDao
 import org.meshtastic.core.database.dao.MaintenanceUf2Dao
 import org.meshtastic.core.database.dao.MergeMarkerDao
 import org.meshtastic.core.database.dao.MeshLogDao
+import org.meshtastic.core.database.dao.MqttRootsDao
 import org.meshtastic.core.database.dao.NodeInfoDao
 import org.meshtastic.core.database.dao.PacketDao
 import org.meshtastic.core.database.dao.QuickChatActionDao
@@ -60,6 +61,7 @@ import org.meshtastic.core.database.entity.MaintenanceUf2CacheEntity
 import org.meshtastic.core.database.entity.MergeMarkerEntity
 import org.meshtastic.core.database.entity.MeshLog
 import org.meshtastic.core.database.entity.MetadataEntity
+import org.meshtastic.core.database.entity.MqttRootsCacheEntity
 import org.meshtastic.core.database.entity.MyNodeEntity
 import org.meshtastic.core.database.entity.NodeEntity
 import org.meshtastic.core.database.entity.Packet
@@ -93,6 +95,7 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         ChannelSetEntity::class,
         BootloaderOtaQuirksCacheEntity::class,
         MaintenanceUf2CacheEntity::class,
+        MqttRootsCacheEntity::class,
         AutomationRuleEntity::class,
         AutomationLogEntity::class,
         TopologyEdge::class,
@@ -160,10 +163,11 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         AutoMigration(from = 61, to = 62),
         AutoMigration(from = 62, to = 63),
         // 63 -> 64 is the manual MIGRATION_63_64 (log index added in place), applied via configureCommon().
-        // 64 -> 65 is the manual MIGRATION_64_65 (automation tables created), applied via configureCommon().
-        // 65 -> 66 is the manual MIGRATION_65_66 (topology_edge table created), applied via configureCommon().
+        AutoMigration(from = 64, to = 65),
+        // 65 -> 66 is the manual MIGRATION_65_66 (automation tables created), applied via configureCommon().
+        // 66 -> 67 is the manual MIGRATION_66_67 (topology_edge table created), applied via configureCommon().
     ],
-    version = 66,
+    version = 67,
     exportSchema = true,
 )
 @androidx.room3.ConstructedBy(MeshtasticDatabaseConstructor::class)
@@ -198,6 +202,8 @@ abstract class MeshtasticDatabase : RoomDatabase() {
     abstract fun bootloaderOtaQuirksDao(): BootloaderOtaQuirksDao
 
     abstract fun maintenanceUf2Dao(): MaintenanceUf2Dao
+
+    abstract fun mqttRootsDao(): MqttRootsDao
 
     abstract fun automationDao(): AutomationDao
 
@@ -459,8 +465,8 @@ abstract class MeshtasticDatabase : RoomDatabase() {
          * Both tables are new (no data to migrate) so we issue CREATE TABLE IF NOT EXISTS. The FK from `automation_log`
          * to `automation_rule` is enforced after FK-checks are enabled.
          */
-        internal val MIGRATION_64_65: Migration =
-            object : Migration(64, 65) {
+        internal val MIGRATION_66_67: Migration =
+            object : Migration(66, 67) {
                 override suspend fun migrate(connection: SQLiteConnection) {
                     connection.execSQL(
                         "CREATE TABLE IF NOT EXISTS `automation_rule` (" +
@@ -496,8 +502,8 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             }
 
         /** Creates the `topology_edge` table introduced in schema 66. */
-        internal val MIGRATION_65_66: Migration =
-            object : Migration(65, 66) {
+        internal val MIGRATION_66_67: Migration =
+            object : Migration(66, 67) {
                 override suspend fun migrate(connection: SQLiteConnection) {
                     connection.execSQL(
                         "CREATE TABLE IF NOT EXISTS `topology_edge` (" +
@@ -546,10 +552,11 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     MIGRATION_62_63,
                     MIGRATION_61_63,
                     MIGRATION_63_64,
-                    MIGRATION_64_65,
                     MIGRATION_65_66,
+                    MIGRATION_66_67,
                 )
                 .setSingleConnectionPool()
+                .setConnectionPoolTimeout(ROOM_POOL_ACQUIRE_TIMEOUT)
                 .setQueryCoroutineContext(
                     // limitedParallelism(1) has the same throughput ceiling as the single-connection pool
                     // (already serialized), so this only blocks the cancellation pileup — not real I/O concurrency.
@@ -560,19 +567,19 @@ abstract class MeshtasticDatabase : RoomDatabase() {
 
 @DeleteTable(tableName = "NodeInfo")
 @DeleteTable(tableName = "MyNodeInfo")
-class AutoMigration12to13 : AutoMigrationSpec
+object AutoMigration12to13 : AutoMigrationSpec
 
 @DeleteColumn(tableName = "packet", columnName = "reply_id")
-class AutoMigration29to30 : AutoMigrationSpec
+object AutoMigration29to30 : AutoMigrationSpec
 
 @DeleteColumn(tableName = "packet", columnName = "retry_count")
 @DeleteColumn(tableName = "reactions", columnName = "retry_count")
-class AutoMigration33to34 : AutoMigrationSpec
+object AutoMigration33to34 : AutoMigrationSpec
 
 @DeleteColumn(tableName = "packet", columnName = "retry_count")
 @DeleteColumn(tableName = "reactions", columnName = "retry_count")
-class AutoMigration34to35 : AutoMigrationSpec
+object AutoMigration34to35 : AutoMigrationSpec
 
 /** Device links moved from the bundled `urls.json` to the resolved API; `original_url` is no longer stored. */
 @DeleteColumn(tableName = "device_link", columnName = "original_url")
-class AutoMigration42to43 : AutoMigrationSpec
+object AutoMigration42to43 : AutoMigrationSpec

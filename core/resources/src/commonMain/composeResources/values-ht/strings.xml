@@ -101,7 +101,9 @@
     <!-- GEOFENCE -->
     <string name="good">Bon</string>
     <string name="hops_away">Hops Lwen</string>
+    <!-- IAQ -->
     <string name="iaq_definition">(Kalite Lèy Entèryè) echèl relatif valè IAQ jan li mezire pa Bosch BME680. Ranje valè 0–500.</string>
+    <string name="iaq_level_good">Bon</string>
     <string name="ignore">Ignoré</string>
     <string name="ignore_add">Ajoute '%1$s' nan lis ignòre?</string>
     <string name="ignore_remove">Retire '%1$s' nan lis ignòre?</string>
@@ -113,6 +115,8 @@
     <!-- KEY -->
     <!-- LAYER -->
     <!-- LICENSED -->
+    <!-- LIVE -->
+    <string name="live_update_direct">Direk</string>
     <!-- LOAD -->
     <!-- LOCAL -->
     <!-- LOCATION -->
@@ -153,6 +157,7 @@
     <string name="module_settings">Konfigirasyon modil</string>
     <!-- MQTT -->
     <string name="mqtt_status_disconnected">Dekonekte</string>
+    <string name="mqtt_topic_finder_level_region">Rejyon</string>
     <string name="must_set_region">Ou dwe mete yon rejyon!</string>
     <string name="must_update">Ou dwe mete aplikasyon sa ajou nan magazen Google Jwèt. Li twò ansyen pou li kominike ak radyo sa a.</string>
     <!-- MUTE -->

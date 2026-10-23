@@ -277,8 +277,10 @@
     <string name="i_agree">Elfogadom.</string>
     <string name="i_agree_to_share_my_location">Elolvastam és megértettem a fentieket. Önkéntesen hozzájárulok, hogy a csomópontom adatai titkosítatlanul kerüljenek továbbításra MQTT-n keresztül</string>
     <string name="i_know_what_i_m_doing">Tudom, mit csinálok.</string>
+    <!-- IAQ -->
     <string name="iaq">IAQ</string>
     <string name="iaq_definition">(Beltéri levegőminőség) relatív IAQ érték a Bosch BME680 szenzor alapján. Értéktartomány: 0–500.</string>
+    <string name="iaq_level_good">Jó</string>
     <string name="icon_meanings">Ikonmagyarázatok</string>
     <string name="ignore">Mellőzés</string>
     <string name="ignore_add">Hozzáadod „%1$s”-t a figyelmen kívül hagyási listához?</string>
@@ -310,6 +312,8 @@
     <string name="legacy_admin_channel">Régi admin csatorna</string>
     <!-- LICENSED -->
     <string name="licensed_amateur_radio_text">Ennek az opciónak az engedélyezése letiltja a titkosítást, és nem kompatibilis az alapértelmezett Meshtastic hálózattal.</string>
+    <!-- LIVE -->
+    <string name="live_update_direct">Közvetlen</string>
     <!-- LOAD -->
     <string name="load">Terhelés</string>
     <string name="load_indexed">Terhelés %1$d</string>
@@ -412,6 +416,7 @@
     <string name="mqtt_config">MQTT beállítások</string>
     <string name="mqtt_status_connected">Csatlakoztatva</string>
     <string name="mqtt_status_disconnected">Szétkapcsolva</string>
+    <string name="mqtt_topic_finder_level_region">Régió</string>
     <string name="must_set_region">Be kell állítania egy régiót</string>
     <string name="must_update">Frissítenie kell ezt az alkalmazást a Google Play áruházban (vagy a GitHub-ról), mert túl régi, hogy kommunikálni tudjob ezzel a rádió firmware-rel. Kérem olvassa el a tudnivalókat ebből a <a href="https://meshtastic.org/docs/software/android/installation">docs</a>-ből.</string>
     <!-- MUTE -->
@@ -676,6 +681,7 @@
     <string name="swipe_action_unmute">Némítás feloldása</string>
     <string name="system_settings">Rendszerbeállítások</string>
     <!-- TAK -->
+    <string name="tak_server_regenerate_certs_confirm">Újragenerálás</string>
     <string name="tak_server_section">Szerver</string>
     <string name="telemetry">Telemetria</string>
     <string name="telemetry_config">Telemetria beállítások</string>

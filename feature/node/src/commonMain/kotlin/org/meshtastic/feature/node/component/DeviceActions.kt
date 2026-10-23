@@ -55,6 +55,7 @@ import org.meshtastic.core.resources.actions
 import org.meshtastic.core.resources.direct_message
 import org.meshtastic.core.resources.favorite
 import org.meshtastic.core.resources.ignore
+import org.meshtastic.core.resources.live_update_track_in
 import org.meshtastic.core.resources.long_name
 import org.meshtastic.core.resources.mute_notifications
 import org.meshtastic.core.resources.remove
@@ -70,6 +71,7 @@ import org.meshtastic.core.ui.icon.Favorite
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.Message
 import org.meshtastic.core.ui.icon.NotFavorite
+import org.meshtastic.core.ui.icon.Notifications
 import org.meshtastic.core.ui.icon.QrCode2
 import org.meshtastic.core.ui.icon.VolumeMute
 import org.meshtastic.core.ui.icon.VolumeOff
@@ -94,6 +96,7 @@ fun DeviceActions(
     hasConversation: Boolean = false,
     pressureInMmHg: Boolean = false,
     airQualityHistory: List<Telemetry> = emptyList(),
+    trackedInLiveUpdate: Boolean? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SectionCard(title = Res.string.actions) {
@@ -101,7 +104,12 @@ fun DeviceActions(
 
             if (!isLocal) {
                 SectionDivider(Modifier.padding(vertical = 8.dp))
-                ManagementActions(node = node, onAction = onAction)
+                ManagementActions(
+                    node = node,
+                    canMute = canMuteFrom(ourNode),
+                    trackedInLiveUpdate = trackedInLiveUpdate,
+                    onAction = onAction,
+                )
             }
         }
 
@@ -181,9 +189,24 @@ private fun PrimaryActionsRow(
 }
 
 @Composable
-private fun ManagementActions(node: Node, onAction: (NodeDetailAction) -> Unit) {
+private fun ManagementActions(
+    node: Node,
+    canMute: Boolean,
+    trackedInLiveUpdate: Boolean?,
+    onAction: (NodeDetailAction) -> Unit,
+) {
     Column {
         RenameNodeAction(node = node, onAction = onAction)
+
+        // Null where Live Updates do not exist; an ignored node cannot be tracked.
+        if (trackedInLiveUpdate != null && !node.isIgnored) {
+            SwitchListItem(
+                text = stringResource(Res.string.live_update_track_in),
+                leadingIcon = MeshtasticIcons.Notifications,
+                checked = trackedInLiveUpdate,
+                onClick = { onAction(NodeDetailAction.TrackInLiveUpdate(node.num, track = !trackedInLiveUpdate)) },
+            )
+        }
 
         SwitchListItem(
             text = stringResource(Res.string.ignore),
@@ -197,7 +220,7 @@ private fun ManagementActions(node: Node, onAction: (NodeDetailAction) -> Unit) 
             onClick = { onAction(NodeDetailAction.HandleNodeMenuAction(NodeMenuAction.Ignore(node))) },
         )
 
-        if (node.capabilities.canMuteNode) {
+        if (canMute) {
             SwitchListItem(
                 text = stringResource(Res.string.mute_notifications),
                 leadingIcon =

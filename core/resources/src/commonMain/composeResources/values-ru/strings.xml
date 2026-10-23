@@ -813,7 +813,6 @@
     <string name="doc_keywords_telemetry">telemetry,sensor,temperature,humidity,pressure,power</string>
     <string name="doc_keywords_translate">translate,crowdin,localization,language,i18n,contribute</string>
     <string name="doc_keywords_units">units,locale,metric,imperial,temperature,distance</string>
-    <string name="doc_keywords_widget">widget,home screen,local stats,glance,battery,utilization</string>
     <string name="doc_loading">Загрузка документации…</string>
     <string name="doc_no_content">Содержимое недоступно</string>
     <string name="doc_no_documentation">Документация недоступна</string>
@@ -1164,8 +1163,11 @@
     <string name="i_agree">Я согласен.</string>
     <string name="i_agree_to_share_my_location">Я прочитал и понял вышеописанное. Я добровольно даю согласие на незашифрованную передачу данных моей ноды через MQTT</string>
     <string name="i_know_what_i_m_doing">Я знаю, что делаю.</string>
-    <string name="iaq">IAQ</string>
+    <!-- IAQ -->
+    <string name="iaq">Относительное качество воздуха в помещении</string>
     <string name="iaq_definition">(Качество воздуха в помещении) Относительная шкала IAQ, измеренная Bosch BME680. Диапазон значений 0–500.</string>
+    <string name="iaq_level_excellent">Отлично</string>
+    <string name="iaq_level_good">Хороший</string>
     <string name="iaq_value">IAQ %1$d</string>
     <string name="icon_meanings">Обозначение значков</string>
     <string name="ignore">Игнорировать</string>
@@ -1268,6 +1270,11 @@
     <string name="lightning_strikes_1h">Молнии (за 1 ч)</string>
     <string name="link_preview_setting">Предпросмотр веб-ссылок</string>
     <string name="link_preview_setting_summary">Показывать карточки предпросмотра для обычных веб-ссылок в сообщениях</string>
+    <!-- LIVE -->
+    <string name="live_update_direct">Прямой</string>
+    <string name="live_update_distance">%1$s отсюда</string>
+    <string name="live_update_unread"> %1$d непрочитанное</string>
+    <!-- LOAD -->
     <string name="load">Загрузка</string>
     <string name="load_15_min">Загрузка 15 мин</string>
     <string name="load_15_min_description">Среднее значение нагрузки системы за 15 минут</string>
@@ -1451,7 +1458,6 @@
     <string name="mesh_beacon_preset_indicator">Рекламируется ближайшим маяком</string>
     <string name="mesh_beacon_preset_none">Отсутствует</string>
     <string name="mesh_beacon_region_label">Регион / Страна</string>
-    <string name="mesh_beacon_region_required">Укажите регион твоего радио перед настройкой маяка.</string>
     <string name="mesh_beacon_target">Цель %1$d</string>
     <string name="mesh_beacon_target_add">Добавить цель</string>
     <string name="mesh_beacon_target_channel_index">Канал</string>
@@ -1565,6 +1571,8 @@
     <string name="mqtt_status_topics_refused_all">Подключено, но брокер отклонил все темы: %1$s</string>
     <string name="mqtt_status_topics_refused_some">Подключено, но брокер отказал %1$s</string>
     <string name="mqtt_test_connection">Проверить соединение</string>
+    <string name="mqtt_topic_finder_connecting">Подключение…</string>
+    <string name="mqtt_topic_finder_level_region">Регион / Страна</string>
     <string name="must_set_region">Вы должны задать регион!</string>
     <string name="must_update">Вам необходимо обновить данное приложение в магазине приложений (или с Github). Оно слишком старо для взаимодействия с прошивкой радиостанции. Пожалуйста, прочитайте нашу <a href="https://meshtastic.org/docs/software/android/installation">документацию</a> по этой теме.</string>
     <string name="mute_1_week">1 неделя</string>
@@ -2204,6 +2212,7 @@
     <string name="tak_server_mesh_to_cot">Конвертер сети в CoT</string>
     <string name="tak_server_mesh_to_cot_desc">Показывать ноды Meshtastic на карте ATAK как контакты</string>
     <string name="tak_server_permission_blocked">Сервер TAK нуждается в доступе к локальной сети для приёма подключений, и Android больше не будет спрашивать. Сейчас доступ отключен — включи разрешение в настройках приложения и снова включи сервер.</string>
+    <string name="tak_server_regenerate_certs_confirm">Сгенерировать новый</string>
     <string name="tak_server_section">Сервер</string>
     <string name="tak_server_status">Статус</string>
     <string name="tak_server_status_failed">Не удалось запустить TAK-сервер. Выключите и снова включите его, чтобы повторить попытку.</string>

@@ -716,8 +716,10 @@
     <string name="i_agree">Souhlasím.</string>
     <string name="i_agree_to_share_my_location">Četl jsem a rozumím výše uvedenému. Dobrovolně souhlasím s nešifrovaným přenosem dat svého uzlu přes MQTT</string>
     <string name="i_know_what_i_m_doing">Vím co dělám.</string>
+    <!-- IAQ -->
     <string name="iaq">IAQ</string>
     <string name="iaq_definition">(Vnitřní kvalita ovzduší) relativní hodnota IAQ měřená Bosch BME680. Hodnota rozsahu 0–500.</string>
+    <string name="iaq_level_good">Silný</string>
     <string name="icon_meanings">Význam ikon</string>
     <string name="ignore">Ignorovat</string>
     <string name="ignore_add">Přidat '%1$s' do seznamu ignorovaných?</string>
@@ -775,6 +777,9 @@
     <string name="licensed_mode_enable_title">Povolit licencovaný režim (Ham)?</string>
     <string name="licensed_mode_enable_warning">Licencovaný režim odstraní šifrovací klíče kanálů a deaktivuje administrátorský kanál, takže veškerý provoz bude odesílán v otevřeném textu, který může kdokoli číst. Tento firmware jej navíc nemůže podepisovat, takže ostatní uzly nemohou ověřit, že pochází od vás. Tento režim není kompatibilní s výchozí sítí Meshtastic a nadále odpovídáte za dodržování podmínek své radioamatérské licence a místních předpisů.</string>
     <string name="licensed_mode_enable_warning_signed">Licencovaný režim odstraní šifrovací klíče kanálů a deaktivuje administrátorský kanál, takže veškerý provoz bude odesílán v otevřeném textu, který může kdokoli číst. Zprávy jsou však digitálně podepisovány, takže ostatní uzly mohou ověřit, že pocházejí od vás. Číslo vašeho uzlu se může jednou změnit tak, aby odpovídalo vašemu identifikačnímu klíči, takže oblíbené položky, historie zpráv, vzdálená správa a ostatní uzly jej mohou zpočátku považovat za nový uzel. Nadále odpovídáte za dodržování podmínek své radioamatérské licence a místních předpisů.</string>
+    <!-- LIVE -->
+    <string name="live_update_direct">Přímý</string>
+    <string name="live_update_unread">%1$d nepřečtených</string>
     <!-- LOAD -->
     <string name="load">Zatížení</string>
     <string name="loading">Načítám</string>
@@ -1021,6 +1026,7 @@
     <string name="mqtt_status_inactive">Neaktivní</string>
     <string name="mqtt_status_reconnecting">Opětovné připojování…</string>
     <string name="mqtt_test_connection">Test připojení</string>
+    <string name="mqtt_topic_finder_level_region">Region</string>
     <string name="must_set_region">Musíte nastavit region!</string>
     <string name="must_update">Musíte aktualizovat aplikaci v obchodu Google Play (nebo z Githubu). Je příliš stará pro komunikaci s touto verzí firmware vysílače. Přečtěte si prosím naše <a href="https://meshtastic.org/docs/software/android/installation">dokumenty</a> na toto téma.</string>
     <!-- MUTE -->

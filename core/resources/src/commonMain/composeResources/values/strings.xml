@@ -748,6 +748,9 @@
     <string name="device_metrics_numeric_value">%1$s</string>
     <string name="device_metrics_percent_value">%1$s: %2$s%%</string>
     <string name="device_metrics_voltage_value">%1$s: %2$s V</string>
+    <string name="device_model_ar_camera_unavailable">Another app is using the camera. Close it and come back.</string>
+    <string name="device_model_ar_failed">AR couldn't start</string>
+    <string name="device_model_ar_restart_phone">Restart your phone. Its motion sensor isn't responding, and AR can't start without it.</string>
     <string name="device_model_capture">Take a picture</string>
     <string name="device_model_capture_failed">Couldn't save the picture</string>
     <string name="device_model_capture_saved">Saved to Pictures</string>
@@ -886,7 +889,7 @@
     <string name="doc_keywords_telemetry">telemetry,sensor,temperature,humidity,pressure,power</string>
     <string name="doc_keywords_translate">translate,crowdin,localization,language,i18n,contribute</string>
     <string name="doc_keywords_units">units,locale,metric,imperial,temperature,distance</string>
-    <string name="doc_keywords_widget">widget,home screen,local stats,glance,battery,utilization</string>
+    <string name="doc_keywords_widget">widget,home screen,local stats,node tracker,glance,battery,utilization</string>
     <string name="doc_loading">Loading documentation…</string>
     <string name="doc_no_content">No content available.</string>
     <string name="doc_no_documentation">No documentation available</string>
@@ -1240,8 +1243,19 @@
     <string name="i_agree">I agree.</string>
     <string name="i_agree_to_share_my_location">I have read and understand the above. I voluntarily consent to the unencrypted transmission of my node data via MQTT</string>
     <string name="i_know_what_i_m_doing">I know what I'm doing.</string>
+    <!-- IAQ -->
     <string name="iaq">IAQ</string>
     <string name="iaq_definition">(Indoor Air Quality) relative scale IAQ value as measured by Bosch BME680. Value Range 0–500.</string>
+    <string name="iaq_level_dangerously_polluted">Dangerously Polluted</string>
+    <string name="iaq_level_excellent">Excellent</string>
+    <string name="iaq_level_extremely_polluted">Extremely Polluted</string>
+    <string name="iaq_level_good">Good</string>
+    <string name="iaq_level_heavily_polluted">Heavily Polluted</string>
+    <string name="iaq_level_lightly_polluted">Lightly Polluted</string>
+    <string name="iaq_level_moderately_polluted">Moderately Polluted</string>
+    <string name="iaq_level_range">%1$s (%2$d-%3$d)</string>
+    <string name="iaq_level_range_open">%1$s (%2$d+)</string>
+    <string name="iaq_level_severely_polluted">Severely Polluted</string>
     <string name="iaq_value">IAQ %1$d</string>
     <string name="icon_meanings">Icon Meanings</string>
     <string name="ignore">Ignore</string>
@@ -1350,6 +1364,29 @@
     <string name="lightning_strikes_1h">Lightning (1h)</string>
     <string name="link_preview_setting">Web Link Previews</string>
     <string name="link_preview_setting_summary">Show rich preview cards for ordinary web links in messages</string>
+    <!-- LIVE -->
+    <string name="live_update">Live Update</string>
+    <string name="live_update_direct">Direct</string>
+    <string name="live_update_distance">%1$s away</string>
+    <string name="live_update_heard">Heard %1$s</string>
+    <string name="live_update_heard_now">Heard just now</string>
+    <string name="live_update_hops">Hops away: %1$d</string>
+    <string name="live_update_mesh_status">Mesh status</string>
+    <string name="live_update_mesh_status_summary">Connection, nodes online, unread messages and your radio's battery</string>
+    <string name="live_update_no_nodes">No nodes to track</string>
+    <string name="live_update_nodes_online">%1$d of %2$d nodes online</string>
+    <string name="live_update_off_summary">Show the mesh or one node in the status bar</string>
+    <string name="live_update_promotion_off">Live Updates are turned off for Meshtastic in system settings</string>
+    <string name="live_update_search_nodes">Search nodes</string>
+    <string name="live_update_signal">SNR %1$s, RSSI %2$s</string>
+    <string name="live_update_start">Start</string>
+    <string name="live_update_stop">Stop</string>
+    <string name="live_update_switch">Switch</string>
+    <string name="live_update_track_in">Track in Live Update</string>
+    <string name="live_update_track_node">Track a node</string>
+    <string name="live_update_track_node_summary">One node's battery, signal, last heard, hops and distance</string>
+    <string name="live_update_tracking">Tracking %1$s</string>
+    <string name="live_update_unread">%1$d unread</string>
     <!-- LOAD -->
     <string name="load">Load</string>
     <string name="load_15_min">Load 15m</string>
@@ -1550,7 +1587,7 @@
     <string name="mesh_beacon_preset_indicator">Advertised by a nearby beacon</string>
     <string name="mesh_beacon_preset_none">None</string>
     <string name="mesh_beacon_region_label">Region</string>
-    <string name="mesh_beacon_region_required">Set your radio's region before setting up a beacon.</string>
+    <string name="mesh_beacon_region_required">Set your node's region before setting up a beacon.</string>
     <string name="mesh_beacon_target">Target %1$d</string>
     <string name="mesh_beacon_target_add">Add target</string>
     <string name="mesh_beacon_target_channel_index">Channel</string>
@@ -1618,6 +1655,13 @@
     <string name="mesh_hud_thermal_hot">Phone is hot. Updating less often.</string>
     <string name="mesh_hud_tilt_down">Tilt down %1$d°</string>
     <string name="mesh_hud_tilt_up">Tilt up %1$d°</string>
+    <string name="mesh_hud_track_empty">No positions in the track window</string>
+    <string name="mesh_hud_track_newest">%1$s · newest %2$s</string>
+    <plurals name="mesh_hud_track_points">
+        <item quantity="one">%1$d point</item>
+        <item quantity="other">%1$d points</item>
+    </plurals>
+    <string name="mesh_hud_track_summary">%1$s over %2$s · newest %3$s</string>
     <string name="mesh_hud_turn_left">Turn left %1$d°</string>
     <string name="mesh_hud_turn_right">Turn right %1$d°</string>
     <string name="mesh_hud_waiting_sensor">Waiting for the orientation sensor</string>
@@ -1729,6 +1773,15 @@
     <string name="mqtt_probe_tls_failure">TLS handshake failed: %1$s</string>
     <string name="mqtt_proxy_local">MQTT proxy in this app</string>
     <string name="mqtt_proxy_local_summary">This app relays MQTT traffic for the connected device. Turn off to cut the relay immediately without changing the device's MQTT setting, which helps when MQTT traffic is overwhelming the connection. Turn back on to resume relaying.</string>
+    <string name="mqtt_root_problem_empty">Enter a topic.</string>
+    <string name="mqtt_root_problem_empty_segment">Topics cannot contain two slashes in a row.</string>
+    <string name="mqtt_root_problem_ends_with_version">Topics cannot end with /2.</string>
+    <string name="mqtt_root_problem_leading_slash">Topics cannot start with a slash.</string>
+    <string name="mqtt_root_problem_non_ascii">Topics must use ASCII characters.</string>
+    <string name="mqtt_root_problem_too_long">Topics are limited to 31 characters.</string>
+    <string name="mqtt_root_problem_trailing_slash">Topics cannot end with a slash.</string>
+    <string name="mqtt_root_problem_whitespace">Topics cannot contain spaces or control characters.</string>
+    <string name="mqtt_root_problem_wildcard">Topics cannot contain + or #.</string>
     <string name="mqtt_status_connected">Connected</string>
     <string name="mqtt_status_connecting">Connecting…</string>
     <string name="mqtt_status_disconnected">Disconnected</string>
@@ -1739,6 +1792,39 @@
     <string name="mqtt_status_topics_refused_all">Connected, but the broker refused every topic: %1$s</string>
     <string name="mqtt_status_topics_refused_some">Connected, but the broker refused %1$s</string>
     <string name="mqtt_test_connection">Test connection</string>
+    <string name="mqtt_topic_finder">Find topics near you</string>
+    <string name="mqtt_topic_finder_active">Active topics</string>
+    <string name="mqtt_topic_finder_connecting">Connecting…</string>
+    <string name="mqtt_topic_finder_counts">Counts are nodes heard during the sample. Busy topics fill in within seconds; quiet ones may stay at zero.</string>
+    <string name="mqtt_topic_finder_custom">Custom topic</string>
+    <string name="mqtt_topic_finder_custom_example" translatable="false">msh/US/WA/seattle</string>
+    <string name="mqtt_topic_finder_custom_hint">Up to 31 ASCII characters, no leading or trailing slash, no + or #.</string>
+    <string name="mqtt_topic_finder_failed_closed">The broker closed the connection.</string>
+    <string name="mqtt_topic_finder_failed_connect">Could not connect to the broker.</string>
+    <string name="mqtt_topic_finder_failed_error">The sample stopped on an unexpected error.</string>
+    <string name="mqtt_topic_finder_failed_filters">The broker does not allow these topic filters.</string>
+    <string name="mqtt_topic_finder_finished">Heard %1$d messages on %2$d topics</string>
+    <string name="mqtt_topic_finder_footer">Listens to %1$s for one minute and publishes nothing. The broker sees your IP address and a random client ID, not your node. Your location never reaches the broker; the phone's geocoder turns it into the country, state and city names on the rows. Picking a topic fills in the Root topic field, and nothing reaches the radio until you save.</string>
+    <string name="mqtt_topic_finder_geocode_failed">Could not look up the place name for your location.</string>
+    <string name="mqtt_topic_finder_level_city">City</string>
+    <string name="mqtt_topic_finder_level_community">Community mesh</string>
+    <string name="mqtt_topic_finder_level_country">Country</string>
+    <string name="mqtt_topic_finder_level_region">Region</string>
+    <string name="mqtt_topic_finder_level_subdivision">State or province</string>
+    <string name="mqtt_topic_finder_listening">Listening…</string>
+    <string name="mqtt_topic_finder_near_you">Near you</string>
+    <string name="mqtt_topic_finder_nearby">Nearby</string>
+    <string name="mqtt_topic_finder_nearest">nearest %1$s</string>
+    <string name="mqtt_topic_finder_no_location">No location yet. Connect a radio with a position fix, or allow precise location, to see country, state and city topics.</string>
+    <string name="mqtt_topic_finder_no_region">Set the LoRa region first.</string>
+    <string name="mqtt_topic_finder_nodes">nodes</string>
+    <string name="mqtt_topic_finder_nothing_heard">Nothing was heard during the sample.</string>
+    <string name="mqtt_topic_finder_nothing_yet">Nothing heard yet</string>
+    <string name="mqtt_topic_finder_only_above">Only the topics above were active during the sample.</string>
+    <string name="mqtt_topic_finder_sample_again">Sample again</string>
+    <string name="mqtt_topic_finder_subscribing">Subscribing…</string>
+    <string name="mqtt_topic_finder_summary">Listen to the broker for a minute and list the root topics in use around you.</string>
+    <string name="mqtt_topic_finder_use">Use this topic</string>
     <string name="must_set_region">You must set a region!</string>
     <string name="must_update">You must update this application on the app store (or Github). It is too old to talk to this radio firmware.  Please read our <a href="https://meshtastic.org/docs/software/android/installation">docs</a> on this topic.</string>
     <!-- MUTE -->
@@ -2399,16 +2485,25 @@
     <string name="tak">TAK (ATAK)</string>
     <string name="tak_config">TAK Configuration</string>
     <string name="tak_server">TAK Server</string>
+    <string name="tak_server_certs_notice">The certificates in the package are unique to this install. After reinstalling the app or regenerating them, export the package again and re-import it in ATAK.</string>
     <string name="tak_server_channel">TAK Mesh Channel</string>
     <string name="tak_server_channel_desc">Meshtastic channel used for outgoing TAK traffic</string>
     <string name="tak_server_channel_option">%1$d: %2$s</string>
+    <string name="tak_server_client_rejected">A TAK client was turned away because its certificate does not belong to this install. In ATAK, remove the old Meshtastic server connection, then export the data package again and import it.</string>
     <string name="tak_server_enabled">Enable Local TAK Server</string>
     <string name="tak_server_enabled_desc">Starts a local TLS server on port 8089 for ATAK connections</string>
     <string name="tak_server_export_data_package_desc">Generate .zip for ATAK to connect to this server</string>
+    <string name="tak_server_export_failed">Could not export the TAK data package: the server certificates are unavailable.</string>
     <string name="tak_server_loading">…</string>
     <string name="tak_server_mesh_to_cot">Mesh to CoT Converter</string>
     <string name="tak_server_mesh_to_cot_desc">Show Meshtastic nodes on the ATAK map as contacts</string>
     <string name="tak_server_permission_blocked">The TAK server needs local network access to accept connections, and Android will not ask again. It has been turned off for now — turn the permission on in app settings and switch it back on.</string>
+    <string name="tak_server_regenerate_certs">Regenerate Certificates</string>
+    <string name="tak_server_regenerate_certs_confirm">Regenerate</string>
+    <string name="tak_server_regenerate_certs_desc">Issue a new server and client identity for this install</string>
+    <string name="tak_server_regenerate_certs_done">New certificates issued. Export the data package again and re-import it in ATAK.</string>
+    <string name="tak_server_regenerate_certs_failed">Could not regenerate the TAK certificates.</string>
+    <string name="tak_server_regenerate_certs_message">ATAK will not be able to connect until you export the data package again and re-import it. Every previously exported package stops working.</string>
     <string name="tak_server_section">Server</string>
     <string name="tak_server_status">Status</string>
     <plurals name="tak_server_status_connected">
@@ -2627,6 +2722,8 @@
     <string name="weight">Weight</string>
     <string name="what_is_meshtastic">What is Meshtastic?</string>
     <string name="what_is_meshtastic_description">An open source, off-grid, decentralized, mesh network that runs on affordable, low-power radios.</string>
+    <string name="widget_node_tracker_choose">Choose a node to track</string>
+    <string name="widget_node_tracker_not_found">Node not found. Tap to choose a node.</string>
     <!-- WIFI -->
     <string name="wifi_config">Wi-Fi Options</string>
     <string name="wifi_devices">Wi-Fi Provisioning for mPWRD-OS</string>

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 65,
-    "identityHash": "180d6156b5a6307c9d4b15a26d96e116",
+    "identityHash": "39e2e089cce3fb07d5e659b49f585553",
     "entities": [
       {
         "tableName": "my_node",
@@ -362,7 +362,7 @@
       },
       {
         "tableName": "packet",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `myNodeNum` INTEGER NOT NULL DEFAULT 0, `port_num` INTEGER NOT NULL, `contact_key` TEXT NOT NULL, `received_time` INTEGER NOT NULL, `read` INTEGER NOT NULL DEFAULT 1, `data` TEXT NOT NULL, `packet_id` INTEGER NOT NULL DEFAULT 0, `routing_error` INTEGER NOT NULL DEFAULT -1, `snr` REAL, `rssi` INTEGER, `hopsAway` INTEGER NOT NULL DEFAULT -1, `sfpp_hash` BLOB, `filtered` INTEGER NOT NULL DEFAULT 0, `message_text` TEXT NOT NULL DEFAULT '', `translated_text` TEXT, `show_translated` INTEGER NOT NULL DEFAULT 0, `pinned_message` INTEGER NOT NULL DEFAULT 0)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uuid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `myNodeNum` INTEGER NOT NULL DEFAULT 0, `port_num` INTEGER NOT NULL, `contact_key` TEXT NOT NULL, `received_time` INTEGER NOT NULL, `read` INTEGER NOT NULL DEFAULT 1, `data` TEXT NOT NULL, `packet_id` INTEGER NOT NULL DEFAULT 0, `routing_error` INTEGER NOT NULL DEFAULT -1, `snr` REAL, `rssi` INTEGER, `hopsAway` INTEGER NOT NULL DEFAULT -1, `sfpp_hash` BLOB, `filtered` INTEGER NOT NULL DEFAULT 0, `message_text` TEXT NOT NULL DEFAULT '', `translated_text` TEXT, `show_translated` INTEGER NOT NULL DEFAULT 0)",
         "fields": [
           {
             "fieldPath": "uuid",
@@ -466,13 +466,6 @@
           {
             "fieldPath": "showTranslated",
             "columnName": "show_translated",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "0"
-          },
-          {
-            "fieldPath": "pinnedMessage",
-            "columnName": "pinned_message",
             "affinity": "INTEGER",
             "notNull": true,
             "defaultValue": "0"
@@ -1879,106 +1872,18 @@
         }
       },
       {
-        "tableName": "automation_rule",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `is_enabled` INTEGER NOT NULL DEFAULT 1, `trigger_json` TEXT NOT NULL, `conditions_json` TEXT NOT NULL DEFAULT '[]', `actions_json` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `last_fired_at` INTEGER NOT NULL DEFAULT 0, `fire_count` INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(`id`))",
+        "tableName": "mqtt_roots_cache",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `roots_json` TEXT NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "name",
-            "columnName": "name",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "isEnabled",
-            "columnName": "is_enabled",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "1"
-          },
-          {
-            "fieldPath": "triggerJson",
-            "columnName": "trigger_json",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "conditionsJson",
-            "columnName": "conditions_json",
-            "affinity": "TEXT",
-            "notNull": true,
-            "defaultValue": "'[]'"
-          },
-          {
-            "fieldPath": "actionsJson",
-            "columnName": "actions_json",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "createdAt",
-            "columnName": "created_at",
             "affinity": "INTEGER",
             "notNull": true
           },
           {
-            "fieldPath": "lastFiredAt",
-            "columnName": "last_fired_at",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "0"
-          },
-          {
-            "fieldPath": "fireCount",
-            "columnName": "fire_count",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "0"
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "id"
-          ]
-        }
-      },
-      {
-        "tableName": "automation_log",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `rule_id` TEXT NOT NULL, `timestamp` INTEGER NOT NULL, `success` INTEGER NOT NULL, `detail` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`rule_id`) REFERENCES `automation_rule`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
-        "fields": [
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "ruleId",
-            "columnName": "rule_id",
-            "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "timestamp",
-            "columnName": "timestamp",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "success",
-            "columnName": "success",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "detail",
-            "columnName": "detail",
+            "fieldPath": "rootsJson",
+            "columnName": "roots_json",
             "affinity": "TEXT",
             "notNull": true
           }
@@ -1988,45 +1893,12 @@
           "columnNames": [
             "id"
           ]
-        },
-        "indices": [
-          {
-            "name": "index_automation_log_rule_id",
-            "unique": false,
-            "columnNames": [
-              "rule_id"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_automation_log_rule_id` ON `${TABLE_NAME}` (`rule_id`)"
-          },
-          {
-            "name": "index_automation_log_timestamp",
-            "unique": false,
-            "columnNames": [
-              "timestamp"
-            ],
-            "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_automation_log_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
-          }
-        ],
-        "foreignKeys": [
-          {
-            "table": "automation_rule",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "rule_id"
-            ],
-            "referencedColumns": [
-              "id"
-            ]
-          }
-        ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '180d6156b5a6307c9d4b15a26d96e116')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '39e2e089cce3fb07d5e659b49f585553')"
     ]
   }
 }

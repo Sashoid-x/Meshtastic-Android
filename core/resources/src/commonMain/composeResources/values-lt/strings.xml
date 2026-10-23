@@ -105,6 +105,8 @@
     <!-- GEOFENCE -->
     <string name="good">Geras</string>
     <string name="hops_away">Persiuntimų kiekis</string>
+    <!-- IAQ -->
+    <string name="iaq_level_good">Geras</string>
     <string name="ignore">Ignoruoti</string>
     <string name="ignore_add">Ar pridėti „%1$s“ į ignoruojamų sąrašą? Po šio pakeitimo jūsų radijas bus perkrautas.</string>
     <string name="ignore_remove">Ar pašalinti „%1$s“ iš ignoruojamų sąrašo? Po šio pakeitimo jūsų radijas bus perkrautas.</string>
@@ -116,6 +118,8 @@
     <!-- KEY -->
     <!-- LAYER -->
     <!-- LICENSED -->
+    <!-- LIVE -->
+    <string name="live_update_direct">Tiesiogiai</string>
     <!-- LOAD -->
     <!-- LOCAL -->
     <!-- LOCATION -->
@@ -157,6 +161,7 @@
     <string name="module_settings">Modulio konfigūracija</string>
     <!-- MQTT -->
     <string name="mqtt_status_disconnected">Atsijungta</string>
+    <string name="mqtt_topic_finder_level_region">Regionas</string>
     <string name="must_set_region">Turite nustatyti regioną!</string>
     <string name="must_update">Urite atnaujinti šią programą programėlių parduotuvėje (arba Github). Ji per sena, kad galėtų bendrauti su šiuo radijo įrangos programinės įrangos versija. Prašome perskaityti mūsų <a href="https://meshtastic.org/docs/software/android/installation">dokumentaciją</a> šia tema.</string>
     <!-- MUTE -->

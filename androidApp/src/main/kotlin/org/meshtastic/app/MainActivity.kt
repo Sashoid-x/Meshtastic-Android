@@ -20,18 +20,13 @@ import android.app.PendingIntent
 import android.app.TaskStackBuilder
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.hardware.usb.UsbManager
 import android.net.Uri
 import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
-import android.os.Build
 import android.os.Bundle
-import android.view.WindowManager
-import androidx.activity.SystemBarStyle
 import androidx.activity.compose.ReportDrawnWhen
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -43,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.IntentCompat
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.currentStateAsState
@@ -151,18 +147,8 @@ class MainActivity : AppCompatActivity() {
         launchOptions.skipDeepLinkConfirmation =
             automationLaunch && intent.getBooleanExtra(EXTRA_SKIP_CONNECT_CONFIRM, false)
 
-        enableEdgeToEdge()
-
-        // Explicitly set the cutout mode to ALWAYS for Android 15+ to satisfy Play Console recommendations.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            window.attributes.layoutInDisplayCutoutMode =
-                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
-        }
-
-        // Ensure the navigation bar remains seamless on modern Android versions
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
-        }
+        // Transparent bars, cutout mode ALWAYS and no contrast scrim, which Play's edge-to-edge checks expect.
+        WindowCompat.enableEdgeToEdge(window)
 
         setContent {
             val theme by model.theme.collectAsStateWithLifecycle()
@@ -205,10 +191,10 @@ class MainActivity : AppCompatActivity() {
 
             // Update system bar style when theme changes
             androidx.compose.runtime.SideEffect {
-                enableEdgeToEdge(
-                    statusBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { effectiveDark },
-                    navigationBarStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { effectiveDark },
-                )
+                androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+                    isAppearanceLightStatusBars = !effectiveDark
+                    isAppearanceLightNavigationBars = !effectiveDark
+                }
             }
 
             androidx.compose.runtime.CompositionLocalProvider(

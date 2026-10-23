@@ -104,8 +104,10 @@
     <!-- GEOFENCE -->
     <string name="good">Maith</string>
     <string name="hops_away">Céimeanna uaidh</string>
+    <!-- IAQ -->
     <string name="iaq">QAÍ (Cáilíocht Aeir Inmheánach)</string>
     <string name="iaq_definition">(Cáilíocht Aeir Inmheánach) scála ábhartha den luach QAÍ a thomhas ag Bosch BME680. Scála Luach 0–500.</string>
+    <string name="iaq_level_good">Maith</string>
     <string name="ignore">Ignóra</string>
     <string name="ignore_add">Cuir ‘%1$s’ leis an liosta ignorálacha?</string>
     <string name="ignore_remove">Bain ‘%1$s’ ón liosta ignorálacha?</string>
@@ -117,6 +119,8 @@
     <!-- KEY -->
     <!-- LAYER -->
     <!-- LICENSED -->
+    <!-- LIVE -->
+    <string name="live_update_direct">Direach</string>
     <!-- LOAD -->
     <!-- LOCAL -->
     <!-- LOCATION -->
@@ -157,6 +161,7 @@
     <string name="module_settings">Cumraíocht an mhódule</string>
     <!-- MQTT -->
     <string name="mqtt_status_disconnected">Na ceangailte</string>
+    <string name="mqtt_topic_finder_level_region">Réigiún</string>
     <string name="must_set_region">Caithfidh tú réigiún a shocrú!</string>
     <string name="must_update">Caithfidh tú an feidhmchlár seo a nuashonrú ón siopa feidhmchláir (nó Github). Tá sé ró-aois chun cumarsáid a dhéanamh leis an firmware raidió seo. Le do thoil, léigh ár <a href="https://meshtastic.org/docs/software/android/installation">doiciméid</a> ar an ábhar seo.</string>
     <!-- MUTE -->

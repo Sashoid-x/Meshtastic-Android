@@ -498,8 +498,10 @@
     <string name="i_agree">我同意。</string>
     <string name="i_agree_to_share_my_location">我已閱讀並理解上述內容。我同意透過 MQTT 傳輸未加密的節點資料</string>
     <string name="i_know_what_i_m_doing">我知道我在做什麼。</string>
+    <!-- IAQ -->
     <string name="iaq">室内空氣品質指標(IAQ)</string>
     <string name="iaq_definition">(室內空氣品質) 相對尺度 IAQ 值，由 Bosch BME680 測量。值範圍 0–500。</string>
+    <string name="iaq_level_good">良好</string>
     <string name="icon_meanings">圖示說明</string>
     <string name="ignore">忽略</string>
     <string name="ignore_add">將 '%1$s' 加入忽略清單嗎？</string>
@@ -541,6 +543,9 @@
     <!-- LICENSED -->
     <string name="licensed_amateur_radio">領有執照的業餘無線電台 (HAM)</string>
     <string name="licensed_amateur_radio_text">啟用此選項將停用訊息加密，並與預設的 Meshtastic 網路不相容。</string>
+    <!-- LIVE -->
+    <string name="live_update_direct">直線</string>
+    <string name="live_update_distance">距離 %1$s</string>
     <!-- LOAD -->
     <string name="load">負載</string>
     <string name="load_15_min">15分鐘負載</string>
@@ -756,6 +761,9 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <string name="mqtt_status_reconnecting">重新連接中…</string>
     <string name="mqtt_status_reconnecting_with_attempt">重新連接中（第 %1$d 次嘗試） — %2$s</string>
     <string name="mqtt_test_connection">測試連線</string>
+    <string name="mqtt_topic_finder_connecting">正在連接…</string>
+    <string name="mqtt_topic_finder_level_country">國家/地區</string>
+    <string name="mqtt_topic_finder_level_region">地區</string>
     <string name="must_set_region">您必須設定一個區域！</string>
     <string name="must_update">您必須在應用商店(或 Github)更新此應用程式。它太舊無法與此無線電韌體通訊。請閱讀我們關於此主題的<a href="https://meshtastic.org/docs/software/android/installation">文件</a>。</string>
     <!-- MUTE -->
@@ -1136,6 +1144,7 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <string name="tak_server">TAK 伺服器</string>
     <string name="tak_server_enabled">啓用本地 TAK 伺服器</string>
     <string name="tak_server_loading">…</string>
+    <string name="tak_server_regenerate_certs_confirm">重新產生</string>
     <string name="tak_server_section">伺服器</string>
     <string name="tak_server_test_card_title">TAK Mesh 測試（除錯）</string>
     <string name="tak_server_test_idle">傳送所有 %1$d 個測試固定裝置至 mesh</string>
