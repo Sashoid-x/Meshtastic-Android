@@ -465,8 +465,8 @@ abstract class MeshtasticDatabase : RoomDatabase() {
          * Both tables are new (no data to migrate) so we issue CREATE TABLE IF NOT EXISTS. The FK from `automation_log`
          * to `automation_rule` is enforced after FK-checks are enabled.
          */
-        internal val MIGRATION_66_67: Migration =
-            object : Migration(66, 67) {
+        internal val MIGRATION_65_66: Migration =
+            object : Migration(65, 66) {
                 override suspend fun migrate(connection: SQLiteConnection) {
                     connection.execSQL(
                         "CREATE TABLE IF NOT EXISTS `automation_rule` (" +
