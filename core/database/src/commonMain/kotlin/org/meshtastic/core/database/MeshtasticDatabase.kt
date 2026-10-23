@@ -167,7 +167,7 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         // 65 -> 66 is the manual MIGRATION_65_66 (automation tables created), applied via configureCommon().
         // 66 -> 67 is the manual MIGRATION_66_67 (topology_edge table created), applied via configureCommon().
     ],
-    version = 67,
+    version = 68,
     exportSchema = true,
 )
 @androidx.room3.ConstructedBy(MeshtasticDatabaseConstructor::class)
@@ -459,71 +459,157 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                 }
             }
 
+        private fun createMqttRootsCacheTable(connection: SQLiteConnection) {
+            connection.execSQL(
+                "CREATE TABLE IF NOT EXISTS `mqtt_roots_cache` (" +
+                    "`id` INTEGER NOT NULL, " +
+                    "`roots_json` TEXT NOT NULL, " +
+                    "PRIMARY KEY(`id`))",
+            )
+        }
+
+        private fun createAutomationTables(connection: SQLiteConnection) {
+            connection.execSQL(
+                "CREATE TABLE IF NOT EXISTS `automation_rule` (" +
+                    "`id` TEXT NOT NULL, " +
+                    "`name` TEXT NOT NULL, " +
+                    "`is_enabled` INTEGER NOT NULL DEFAULT 1, " +
+                    "`trigger_json` TEXT NOT NULL, " +
+                    "`conditions_json` TEXT NOT NULL DEFAULT '[]', " +
+                    "`actions_json` TEXT NOT NULL, " +
+                    "`created_at` INTEGER NOT NULL, " +
+                    "`last_fired_at` INTEGER NOT NULL DEFAULT 0, " +
+                    "`fire_count` INTEGER NOT NULL DEFAULT 0, " +
+                    "PRIMARY KEY(`id`))",
+            )
+            connection.execSQL(
+                "CREATE TABLE IF NOT EXISTS `automation_log` (" +
+                    "`id` TEXT NOT NULL, " +
+                    "`rule_id` TEXT NOT NULL, " +
+                    "`timestamp` INTEGER NOT NULL, " +
+                    "`success` INTEGER NOT NULL, " +
+                    "`detail` TEXT NOT NULL, " +
+                    "PRIMARY KEY(`id`), " +
+                    "FOREIGN KEY(`rule_id`) REFERENCES `automation_rule`(`id`) " +
+                    "ON UPDATE NO ACTION ON DELETE CASCADE)",
+            )
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_automation_log_rule_id` ON `automation_log` (`rule_id`)",
+            )
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_automation_log_timestamp` ON `automation_log` (`timestamp`)",
+            )
+        }
+
+        private fun createTopologyTables(connection: SQLiteConnection) {
+            connection.execSQL(
+                "CREATE TABLE IF NOT EXISTS `topology_edge` (" +
+                    "`node1` INTEGER NOT NULL, " +
+                    "`node2` INTEGER NOT NULL, " +
+                    "`best_snr` REAL NOT NULL, " +
+                    "`best_rssi` INTEGER NOT NULL, " +
+                    "`last_seen` INTEGER NOT NULL, " +
+                    "`source` TEXT NOT NULL, " +
+                    "PRIMARY KEY(`node1`, `node2`))",
+            )
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_topology_edge_node1` ON `topology_edge` (`node1`)")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_topology_edge_node2` ON `topology_edge` (`node2`)")
+            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_topology_edge_source` ON `topology_edge` (`source`)")
+        }
+
+        private fun ensurePacketPinnedMessage(connection: SQLiteConnection) {
+            if (!connection.hasColumn("packet", "pinned_message")) {
+                connection.execSQL("ALTER TABLE `packet` ADD COLUMN `pinned_message` INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         /**
-         * Creates the `automation_rule` and `automation_log` tables introduced in schema 65.
+         * Idempotent migration from schema 64 to 65.
          *
-         * Both tables are new (no data to migrate) so we issue CREATE TABLE IF NOT EXISTS. The FK from `automation_log`
-         * to `automation_rule` is enforced after FK-checks are enabled.
+         * Ensures `mqtt_roots_cache`, `automation_rule`, `automation_log`, and `packet.pinned_message` exist.
+         */
+        internal val MIGRATION_64_65: Migration =
+            object : Migration(64, 65) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                }
+            }
+
+        /**
+         * Idempotent migration from schema 65 to 66.
+         *
+         * Ensures all tables and columns introduced across 65-66 exist.
          */
         internal val MIGRATION_65_66: Migration =
             object : Migration(65, 66) {
                 override suspend fun migrate(connection: SQLiteConnection) {
-                    connection.execSQL(
-                        "CREATE TABLE IF NOT EXISTS `automation_rule` (" +
-                            "`id` TEXT NOT NULL, " +
-                            "`name` TEXT NOT NULL, " +
-                            "`is_enabled` INTEGER NOT NULL DEFAULT 1, " +
-                            "`trigger_json` TEXT NOT NULL, " +
-                            "`conditions_json` TEXT NOT NULL DEFAULT '[]', " +
-                            "`actions_json` TEXT NOT NULL, " +
-                            "`created_at` INTEGER NOT NULL, " +
-                            "`last_fired_at` INTEGER NOT NULL DEFAULT 0, " +
-                            "`fire_count` INTEGER NOT NULL DEFAULT 0, " +
-                            "PRIMARY KEY(`id`))",
-                    )
-                    connection.execSQL(
-                        "CREATE TABLE IF NOT EXISTS `automation_log` (" +
-                            "`id` TEXT NOT NULL, " +
-                            "`rule_id` TEXT NOT NULL, " +
-                            "`timestamp` INTEGER NOT NULL, " +
-                            "`success` INTEGER NOT NULL, " +
-                            "`detail` TEXT NOT NULL DEFAULT '', " +
-                            "PRIMARY KEY(`id`), " +
-                            "FOREIGN KEY(`rule_id`) REFERENCES `automation_rule`(`id`) " +
-                            "ON UPDATE NO ACTION ON DELETE CASCADE)",
-                    )
-                    connection.execSQL(
-                        "CREATE INDEX IF NOT EXISTS `index_automation_log_rule_id` ON `automation_log` (`rule_id`)",
-                    )
-                    connection.execSQL(
-                        "CREATE INDEX IF NOT EXISTS `index_automation_log_timestamp` ON `automation_log` (`timestamp`)",
-                    )
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
                 }
             }
 
-        /** Creates the `topology_edge` table introduced in schema 66. */
+        /**
+         * Idempotent migration from schema 66 to 67.
+         *
+         * Ensures all tables and columns introduced across 65-67 exist.
+         */
         internal val MIGRATION_66_67: Migration =
             object : Migration(66, 67) {
                 override suspend fun migrate(connection: SQLiteConnection) {
-                    connection.execSQL(
-                        "CREATE TABLE IF NOT EXISTS `topology_edge` (" +
-                            "`node1` INTEGER NOT NULL, " +
-                            "`node2` INTEGER NOT NULL, " +
-                            "`best_snr` REAL NOT NULL, " +
-                            "`best_rssi` INTEGER NOT NULL, " +
-                            "`last_seen` INTEGER NOT NULL, " +
-                            "`source` TEXT NOT NULL, " +
-                            "PRIMARY KEY(`node1`, `node2`))",
-                    )
-                    connection.execSQL(
-                        "CREATE INDEX IF NOT EXISTS `index_topology_edge_node1` ON `topology_edge` (`node1`)",
-                    )
-                    connection.execSQL(
-                        "CREATE INDEX IF NOT EXISTS `index_topology_edge_node2` ON `topology_edge` (`node2`)",
-                    )
-                    connection.execSQL(
-                        "CREATE INDEX IF NOT EXISTS `index_topology_edge_source` ON `topology_edge` (`source`)",
-                    )
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                }
+            }
+
+        /**
+         * Idempotent migration from schema 67 to 68.
+         *
+         * Ensures `mqtt_roots_cache`, topology, automation, and pinned_message exist.
+         */
+        internal val MIGRATION_67_68: Migration =
+            object : Migration(67, 68) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                }
+            }
+
+        /** Direct idempotent skip migrations to schema 68. */
+        internal val MIGRATION_64_68: Migration =
+            object : Migration(64, 68) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                }
+            }
+
+        internal val MIGRATION_65_68: Migration =
+            object : Migration(65, 68) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                }
+            }
+
+        internal val MIGRATION_66_68: Migration =
+            object : Migration(66, 68) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
                 }
             }
 
@@ -552,8 +638,13 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     MIGRATION_62_63,
                     MIGRATION_61_63,
                     MIGRATION_63_64,
+                    MIGRATION_64_65,
+                    MIGRATION_64_68,
                     MIGRATION_65_66,
+                    MIGRATION_65_68,
                     MIGRATION_66_67,
+                    MIGRATION_66_68,
+                    MIGRATION_67_68,
                 )
                 .setSingleConnectionPool()
                 .setConnectionPoolTimeout(ROOM_POOL_ACQUIRE_TIMEOUT)

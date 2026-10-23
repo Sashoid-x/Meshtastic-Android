@@ -833,7 +833,12 @@ class MeshtasticDatabaseMigrationTest {
                 MeshtasticDatabase.MIGRATION_61_63,
                 MeshtasticDatabase.MIGRATION_63_64,
                 MeshtasticDatabase.MIGRATION_64_65,
+                MeshtasticDatabase.MIGRATION_64_68,
                 MeshtasticDatabase.MIGRATION_65_66,
+                MeshtasticDatabase.MIGRATION_65_68,
+                MeshtasticDatabase.MIGRATION_66_67,
+                MeshtasticDatabase.MIGRATION_66_68,
+                MeshtasticDatabase.MIGRATION_67_68,
             )
         const val PUBLIC_KEY_BYTES = 32
         const val STORED_CHANNEL_SET_HEX = "0A0612044D657368"
