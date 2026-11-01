@@ -730,7 +730,9 @@ fun MessageItem(
                             val mentionDisplayName =
                                 remember(resolveMention) {
                                     { id: String ->
-                                        resolveMention(id)?.let { it.effectiveLongName.ifEmpty { it.user.short_name } }
+                                        resolveMention(id)?.let {
+                                            it.effectiveLongName.ifEmpty { it.user.short_name }
+                                        }
                                     }
                                 }
                             AutoLinkText(

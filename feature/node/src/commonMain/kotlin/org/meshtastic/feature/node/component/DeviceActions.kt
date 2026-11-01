@@ -33,8 +33,6 @@ import androidx.compose.material3.OutlinedIconToggleButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -184,7 +182,6 @@ private fun ManagementActions(
     onAction: (NodeDetailAction) -> Unit,
 ) {
     Column {
-
         // Null where Live Updates do not exist; an ignored node cannot be tracked.
         if (trackedInLiveUpdate != null && !node.isIgnored) {
             SwitchListItem(
