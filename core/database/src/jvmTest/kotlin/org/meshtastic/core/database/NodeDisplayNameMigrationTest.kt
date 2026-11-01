@@ -20,12 +20,12 @@ import androidx.room3.testing.MigrationTestHelper
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.execSQL
+import kotlinx.coroutines.test.runTest
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlinx.coroutines.test.runTest
 
 /** 68→69 adds `nodes.display_name`, the local-only name a user gives a node. */
 class NodeDisplayNameMigrationTest {
