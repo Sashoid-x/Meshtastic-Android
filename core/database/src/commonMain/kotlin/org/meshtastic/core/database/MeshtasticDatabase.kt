@@ -166,8 +166,10 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         AutoMigration(from = 64, to = 65),
         // 65 -> 66 is the manual MIGRATION_65_66 (automation tables created), applied via configureCommon().
         // 66 -> 67 is the manual MIGRATION_66_67 (topology_edge table created), applied via configureCommon().
+        // 67 -> 68 is the manual MIGRATION_67_68 (mqtt_roots_cache table created), applied via configureCommon().
+        // 68 -> 69 is the manual MIGRATION_68_69 (nodes.display_name column added), applied via configureCommon().
     ],
-    version = 68,
+    version = 69,
     exportSchema = true,
 )
 @androidx.room3.ConstructedBy(MeshtasticDatabaseConstructor::class)
@@ -613,15 +615,82 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                 }
             }
 
+        private fun ensureNodeDisplayName(connection: SQLiteConnection) {
+            if (!connection.hasColumn("nodes", "display_name")) {
+                connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `display_name` TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        /**
+         * Idempotent migration from schema 68 to 69.
+         *
+         * Ensures `nodes.display_name` exists.
+         */
+        internal val MIGRATION_68_69: Migration =
+            object : Migration(68, 69) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                }
+            }
+
+        internal val MIGRATION_64_69: Migration =
+            object : Migration(64, 69) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                }
+            }
+
+        internal val MIGRATION_65_69: Migration =
+            object : Migration(65, 69) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                }
+            }
+
+        internal val MIGRATION_66_69: Migration =
+            object : Migration(66, 69) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                }
+            }
+
+        internal val MIGRATION_67_69: Migration =
+            object : Migration(67, 69) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                }
+            }
+
         /**
          * Configures a [RoomDatabase.Builder] with standard settings for this project.
          *
          * All platforms force [setSingleConnectionPool]. Without it, Room defaults to a 4-reader pool for named
          * databases, and under coroutine cancellation churn (e.g. DB switches via `flatMapLatest`) the reader-pool
          * permit semaphore can wedge: all reader connections report `Free` but `permits=0`, so every read acquisition
-         * times out indefinitely ("Error code: 5, Timed out attempting to acquire a reader connection"). Android hit
-         * this first; desktop (Flathub, 2026-07-10) reproduced the identical wedge in field logs, so JVM/iOS were moved
-         * off the multi-reader pool too. Single-connection eliminates the separate reader permit pool entirely.
+         * waits indefinitely (Room logs "Timed out attempting to acquire a reader connection" and retries; nothing is
+         * thrown). Android hit this first; desktop (Flathub, 2026-07-10) reproduced the identical wedge in field logs,
+         * so JVM/iOS were moved off the multi-reader pool too. Single-connection eliminates the separate reader permit
+         * pool entirely.
          *
          * For in-memory databases (tests) this is a no-op for pooling — Room already serves `name == null` databases
          * from a single connection — it just serializes the query dispatcher.
@@ -642,9 +711,14 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     MIGRATION_64_68,
                     MIGRATION_65_66,
                     MIGRATION_65_68,
+                    MIGRATION_65_69,
                     MIGRATION_66_67,
                     MIGRATION_66_68,
+                    MIGRATION_66_69,
                     MIGRATION_67_68,
+                    MIGRATION_67_69,
+                    MIGRATION_68_69,
+                    MIGRATION_64_69,
                 )
                 .setSingleConnectionPool()
                 .setConnectionPoolTimeout(ROOM_POOL_ACQUIRE_TIMEOUT)

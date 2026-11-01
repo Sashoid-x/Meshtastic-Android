@@ -42,7 +42,7 @@ internal fun handleNodeAction(
 
         is NodeDetailAction.OpenRemoteShell -> viewModel.openRemoteShell(action.nodeNum)
 
-        is NodeDetailAction.RefreshMetadata -> viewModel.refreshMetadata(action.nodeNum)
+        is NodeDetailAction.RefreshMetadata -> viewModel.refreshMetadata(action.nodeNum, action.longName)
 
         is NodeDetailAction.HandleNodeMenuAction -> {
             when (val menuAction = action.action) {
@@ -60,8 +60,6 @@ internal fun handleNodeAction(
                 else -> viewModel.handleNodeMenuAction(menuAction)
             }
         }
-
-        is NodeDetailAction.SetCustomNodeName -> viewModel.setCustomNodeName(action.nodeNum, action.customName)
 
         else -> {}
     }

@@ -187,7 +187,8 @@
       "hwModel": 105,
       "hwModelSlug": "WISMESH_TAG",
       "platformioTargets": [
-        "rak_wismeshtag"
+        "rak_wismeshtag",
+        "rak_wismesh_pod"
       ],
       "softDevice": "6.1.1"
     },
@@ -261,7 +262,8 @@
       "hwModelSlug": "THINKNODE_M8",
       "platformioTargets": [
         "thinknode_m8"
-      ]
+      ],
+      "softDevice": "6.1.1"
     },
     {
       "hwModel": 133,

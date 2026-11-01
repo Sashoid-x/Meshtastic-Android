@@ -142,6 +142,13 @@ abstract class DatabaseManagerTestFixture {
         datastore: DatabaseDataStore,
         private val testDispatchers: CoroutineDispatchers,
     ) : DatabaseManager(datastore, testDispatchers) {
+        /** Names a staged restore was applied for; in-memory databases have no files to swap. */
+        val restoredDbNames = mutableListOf<String>()
+
+        override fun applyPendingRestore(dbName: String) {
+            restoredDbNames += dbName
+        }
+
         val builtDatabases = mutableListOf<MeshtasticDatabase>()
         val closedDatabases = mutableListOf<MeshtasticDatabase>()
         val closeAttempts = mutableListOf<MeshtasticDatabase>()
@@ -165,6 +172,9 @@ abstract class DatabaseManagerTestFixture {
 
         /** In-memory databases never share a file, so no other connection can hold one's write lock. */
         override suspend fun isWriteLockHeldElsewhere(database: MeshtasticDatabase): Boolean = false
+
+        /** In-memory databases have no file to be corrupt, and probing would hop to Room's real query threads. */
+        override suspend fun probeDatabaseOpen(database: MeshtasticDatabase) = Unit
 
         /** Drives the pool-recovery rate window without relying on wall-clock or virtual-time advancement. */
         var recoveryClockMillis: Long = 0L
@@ -254,8 +264,7 @@ abstract class DatabaseManagerTestFixture {
 
     protected class TestError(message: String) : Error(message)
 
-    protected fun roomPoolTimeout() =
-        IllegalStateException("Timed out attempting to acquire a reader connection from the database pool")
+    protected fun stalledFlow() = DbFlowStalledException("no first emission")
 
     /** Builds a minimal [MyNodeEntity] carrying only [num] for association/merge write-leak checks. */
     protected fun myNode(num: Int) = MyNodeEntity(

@@ -61,7 +61,6 @@ import org.meshtastic.core.resources.UiText
 import org.meshtastic.core.resources.compass_title
 import org.meshtastic.core.resources.getString
 import org.meshtastic.core.resources.open_compass
-import org.meshtastic.core.testing.FakeAppPreferences
 import org.meshtastic.core.ui.util.SnackbarManager
 import org.meshtastic.feature.node.compass.CompassHeadingProvider
 import org.meshtastic.feature.node.compass.CompassViewModel
@@ -189,7 +188,7 @@ class NodeDetailCompassLifecycleTest {
             ensureRemoteAdminSession = mock<EnsureRemoteAdminSessionUseCase>(),
             observeRemoteAdminSessionStatus = observeSessionStatus,
             snackbarManager = SnackbarManager(),
-            uiPrefs = FakeAppPreferences().ui,
+            nakWatcher = testNakWatcher(),
         )
     }
 

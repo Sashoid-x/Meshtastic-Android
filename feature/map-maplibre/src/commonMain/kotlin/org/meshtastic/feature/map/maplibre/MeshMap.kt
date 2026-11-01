@@ -73,7 +73,7 @@ import org.meshtastic.feature.map.BaseMapViewModel
 import org.meshtastic.feature.map.MapNodePolicy
 import org.meshtastic.feature.map.component.MapEngineUnavailable
 import org.meshtastic.feature.map.component.MeshMapFitPadding
-import org.meshtastic.feature.map.maplibre.component.MeshMapOrnaments
+import org.meshtastic.feature.map.maplibre.component.meshMapOrnaments
 import org.meshtastic.feature.map.maplibre.geojson.ClusterMember
 import org.meshtastic.feature.map.maplibre.geojson.rememberFeatureSource
 import org.meshtastic.feature.map.maplibre.layers.CustomLayer
@@ -89,6 +89,7 @@ import org.meshtastic.feature.map.maplibre.style.MapColors
 import org.meshtastic.feature.map.maplibre.style.MapOverlay
 import org.meshtastic.feature.map.maplibre.style.toBaseStyle
 import org.meshtastic.feature.map.maplibre.style.zoomRange
+import org.meshtastic.feature.map.maplibre.tiles.InstallRadarSmoothing
 import kotlin.math.floor
 import kotlin.time.Duration.Companion.seconds
 import org.maplibre.compose.layers.LocationIndicatorDefaults as CoreLocationIndicatorDefaults
@@ -153,6 +154,7 @@ fun rememberMeshMapState(
             MapNodePolicy.visibleNodes(nodes, filterState, nowSeconds, myNodeInfo?.myNodeNum)
         }
 
+    InstallRadarSmoothing()
     val mapState =
         rememberMapState(baseStyle = basemap.toBaseStyle(), initialCameraPosition = initialCameraPosition) {
             val state = checkNotNull(LocalMapState.current)
@@ -222,6 +224,8 @@ fun MeshMap(
     mapState: MapState,
     modifier: Modifier = Modifier,
     basemap: Basemap = Basemaps.default,
+    /** HTML credits for drawn data no style source carries; see [meshMapOrnaments]. */
+    extraCredits: List<String> = emptyList(),
     /** Called with the pressed position on a long press, which is how a new waypoint gets placed. */
     onMapLongClick: (Position) -> Unit = {},
     /** Called with the tapped position. Used to collect the two corners of a waypoint's geofence bounding box. */
@@ -240,6 +244,8 @@ fun MeshMap(
     }
 
     val zoomRange = basemap.zoomRange()
+    val credits = extraCredits.distinct()
+    val ornaments = remember(credits) { meshMapOrnaments(credits) }
     MaplibreMap(
         modifier = modifier,
         state = mapState,
@@ -267,7 +273,7 @@ fun MeshMap(
                 }
             }
         },
-        overlay = { include(MeshMapOrnaments) },
+        overlay = { include(ornaments) },
     )
 }
 

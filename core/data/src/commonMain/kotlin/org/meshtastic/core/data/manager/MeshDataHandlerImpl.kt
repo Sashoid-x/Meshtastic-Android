@@ -37,6 +37,7 @@ import org.meshtastic.core.model.Reaction
 import org.meshtastic.core.model.ReactionNotificationMode
 import org.meshtastic.core.model.TopologySource
 import org.meshtastic.core.model.destination
+import org.meshtastic.core.model.effectiveLongName
 import org.meshtastic.core.model.geofence.activeWaypointPackets
 import org.meshtastic.core.model.isBroadcast
 import org.meshtastic.core.model.isFromLocal
@@ -417,7 +418,7 @@ class MeshDataHandlerImpl(
         }
         handleAckNak(
             packet.decoded?.request_id ?: 0,
-            nodeManager.toNodeID(packet.from),
+            packet.from,
             r.error_reason?.value ?: 0,
             dataPacket.relayNode,
             session,
@@ -428,12 +429,13 @@ class MeshDataHandlerImpl(
     @Suppress("CyclomaticComplexMethod", "LongMethod")
     private fun handleAckNak(
         requestId: Int,
-        fromId: String,
+        fromNum: Int,
         routingError: Int,
         relayNode: Int?,
         session: RadioSessionContext,
         ackProofStatus: Int = MeshPacket.AckProofStatus.ACK_PROOF_ABSENT.value,
     ) {
+        val fromId = nodeManager.toNodeID(fromNum)
         radioInterfaceService.launchSessionWork(scope, session) {
             val isAck = routingError == Routing.Error.NONE.value
             val absentAckProof = MeshPacket.AckProofStatus.ACK_PROOF_ABSENT.value
@@ -499,7 +501,7 @@ class MeshDataHandlerImpl(
                     packetRepository.value.updateReaction(settled.copy(ackProofStatus = provenAckProof))
                 }
             }
-            packetHandler.completeDispatchedResponse(requestId, complete = isAck)
+            packetHandler.completeDispatchedResponse(requestId, complete = isAck, from = fromNum)
         }
     }
 
@@ -618,9 +620,9 @@ class MeshDataHandlerImpl(
     private suspend fun getSenderName(packet: DataPacket): String {
         if (packet.source is NodeAddress.Local) {
             val myId = nodeManager.getMyId()
-            return nodeManager.getNodeById(myId)?.user?.long_name ?: getStringSuspend(Res.string.unknown_username)
+            return nodeManager.getNodeById(myId)?.effectiveLongName ?: getStringSuspend(Res.string.unknown_username)
         }
-        return nodeManager.getNodeById(packet.from.orEmpty())?.user?.long_name
+        return nodeManager.getNodeById(packet.from.orEmpty())?.effectiveLongName
             ?: getStringSuspend(Res.string.unknown_username)
     }
 

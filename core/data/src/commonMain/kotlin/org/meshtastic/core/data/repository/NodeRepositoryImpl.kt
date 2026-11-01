@@ -26,7 +26,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
@@ -38,6 +37,7 @@ import kotlinx.coroutines.withContext
 import org.koin.core.annotation.Named
 import org.koin.core.annotation.Single
 import org.meshtastic.core.common.di.PROCESS_LIFECYCLE
+import org.meshtastic.core.common.util.handledLaunch
 import org.meshtastic.core.data.datasource.NodeInfoReadDataSource
 import org.meshtastic.core.data.datasource.NodeInfoWriteDataSource
 import org.meshtastic.core.database.entity.MetadataEntity
@@ -45,7 +45,6 @@ import org.meshtastic.core.database.entity.MyNodeEntity
 import org.meshtastic.core.database.entity.toEntity
 import org.meshtastic.core.datastore.LocalStatsDataSource
 import org.meshtastic.core.di.CoroutineDispatchers
-import org.meshtastic.core.model.CustomNodeName
 import org.meshtastic.core.model.MeshLog
 import org.meshtastic.core.model.MyNodeInfo
 import org.meshtastic.core.model.Node
@@ -54,7 +53,6 @@ import org.meshtastic.core.model.NodeSortOption
 import org.meshtastic.core.model.matchesSearch
 import org.meshtastic.core.model.util.onlineTimeThreshold
 import org.meshtastic.core.repository.NodeRepository
-import org.meshtastic.core.repository.UiPrefs
 import org.meshtastic.proto.DeviceMetadata
 import org.meshtastic.proto.LocalStats
 import org.meshtastic.proto.User
@@ -68,25 +66,7 @@ class NodeRepositoryImpl(
     private val nodeInfoWriteDataSource: NodeInfoWriteDataSource,
     private val dispatchers: CoroutineDispatchers,
     private val localStatsDataSource: LocalStatsDataSource,
-    private val uiPrefs: UiPrefs? = null,
 ) : NodeRepository {
-    private fun applyCustomName(baseNode: Node, custom: CustomNodeName?): Node {
-        if (custom == null) return baseNode
-        val effectiveUser =
-            if (custom.enabled) {
-                baseNode.user
-                    .newBuilder()
-                    .also { b ->
-                        b.long_name = custom.longName.ifBlank { baseNode.user.long_name }
-                        b.short_name = custom.shortName.ifBlank { baseNode.user.short_name }
-                    }
-                    .build()
-            } else {
-                baseNode.user
-            }
-        return baseNode.copy(user = effectiveUser, customName = custom, originalUser = baseNode.user)
-    }
-
     /** Hardware info about our local device (can be null if not connected). */
     override val myNodeInfo: StateFlow<MyNodeInfo?> =
         nodeInfoReadDataSource
@@ -128,19 +108,17 @@ class NodeRepositoryImpl(
      * flows after a recoverable Room pool failure, so this upstream never terminates on a pool wedge (#6608).
      */
     override val nodeDBbyNum: StateFlow<Map<Int, Node>> =
-        combine(nodeInfoReadDataSource.nodeDBbyNumFlow(), uiPrefs?.customNodeNames ?: flowOf(emptyMap())) {
-                map,
-                customNames,
-            ->
-            map.mapValues { (num, it) -> applyCustomName(it.toModel(), customNames[num]) }
-        }
+        nodeInfoReadDataSource
+            .nodeDBbyNumFlow()
+            .mapLatest { map -> map.mapValues { (_, it) -> it.toModel() } }
             .flowOn(dispatchers.io)
             .conflate()
             .stateIn(processLifecycle.coroutineScope, SharingStarted.Eagerly, emptyMap())
 
     init {
-        // Backfill denormalized name columns for existing nodes on startup
-        processLifecycle.coroutineScope.launch {
+        // Backfill denormalized name columns for existing nodes on startup. A withDb timeout or SQL failure here is
+        // reported, not fatal: this scope has no exception handler.
+        processLifecycle.coroutineScope.handledLaunch {
             processLifecycle.repeatOnLifecycle(Lifecycle.State.CREATED) {
                 withContext(dispatchers.io) { nodeInfoWriteDataSource.backfillDenormalizedNames() }
             }
@@ -220,22 +198,14 @@ class NodeRepositoryImpl(
         includeUnknown: Boolean,
         onlyOnline: Boolean,
         onlyDirect: Boolean,
-    ): Flow<List<Node>> = combine(
-        nodeInfoReadDataSource.getNodesFlow(
+    ): Flow<List<Node>> = nodeInfoReadDataSource
+        .getNodesFlow(
             sort = sort.sqlValue,
             includeUnknown = includeUnknown,
             onlyDirect = onlyDirect,
             lastHeardMin = if (onlyOnline) onlineTimeThreshold() else -1,
-        ),
-        uiPrefs?.customNodeNames ?: flowOf(emptyMap()),
-    ) { list, customNames ->
-        list
-            .map { entity ->
-                val baseNode = entity.toModel()
-                applyCustomName(baseNode, customNames[baseNode.num])
-            }
-            .filter { node -> node.matchesSearch(filter) }
-    }
+        )
+        .mapLatest { list -> list.map { it.toModel() }.filter { node -> node.matchesSearch(filter) } }
         .flowOn(dispatchers.io)
         .conflate()
 
@@ -269,12 +239,8 @@ class NodeRepositoryImpl(
     override suspend fun getUnknownNodes(): List<Node> =
         withContext(dispatchers.io) { nodeInfoReadDataSource.getUnknownNodes().map { it.toModel() } }
 
-    override suspend fun getNodeDbSnapshot(): Map<Int, Node> = withContext(dispatchers.io) {
-        val customNames = uiPrefs?.customNodeNames?.value ?: emptyMap()
-        nodeInfoReadDataSource.getNodeDbSnapshot().mapValues { (num, it) ->
-            applyCustomName(it.toModel(), customNames[num])
-        }
-    }
+    override suspend fun getNodeDbSnapshot(): Map<Int, Node> =
+        withContext(dispatchers.io) { nodeInfoReadDataSource.getNodeDbSnapshot().mapValues { (_, it) -> it.toModel() } }
 
     /** Persists hardware metadata for a node. */
     override suspend fun insertMetadata(nodeNum: Int, metadata: DeviceMetadata) =
@@ -298,6 +264,9 @@ class NodeRepositoryImpl(
 
     override suspend fun setNodeNotes(num: Int, notes: String) =
         withContext(dispatchers.io) { nodeInfoWriteDataSource.setNodeNotes(num, notes) }
+
+    override suspend fun setNodeDisplayName(num: Int, displayName: String) =
+        withContext(dispatchers.io) { nodeInfoWriteDataSource.setNodeDisplayName(num, displayName) }
 
     override suspend fun markAllHeardOnCurrentLora() =
         withContext(dispatchers.io) { nodeInfoWriteDataSource.markAllHeardOnCurrentLora() }

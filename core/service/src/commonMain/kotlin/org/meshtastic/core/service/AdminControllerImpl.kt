@@ -80,6 +80,7 @@ internal class AdminControllerImpl(
     private val nodeManager: NodeManager,
     private val radioConfigRepository: RadioConfigRepository,
     private val connectionStateProvider: ConnectionStateProvider,
+    private val heardOnCurrentLoraRefresher: HeardOnCurrentLoraRefresher,
     private val scope: CoroutineScope,
 ) : AdminController {
 
@@ -135,15 +136,48 @@ internal class AdminControllerImpl(
     // ── Configuration ─────────────────────────────────────────────────────────
 
     override suspend fun setLocalConfig(config: Config) {
-        commandSender.sendAdmin(myNodeNum) { AdminMessage.Builder().also { wb -> wb.set_config = config }.build() }
+        val packetId = commandSender.generatePacketId()
+        heardOnCurrentLoraRefresher.beforeLocalWrite(config, packetId)
+        commandSender.sendAdmin(myNodeNum, packetId) {
+            AdminMessage.Builder().also { wb -> wb.set_config = config }.build()
+        }
         scope.handledLaunch { radioConfigRepository.setLocalConfig(config) }
     }
 
+    override fun setDisplayMirror(enabled: Boolean) {
+        commandSender.sendAdminImmediate(myNodeNum) {
+            AdminMessage.Builder().also { wb -> wb.set_display_mirror = enabled }.build()
+        }
+    }
+
+    override fun requestDisplayFrame() {
+        commandSender.sendAdminImmediate(myNodeNum) {
+            AdminMessage.Builder().also { wb -> wb.get_display_frame_request = true }.build()
+        }
+    }
+
+    override fun sendInputEvent(eventCode: Int, kbChar: Int, touchX: Int, touchY: Int) {
+        val inputEvent =
+            AdminMessage.InputEvent.Builder()
+                .also { wb ->
+                    wb.event_code = eventCode
+                    wb.kb_char = kbChar
+                    wb.touch_x = touchX
+                    wb.touch_y = touchY
+                }
+                .build()
+        commandSender.sendAdminImmediate(myNodeNum) {
+            AdminMessage.Builder().also { wb -> wb.send_input_event = inputEvent }.build()
+        }
+    }
+
     override suspend fun setConfig(destNum: Int, config: Config, packetId: Int) {
+        val isLocal = destNum == nodeManager.myNodeNum.value
+        if (isLocal) heardOnCurrentLoraRefresher.beforeLocalWrite(config, packetId)
         commandSender.sendAdmin(destNum, packetId) {
             AdminMessage.Builder().also { wb -> wb.set_config = config }.build()
         }
-        if (destNum == nodeManager.myNodeNum.value) {
+        if (isLocal) {
             scope.handledLaunch { radioConfigRepository.setLocalConfig(config) }
         }
     }
@@ -181,15 +215,21 @@ internal class AdminControllerImpl(
     // ── Channels ────────────────────────────────────────────────────────────
 
     override suspend fun setLocalChannel(channel: Channel) {
-        commandSender.sendAdmin(myNodeNum) { AdminMessage.Builder().also { wb -> wb.set_channel = channel }.build() }
+        val packetId = commandSender.generatePacketId()
+        heardOnCurrentLoraRefresher.beforeLocalWrite(channel, packetId)
+        commandSender.sendAdmin(myNodeNum, packetId) {
+            AdminMessage.Builder().also { wb -> wb.set_channel = channel }.build()
+        }
         scope.handledLaunch { radioConfigRepository.updateChannelSettings(channel) }
     }
 
     override suspend fun setRemoteChannel(destNum: Int, channel: Channel, packetId: Int) {
+        val isLocal = destNum == nodeManager.myNodeNum.value
+        if (isLocal) heardOnCurrentLoraRefresher.beforeLocalWrite(channel, packetId)
         commandSender.sendAdmin(destNum, packetId) {
             AdminMessage.Builder().also { wb -> wb.set_channel = channel }.build()
         }
-        if (destNum == nodeManager.myNodeNum.value) {
+        if (isLocal) {
             scope.handledLaunch { radioConfigRepository.updateChannelSettings(channel) }
         }
     }

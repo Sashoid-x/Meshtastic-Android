@@ -22,33 +22,31 @@ import co.touchlab.kermit.Logger
 import kotlinx.atomicfu.locks.SynchronizedObject
 import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.annotation.InjectedParam
 import org.koin.core.annotation.KoinViewModel
-import org.meshtastic.core.common.di.ApplicationCoroutineScope
 import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.common.util.safeCatching
@@ -79,7 +77,6 @@ import org.meshtastic.core.repository.LocationService
 import org.meshtastic.core.repository.LockdownCoordinator
 import org.meshtastic.core.repository.LockdownPassphraseStore
 import org.meshtastic.core.repository.MapConsentPrefs
-import org.meshtastic.core.repository.MeshConfigFlowManager
 import org.meshtastic.core.repository.MeshConnectionManager
 import org.meshtastic.core.repository.MqttManager
 import org.meshtastic.core.repository.NodeRepository
@@ -130,8 +127,6 @@ import kotlin.time.Duration.Companion.seconds
 
 internal val MANUAL_CHANNEL_WRITE_DELAY: Duration = 1.seconds
 private val REMOTE_READ_LATE_RESPONSE_GRACE: Duration = 2.minutes
-private val LIVE_SAVE_ACK_TIMEOUT: Duration = 1.minutes
-private val LIVE_SAVE_REBOOT_WINDOW: Duration = 8.seconds
 
 /** One stored key backup offered for restore; [longName] is null when the node DB no longer knows [nodeNum]. */
 data class SecurityKeyBackupOption(
@@ -198,9 +193,7 @@ open class RadioConfigViewModel(
     private val snackbarManager: SnackbarManager,
     private val nodeRestartTracker: NodeRestartTracker,
     private val connectionManager: MeshConnectionManager,
-    private val meshConfigFlowManager: MeshConfigFlowManager,
     private val analytics: PlatformAnalytics,
-    private val applicationScope: ApplicationCoroutineScope,
 ) : ViewModel() {
 
     /**
@@ -310,6 +303,13 @@ open class RadioConfigViewModel(
         get() = _destNode
 
     private val requestIds = MutableStateFlow(hashSetOf<Int>())
+
+    /** Index of the legacy `admin` channel, which carries remote admin to nodes without a PKI key. */
+    private val adminChannelIndex: StateFlow<Int?> =
+        radioConfigRepository.channelSetFlow
+            .map { cs -> cs.settings.indexOfFirst { it.name.equals(ADMIN_CHANNEL_NAME, ignoreCase = true) } }
+            .map { it.takeIf { index -> index >= 0 } }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     // USER reads one config on firmware without the status message module and two with it, so whether a
     // load fanned out is a property of that load, not of the route. Null falls back to the route's flag.
@@ -642,40 +642,7 @@ open class RadioConfigViewModel(
                 )
             }
             expectRestartIfLocal(config.saveRebootBehavior())
-            val refreshNodeInfoAfterAck = config.lora != null && destNum == myNodeNum && reportsHeardOnCurrentLora()
-            radioConfigUseCase.setConfig(destNum, config) { packetId ->
-                registerWriteRequestId(packetId)
-                if (refreshNodeInfoAfterAck) refreshNodeInfoAfterLiveSave(packetId, destNum)
-            }
-        }
-    }
-
-    private fun reportsHeardOnCurrentLora() = Capabilities(myNodeInfo.value?.firmwareVersion).supportsHeardOnCurrentLora
-
-    /**
-     * Firmware applies a LoRa save without a reboot and reports `heard_on_current_lora` only during the node-info stage
-     * of the handshake, so once the save's routing ACK arrives (within [LIVE_SAVE_ACK_TIMEOUT]) the node DB is
-     * re-requested unless the transport drops inside [LIVE_SAVE_REBOOT_WINDOW]. Both the ACK wait and the refresh run
-     * on the application scope, started undispatched so the packet subscription precedes the ACK, and hold no ViewModel
-     * state, so leaving the screen right after the save does not strand stale flags.
-     */
-    private fun refreshNodeInfoAfterLiveSave(packetId: Int, destNum: Int) {
-        val serviceRepository = serviceRepository
-        val processRadioResponse = processRadioResponseUseCase
-        val meshConfigFlowManager = meshConfigFlowManager
-        applicationScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            val acked =
-                withTimeoutOrNull(LIVE_SAVE_ACK_TIMEOUT) {
-                    serviceRepository.meshPacketFlow.first {
-                        processRadioResponse(it, destNum, setOf(packetId)) is RadioResponseResult.Success
-                    }
-                }
-            if (acked == null) return@launch
-            val dropped =
-                withTimeoutOrNull(LIVE_SAVE_REBOOT_WINDOW) {
-                    serviceRepository.connectionState.first { it != ConnectionState.Connected }
-                }
-            if (dropped == null) meshConfigFlowManager.refreshNodeInfo()
+            radioConfigUseCase.setConfig(destNum, config, onRequestId = ::registerWriteRequestId)
         }
     }
 
@@ -1280,7 +1247,9 @@ open class RadioConfigViewModel(
         val requestId = packet.decoded?.request_id
         val lateRemoteReadRoute = requestId?.let { lateRemoteReads[it]?.route }
         val pendingRequestIds = requestIds.value + lateRemoteReads.keys
-        val result = processRadioResponseUseCase(packet, destNum, pendingRequestIds) ?: return
+        val result =
+            processRadioResponseUseCase(packet, destNum, pendingRequestIds, myNodeNum, adminChannelIndex.value)
+                ?: return
         val route = radioConfigState.value.route
         val isLateRemoteRead = requestId != null && lateRemoteReadRoute != null
 
@@ -1598,3 +1567,5 @@ internal fun Config.saveRebootBehavior(): RebootBehavior = when {
  */
 internal fun ModuleConfig.saveRebootBehavior(): RebootBehavior =
     if (statusmessage != null || mesh_beacon != null) RebootBehavior.NEVER else RebootBehavior.ALWAYS
+
+private const val ADMIN_CHANNEL_NAME = "admin"

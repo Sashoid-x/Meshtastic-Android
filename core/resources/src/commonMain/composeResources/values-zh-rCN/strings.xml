@@ -629,7 +629,6 @@
     <string name="firmware_update_save_dfu_file">请将 .uf2 文件保存复制到您设备的 DFU 驱动器中。</string>
     <string name="firmware_update_searching_device">正在网络上搜索 OTA 设备……</string>
     <string name="firmware_update_select_file">选择本地文件</string>
-    <string name="firmware_update_slow_bootloader_hint">此设备当前的 Bootloader引导程序更新速度较慢。刷入 OTAFIX Bootloader 可以大幅提升 蓝牙更新的速度。</string>
     <string name="firmware_update_source_local">来源: 本地文件</string>
     <string name="firmware_update_stable">稳定版本</string>
     <string name="firmware_update_starting_dfu">正在启动 DFU...</string>
@@ -955,6 +954,13 @@
     <string name="micrograms_per_cubic_meter">微克每立方米</string>
     <string name="min">最小值</string>
     <string name="minimum_wake_time_seconds">最小唤醒时间</string>
+    <!-- MIRROR -->
+    <string name="mirror_back">后退</string>
+    <string name="mirror_key_down">下</string>
+    <string name="mirror_key_left">左</string>
+    <string name="mirror_key_ok">确定</string>
+    <string name="mirror_key_right">右</string>
+    <string name="mirror_key_up">上</string>
     <string name="modem_preset">预设</string>
     <string name="module_settings">模块设定</string>
     <string name="modules_already_unlocked">已解锁的模块</string>

@@ -186,6 +186,7 @@ private fun NodeDetailScaffold(
             },
             onFirmwareSelect = { activeOverlay = NodeDetailOverlay.FirmwareReleaseInfo(it) },
             onSaveNotes = { num, notes -> viewModel.setNodeNotes(num, notes) },
+            onSaveDisplayName = { num, name -> viewModel.setNodeDisplayName(num, name) },
             modifier = Modifier.padding(paddingValues),
         )
     }
@@ -212,7 +213,7 @@ private fun NodeDetailScaffold(
     }
     uiState.metricsState.deviceHardware
         ?.takeIf { deviceModelOpen }
-        ?.let { DeviceModelDialog(it, onDismiss = { deviceModelOpen = false }) }
+        ?.let { DeviceModelDialog(it, onDismiss = { deviceModelOpen = false }, mirrorScreen = isLocalNode) }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

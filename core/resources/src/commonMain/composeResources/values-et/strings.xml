@@ -675,7 +675,6 @@
     <string name="firmware_update_save_dfu_file">Palun salvesta .uf2-fail oma seadme DFU-kettale.</string>
     <string name="firmware_update_searching_device">Otsin võrgust OTA seadet...</string>
     <string name="firmware_update_select_file">Vali kohalik fail</string>
-    <string name="firmware_update_slow_bootloader_hint">Seadme alglaaduri värskendused on aeglased. OTAFIX alglaaduri püsivarauuendus võimaldab palju kiiremaid BLE värskendusi.</string>
     <string name="firmware_update_source_local">Allikas: kohalik fail</string>
     <string name="firmware_update_stable">Stabiilne</string>
     <string name="firmware_update_starting_dfu">DFU käivitamine...</string>
@@ -1054,6 +1053,9 @@
     <string name="micrograms_per_cubic_meter">µg/m³</string>
     <string name="min">Min</string>
     <string name="minimum_wake_time_seconds">Minimaalne ärkveloleku aeg</string>
+    <!-- MIRROR -->
+    <string name="mirror_back">Tagasi</string>
+    <string name="mirror_key_ok">Olgu</string>
     <string name="modem_preset">Eelseadistused</string>
     <string name="module_settings">Mooduli sätted</string>
     <string name="modules_already_unlocked">Moodulid juba avatud</string>

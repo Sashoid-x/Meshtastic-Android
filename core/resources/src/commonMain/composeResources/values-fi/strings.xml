@@ -687,7 +687,6 @@
     <string name="firmware_update_save_dfu_file">Tallenna .uf2-tiedosto laitteesi DFU-asemaan.</string>
     <string name="firmware_update_searching_device">Etsitään OTA-laitetta verkosta...</string>
     <string name="firmware_update_select_file">Valitse paikallinen tiedosto</string>
-    <string name="firmware_update_slow_bootloader_hint">Päivitykset ovat hitaita tämän laitteen käynnistyslataimella. OTAFIX-käynnistyslataimen asentaminen mahdollistaa huomattavasti nopeammat bluetooth-päivitykset.</string>
     <string name="firmware_update_source_local">Lähde: Paikallinen tiedosto</string>
     <string name="firmware_update_stable">Vakaa</string>
     <string name="firmware_update_starting_dfu">Käynnistetään DFU...</string>
@@ -1084,6 +1083,9 @@
     <string name="micrograms_per_cubic_meter">µg/m³</string>
     <string name="min">Minimi</string>
     <string name="minimum_wake_time_seconds">Vähimmäisherätyksen kesto</string>
+    <!-- MIRROR -->
+    <string name="mirror_back">Edellinen</string>
+    <string name="mirror_key_ok">OK</string>
     <string name="modem_preset">Esiasetukset</string>
     <string name="module_settings">Moduulin asetukset</string>
     <string name="modules_already_unlocked">Moduulit ovat jo käytettävissä</string>
