@@ -20,14 +20,14 @@ import androidx.room3.testing.MigrationTestHelper
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
 import androidx.sqlite.execSQL
-import kotlinx.coroutines.test.runTest
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlinx.coroutines.test.runTest
 
-/** 65→66 adds `nodes.display_name`, the local-only name a user gives a node. */
+/** 68→69 adds `nodes.display_name`, the local-only name a user gives a node. */
 class NodeDisplayNameMigrationTest {
 
     private val dbFile = File.createTempFile("meshtastic-display-name-migration", ".db").apply { delete() }
@@ -58,7 +58,7 @@ class NodeDisplayNameMigrationTest {
             )
         }
 
-        helper.runMigrationsAndValidate(TO_VERSION, emptyList()).use { connection ->
+        helper.runMigrationsAndValidate(TO_VERSION, listOf(MeshtasticDatabase.MIGRATION_68_69)).use { connection ->
             assertEquals(listOf("42"), queryColumn(connection, "SELECT num FROM nodes"))
             assertEquals(listOf(""), queryColumn(connection, "SELECT display_name FROM nodes WHERE num = 42"))
             assertEquals(listOf("Minnie Mouse"), queryColumn(connection, "SELECT long_name FROM nodes WHERE num = 42"))
@@ -77,7 +77,7 @@ class NodeDisplayNameMigrationTest {
         }
 
     private companion object {
-        const val FROM_VERSION = 65
-        const val TO_VERSION = 66
+        const val FROM_VERSION = 68
+        const val TO_VERSION = 69
     }
 }
