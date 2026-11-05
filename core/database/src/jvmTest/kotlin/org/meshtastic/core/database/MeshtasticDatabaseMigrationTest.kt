@@ -486,7 +486,6 @@ class MeshtasticDatabaseMigrationTest {
                 assertEquals(listOf("1"), queryColumn(connection, "SELECT pinned_message FROM packet WHERE uuid = 1"))
             }
     }
-    }
 
     /**
      * 59→60 adds `contact_settings.display_name` and `channel_set.last_reconciled`. Per-conversation state and the
@@ -681,7 +680,6 @@ class MeshtasticDatabaseMigrationTest {
             assertEquals(listOf(null), queryColumn(connection, "SELECT transport_mechanism $row"))
         }
     }
-    }
 
     /**
      * [MeshtasticDatabase.MIGRATION_63_64] rebuilds only `discovered_node`, to make `snr` nullable, and adds the
@@ -782,7 +780,6 @@ class MeshtasticDatabaseMigrationTest {
                 assertTrue("automation_rule" in tables)
                 assertTrue("automation_log" in tables)
             }
-    }
     }
 
     /** The `detail` column of `EXPLAIN QUERY PLAN` for [sql], one entry per plan step. */
