@@ -190,6 +190,7 @@ class MeshServiceOrchestratorTest {
             connectionManager = connectionManager,
             dispatchers = dispatchers,
             localNetworkAccess = localNetworkAccess,
+            lastBleNodeRecorder = {},
         )
     }
 

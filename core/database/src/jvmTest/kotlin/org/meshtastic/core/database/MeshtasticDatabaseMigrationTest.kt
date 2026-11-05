@@ -486,6 +486,7 @@ class MeshtasticDatabaseMigrationTest {
                 assertEquals(listOf("1"), queryColumn(connection, "SELECT pinned_message FROM packet WHERE uuid = 1"))
             }
     }
+    }
 
     /**
      * 59→60 adds `contact_settings.display_name` and `channel_set.last_reconciled`. Per-conversation state and the
@@ -660,6 +661,29 @@ class MeshtasticDatabaseMigrationTest {
     }
 
     /**
+     * 69→70 adds `reactions.via_mqtt` and `reactions.transport_mechanism`. A stored reaction reads as not via MQTT with
+     * a NULL transport, so it gets no transport badge rather than TRANSPORT_INTERNAL's.
+     */
+    @Test
+    fun reactionTransportColumnsAddedWithoutDisturbingReactions() = runTest {
+        helper.createDatabase(REACTION_TRANSPORT_FROM_VERSION).use { connection ->
+            connection.execSQL(
+                "INSERT INTO reactions (myNodeNum, reply_id, user_id, emoji, timestamp, packet_id, hopsAway) " +
+                    "VALUES (7, 1001, '!0000abcd', '👍', 5000, 2002, 2)",
+            )
+        }
+
+        helper.runMigrationsAndValidate(REACTION_TRANSPORT_TO_VERSION, MANUAL_MIGRATIONS).use { connection ->
+            val row = "FROM reactions WHERE reply_id = 1001"
+            assertEquals(listOf("2002"), queryColumn(connection, "SELECT packet_id $row"))
+            assertEquals(listOf("2"), queryColumn(connection, "SELECT hopsAway $row"))
+            assertEquals(listOf("0"), queryColumn(connection, "SELECT via_mqtt $row"))
+            assertEquals(listOf(null), queryColumn(connection, "SELECT transport_mechanism $row"))
+        }
+    }
+    }
+
+    /**
      * [MeshtasticDatabase.MIGRATION_63_64] rebuilds only `discovered_node`, to make `snr` nullable, and adds the
      * `log.received_date` index in place. Every discovered node survives with its values and its parent link, a stored
      * 0 dB stays 0 because it may be a real reading, and NULL becomes storable. The `log` table is never copied: its
@@ -759,6 +783,7 @@ class MeshtasticDatabaseMigrationTest {
                 assertTrue("automation_log" in tables)
             }
     }
+    }
 
     /** The `detail` column of `EXPLAIN QUERY PLAN` for [sql], one entry per plan step. */
     private fun queryPlan(connection: SQLiteConnection, sql: String): List<String> =
@@ -817,6 +842,8 @@ class MeshtasticDatabaseMigrationTest {
         const val SCHEMA_65_TO_VERSION = 65
         const val SCHEMA_66_FROM_VERSION = 65
         const val SCHEMA_66_TO_VERSION = 66
+        const val REACTION_TRANSPORT_FROM_VERSION = 69
+        const val REACTION_TRANSPORT_TO_VERSION = 70
         const val QUERY_PLAN_DETAIL_COLUMN = 3
 
         /**
@@ -844,6 +871,12 @@ class MeshtasticDatabaseMigrationTest {
                 MeshtasticDatabase.MIGRATION_68_69,
                 MeshtasticDatabase.MIGRATION_64_69,
                 MeshtasticDatabase.MIGRATION_65_69,
+                MeshtasticDatabase.MIGRATION_64_70,
+                MeshtasticDatabase.MIGRATION_65_70,
+                MeshtasticDatabase.MIGRATION_66_70,
+                MeshtasticDatabase.MIGRATION_67_70,
+                MeshtasticDatabase.MIGRATION_68_70,
+                MeshtasticDatabase.MIGRATION_69_70,
             )
         const val PUBLIC_KEY_BYTES = 32
         const val STORED_CHANNEL_SET_HEX = "0A0612044D657368"

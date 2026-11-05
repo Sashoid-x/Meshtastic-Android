@@ -168,8 +168,9 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         // 66 -> 67 is the manual MIGRATION_66_67 (topology_edge table created), applied via configureCommon().
         // 67 -> 68 is the manual MIGRATION_67_68 (mqtt_roots_cache table created), applied via configureCommon().
         // 68 -> 69 is the manual MIGRATION_68_69 (nodes.display_name column added), applied via configureCommon().
+        // 69 -> 70 is the manual MIGRATION_69_70 (reactions.via_mqtt & transport_mechanism columns added), applied via configureCommon().
     ],
-    version = 69,
+    version = 70,
     exportSchema = true,
 )
 @androidx.room3.ConstructedBy(MeshtasticDatabaseConstructor::class)
@@ -681,6 +682,92 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                 }
             }
 
+        private fun ensureReactionsMqttColumns(connection: SQLiteConnection) {
+            if (!connection.hasColumn("reactions", "via_mqtt")) {
+                connection.execSQL("ALTER TABLE `reactions` ADD COLUMN `via_mqtt` INTEGER NOT NULL DEFAULT 0")
+            }
+            if (!connection.hasColumn("reactions", "transport_mechanism")) {
+                connection.execSQL("ALTER TABLE `reactions` ADD COLUMN `transport_mechanism` INTEGER DEFAULT NULL")
+            }
+        }
+
+        /**
+         * Idempotent migration from schema 69 to 70.
+         *
+         * Ensures `reactions.via_mqtt` and `reactions.transport_mechanism` exist.
+         */
+        internal val MIGRATION_69_70: Migration =
+            object : Migration(69, 70) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                    ensureReactionsMqttColumns(connection)
+                }
+            }
+
+        internal val MIGRATION_68_70: Migration =
+            object : Migration(68, 70) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                    ensureReactionsMqttColumns(connection)
+                }
+            }
+
+        internal val MIGRATION_67_70: Migration =
+            object : Migration(67, 70) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                    ensureReactionsMqttColumns(connection)
+                }
+            }
+
+        internal val MIGRATION_66_70: Migration =
+            object : Migration(66, 70) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                    ensureReactionsMqttColumns(connection)
+                }
+            }
+
+        internal val MIGRATION_65_70: Migration =
+            object : Migration(65, 70) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                    ensureReactionsMqttColumns(connection)
+                }
+            }
+
+        internal val MIGRATION_64_70: Migration =
+            object : Migration(64, 70) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                    ensureReactionsMqttColumns(connection)
+                }
+            }
+
         /**
          * Configures a [RoomDatabase.Builder] with standard settings for this project.
          *
@@ -719,6 +806,12 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     MIGRATION_67_69,
                     MIGRATION_68_69,
                     MIGRATION_64_69,
+                    MIGRATION_64_70,
+                    MIGRATION_65_70,
+                    MIGRATION_66_70,
+                    MIGRATION_67_70,
+                    MIGRATION_68_70,
+                    MIGRATION_69_70,
                 )
                 .setSingleConnectionPool()
                 .setConnectionPoolTimeout(ROOM_POOL_ACQUIRE_TIMEOUT)

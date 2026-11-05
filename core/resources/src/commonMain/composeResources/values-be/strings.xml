@@ -73,6 +73,7 @@
     <string name="debug_filter_add">Дадаць фільтр</string>
     <string name="debug_filters">Фільтры</string>
     <string name="debug_panel">Панэль адладкі</string>
+    <!-- DEEP -->
     <!-- DELETE -->
     <string name="delete">Прыбраць</string>
     <string name="delete_for_everyone">Прыбраць для ўсіх</string>
@@ -114,7 +115,6 @@
     <string name="firmware_update_keep_device_close">.</string>
     <string name="firmware_update_retry">Паспрабаваць яшчэ раз</string>
     <!-- FORMAT -->
-    <string name="free_memory">Вольная памяць</string>
     <!-- GEOFENCE -->
     <string name="get_started">Пачаць</string>
     <string name="gpio">GPIO</string>
@@ -304,6 +304,7 @@
     <!-- USER -->
     <string name="user">Карыстальнік</string>
     <string name="via_mqtt">праз MQTT</string>
+    <!-- WIDGET -->
     <!-- WIFI -->
     <string name="wifi_provision_success_ip_address">IP-адрас</string>
     <string name="wifi_provision_success_username">Імя карыстальніка</string>

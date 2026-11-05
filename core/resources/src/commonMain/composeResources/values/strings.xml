@@ -697,8 +697,10 @@
     <string name="debug_tab_app_logs">App logs</string>
     <string name="debug_tab_mirror">Mirror</string>
     <string name="debug_tab_packets">Packets</string>
+    <!-- DEEP -->
     <string name="deep_link_connect_message">A link is asking this app to connect to the device at %1$s. Only continue if you trust where the link came from.</string>
     <string name="deep_link_connect_title">Connect to this device?</string>
+    <string name="deep_link_connect_with_pin_message">A link is asking this app to pair with the device at %1$s using PIN %2$s, then connect to it. The PIN is copied so you can paste it if asked. Only continue if you trust where the link came from.</string>
     <string name="deep_link_disconnect_message">A link is asking this app to disconnect from your device. Only continue if you trust where the link came from.</string>
     <string name="deep_link_disconnect_title">Disconnect from your device?</string>
     <string name="default_">Default</string>
@@ -1202,7 +1204,7 @@
     <string name="format_link">Link</string>
     <string name="format_strikethrough">Strikethrough</string>
     <string name="fr_HT" translatable="false">Kreyòl ayisyen</string>
-    <string name="free_memory">Free Memory</string>
+    <string name="free_memory">Free memory</string>
     <string name="free_memory_description">Available system memory in bytes</string>
     <string name="freq">Freq</string>
     <string name="gas_resistance">Gas Resistance</string>
@@ -1378,20 +1380,24 @@
     <string name="live_update_heard_now">Heard just now</string>
     <string name="live_update_hops">Hops away: %1$d</string>
     <string name="live_update_mesh_status">Mesh status</string>
+    <string name="live_update_mesh_status_shown">Mesh status in the status bar and notification shade</string>
+    <string name="live_update_mesh_status_shown_shade">Mesh status in the notification shade</string>
     <string name="live_update_mesh_status_summary">Connection, nodes online, unread messages and your radio's battery</string>
     <string name="live_update_no_nodes">No nodes to track</string>
     <string name="live_update_nodes_online">%1$d of %2$d nodes online</string>
-    <string name="live_update_off_summary">Show the mesh or one node in the status bar</string>
+    <string name="live_update_off_summary">Show the mesh or one node in the status bar and notification shade</string>
     <string name="live_update_promotion_off">Live Updates are turned off for Meshtastic in system settings</string>
     <string name="live_update_search_nodes">Search nodes</string>
     <string name="live_update_signal">SNR %1$s, RSSI %2$s</string>
     <string name="live_update_start">Start</string>
     <string name="live_update_stop">Stop</string>
+    <string name="live_update_stop_action">Stop Live Update</string>
     <string name="live_update_switch">Switch</string>
     <string name="live_update_track_in">Track in Live Update</string>
     <string name="live_update_track_node">Track a node</string>
     <string name="live_update_track_node_summary">One node's battery, signal, last heard, hops and distance</string>
-    <string name="live_update_tracking">Tracking %1$s</string>
+    <string name="live_update_tracking_shown">Tracking %1$s in the status bar and notification shade</string>
+    <string name="live_update_tracking_shown_shade">Tracking %1$s in the notification shade</string>
     <string name="live_update_unread">%1$d unread</string>
     <!-- LOAD -->
     <string name="load">Load</string>
@@ -1974,7 +1980,7 @@
     <string name="nodes_unheard_banner_one">1 node not heard on your current LoRa settings</string>
     <string name="nodes_unheard_keep">Keep</string>
     <string name="nodes_unheard_remove">Remove</string>
-    <string name="noise_floor">Noise Floor</string>
+    <string name="noise_floor">Noise floor</string>
     <string name="noise_floor_definition">The background RF noise measured by the radio receiver. Lower values usually indicate a quieter receiver environment; -85 dBm is a busy reference point, not a hard failure threshold.</string>
     <string name="noise_floor_no_reading">Noise Floor: No reading</string>
     <string name="none">None (disable)</string>
@@ -2751,8 +2757,16 @@
     <string name="weight">Weight</string>
     <string name="what_is_meshtastic">What is Meshtastic?</string>
     <string name="what_is_meshtastic_description">An open source, off-grid, decentralized, mesh network that runs on affordable, low-power radios.</string>
+    <!-- WIDGET -->
     <string name="widget_node_tracker_choose">Choose a node to track</string>
     <string name="widget_node_tracker_not_found">Node not found. Tap to choose a node.</string>
+    <string name="widget_node_tracker_title">Node Tracker</string>
+    <string name="widget_packets_bad">Bad</string>
+    <string name="widget_packets_dropped">Dropped</string>
+    <string name="widget_packets_received">Received</string>
+    <string name="widget_packets_sent">Sent</string>
+    <string name="widget_relays">Relayed</string>
+    <string name="widget_relays_canceled">Relays canceled</string>
     <!-- WIFI -->
     <string name="wifi_config">Wi-Fi Options</string>
     <string name="wifi_devices">Wi-Fi Provisioning for mPWRD-OS</string>

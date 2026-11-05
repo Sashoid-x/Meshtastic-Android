@@ -53,6 +53,7 @@ import org.koin.androidx.workmanager.koin.workManagerFactory
 import org.koin.plugin.module.dsl.startKoin
 import org.meshtastic.app.di.AndroidKoinApp
 import org.meshtastic.core.common.ContextServices
+import org.meshtastic.core.common.log.RoomPoolTimeoutLog
 import org.meshtastic.core.database.DatabaseManager
 import org.meshtastic.core.repository.AppUpdateService
 import org.meshtastic.core.repository.MeshPrefs
@@ -109,6 +110,7 @@ open class MeshUtilApplication :
 
     override fun onCreate() {
         super.onCreate()
+        RoomPoolTimeoutLog.install()
         if (BuildConfig.DEBUG) enableDebugVmPolicy()
         ContextServices.app = this
         configureFlavorApplication(BuildConfig.APPLICATION_ID)

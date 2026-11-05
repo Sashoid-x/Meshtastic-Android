@@ -332,6 +332,7 @@
     <string name="debug_store_logs_title">Tallenna mesh-verkon lokitiedot</string>
     <string name="debug_tab_app_logs">Sovelluslokitiedot</string>
     <string name="debug_tab_packets">Paketit</string>
+    <!-- DEEP -->
     <string name="deep_link_connect_message">Linkki osoitteessa %1$s pyytää tätä sovellusta muodostamaan yhteyden laitteeseen. Jatka vain, jos luotat linkin lähteeseen.</string>
     <string name="deep_link_connect_title">Muodostetaanko yhteys tähän laitteeseen?</string>
     <string name="deep_link_disconnect_message">Linkki pyytää tätä sovellusta katkaisemaan yhteyden laitteeseesi. Jatka vain, jos luotat linkin lähteeseen.</string>
@@ -726,7 +727,6 @@
     <string name="format_italic">Kursivoitu</string>
     <string name="format_link">Linkki</string>
     <string name="format_strikethrough">Yliviivattu</string>
-    <string name="free_memory">Vapaa muisti</string>
     <string name="free_memory_description">Käytettävissä oleva järjestelmämuisti tavuina</string>
     <string name="freq">Taajuus</string>
     <string name="gas_resistance">Kaasuvastus</string>
@@ -1222,7 +1222,6 @@
     <string name="nodes_empty_searching_title">Etsitään radioita</string>
     <string name="nodes_queued_for_deletion">%1$d laitetta jonossa poistettavaksi:</string>
     <string name="nodes_unheard_remove">Poista</string>
-    <string name="noise_floor">Kohinataso</string>
     <string name="noise_floor_definition">Radion vastaanottimen mittaama taustakohinan taso. Mitä pienempi arvo, sitä vähemmän radiotaustakohinaa ympäristössä yleensä on. Arvoa -85 dBm pidetään vilkkaan radiokanavan viitearvona, mutta se ei tarkoita automaattisesti yhteysongelmaa tai toimintahäiriötä.</string>
     <string name="noise_floor_no_reading">Kohinataso: Ei mittaustulosta</string>
     <string name="none">Ei mitään (ei käytössä)</string>
@@ -1787,6 +1786,8 @@
     <string name="weight">Paino</string>
     <string name="what_is_meshtastic">Mikä on Meshtastic?</string>
     <string name="what_is_meshtastic_description">Avoimen lähdekoodin, internetistä riippumaton ja hajautettu mesh-verkko, joka toimii edullisilla ja vähän virtaa kuluttavilla radioilla.</string>
+    <!-- WIDGET -->
+    <string name="widget_packets_bad">Virheelliset paketit</string>
     <!-- WIFI -->
     <string name="wifi_config">WiFi-asetukset</string>
     <string name="wifi_devices">WiFi-määritys mPWRD-OS:lle</string>

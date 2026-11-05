@@ -235,6 +235,7 @@
     <string name="debug_store_logs_title">Spara meshnätsloggar</string>
     <string name="debug_tab_app_logs">Applikationsloggar</string>
     <string name="debug_tab_packets">Paket</string>
+    <!-- DEEP -->
     <string name="deep_link_connect_title">Anslut till enheten?</string>
     <string name="deep_link_disconnect_title">Koppla från enheten?</string>
     <string name="default_">Förvald</string>
@@ -460,7 +461,6 @@
     <string name="format_italic">Kursiv</string>
     <string name="format_link">Länk</string>
     <string name="format_strikethrough">Genomstruken</string>
-    <string name="free_memory">Ledigt minne</string>
     <string name="free_memory_description">Tillgängligt systemminne som byte</string>
     <string name="freq">Frekv.</string>
     <string name="gas_resistance">Gasmotstånd</string>
@@ -1190,6 +1190,8 @@
     <string name="waypoint_new">Ny vägpunkt</string>
     <string name="waypoint_received">Mottagen vägpunkt: %1$s</string>
     <string name="weight">Vikt</string>
+    <!-- WIDGET -->
+    <string name="widget_packets_bad">Felaktiga paket</string>
     <!-- WIFI -->
     <string name="wifi_provision_available_networks">Tillgängliga nätverk</string>
     <string name="wifi_provision_connect_failed">Kunde inte ansluta: %1$s</string>
