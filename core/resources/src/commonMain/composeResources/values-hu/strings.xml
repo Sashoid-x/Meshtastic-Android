@@ -551,7 +551,9 @@
     <string name="quick_chat_new">Új gyors csevegés</string>
     <string name="quick_chat_show">Gyors csevegés menü megjelenítése</string>
     <string name="radiation">Sugárzás</string>
+    <!-- RADIO -->
     <string name="radio_configuration">Eszköz beállítások</string>
+    <string name="radio_setup_name_headline">Barátságos név</string>
     <string name="range_test">Hatótáv-teszt</string>
     <string name="range_test_config">Hatótáv-teszt beállításai</string>
     <string name="react">Reagálás</string>
@@ -761,6 +763,7 @@
     <string name="waypoint_received">Útvonalpont érkezett: %1$s</string>
     <string name="weight">Súly</string>
     <!-- WIDGET -->
+    <string name="widget_packets_bad">Rossz</string>
     <!-- WIFI -->
     <string name="wifi_provision_success_ip_address">IP cím</string>
     <string name="wifi_provision_success_username">Felhasználónév</string>

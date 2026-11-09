@@ -23,16 +23,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
+import org.koin.compose.koinInject
 import org.meshtastic.core.navigation.DiscoveryRoute
 import org.meshtastic.core.navigation.FirmwareRoute
 import org.meshtastic.core.navigation.Route
 import org.meshtastic.core.navigation.SettingsRoute
+import org.meshtastic.core.repository.NodeManager
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.administration
 import org.meshtastic.core.resources.advanced_title
@@ -58,6 +62,7 @@ import org.meshtastic.core.resources.import_configuration
 import org.meshtastic.core.resources.message_device_managed
 import org.meshtastic.core.resources.module_settings
 import org.meshtastic.core.resources.nodedb_reset
+import org.meshtastic.core.resources.radio_setup_title
 import org.meshtastic.core.resources.reboot
 import org.meshtastic.core.resources.reboot_into_dfu
 import org.meshtastic.core.resources.restore_app_database
@@ -71,6 +76,7 @@ import org.meshtastic.core.ui.icon.BugReport
 import org.meshtastic.core.ui.icon.ChevronRight
 import org.meshtastic.core.ui.icon.CleaningServices
 import org.meshtastic.core.ui.icon.Download
+import org.meshtastic.core.ui.icon.Language
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.PermScanWifi
 import org.meshtastic.core.ui.icon.Settings
@@ -107,6 +113,7 @@ fun RadioConfigItemList(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            if (state.isLocal) SetUpRadioContent(enabled, onNavigate)
             RadioConfigContent(readable, onRouteClick)
             DeviceConfigContent(readable, onNavigate)
             ModuleSettingsContent(readable, onNavigate)
@@ -146,6 +153,24 @@ private fun ColumnScope.RadioConfigContent(enabled: Boolean, onRouteClick: (Enum
         ) {
             onRouteClick(it)
         }
+    }
+}
+
+/** The guided setup, local only: it is bound to the connected radio's address and never writes to a remote node. */
+@Composable
+private fun ColumnScope.SetUpRadioContent(
+    enabled: Boolean,
+    onNavigate: (Route) -> Unit,
+    nodeManager: NodeManager = koinInject(),
+) {
+    val identity by nodeManager.connectionIdentity.collectAsStateWithLifecycle()
+    ListItem(
+        text = stringResource(Res.string.radio_setup_title),
+        leadingIcon = MeshtasticIcons.Language,
+        trailingIcon = MeshtasticIcons.ChevronRight,
+        enabled = enabled && identity != null,
+    ) {
+        onNavigate(SettingsRoute.RadioSetup(identity?.address))
     }
 }
 

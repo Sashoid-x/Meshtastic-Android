@@ -544,9 +544,18 @@
     <string name="channel_6">Channel 6</string>
     <string name="channel_7">Channel 7</string>
     <string name="channel_8">Channel 8</string>
+    <plurals name="channel_already_on_radio">
+        <item quantity="one">%1$d channel in this link is already on your radio and was left out.</item>
+        <item quantity="other">%1$d channels in this link are already on your radio and were left out.</item>
+    </plurals>
     <string name="channel_features">Channel Features</string>
     <string name="channel_invalid">This Channel URL is invalid and can not be used</string>
     <string name="channel_name">Channel Name</string>
+    <plurals name="channel_slots_full">
+        <item quantity="one">Your radio holds %2$d channels. Uncheck %1$d channel to make room. Unchecking a channel already on your radio removes it.</item>
+        <item quantity="other">Your radio holds %2$d channels. Uncheck %1$d channels to make room. Unchecking a channel already on your radio removes it.</item>
+    </plurals>
+    <string name="channel_slots_used">%1$d of %2$d channel slots in use</string>
     <string name="channel_url">Channel URL</string>
     <string name="channel_utilization">ChUtil</string>
     <string name="channels">Channels</string>
@@ -644,6 +653,7 @@
     <string name="configure_location_permissions">Configure Location Permissions</string>
     <string name="configure_notification_permissions">Configure notification permissions</string>
     <string name="connect">Connect</string>
+    <string name="connect_code_invalid">That code isn't a Meshtastic connect code.</string>
     <string name="connect_radio_for_remote_admin">Connect to a radio to administer remote nodes.</string>
     <string name="connect_radio_to_change_settings">Connect to a radio to change these settings.</string>
     <string name="connected">Connected</string>
@@ -762,6 +772,7 @@
     <string name="device_model_ar_camera_unavailable">Another app is using the camera. Close it and come back.</string>
     <string name="device_model_ar_failed">AR couldn't start</string>
     <string name="device_model_ar_restart_phone">Restart your phone. Its motion sensor isn't responding, and AR can't start without it.</string>
+    <string name="device_model_banana_for_scale">Banana for scale</string>
     <string name="device_model_capture">Take a picture</string>
     <string name="device_model_capture_failed">Couldn't save the picture</string>
     <string name="device_model_capture_saved">Saved to Pictures</string>
@@ -1508,6 +1519,7 @@
     <string name="lux">Lux</string>
     <string name="manage_custom_tile_sources">Manage Custom Tile Sources</string>
     <string name="manage_map_layers">Manage Map Layers</string>
+    <string name="managed_mode_recovery">If every admin key is lost, a managed node can't be changed. The only way back is to erase it with the web flasher at https://flasher.meshtastic.org.</string>
     <string name="manual_position_request">Manual position request required</string>
     <!-- MAP -->
     <string name="map">Mesh Map</string>
@@ -1552,6 +1564,7 @@
     <string name="map_offline_terrain_download_failed_io">Terrain download failed — check your connection and try again</string>
     <string name="map_offline_terrain_download_failed_tile_limit">Selected area is too large for terrain — zoom in or pick a smaller region</string>
     <string name="map_offline_terrain_downloading_progress">Downloading terrain… %1$d / %2$d tiles</string>
+    <string name="map_offline_terrain_shade_valleys">Shade Valleys</string>
     <string name="map_offline_unavailable">Offline maps are unavailable on this device</string>
     <string name="map_overlay_hillshade">Hillshade</string>
     <string name="map_overlay_precipitation">Precipitation</string>
@@ -1819,8 +1832,7 @@
     <string name="mqtt_root_problem_empty_segment">Topics cannot contain two slashes in a row.</string>
     <string name="mqtt_root_problem_ends_with_version">Topics cannot end with /2.</string>
     <string name="mqtt_root_problem_leading_slash">Topics cannot start with a slash.</string>
-    <string name="mqtt_root_problem_non_ascii">Topics must use ASCII characters.</string>
-    <string name="mqtt_root_problem_too_long">Topics are limited to 31 characters.</string>
+    <string name="mqtt_root_problem_too_long">Topics are limited to 31 bytes (æ, ø and å use two).</string>
     <string name="mqtt_root_problem_trailing_slash">Topics cannot end with a slash.</string>
     <string name="mqtt_root_problem_whitespace">Topics cannot contain spaces or control characters.</string>
     <string name="mqtt_root_problem_wildcard">Topics cannot contain + or #.</string>
@@ -1840,7 +1852,7 @@
     <string name="mqtt_topic_finder_counts">Counts are nodes heard during the sample. Busy topics fill in within seconds; quiet ones may stay at zero.</string>
     <string name="mqtt_topic_finder_custom">Custom topic</string>
     <string name="mqtt_topic_finder_custom_example" translatable="false">msh/US/WA/seattle</string>
-    <string name="mqtt_topic_finder_custom_hint">Up to 31 ASCII characters, no leading or trailing slash, no + or #.</string>
+    <string name="mqtt_topic_finder_custom_hint">Up to 31 bytes, no leading or trailing slash, no + or #.</string>
     <string name="mqtt_topic_finder_failed_closed">The broker closed the connection.</string>
     <string name="mqtt_topic_finder_failed_connect">Could not connect to the broker.</string>
     <string name="mqtt_topic_finder_failed_error">The sample stopped on an unexpected error.</string>
@@ -2202,7 +2214,29 @@
     <string name="quick_chat_new">New quick chat</string>
     <string name="quick_chat_show">Show quick chat menu</string>
     <string name="radiation">Radiation</string>
+    <!-- RADIO -->
     <string name="radio_configuration">Radio configuration</string>
+    <string name="radio_setup_beacons_body">Radios nearby can invite you to their mesh. Listening keeps the invitations your radio hears; join one to use its channel.</string>
+    <string name="radio_setup_beacons_headline">Nearby meshes</string>
+    <string name="radio_setup_beacons_listening">Listens for beacons</string>
+    <string name="radio_setup_beacons_none">No invitations heard yet.</string>
+    <string name="radio_setup_beacons_settings">Mesh Beacon settings</string>
+    <string name="radio_setup_beacons_waiting">Waiting for the radio's beacon settings…</string>
+    <string name="radio_setup_done_body">The radio transmits with these settings. Change them any time in Radio configuration.</string>
+    <string name="radio_setup_done_headline">All set</string>
+    <string name="radio_setup_intro_body">The radio needs a region before it can transmit. The next pages set the region, the modem preset and the name other people see.</string>
+    <string name="radio_setup_intro_headline">Set up your radio</string>
+    <string name="radio_setup_name_body">Other people see these names in their node lists and on their maps.</string>
+    <string name="radio_setup_name_headline">Name</string>
+    <string name="radio_setup_preset_body">The preset sets the range and speed of the mesh. Everyone on a mesh uses the same one.</string>
+    <string name="radio_setup_preset_custom">This radio uses custom modem settings. They stay unless you pick a preset.</string>
+    <string name="radio_setup_reconnecting">Waiting for the radio to reconnect…</string>
+    <string name="radio_setup_region_body">Pick the region where this radio is used. It sets the frequencies and the power the radio may use.</string>
+    <string name="radio_setup_region_none">No region matches.</string>
+    <string name="radio_setup_region_search">Search regions</string>
+    <string name="radio_setup_region_suggested">Suggested from your phone's region. Confirm it or pick another.</string>
+    <string name="radio_setup_restart_notice">The radio restarts after saving. The setup continues once it reconnects.</string>
+    <string name="radio_setup_title">Set up radio</string>
     <string name="rainfall_1h">Rain (1h)</string>
     <string name="rainfall_24h">Rain (24h)</string>
     <string name="range_test">Range Test</string>
@@ -2372,6 +2406,7 @@
     <string name="scan_bluetooth_devices">Scan for Bluetooth devices</string>
     <string name="scan_channels_nfc">Scan Shared Channels NFC</string>
     <string name="scan_channels_qr">Scan Shared Channels QR Code</string>
+    <string name="scan_connect_code">Scan a connect code</string>
     <string name="scan_network_devices">Scan for network devices</string>
     <string name="scan_nfc">Scan NFC</string>
     <string name="scan_nfc_text">Bring your device close to the NFC tag to scan.</string>
@@ -2445,8 +2480,8 @@
     <string name="share_action">Share link</string>
     <string name="share_by_tap_subtext">While this is open, another phone can also take it by tapping yours.</string>
     <string name="share_channels">Share Channels</string>
-    <string name="share_channels_add_hint">Adding keeps the channels they already have and appends yours.</string>
-    <string name="share_channels_replace_hint">Replacing overwrites every channel on their radio with yours.</string>
+    <string name="share_channels_add_hint">Add keeps their channels and LoRa settings and appends yours.</string>
+    <string name="share_channels_replace_hint">Replace overwrites every channel on their radio with yours and applies your LoRa settings.</string>
     <string name="share_channels_subject">Meshtastic channels</string>
     <string name="share_connected_node">Share Connected Node</string>
     <string name="share_contact">Share Contact</string>
@@ -2639,6 +2674,7 @@
     <string name="trace_route">Trace Route</string>
     <!-- TRACEROUTE -->
     <string name="traceroute">Traceroute</string>
+    <string name="traceroute_available_in">Trace Route in %1$d s</string>
     <string name="traceroute_diff">Hops towards %1$d Hops back %2$d</string>
     <string name="traceroute_direct">Direct</string>
     <string name="traceroute_duration">Duration: %1$s s</string>
@@ -2653,6 +2689,7 @@
     <string name="traceroute_no_response">No Response</string>
     <string name="traceroute_observed">Observed</string>
     <string name="traceroute_outgoing_route">Outgoing route</string>
+    <string name="traceroute_rate_limited">Rate limited: the radio sends one traceroute every 30 seconds</string>
     <string name="traceroute_return_hops">Return Hops</string>
     <string name="traceroute_return_route">Return route</string>
     <string name="traceroute_round_trip">Round Trip</string>
@@ -2661,6 +2698,7 @@
     <string name="traceroute_showing_nodes">Showing %1$d/%2$d nodes</string>
     <string name="traceroute_traced_by">Traced by %1$s</string>
     <string name="traceroute_unknown_hop">Unknown hop</string>
+    <string name="traceroute_waiting">Waiting for response</string>
     <string name="track_and_share_locations">Track and Share Locations</string>
     <string name="track_point">track point</string>
     <!-- TRAFFIC -->

@@ -517,9 +517,12 @@ channel_5
 channel_6
 channel_7
 channel_8
+channel_already_on_radio
 channel_features
 channel_invalid
 channel_name
+channel_slots_full
+channel_slots_used
 channel_url
 channel_utilization
 channels
@@ -617,6 +620,7 @@ configure_critical_alerts
 configure_location_permissions
 configure_notification_permissions
 connect
+connect_code_invalid
 connect_radio_for_remote_admin
 connect_radio_to_change_settings
 connected
@@ -1466,6 +1470,7 @@ low_entropy_key_title
 lux
 manage_custom_tile_sources
 manage_map_layers
+managed_mode_recovery
 manual_position_request
 ### MAP ###
 map
@@ -1510,6 +1515,7 @@ map_offline_terrain_download_complete
 map_offline_terrain_download_failed_io
 map_offline_terrain_download_failed_tile_limit
 map_offline_terrain_downloading_progress
+map_offline_terrain_shade_valleys
 map_offline_unavailable
 map_overlay_hillshade
 map_overlay_precipitation
@@ -1771,7 +1777,6 @@ mqtt_root_problem_empty
 mqtt_root_problem_empty_segment
 mqtt_root_problem_ends_with_version
 mqtt_root_problem_leading_slash
-mqtt_root_problem_non_ascii
 mqtt_root_problem_too_long
 mqtt_root_problem_trailing_slash
 mqtt_root_problem_whitespace
@@ -2139,7 +2144,29 @@ quick_chat_instant
 quick_chat_new
 quick_chat_show
 radiation
+### RADIO ###
 radio_configuration
+radio_setup_beacons_body
+radio_setup_beacons_headline
+radio_setup_beacons_listening
+radio_setup_beacons_none
+radio_setup_beacons_settings
+radio_setup_beacons_waiting
+radio_setup_done_body
+radio_setup_done_headline
+radio_setup_intro_body
+radio_setup_intro_headline
+radio_setup_name_body
+radio_setup_name_headline
+radio_setup_preset_body
+radio_setup_preset_custom
+radio_setup_reconnecting
+radio_setup_region_body
+radio_setup_region_none
+radio_setup_region_search
+radio_setup_region_suggested
+radio_setup_restart_notice
+radio_setup_title
 rainfall_1h
 rainfall_24h
 range_test
@@ -2303,6 +2330,7 @@ scan
 scan_bluetooth_devices
 scan_channels_nfc
 scan_channels_qr
+scan_connect_code
 scan_network_devices
 scan_nfc
 scan_nfc_text
@@ -2567,6 +2595,7 @@ topology_view_node
 trace_route
 ### TRACEROUTE ###
 traceroute
+traceroute_available_in
 traceroute_diff
 traceroute_direct
 traceroute_duration
@@ -2578,6 +2607,7 @@ traceroute_map_no_data
 traceroute_no_response
 traceroute_observed
 traceroute_outgoing_route
+traceroute_rate_limited
 traceroute_return_hops
 traceroute_return_route
 traceroute_round_trip
@@ -2586,6 +2616,7 @@ traceroute_route_towards_dest
 traceroute_showing_nodes
 traceroute_traced_by
 traceroute_unknown_hop
+traceroute_waiting
 track_and_share_locations
 track_point
 ### TRAFFIC ###

@@ -1339,7 +1339,9 @@
     <string name="quick_chat_new">Uus kiirvestlus</string>
     <string name="quick_chat_show">Kuva kiirsõnumite valik</string>
     <string name="radiation">Radiatsioon</string>
+    <!-- RADIO -->
     <string name="radio_configuration">Raadio sätted</string>
+    <string name="radio_setup_name_headline">Kasutajasõbralik nimi</string>
     <string name="rainfall_1h">Vihm (1h)</string>
     <string name="rainfall_24h">Vihm (24h)</string>
     <string name="range_test">Ulatustest</string>
@@ -1736,7 +1738,8 @@
     <string name="what_is_meshtastic">Mis on Meshtastic?</string>
     <string name="what_is_meshtastic_description">Avatud lähtekoodiga, võrgust sõltumatu, detsentraliseeritud kärgvõrk, mis töötab taskukohaste ja väikese energiatarbega raadioside abil.</string>
     <!-- WIDGET -->
-    <string name="widget_packets_bad">Halvad paketid</string>
+    <string name="widget_packets_bad">Halb</string>
+    <string name="widget_packets_received">Kätte saadud</string>
     <!-- WIFI -->
     <string name="wifi_config">Wi-Fi valikud</string>
     <string name="wifi_devices">WiFi ühenduse loomine mPWRD-OS-i jaoks</string>
