@@ -50,6 +50,7 @@ fun SharedDialogs(uiViewModel: UIViewModel) {
                 uriHandler.openUri(info.releaseUrl)
                 uiViewModel.dismissUpdateDialog()
             },
+            onSkip = { uiViewModel.skipUpdate(info.versionName) },
         )
     }
 

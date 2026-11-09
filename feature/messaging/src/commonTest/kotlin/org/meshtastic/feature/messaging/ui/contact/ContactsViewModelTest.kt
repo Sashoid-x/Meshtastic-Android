@@ -189,12 +189,13 @@ class ContactsViewModelTest {
         every { packetRepository.getContactSettings() } returns MutableStateFlow(emptyMap())
         viewModel =
             ContactsViewModel(
-                SavedStateHandle(),
-                nodeRepository,
-                packetRepository,
-                SnackbarManager(),
-                radioConfigRepository,
-                connectionStateProvider,
+                savedStateHandle = SavedStateHandle(),
+                nodeRepository = nodeRepository,
+                packetRepository = packetRepository,
+                snackbarManager = SnackbarManager(),
+                uiPrefs = uiPrefs,
+                radioConfigRepository = radioConfigRepository,
+                connectionStateProvider = connectionStateProvider,
             )
 
         viewModel.contactList.test {

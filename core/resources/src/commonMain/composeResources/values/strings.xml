@@ -41,7 +41,7 @@
     <string name="about_check_for_updates">Check for updates</string>
     <string name="about_check_for_updates_summary">Check for a new version on GitHub</string>
     <string name="about_checking_for_updates">Checking for updates…</string>
-    <string name="about_mod_description">Extended modification of Meshtastic-Android with advanced features:\n• AI text compression\n• Send on Enter\n• Photo hosting (meshpic.org, MeshFiles)\n• Built-in image viewer with zoom &amp; pan\n• LoRa file transfer (MFT) &amp; Pixel art messaging\n• Pinned messages\n• Advanced packet database backup &amp; restore (JSON)</string>
+    <string name="about_mod_description">Extended modification of Meshtastic-Android with advanced features:\n• AI text compression &amp; Compact Cyrillic encoding\n• In-chat RTTTL melody player\n• Auto-topology discovery with configurable interval\n• Send on Enter\n• Photo hosting (meshpic.org, MeshFiles)\n• Built-in image viewer with zoom &amp; pan\n• LoRa file transfer (MFT) &amp; Pixel art messaging\n• Pinned messages\n• Advanced packet database backup &amp; restore (JSON)</string>
     <string name="about_mod_testers_content">Huge thanks for testing and improving Meshtastic Advanced:\n\n• art58\n• GRUZ 800\n• egare\n\nSpecial thanks to Vergeon for motivational criticism 😀</string>
     <string name="about_mod_testers_title">Beta Testers &amp; Contributors</string>
     <string name="about_mod_title">Meshtastic Advanced Mod</string>
@@ -51,6 +51,7 @@
     <string name="about_update_details">Details</string>
     <string name="about_update_dialog_download">Download</string>
     <string name="about_update_dialog_later">Later</string>
+    <string name="about_update_dialog_skip">Skip this version</string>
     <string name="about_update_dialog_title">Update Available</string>
     <string name="about_update_snackbar">New version available: %1$s</string>
     <string name="accept">Accept</string>
@@ -68,6 +69,7 @@
     <string name="action_select_network">Select network</string>
     <string name="action_send_hop_reaction">Send hop/signal reaction</string>
     <string name="action_send_reply">Send reply</string>
+    <string name="action_set_ringtone">Set as ringtone</string>
     <string name="action_show_message_status">Show message status</string>
     <string name="action_toggle_translation">Toggle between original and translated text</string>
     <string name="action_translate_message">Translate message</string>
@@ -232,6 +234,12 @@
     <string name="are_you_sure_change_default">Are you sure you want to change to the default channel?</string>
     <string name="audio">Audio</string>
     <string name="audio_config">Audio Config</string>
+    <!-- AUTO -->
+    <string name="auto_topology_discovery_interval_10m">10 minutes</string>
+    <string name="auto_topology_discovery_interval_20m">20 minutes</string>
+    <string name="auto_topology_discovery_interval_30m">30 minutes</string>
+    <string name="auto_topology_discovery_interval_summary">Interval between routing requests to active nodes</string>
+    <string name="auto_topology_discovery_interval_title">Discovery interval</string>
     <string name="auto_topology_discovery_summary">Periodically traceroute active nodes when on local radio (paused when MQTT is active)</string>
     <string name="auto_topology_discovery_title">Auto-Topology Discovery</string>
     <!-- AUTOMATION -->
@@ -1203,6 +1211,8 @@
     <string name="format_italic">Italic</string>
     <string name="format_link">Link</string>
     <string name="format_strikethrough">Strikethrough</string>
+    <string name="forward">Forward</string>
+    <string name="forwarded_from">Forwarded from %1$s</string>
     <string name="fr_HT" translatable="false">Kreyòl ayisyen</string>
     <string name="free_memory">Free memory</string>
     <string name="free_memory_description">Available system memory in bytes</string>
@@ -2112,6 +2122,7 @@
     <string name="pinned_messages_title">Pinned Messages</string>
     <string name="pixel_art_messaging">Pixel Art</string>
     <string name="pixel_art_messaging_summary">Monochrome pixel art editor and chat rendering</string>
+    <string name="pixel_art_saved">Image saved to Downloads</string>
     <string name="play">Play</string>
     <plurals name="plurals_hours">
         <item quantity="one">%1$d hour</item>
@@ -2344,12 +2355,17 @@
     <string name="routing_error_too_large">Message is too large to send</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">Received Signal Strength Indicator, a measurement used to determine the power level being received by the antenna. A higher RSSI value generally indicates a stronger and more stable connection.</string>
+    <string name="rtttl_melody">Melody</string>
+    <string name="rtttl_play">Play</string>
+    <string name="rtttl_stop">Stop</string>
     <string name="salinity">Salinity</string>
     <string name="sample_message" translatable="false">hey I found the cache, it is over here next to the big tiger. I'm kinda scared.</string>
     <string name="sats">Sats</string>
+    <!-- SAVE -->
     <string name="save">Save</string>
     <string name="save_and_restart">Save &amp; restart</string>
     <string name="save_changes">Save</string>
+    <string name="save_pixel_art">Save image</string>
     <string name="save_rangetest">Export rangetest packets</string>
     <!-- SCAN -->
     <string name="scan">Scan</string>
@@ -2504,6 +2520,7 @@
     <string name="status_message">Status Message</string>
     <string name="status_message_summary">A public status message that is broadcast to the mesh on change and every 12 hours.</string>
     <string name="stay_connected_anywhere">Stay Connected Anywhere</string>
+    <string name="stop">Stop</string>
     <string name="stop_connecting">Stop Connecting</string>
     <string name="store_forward">Store &amp; Forward</string>
     <string name="store_forward_config">Store &amp; Forward Config</string>

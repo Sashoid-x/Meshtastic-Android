@@ -45,6 +45,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -54,6 +55,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -96,6 +98,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.mp.KoinPlatform
 import org.meshtastic.core.common.util.DateFormatter
 import org.meshtastic.core.common.util.HopReactionFormatter
+import org.meshtastic.core.common.util.RtttlParser
 import org.meshtastic.core.model.LinkPreview
 import org.meshtastic.core.model.Message
 import org.meshtastic.core.model.MessageStatus
@@ -109,9 +112,12 @@ import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.a11y_message_from
 import org.meshtastic.core.resources.action_show_message_status
 import org.meshtastic.core.resources.filter_message_label
+import org.meshtastic.core.resources.forward
+import org.meshtastic.core.resources.forwarded_from
 import org.meshtastic.core.resources.image_loading_error
 import org.meshtastic.core.resources.message_translated_label
 import org.meshtastic.core.resources.pinned_messages
+import org.meshtastic.core.resources.pixel_art_saved
 import org.meshtastic.core.resources.reply
 import org.meshtastic.core.resources.security_signed_verified
 import org.meshtastic.core.ui.component.AutoLinkText
@@ -126,23 +132,34 @@ import org.meshtastic.core.ui.component.TransportIcon
 import org.meshtastic.core.ui.component.nodeBorderStroke
 import org.meshtastic.core.ui.component.nodeTintedContainer
 import org.meshtastic.core.ui.emoji.EmojiPickerDialog
+import org.meshtastic.core.ui.icon.Add
 import org.meshtastic.core.ui.icon.FormatQuote
 import org.meshtastic.core.ui.icon.HopCount
 import org.meshtastic.core.ui.icon.Image
 import org.meshtastic.core.ui.icon.Keep
 import org.meshtastic.core.ui.icon.MeshtasticIcons
+import org.meshtastic.core.ui.icon.Remove
 import org.meshtastic.core.ui.icon.Reply
 import org.meshtastic.core.ui.icon.ShieldCheck
+import org.meshtastic.core.ui.sound.PendingRingtoneHolder
 import org.meshtastic.core.ui.theme.LocalMessageBubbleStyle
 import org.meshtastic.core.ui.theme.MessageItemColors
 import org.meshtastic.core.ui.theme.StatusColors.StatusGreen
+import org.meshtastic.core.ui.util.SnackbarManager
 import org.meshtastic.core.ui.util.createClipEntry
 import org.meshtastic.core.ui.util.rememberGetLocalImageFile
 import org.meshtastic.core.ui.util.rememberSaveImageLocally
+import org.meshtastic.core.ui.util.saveFileToDownloads
 import org.meshtastic.feature.messaging.compress.MeshTextCompressor
 import org.meshtastic.feature.messaging.image.MonochromeImageCodec
 
 internal const val MESSAGE_STATUS_LABEL_TEST_TAG = "message_status_label"
+
+private val FORWARD_REGEX =
+    Regex(
+        """^\[(?:f:\s*|Forwarded from:\s*|Forwarded:\s*|Переслано от:\s*|Переслано:\s*)([^\]\n]+)\]\s*\n?""",
+        RegexOption.IGNORE_CASE,
+    )
 
 /** Selects the persisted compact label or formats the raw display instant with platform date/time conventions. */
 internal fun formatMessageTimestamp(
@@ -207,6 +224,8 @@ fun MessageItem(
     onOpenImageViewer: (List<Triple<String, String?, String?>>, Int) -> Unit = { _, _ -> },
     onTogglePin: () -> Unit = {},
     linkPreviewService: LinkPreviewService? = null,
+    onForwardMessage: (String) -> Unit = {},
+    navigateToExtNotification: () -> Unit = {},
 ) = Column(
     modifier =
     modifier
@@ -246,8 +265,12 @@ fun MessageItem(
     val isForgedAck = isAckProofForged(message.ackProofStatus)
     // While searching, always show the original text — FTS matches and highlights apply to it, not the translation.
     val showsTranslation = message.showTranslated && message.translatedText != null && searchQuery.isEmpty()
-    val isCompressedMessage = remember(message.text) { MeshTextCompressor.isCompressed(message.text) }
-    val rawBodyText = message.displayedText(searching = searchQuery.isNotEmpty())
+    val forwardMatch = remember(message.text) { FORWARD_REGEX.find(message.text) }
+    val forwardedAuthor = forwardMatch?.groupValues?.getOrNull(1)?.trim()
+    val cleanText = if (forwardMatch != null) message.text.substring(forwardMatch.range.last + 1) else message.text
+    val isCompressedMessage = remember(cleanText) { MeshTextCompressor.isCompressed(cleanText) }
+    val rawBodyText =
+        if (forwardMatch != null) cleanText else message.displayedText(searching = searchQuery.isNotEmpty())
     val decompressedText by
         produceState(initialValue = rawBodyText, rawBodyText, textCompressionEnabled) {
             if (textCompressionEnabled && isCompressedMessage) {
@@ -261,6 +284,50 @@ fun MessageItem(
             }
         }
     val bodyText = decompressedText
+    val monoImage =
+        remember(message.rawBytes, message.portNum, pixelArtEnabled) {
+            val rawBytes = message.rawBytes
+            if (
+                pixelArtEnabled &&
+                message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value &&
+                rawBytes != null
+            ) {
+                MonochromeImageCodec.decode(rawBytes)
+            } else {
+                null
+            }
+        }
+    val rtttlSong = remember(bodyText) { RtttlParser.parse(bodyText) }
+    val resolvedForwardNode =
+        remember(forwardedAuthor, resolveMention) {
+            if (forwardedAuthor != null) {
+                val cleanId = forwardedAuthor.removePrefix("@")
+                resolveMention(cleanId)
+            } else {
+                null
+            }
+        }
+    val displayForwardedAuthor =
+        remember(resolvedForwardNode, forwardedAuthor) {
+            resolvedForwardNode?.effectiveLongName?.ifEmpty { resolvedForwardNode.user.short_name }
+                ?: forwardedAuthor?.removePrefix("@")
+        }
+    val snackbarManager = remember {
+        runCatching { KoinPlatform.getKoin().getOrNull<SnackbarManager>() }.getOrNull()
+    }
+    val pixelArtSavedText = stringResource(Res.string.pixel_art_saved)
+    val forwardText =
+        remember(message.fromLocal, ourNode, node, cleanText, forwardMatch, bodyText) {
+            val authorNode = if (message.fromLocal) ourNode else node
+            val authorId =
+                authorNode.user.id.ifEmpty {
+                    "!" + authorNode.num.toUInt().toString(16).padStart(8, '0')
+                }
+            val normalizedId = if (authorId.startsWith("!")) authorId else "!$authorId"
+            val textToForward = if (forwardMatch != null) cleanText else bodyText
+            "[f:@$normalizedId]\n$textToForward"
+        }
+
     if (activeSheet != null) {
         ModalBottomSheet(onDismissRequest = { activeSheet = null }, sheetState = sheetState) {
             when (activeSheet) {
@@ -319,6 +386,26 @@ fun MessageItem(
                             onTogglePin()
                         },
                         hopReaction = computedHopReaction,
+                        onForward = {
+                            activeSheet = null
+                            onForwardMessage(forwardText)
+                        },
+                        isRtttl = rtttlSong != null,
+                        onSetRingtone = {
+                            activeSheet = null
+                            PendingRingtoneHolder.pendingRingtone = bodyText
+                            navigateToExtNotification()
+                        },
+                        isPixelArt = monoImage != null,
+                        onSavePixelArt = {
+                            activeSheet = null
+                            if (monoImage != null) {
+                                val pngBytes = MonochromeImageCodec.toPng(monoImage)
+                                val fileName = "pixel_art_${message.uuid}.png"
+                                saveFileToDownloads(fileName, pngBytes)
+                                snackbarManager?.showSnackbar(pixelArtSavedText)
+                            }
+                        },
                     )
                 }
 
@@ -518,12 +605,21 @@ fun MessageItem(
             border = cardBorder,
         ) {
             Column(modifier = Modifier.width(IntrinsicSize.Max)) {
-                OriginalMessageSnippet(
-                    modifier = Modifier.fillMaxWidth(),
-                    message = message,
-                    ourNode = ourNode,
-                    onNavigateToOriginalMessage = onNavigateToOriginalMessage,
-                )
+                val originalMessage = message.originalMessage
+                if (originalMessage != null && originalMessage.packetId != 0) {
+                    OriginalMessageSnippet(
+                        modifier = Modifier.fillMaxWidth(),
+                        message = message,
+                        ourNode = ourNode,
+                        onNavigateToOriginalMessage = onNavigateToOriginalMessage,
+                    )
+                } else if (!displayForwardedAuthor.isNullOrEmpty()) {
+                    ForwardedMessageSnippet(
+                        author = displayForwardedAuthor,
+                        onClickAuthor = resolvedForwardNode?.let { fn -> { onClickChip(fn) } },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
 
                 Column(
                     modifier =
@@ -532,19 +628,7 @@ fun MessageItem(
                         vertical = (bubbleStyle.bubblePadding * 0.67f).coerceAtLeast(4.dp),
                     ),
                 ) {
-                    val monoImage =
-                        remember(message.rawBytes, message.portNum, pixelArtEnabled) {
-                            val rawBytes = message.rawBytes
-                            if (
-                                pixelArtEnabled &&
-                                message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value &&
-                                rawBytes != null
-                            ) {
-                                MonochromeImageCodec.decode(rawBytes)
-                            } else {
-                                null
-                            }
-                        }
+                    var pixelScale by remember(message.uuid) { mutableFloatStateOf(1f) }
                     val allUrls = remember(bodyText) { ImageUrlResolver.extractAllUrls(bodyText) }
                     val photoUrls =
                         remember(allUrls, photoHostingEnabled) {
@@ -591,69 +675,91 @@ fun MessageItem(
 
                     if (monoImage != null) {
                         val imageAspect = monoImage.width.toFloat() / monoImage.height.toFloat()
-                        val targetWidth =
+                        val baseWidth =
                             if (imageAspect >= 1f) 220.dp else (220.dp * imageAspect).coerceAtLeast(140.dp)
+                        val targetWidth = baseWidth * pixelScale
                         val targetHeight = targetWidth / imageAspect
                         val theme = MonochromeImageCodec.getTheme(monoImage.themeIndex)
                         val bgColor = Color(theme.backgroundColor)
                         val fgColor = Color(theme.foregroundColor)
-                        Box(
-                            modifier =
-                            Modifier.size(width = targetWidth, height = targetHeight)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(bgColor),
-                            contentAlignment = Alignment.Center,
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Canvas(modifier = Modifier.fillMaxSize()) {
-                                val cellW = size.width / monoImage.width
-                                val cellH = size.height / monoImage.height
-                                for (y in 0 until monoImage.height) {
-                                    for (x in 0 until monoImage.width) {
-                                        val idx = y * monoImage.width + x
-                                        if (
-                                            idx < monoImage.pixels.size &&
-                                            monoImage.pixels[idx] == theme.foregroundColor.toInt()
-                                        ) {
-                                            drawRect(
-                                                color = fgColor,
-                                                topLeft = Offset(x * cellW, y * cellH),
-                                                size = Size(cellW + 0.5f, cellH + 0.5f),
-                                            )
-                                        }
-                                    }
-                                }
-                                if (monoImage.showGrid) {
-                                    val fgLum =
-                                        0.299f * fgColor.red + 0.587f * fgColor.green + 0.114f * fgColor.blue
-                                    val bgLum =
-                                        0.299f * bgColor.red + 0.587f * bgColor.green + 0.114f * bgColor.blue
-                                    val fgGridColor =
-                                        if (fgLum < 0.45f) {
-                                            Color.White.copy(alpha = 0.35f)
-                                        } else {
-                                            Color.Black.copy(alpha = 0.35f)
-                                        }
-                                    val bgGridColor =
-                                        if (bgLum < 0.45f) {
-                                            Color.White.copy(alpha = 0.35f)
-                                        } else {
-                                            Color.Black.copy(alpha = 0.35f)
-                                        }
+                            if (message.fromLocal) {
+                                PixelArtScaleControls(
+                                    canZoomIn = pixelScale < 0.99f,
+                                    canZoomOut = pixelScale > 0.41f,
+                                    onZoomIn = { pixelScale = (pixelScale + 0.2f).coerceAtMost(1f) },
+                                    onZoomOut = { pixelScale = (pixelScale - 0.2f).coerceAtLeast(0.4f) },
+                                )
+                            }
+                            Box(
+                                modifier =
+                                Modifier.size(width = targetWidth, height = targetHeight)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(bgColor),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Canvas(modifier = Modifier.fillMaxSize()) {
+                                    val cellW = size.width / monoImage.width
+                                    val cellH = size.height / monoImage.height
                                     for (y in 0 until monoImage.height) {
                                         for (x in 0 until monoImage.width) {
                                             val idx = y * monoImage.width + x
-                                            val isFg =
+                                            if (
                                                 idx < monoImage.pixels.size &&
-                                                    monoImage.pixels[idx] == theme.foregroundColor.toInt()
-                                            drawRect(
-                                                color = if (isFg) fgGridColor else bgGridColor,
-                                                topLeft = Offset(x * cellW, y * cellH),
-                                                size = Size(cellW, cellH),
-                                                style = Stroke(width = 1f),
-                                            )
+                                                monoImage.pixels[idx] == theme.foregroundColor.toInt()
+                                            ) {
+                                                drawRect(
+                                                    color = fgColor,
+                                                    topLeft = Offset(x * cellW, y * cellH),
+                                                    size = Size(cellW + 0.5f, cellH + 0.5f),
+                                                )
+                                            }
+                                        }
+                                    }
+                                    if (monoImage.showGrid) {
+                                        val fgLum =
+                                            0.299f * fgColor.red + 0.587f * fgColor.green + 0.114f * fgColor.blue
+                                        val bgLum =
+                                            0.299f * bgColor.red + 0.587f * bgColor.green + 0.114f * bgColor.blue
+                                        val fgGridColor =
+                                            if (fgLum < 0.45f) {
+                                                Color.White.copy(alpha = 0.35f)
+                                            } else {
+                                                Color.Black.copy(alpha = 0.35f)
+                                            }
+                                        val bgGridColor =
+                                            if (bgLum < 0.45f) {
+                                                Color.White.copy(alpha = 0.35f)
+                                            } else {
+                                                Color.Black.copy(alpha = 0.35f)
+                                            }
+                                        for (y in 0 until monoImage.height) {
+                                            for (x in 0 until monoImage.width) {
+                                                val idx = y * monoImage.width + x
+                                                val isFg =
+                                                    idx < monoImage.pixels.size &&
+                                                        monoImage.pixels[idx] == theme.foregroundColor.toInt()
+                                                drawRect(
+                                                    color = if (isFg) fgGridColor else bgGridColor,
+                                                    topLeft = Offset(x * cellW, y * cellH),
+                                                    size = Size(cellW, cellH),
+                                                    style = Stroke(width = 1f),
+                                                )
+                                            }
                                         }
                                     }
                                 }
+                            }
+                            if (!message.fromLocal) {
+                                PixelArtScaleControls(
+                                    canZoomIn = pixelScale < 0.99f,
+                                    canZoomOut = pixelScale > 0.41f,
+                                    onZoomIn = { pixelScale = (pixelScale + 0.2f).coerceAtMost(1f) },
+                                    onZoomOut = { pixelScale = (pixelScale - 0.2f).coerceAtLeast(0.4f) },
+                                )
                             }
                         }
                     } else if (hasPhotoImages && searchQuery.isEmpty()) {
@@ -716,6 +822,11 @@ fun MessageItem(
                             query = searchQuery,
                             style = bodyStyle,
                             color = contentColor,
+                        )
+                    } else if (rtttlSong != null) {
+                        RtttlPlayerCard(
+                            messageId = message.uuid.toString(),
+                            song = rtttlSong,
                         )
                     } else {
                         Column {
@@ -1118,6 +1229,88 @@ private fun ImageCollage(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PixelArtScaleControls(
+    canZoomIn: Boolean,
+    canZoomOut: Boolean,
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        FilledTonalIconButton(
+            onClick = onZoomIn,
+            enabled = canZoomIn,
+            modifier = Modifier.size(28.dp),
+        ) {
+            Icon(
+                imageVector = MeshtasticIcons.Add,
+                contentDescription = "+",
+                modifier = Modifier.size(16.dp),
+            )
+        }
+        FilledTonalIconButton(
+            onClick = onZoomOut,
+            enabled = canZoomOut,
+            modifier = Modifier.size(28.dp),
+        ) {
+            Icon(
+                imageVector = MeshtasticIcons.Remove,
+                contentDescription = "-",
+                modifier = Modifier.size(16.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ForwardedMessageSnippet(
+    author: String,
+    modifier: Modifier = Modifier,
+    onClickAuthor: (() -> Unit)? = null,
+) {
+    val containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val contentColor = MaterialTheme.colorScheme.onSurface
+    Surface(
+        modifier =
+        modifier
+            .fillMaxWidth()
+            .then(
+                if (onClickAuthor != null) {
+                    Modifier.clickable { onClickAuthor() }
+                } else {
+                    Modifier
+                },
+            ),
+        contentColor = contentColor,
+        color = containerColor,
+        shape = RectangleShape,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Icon(
+                MeshtasticIcons.Reply,
+                contentDescription = stringResource(Res.string.forward),
+                modifier = Modifier.size(16.dp).graphicsLayer(scaleX = -1f),
+            )
+            Text(
+                text = stringResource(Res.string.forwarded_from, author),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }

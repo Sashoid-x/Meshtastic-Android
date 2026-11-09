@@ -155,9 +155,9 @@ class TopologyDiscoveryWorkerTest {
         val result = createWorker().doWork()
 
         assertEquals(ListenableWorker.Result.success(), result)
-        // Top 4 active non-ignored nodes: 1, 2, 3, 4
+        // Top 1 active non-ignored node: 1
         val sentDests = commandSender.tracerouteRequests.map { it.second }
-        assertEquals(listOf(1, 2, 3, 4), sentDests)
+        assertEquals(listOf(1), sentDests)
     }
 
     @Test
@@ -175,7 +175,7 @@ class TopologyDiscoveryWorkerTest {
 
         assertEquals(ListenableWorker.Result.success(), result)
         val sentDests = commandSender.tracerouteRequests.map { it.second }
-        assertEquals(listOf(2, 3), sentDests)
+        assertEquals(listOf(2), sentDests)
     }
 
     @Test

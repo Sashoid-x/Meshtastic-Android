@@ -139,6 +139,10 @@ class SettingsViewModel(
         appUpdateService.dismissUpdate()
     }
 
+    fun skipUpdate(version: String) {
+        appUpdateService.skipVersion(version)
+    }
+
     val isOtaCapable: StateFlow<Boolean> = isOtaCapableUseCase().stateInWhileSubscribed(initialValue = false)
 
     // Device DB cache limit (bounded by DatabaseConstants)
@@ -290,6 +294,12 @@ class SettingsViewModel(
 
     fun setAutoTopologyDiscoveryEnabled(enabled: Boolean) {
         uiPrefs.setAutoTopologyDiscoveryEnabled(enabled)
+    }
+
+    val autoTopologyDiscoveryIntervalMinutes = uiPrefs.autoTopologyDiscoveryIntervalMinutes
+
+    fun setAutoTopologyDiscoveryIntervalMinutes(minutes: Int) {
+        uiPrefs.setAutoTopologyDiscoveryIntervalMinutes(minutes)
     }
 
     val advThemeColorsJson = uiPrefs.advThemeColorsJson

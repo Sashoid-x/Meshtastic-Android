@@ -25,7 +25,7 @@
     <string name="about_check_for_updates">Проверить обновления</string>
     <string name="about_check_for_updates_summary">Проверить наличие новой версии на GitHub</string>
     <string name="about_checking_for_updates">Проверка обновлений…</string>
-    <string name="about_mod_description">Расширенная модификация Meshtastic-Android с дополнительными возможностями:\n• ИИ-сжатие текста\n• Отправка сообщений по Enter\n• Поддержка фотохостингов (meshpic.org, MeshFiles)\n• Встроенный просмотрщик изображений с зумом\n• Передача файлов по LoRa (MFT) и пиксель-арт\n• Закреплённые сообщения\n• Расширенное резервное копирование и восстановление пакетов (JSON)</string>
+    <string name="about_mod_description">Расширенная модификация Meshtastic-Android с дополнительными возможностями:\n• ИИ-сжатие текста и Компактная кодировка кириллицы\n• Воспроизведение RTTTL-мелодий прямо в чате\n• Авто-обнаружение топологии с настраиваемым интервалом\n• Отправка сообщений по Enter\n• Поддержка фотохостингов (meshpic.org, MeshFiles)\n• Встроенный просмотрщик изображений с зумом\n• Передача файлов по LoRa (MFT) и пиксель-арт\n• Закреплённые сообщения\n• Расширенное резервное копирование и восстановление пакетов (JSON)</string>
     <string name="about_mod_testers_content">Огромное спасибо за помощь в тестировании и улучшении мода:\n\n• art58\n• GRUZ 800\n• egare\n\nОтдельное спасибо Vergeon за мотивационную критику 😀</string>
     <string name="about_mod_testers_title">Тестировщики и благодарности</string>
     <string name="about_mod_title">Meshtastic Advanced Mod</string>
@@ -35,6 +35,7 @@
     <string name="about_update_details">Подробнее</string>
     <string name="about_update_dialog_download">Скачать</string>
     <string name="about_update_dialog_later">Позже</string>
+    <string name="about_update_dialog_skip">Пропустить эту версию</string>
     <string name="about_update_dialog_title">Доступно обновление</string>
     <string name="about_update_snackbar">Доступна новая версия: %1$s</string>
     <string name="accept">Принять</string>
@@ -51,6 +52,11 @@
     <string name="action_select_network">Выбрать сеть</string>
     <string name="action_send_hop_reaction">Отправить реакцию (хопы/сигнал)</string>
     <string name="action_send_reply">Отправить ответ</string>
+    <string name="action_set_ringtone">Установить рингтон</string>
+    <string name="forward">Переслать</string>
+    <string name="forwarded_from">Переслано от %1$s</string>
+    <string name="pixel_art_saved">Изображение сохранено в Загрузки</string>
+    <string name="save_pixel_art">Сохранить изображение</string>
     <string name="action_show_message_status">Показать статус сообщения</string>
     <string name="action_toggle_translation">Переключение между исходным и переведенным текстом</string>
     <string name="action_translate_message">Перевести сообщение</string>
@@ -738,7 +744,7 @@
     <string name="direct_message_key">Ключ прямого сообщения</string>
     <string name="direct_messages">Личные сообщения</string>
     <string name="disabled">Включено</string>
-    <string name="discard_changes">Отмена</string>
+    <string name="discard_changes">Отменить</string>
     <string name="disconnect">Отключиться</string>
     <string name="disconnected">Отключено</string>
     <string name="discovered_network_devices">Найденные сетевые устройства</string>
@@ -1984,6 +1990,7 @@
     <string name="pixel_art_messaging">Пиксель-Арт</string>
     <string name="pixel_art_messaging_summary">Редактор и отправка монохромных изображений</string>
     <string name="play">Воспроизвести</string>
+    <string name="stop">Остановить</string>
     <plurals name="plurals_hours">
         <item quantity="one">%1$d час</item>
         <item quantity="few">%1$d часов</item>
@@ -2164,6 +2171,9 @@
     <string name="ringtone_file_empty">Файл пуст</string>
     <string name="ringtone_import_error">Ошибка импорта: %1$s</string>
     <string name="ringtone_imported">Импортировать рингтон</string>
+    <string name="rtttl_melody">Мелодия</string>
+    <string name="rtttl_play">Воспроизвести</string>
+    <string name="rtttl_stop">Остановить</string>
     <string name="role">Роль устройства</string>
     <string name="role_client">Client</string>
     <string name="role_client_base">Client Base</string>
@@ -2602,6 +2612,11 @@
     <string name="zoom_in">Увеличить</string>
     <string name="zoom_out">Уменьшить</string>
     <!-- TOPOLOGY -->
+    <string name="auto_topology_discovery_interval_10m">10 минут</string>
+    <string name="auto_topology_discovery_interval_20m">20 минут</string>
+    <string name="auto_topology_discovery_interval_30m">30 минут</string>
+    <string name="auto_topology_discovery_interval_summary">Интервал между запросами трассировки к активным узлам</string>
+    <string name="auto_topology_discovery_interval_title">Интервал опроса</string>
     <string name="auto_topology_discovery_title">Авто-обнаружение топологии</string>
     <string name="auto_topology_discovery_summary">Периодически опрашивать активные узлы по радио (приостанавливается при активном MQTT)</string>
     <string name="topology_graph_title">Топология сети</string>

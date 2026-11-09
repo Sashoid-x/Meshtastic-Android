@@ -21,7 +21,6 @@ import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import co.touchlab.kermit.Logger
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
 import org.koin.android.annotation.KoinWorker
 import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.model.ConnectionState
@@ -30,7 +29,6 @@ import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.RadioController
 import org.meshtastic.core.repository.TopologyManager
 import org.meshtastic.core.repository.UiPrefs
-import kotlin.random.Random
 
 /**
  * Background worker that performs periodic topology discovery when the app is in "Local Radio" mode.
@@ -89,10 +87,22 @@ class TopologyDiscoveryWorker(
                     logger.d { "Sending RouteDiscovery request to node 0x${node.num.toString(16)}" }
                     commandSender.requestTraceroute(requestId = 0, destNum = node.num)
                     recordTraced(node.num, nowMillis)
-                    val jitter = Random.nextLong(-JITTER_MS, JITTER_MS + 1)
-                    val delayMs = (BASE_INTER_PACKET_DELAY_MS + jitter).coerceAtLeast(1_000L)
-                    delay(delayMs)
                 }
+            }
+
+            val intervalMinutes = uiPrefs.autoTopologyDiscoveryIntervalMinutes.value
+            if (intervalMinutes < 15 && uiPrefs.autoTopologyDiscoveryEnabled.value) {
+                val nextRequest =
+                    androidx.work
+                        .OneTimeWorkRequestBuilder<TopologyDiscoveryWorker>()
+                        .setInitialDelay(intervalMinutes.toLong(), java.util.concurrent.TimeUnit.MINUTES)
+                        .build()
+                androidx.work.WorkManager.getInstance(applicationContext)
+                    .enqueueUniqueWork(
+                        WORK_NAME,
+                        androidx.work.ExistingWorkPolicy.REPLACE,
+                        nextRequest,
+                    )
             }
             Result.success()
         }
@@ -106,9 +116,7 @@ class TopologyDiscoveryWorker(
     @Suppress("MagicNumber")
     companion object {
         const val WORK_NAME = "topology_discovery_worker"
-        const val DISCOVERY_CANDIDATE_LIMIT = 4
-        const val BASE_INTER_PACKET_DELAY_MS = 8_000L
-        const val JITTER_MS = 2_000L
+        const val DISCOVERY_CANDIDATE_LIMIT = 1
         const val RECENT_TRACE_COOLDOWN_MS = 24 * 60 * 60 * 1000L // 24 hours
 
         private val lastTracedTimestamps = mutableMapOf<Int, Long>()
@@ -124,6 +132,40 @@ class TopologyDiscoveryWorker(
 
         fun clearTraceHistory() {
             lastTracedTimestamps.clear()
+        }
+
+        fun schedule(context: Context, enabled: Boolean, intervalMinutes: Int) {
+            val workManager = androidx.work.WorkManager.getInstance(context)
+            if (!enabled) {
+                workManager.cancelUniqueWork(WORK_NAME)
+                return
+            }
+            val minutes = intervalMinutes.coerceIn(10, 60)
+            if (minutes < 15) {
+                val request =
+                    androidx.work
+                        .OneTimeWorkRequestBuilder<TopologyDiscoveryWorker>()
+                        .setInitialDelay(minutes.toLong(), java.util.concurrent.TimeUnit.MINUTES)
+                        .build()
+                workManager.enqueueUniqueWork(
+                    WORK_NAME,
+                    androidx.work.ExistingWorkPolicy.REPLACE,
+                    request,
+                )
+            } else {
+                val request =
+                    androidx.work
+                        .PeriodicWorkRequestBuilder<TopologyDiscoveryWorker>(
+                            minutes.toLong(),
+                            java.util.concurrent.TimeUnit.MINUTES,
+                        )
+                        .build()
+                workManager.enqueueUniquePeriodicWork(
+                    WORK_NAME,
+                    androidx.work.ExistingPeriodicWorkPolicy.UPDATE,
+                    request,
+                )
+            }
         }
     }
 }

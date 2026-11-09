@@ -26,4 +26,6 @@ interface AppUpdateService {
     suspend fun checkForUpdates(isManual: Boolean = false): AppUpdateCheckState
 
     fun dismissUpdate()
+
+    fun skipVersion(version: String)
 }

@@ -333,6 +333,10 @@ class MessageViewModel(
 
     val homoglyphEncodingEnabled = homoglyphEncodingPrefs.homoglyphEncodingEnabled
 
+    fun toggleHomoglyphEncoding() {
+        homoglyphEncodingPrefs.toggleHomoglyphEncodingEnabled()
+    }
+
     val firstUnreadMessageUuid: StateFlow<Long?> =
         contactKeyForPagedMessages
             .filterNotNull()

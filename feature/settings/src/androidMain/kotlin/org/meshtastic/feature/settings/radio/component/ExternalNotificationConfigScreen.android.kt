@@ -16,7 +16,6 @@
  */
 package org.meshtastic.feature.settings.radio.component
 
-import android.media.MediaPlayer
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,22 +23,29 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
 import co.touchlab.kermit.Logger
 import org.jetbrains.compose.resources.stringResource
+import org.meshtastic.core.common.util.RtttlParser
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.import_label
 import org.meshtastic.core.resources.play
 import org.meshtastic.core.resources.ringtone_file_empty
 import org.meshtastic.core.resources.ringtone_import_error
 import org.meshtastic.core.resources.ringtone_imported
+import org.meshtastic.core.resources.stop
 import org.meshtastic.core.ui.icon.FolderOpen
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.PlayArrow
-import java.io.File
+import org.meshtastic.core.ui.icon.Stop
+import org.meshtastic.core.ui.sound.RtttlAudioPlayer
 
 private const val MAX_RINGTONE_SIZE = 230
 private const val IMPORT_ERROR_PLACEHOLDER = "@@ERROR@@"
+private const val RINGTONE_PLAYER_ID = "external_notification_ringtone"
 
 @Suppress("TooGenericExceptionCaught")
 @Composable
@@ -50,6 +56,17 @@ actual fun RingtoneTrailingIcon(ringtoneInput: String, onRingtoneImported: (Stri
     // Pre-resolve the format pattern for use in the non-composable launcher callback.
     // Using a sentinel placeholder that will be replaced at call-site.
     val importErrorPrefix = stringResource(Res.string.ringtone_import_error, IMPORT_ERROR_PLACEHOLDER)
+
+    val playingId by RtttlAudioPlayer.playingId.collectAsState()
+    val isPlaying = playingId == RINGTONE_PLAYER_ID
+
+    DisposableEffect(Unit) {
+        onDispose {
+            if (RtttlAudioPlayer.playingId.value == RINGTONE_PLAYER_ID) {
+                RtttlAudioPlayer.stop()
+            }
+        }
+    }
 
     val launcher =
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
@@ -82,24 +99,24 @@ actual fun RingtoneTrailingIcon(ringtoneInput: String, onRingtoneImported: (Stri
 
         IconButton(
             onClick = {
-                try {
-                    val tempFile = File.createTempFile("ringtone", ".rtttl", context.cacheDir)
-                    tempFile.writeText(ringtoneInput)
-                    val mediaPlayer = MediaPlayer()
-                    mediaPlayer.setDataSource(tempFile.absolutePath)
-                    mediaPlayer.prepare()
-                    mediaPlayer.start()
-                    mediaPlayer.setOnCompletionListener {
-                        it.release()
-                        tempFile.delete()
+                if (isPlaying) {
+                    RtttlAudioPlayer.stop()
+                } else {
+                    val song = RtttlParser.parse(ringtoneInput)
+                    if (song != null) {
+                        RtttlAudioPlayer.play(RINGTONE_PLAYER_ID, song)
+                    } else {
+                        Toast.makeText(context, "Invalid RTTTL", Toast.LENGTH_SHORT).show()
                     }
-                } catch (e: Exception) {
-                    Logger.e(e) { "Failed to play ringtone" }
                 }
             },
-            enabled = enabled,
+            enabled = enabled && ringtoneInput.isNotBlank(),
         ) {
-            Icon(MeshtasticIcons.PlayArrow, contentDescription = stringResource(Res.string.play))
+            if (isPlaying) {
+                Icon(MeshtasticIcons.Stop, contentDescription = stringResource(Res.string.stop))
+            } else {
+                Icon(MeshtasticIcons.PlayArrow, contentDescription = stringResource(Res.string.play))
+            }
         }
     }
 }

@@ -18,6 +18,7 @@ package org.meshtastic.core.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -32,11 +33,12 @@ import org.meshtastic.core.model.AppUpdateInfo
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.about_update_dialog_download
 import org.meshtastic.core.resources.about_update_dialog_later
+import org.meshtastic.core.resources.about_update_dialog_skip
 import org.meshtastic.core.resources.about_update_dialog_title
 
-/** Modal dialog displaying available application update information with download and dismiss actions. */
+/** Modal dialog displaying available application update information with download, skip and dismiss actions. */
 @Composable
-fun AppUpdateDialog(info: AppUpdateInfo, onDismiss: () -> Unit, onDownload: () -> Unit) {
+fun AppUpdateDialog(info: AppUpdateInfo, onDismiss: () -> Unit, onDownload: () -> Unit, onSkip: (() -> Unit)? = null) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(Res.string.about_update_dialog_title)) },
@@ -55,7 +57,16 @@ fun AppUpdateDialog(info: AppUpdateInfo, onDismiss: () -> Unit, onDownload: () -
             TextButton(onClick = onDownload) { Text(text = stringResource(Res.string.about_update_dialog_download)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(text = stringResource(Res.string.about_update_dialog_later)) }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (onSkip != null) {
+                    TextButton(onClick = onSkip) {
+                        Text(text = stringResource(Res.string.about_update_dialog_skip))
+                    }
+                }
+                TextButton(onClick = onDismiss) {
+                    Text(text = stringResource(Res.string.about_update_dialog_later))
+                }
+            }
         },
     )
 }

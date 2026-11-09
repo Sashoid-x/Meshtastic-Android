@@ -27,6 +27,7 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import org.meshtastic.core.model.AppUpdateCheckState
 import org.meshtastic.core.testing.FakeBuildConfigProvider
+import org.meshtastic.core.testing.FakeUiPrefs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -67,7 +68,13 @@ class AppUpdateServiceTest {
             )
         }
         val buildConfigProvider = FakeBuildConfigProvider(versionName = "2.8.2-advanced-5")
-        val service = AppUpdateServiceImpl(buildConfigProvider = buildConfigProvider, httpClient = HttpClient(engine))
+        val uiPrefs = FakeUiPrefs()
+        val service =
+            AppUpdateServiceImpl(
+                buildConfigProvider = buildConfigProvider,
+                httpClient = HttpClient(engine),
+                uiPrefs = uiPrefs,
+            )
 
         val result = service.checkForUpdates(isManual = false)
         assertIs<AppUpdateCheckState.UpdateAvailable>(result)
@@ -88,17 +95,56 @@ class AppUpdateServiceTest {
             )
         }
         val buildConfigProvider = FakeBuildConfigProvider(versionName = "2.8.2-advanced-6")
-        val service = AppUpdateServiceImpl(buildConfigProvider = buildConfigProvider, httpClient = HttpClient(engine))
+        val uiPrefs = FakeUiPrefs()
+        val service =
+            AppUpdateServiceImpl(
+                buildConfigProvider = buildConfigProvider,
+                httpClient = HttpClient(engine),
+                uiPrefs = uiPrefs,
+            )
 
         val result = service.checkForUpdates(isManual = true)
         assertIs<AppUpdateCheckState.UpToDate>(result)
     }
 
     @Test
+    fun `checkForUpdates reports UpToDate on automatic check when latest release is skipped`() = runTest {
+        val engine = MockEngine {
+            respond(
+                content = jsonResponse,
+                headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+            )
+        }
+        val buildConfigProvider = FakeBuildConfigProvider(versionName = "2.8.2-advanced-5")
+        val uiPrefs = FakeUiPrefs()
+        uiPrefs.setSkippedAppUpdateVersion("2.8.2-advanced-6")
+        val service =
+            AppUpdateServiceImpl(
+                buildConfigProvider = buildConfigProvider,
+                httpClient = HttpClient(engine),
+                uiPrefs = uiPrefs,
+            )
+
+        // Automatic check suppresses notification for skipped version
+        val autoResult = service.checkForUpdates(isManual = false)
+        assertIs<AppUpdateCheckState.UpToDate>(autoResult)
+
+        // Manual check still shows update available
+        val manualResult = service.checkForUpdates(isManual = true)
+        assertIs<AppUpdateCheckState.UpdateAvailable>(manualResult)
+    }
+
+    @Test
     fun `checkForUpdates handles network failure`() = runTest {
         val engine = MockEngine { respondError(HttpStatusCode.InternalServerError) }
         val buildConfigProvider = FakeBuildConfigProvider(versionName = "2.8.2-advanced-5")
-        val service = AppUpdateServiceImpl(buildConfigProvider = buildConfigProvider, httpClient = HttpClient(engine))
+        val uiPrefs = FakeUiPrefs()
+        val service =
+            AppUpdateServiceImpl(
+                buildConfigProvider = buildConfigProvider,
+                httpClient = HttpClient(engine),
+                uiPrefs = uiPrefs,
+            )
 
         // Manual check returns Error
         val manualResult = service.checkForUpdates(isManual = true)

@@ -83,6 +83,11 @@ import org.meshtastic.core.resources.adv_section_messaging
 import org.meshtastic.core.resources.adv_section_notifications
 import org.meshtastic.core.resources.adv_section_photos
 import org.meshtastic.core.resources.adv_settings
+import org.meshtastic.core.resources.auto_topology_discovery_interval_10m
+import org.meshtastic.core.resources.auto_topology_discovery_interval_20m
+import org.meshtastic.core.resources.auto_topology_discovery_interval_30m
+import org.meshtastic.core.resources.auto_topology_discovery_interval_summary
+import org.meshtastic.core.resources.auto_topology_discovery_interval_title
 import org.meshtastic.core.resources.auto_topology_discovery_summary
 import org.meshtastic.core.resources.auto_topology_discovery_title
 import org.meshtastic.core.resources.automation
@@ -181,6 +186,8 @@ fun AdvSettingsScreen(
     val pinnedMessagesEnabled by settingsViewModel.pinnedMessagesEnabled.collectAsStateWithLifecycle()
     val pressureInMmHg by settingsViewModel.pressureInMmHg.collectAsStateWithLifecycle()
     val autoTopologyDiscoveryEnabled by settingsViewModel.autoTopologyDiscoveryEnabled.collectAsStateWithLifecycle()
+    val autoTopologyDiscoveryIntervalMinutes by
+        settingsViewModel.autoTopologyDiscoveryIntervalMinutes.collectAsStateWithLifecycle()
 
     val isImporting by settingsViewModel.isImporting.collectAsStateWithLifecycle()
     val isExporting by settingsViewModel.isExporting.collectAsStateWithLifecycle()
@@ -384,6 +391,7 @@ fun AdvSettingsScreen(
             pinnedMessagesEnabled = pinnedMessagesEnabled,
             pressureInMmHg = pressureInMmHg,
             autoTopologyDiscoveryEnabled = autoTopologyDiscoveryEnabled,
+            autoTopologyDiscoveryIntervalMinutes = autoTopologyDiscoveryIntervalMinutes,
             onTextCompressionChange = settingsViewModel::setTextCompressionEnabled,
             onInsertPhotoLinkChange = settingsViewModel::setInsertPhotoLinkEnabled,
             onLinkPreviewChange = settingsViewModel::setLinkPreviewEnabled,
@@ -398,6 +406,7 @@ fun AdvSettingsScreen(
             onPinnedMessagesChange = settingsViewModel::setPinnedMessagesEnabled,
             onPressureInMmHgChange = settingsViewModel::setPressureInMmHg,
             onAutoTopologyDiscoveryChange = settingsViewModel::setAutoTopologyDiscoveryEnabled,
+            onAutoTopologyDiscoveryIntervalChange = settingsViewModel::setAutoTopologyDiscoveryIntervalMinutes,
             onNavigateToAppearance = onNavigateToAppearance,
             onNavigateToAutomation = onNavigateToAutomation,
             onNavigateToMeshBridge = onNavigateToMeshBridge,
@@ -424,6 +433,7 @@ private fun AdvSettingsContent(
     pinnedMessagesEnabled: Boolean,
     pressureInMmHg: Boolean,
     autoTopologyDiscoveryEnabled: Boolean,
+    autoTopologyDiscoveryIntervalMinutes: Int,
     onTextCompressionChange: (Boolean) -> Unit,
     onInsertPhotoLinkChange: (Boolean) -> Unit,
     onLinkPreviewChange: (Boolean) -> Unit,
@@ -438,6 +448,7 @@ private fun AdvSettingsContent(
     onPinnedMessagesChange: (Boolean) -> Unit,
     onPressureInMmHgChange: (Boolean) -> Unit,
     onAutoTopologyDiscoveryChange: (Boolean) -> Unit,
+    onAutoTopologyDiscoveryIntervalChange: (Int) -> Unit,
     onNavigateToAppearance: () -> Unit,
     onNavigateToAutomation: () -> Unit,
     onNavigateToMeshBridge: () -> Unit,
@@ -495,6 +506,22 @@ private fun AdvSettingsContent(
                 enabled = true,
                 onCheckedChange = onAutoTopologyDiscoveryChange,
             )
+            if (autoTopologyDiscoveryEnabled) {
+                val intervalOptions =
+                    listOf(
+                        10 to stringResource(Res.string.auto_topology_discovery_interval_10m),
+                        20 to stringResource(Res.string.auto_topology_discovery_interval_20m),
+                        30 to stringResource(Res.string.auto_topology_discovery_interval_30m),
+                    )
+                DropDownPreference(
+                    title = stringResource(Res.string.auto_topology_discovery_interval_title),
+                    summary = stringResource(Res.string.auto_topology_discovery_interval_summary),
+                    enabled = true,
+                    items = intervalOptions,
+                    selectedItem = autoTopologyDiscoveryIntervalMinutes,
+                    onItemSelected = onAutoTopologyDiscoveryIntervalChange,
+                )
+            }
         }
 
         ExpressiveSection(title = stringResource(Res.string.adv_section_photos)) {

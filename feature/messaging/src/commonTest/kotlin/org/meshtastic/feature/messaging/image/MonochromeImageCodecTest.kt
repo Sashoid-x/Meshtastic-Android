@@ -172,4 +172,25 @@ class MonochromeImageCodecTest {
         assertEquals(true, monoInverted[2])
         assertEquals(true, monoInverted[3])
     }
+
+    @Test
+    fun testToAsciiArtAndToPng() {
+        val preset = MonochromeImageCodec.getPreset(0)
+        val bits = BooleanArray(preset.totalPixels) { i -> i % 2 == 0 }
+        val encoded = MonochromeImageCodec.encode(bits, 0)
+        val decoded = MonochromeImageCodec.decode(encoded)
+        assertNotNull(decoded)
+
+        val ascii = MonochromeImageCodec.toAsciiArt(decoded)
+        assertTrue(ascii.isNotEmpty())
+        assertTrue(ascii.contains("██"))
+        assertTrue(ascii.contains("  "))
+
+        val png = MonochromeImageCodec.toPng(decoded, scale = 1)
+        assertTrue(png.size > 8)
+        assertEquals(0x89.toByte(), png[0])
+        assertEquals('P'.code.toByte(), png[1])
+        assertEquals('N'.code.toByte(), png[2])
+        assertEquals('G'.code.toByte(), png[3])
+    }
 }

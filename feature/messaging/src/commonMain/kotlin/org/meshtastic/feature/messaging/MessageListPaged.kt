@@ -103,6 +103,8 @@ internal data class MessageListHandlers(
     val onToggleTranslation: (Message) -> Unit = {},
     val onOpenImageViewer: (List<Triple<String, String?, String?>>, Int) -> Unit = { _, _ -> },
     val onTogglePin: (Message) -> Unit = {},
+    val onForwardMessage: (String) -> Unit = {},
+    val navigateToExtNotification: () -> Unit = {},
 )
 
 internal data class MessageListPagedState(
@@ -480,6 +482,8 @@ private fun RenderPagedChatMessageRow(
         onToggleTranslation = { handlers.onToggleTranslation(message) },
         onOpenImageViewer = handlers.onOpenImageViewer,
         onTogglePin = { handlers.onTogglePin(message) },
+        onForwardMessage = handlers.onForwardMessage,
+        navigateToExtNotification = handlers.navigateToExtNotification,
     )
 }
 

@@ -21,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -98,8 +99,29 @@ fun ExternalNotificationConfigScreenCommon(
         state.moduleConfig.external_notification ?: ModuleConfig.ExternalNotificationConfig.Builder().build()
     val ringtone = state.ringtone
     val formState = rememberConfigState(initialValue = extNotificationConfig)
-    var ringtoneInput by rememberSaveable(ringtone) { mutableStateOf(ringtone) }
+    var hasReplacedWithPending by rememberSaveable { mutableStateOf(false) }
+    var ringtoneInput by rememberSaveable {
+        val pending = org.meshtastic.core.ui.sound.PendingRingtoneHolder.pendingRingtone
+        if (pending != null) {
+            org.meshtastic.core.ui.sound.PendingRingtoneHolder.pendingRingtone = null
+            hasReplacedWithPending = true
+            mutableStateOf(pending)
+        } else {
+            mutableStateOf(ringtone)
+        }
+    }
     val focusManager = LocalFocusManager.current
+
+    LaunchedEffect(ringtone) {
+        val pending = org.meshtastic.core.ui.sound.PendingRingtoneHolder.pendingRingtone
+        if (pending != null) {
+            org.meshtastic.core.ui.sound.PendingRingtoneHolder.pendingRingtone = null
+            hasReplacedWithPending = true
+            ringtoneInput = pending
+        } else if (!hasReplacedWithPending && ringtoneInput.isEmpty() && ringtone.isNotEmpty()) {
+            ringtoneInput = ringtone
+        }
+    }
 
     RadioConfigScreenList(
         modifier = modifier,
@@ -111,7 +133,10 @@ fun ExternalNotificationConfigScreenCommon(
         showConnectPrompt = state.connectPromptVisible,
         onDismissPacketResponse = viewModel::clearPacketResponse,
         additionalDirtyCheck = { ringtoneInput != ringtone },
-        onDiscard = { ringtoneInput = ringtone },
+        onDiscard = {
+            hasReplacedWithPending = false
+            ringtoneInput = ringtone
+        },
         onSave = {
             if (ringtoneInput != ringtone) {
                 viewModel.setRingtone(ringtoneInput)

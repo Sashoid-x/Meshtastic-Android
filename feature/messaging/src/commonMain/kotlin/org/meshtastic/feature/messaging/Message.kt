@@ -184,6 +184,8 @@ fun MessageScreen(
     navigateToQuickChatOptions: () -> Unit,
     navigateToFilterSettings: () -> Unit,
     onNavigateBack: () -> Unit,
+    onForwardMessage: (String) -> Unit = {},
+    navigateToExtNotification: () -> Unit = {},
 ) {
     val coroutineScope = rememberCoroutineScope()
     val clipboardManager = LocalClipboard.current
@@ -649,6 +651,7 @@ fun MessageScreen(
                     MessageInput(
                         isEnabled = connectionState is ConnectionState.Connected,
                         isHomoglyphEncodingEnabled = homoglyphEncodingEnabled,
+                        onToggleHomoglyph = viewModel::toggleHomoglyphEncoding,
                         textFieldState = messageInputState,
                         mentionCandidates = mentionCandidates,
                         textCompressionEnabled = textCompressionEnabled,
@@ -854,6 +857,8 @@ fun MessageScreen(
                             onTogglePin = { message ->
                                 viewModel.togglePinMessage(message.uuid, message.pinnedMessage)
                             },
+                            onForwardMessage = onForwardMessage,
+                            navigateToExtNotification = navigateToExtNotification,
                         ),
                         quickEmojis = viewModel.frequentEmojis,
                     )
@@ -1099,6 +1104,7 @@ internal fun MessageInput(
     textCompressionEnabled: Boolean = false,
     isOkToMqtt: Boolean = false,
     onToggleOkToMqtt: () -> Unit = {},
+    onToggleHomoglyph: () -> Unit = {},
     onSendMessage: (compress: Boolean) -> Unit = {},
 ) {
     val currentTextRaw = textFieldState.text.toString()
@@ -1277,6 +1283,9 @@ internal fun MessageInput(
                 isCompressionAvailable = textCompressionEnabled,
                 isCompressionActive = isCompressionActive,
                 onToggleCompression = { isCompressionActive = !isCompressionActive },
+                isHomoglyphAvailable = true,
+                isHomoglyphEnabled = isHomoglyphEncodingEnabled,
+                onToggleHomoglyph = onToggleHomoglyph,
             )
         }
     }

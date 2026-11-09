@@ -30,6 +30,7 @@ about_update_check_error
 about_update_details
 about_update_dialog_download
 about_update_dialog_later
+about_update_dialog_skip
 about_update_dialog_title
 about_update_snackbar
 accept
@@ -47,6 +48,7 @@ action_select_message
 action_select_network
 action_send_hop_reaction
 action_send_reply
+action_set_ringtone
 action_show_message_status
 action_toggle_translation
 action_translate_message
@@ -211,6 +213,12 @@ are_you_sure
 are_you_sure_change_default
 audio
 audio_config
+### AUTO ###
+auto_topology_discovery_interval_10m
+auto_topology_discovery_interval_20m
+auto_topology_discovery_interval_30m
+auto_topology_discovery_interval_summary
+auto_topology_discovery_interval_title
 auto_topology_discovery_summary
 auto_topology_discovery_title
 ### AUTOMATION ###
@@ -1167,6 +1175,8 @@ format_code
 format_italic
 format_link
 format_strikethrough
+forward
+forwarded_from
 fr_HT
 free_memory
 free_memory_description
@@ -2061,6 +2071,7 @@ pinned_messages_summary
 pinned_messages_title
 pixel_art_messaging
 pixel_art_messaging_summary
+pixel_art_saved
 play
 plurals_hours
 plurals_milliseconds
@@ -2275,12 +2286,17 @@ routing_error_timeout
 routing_error_too_large
 rssi
 rssi_definition
+rtttl_melody
+rtttl_play
+rtttl_stop
 salinity
 sample_message
 sats
+### SAVE ###
 save
 save_and_restart
 save_changes
+save_pixel_art
 save_rangetest
 ### SCAN ###
 scan
@@ -2435,6 +2451,7 @@ speed_mph
 status_message
 status_message_summary
 stay_connected_anywhere
+stop
 stop_connecting
 store_forward
 store_forward_config

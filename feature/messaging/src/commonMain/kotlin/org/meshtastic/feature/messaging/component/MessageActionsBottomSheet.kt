@@ -39,6 +39,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.StringResource
@@ -53,16 +54,19 @@ import org.meshtastic.core.resources.action_react_with_emoji
 import org.meshtastic.core.resources.action_select_message
 import org.meshtastic.core.resources.action_send_hop_reaction
 import org.meshtastic.core.resources.action_send_reply
+import org.meshtastic.core.resources.action_set_ringtone
 import org.meshtastic.core.resources.action_show_message_status
 import org.meshtastic.core.resources.action_toggle_translation
 import org.meshtastic.core.resources.action_translate_message
 import org.meshtastic.core.resources.copy
 import org.meshtastic.core.resources.delete
 import org.meshtastic.core.resources.device_metrics_label_value
+import org.meshtastic.core.resources.forward
 import org.meshtastic.core.resources.message_delivery_status
 import org.meshtastic.core.resources.more_reactions
 import org.meshtastic.core.resources.pin_message
 import org.meshtastic.core.resources.reply
+import org.meshtastic.core.resources.save_pixel_art
 import org.meshtastic.core.resources.security_signed_message_info
 import org.meshtastic.core.resources.security_signed_verified
 import org.meshtastic.core.resources.select
@@ -75,11 +79,13 @@ import org.meshtastic.core.ui.icon.AddReaction
 import org.meshtastic.core.ui.icon.Copy
 import org.meshtastic.core.ui.icon.Dangerous
 import org.meshtastic.core.ui.icon.Delete
+import org.meshtastic.core.ui.icon.Download
 import org.meshtastic.core.ui.icon.History
 import org.meshtastic.core.ui.icon.Keep
 import org.meshtastic.core.ui.icon.KeyOff
 import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.More
+import org.meshtastic.core.ui.icon.MusicNote
 import org.meshtastic.core.ui.icon.Reply
 import org.meshtastic.core.ui.icon.SelectAll
 import org.meshtastic.core.ui.icon.ShieldCheck
@@ -110,6 +116,11 @@ fun MessageActionsContent(
     isPinned: Boolean = false,
     onTogglePin: () -> Unit = {},
     hopReaction: String? = null,
+    onForward: (() -> Unit)? = null,
+    isRtttl: Boolean = false,
+    onSetRingtone: () -> Unit = {},
+    isPixelArt: Boolean = false,
+    onSavePixelArt: () -> Unit = {},
 ) {
     Column(modifier = modifier) {
         QuickEmojiRow(
@@ -182,6 +193,63 @@ fun MessageActionsContent(
                 onClick = onReply,
             ),
         )
+
+        if (onForward != null) {
+            ListItem(
+                headlineContent = { Text(stringResource(Res.string.forward)) },
+                leadingContent = {
+                    Icon(
+                        MeshtasticIcons.Reply,
+                        contentDescription = stringResource(Res.string.forward),
+                        modifier = Modifier.graphicsLayer { scaleX = -1f },
+                    )
+                },
+                modifier =
+                Modifier.clickable(
+                    onClickLabel = stringResource(Res.string.forward),
+                    role = Role.Button,
+                    onClick = onForward,
+                ),
+            )
+        }
+
+        if (isRtttl) {
+            ListItem(
+                headlineContent = { Text(stringResource(Res.string.action_set_ringtone)) },
+                leadingContent = {
+                    Icon(
+                        MeshtasticIcons.MusicNote,
+                        contentDescription = stringResource(Res.string.action_set_ringtone),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
+                modifier =
+                Modifier.clickable(
+                    onClickLabel = stringResource(Res.string.action_set_ringtone),
+                    role = Role.Button,
+                    onClick = onSetRingtone,
+                ),
+            )
+        }
+
+        if (isPixelArt) {
+            ListItem(
+                headlineContent = { Text(stringResource(Res.string.save_pixel_art)) },
+                leadingContent = {
+                    Icon(
+                        MeshtasticIcons.Download,
+                        contentDescription = stringResource(Res.string.save_pixel_art),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                },
+                modifier =
+                Modifier.clickable(
+                    onClickLabel = stringResource(Res.string.save_pixel_art),
+                    role = Role.Button,
+                    onClick = onSavePixelArt,
+                ),
+            )
+        }
 
         if (hopReaction != null) {
             ListItem(

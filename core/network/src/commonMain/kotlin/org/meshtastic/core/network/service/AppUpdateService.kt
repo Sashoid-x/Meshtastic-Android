@@ -34,6 +34,7 @@ import org.meshtastic.core.model.AppUpdateCheckState
 import org.meshtastic.core.model.AppUpdateInfo
 import org.meshtastic.core.model.ModVersion
 import org.meshtastic.core.repository.AppUpdateService
+import org.meshtastic.core.repository.UiPrefs
 
 @Serializable
 internal data class GitHubReleaseDto(
@@ -46,10 +47,11 @@ internal data class GitHubReleaseDto(
     @SerialName("published_at") val publishedAt: String? = null,
 )
 
-@Single
+@Single(binds = [AppUpdateService::class])
 class AppUpdateServiceImpl(
     private val buildConfigProvider: BuildConfigProvider,
     private val httpClient: HttpClient,
+    private val uiPrefs: UiPrefs,
     private val json: Json = Json {
         ignoreUnknownKeys = true
         isLenient = true
@@ -75,28 +77,33 @@ class AppUpdateServiceImpl(
                     .bodyAsText()
 
             val releases = json.decodeFromString<List<GitHubReleaseDto>>(responseText)
-            val latestCandidate =
-                releases
-                    .filterNot { it.draft }
-                    .firstOrNull { release ->
-                        val tag = release.tagName
-                        tag != null && ModVersion.isNewer(latest = tag, current = currentVersion)
-                    }
+            val latestCandidate = releases.firstOrNull { !it.draft }
 
-            if (latestCandidate != null && latestCandidate.tagName != null) {
-                val info =
-                    AppUpdateInfo(
-                        versionName = latestCandidate.tagName.removePrefix("v"),
-                        releaseTitle = latestCandidate.name ?: latestCandidate.tagName,
-                        releaseNotes = latestCandidate.body.orEmpty(),
-                        releaseUrl = latestCandidate.htmlUrl ?: RELEASES_PAGE_URL,
-                        isPrerelease = latestCandidate.prerelease,
-                        publishedAt = latestCandidate.publishedAt,
-                    )
-                logger.i { "Update available: ${info.versionName}" }
-                AppUpdateCheckState.UpdateAvailable(info)
+            if (latestCandidate?.tagName != null) {
+                val tag = latestCandidate.tagName
+                val isNewerThanCurrent = ModVersion.isNewer(latest = tag, current = currentVersion)
+                val skippedVersion = uiPrefs.skippedAppUpdateVersion.value
+                val isNewerThanSkipped =
+                    skippedVersion == null || ModVersion.isNewer(latest = tag, current = skippedVersion)
+
+                if (isNewerThanCurrent && (isManual || isNewerThanSkipped)) {
+                    val info =
+                        AppUpdateInfo(
+                            versionName = tag.removePrefix("v"),
+                            releaseTitle = latestCandidate.name ?: tag,
+                            releaseNotes = latestCandidate.body.orEmpty(),
+                            releaseUrl = latestCandidate.htmlUrl ?: RELEASES_PAGE_URL,
+                            isPrerelease = latestCandidate.prerelease,
+                            publishedAt = latestCandidate.publishedAt,
+                        )
+                    logger.i { "Update available: ${info.versionName}" }
+                    AppUpdateCheckState.UpdateAvailable(info)
+                } else {
+                    logger.i { "App is up to date (current: $currentVersion, skipped: $skippedVersion)" }
+                    AppUpdateCheckState.UpToDate
+                }
             } else {
-                logger.i { "App is up to date (current: $currentVersion)" }
+                logger.i { "No releases found on GitHub" }
                 AppUpdateCheckState.UpToDate
             }
         }
@@ -115,6 +122,11 @@ class AppUpdateServiceImpl(
 
     override fun dismissUpdate() {
         _updateState.value = AppUpdateCheckState.Idle
+    }
+
+    override fun skipVersion(version: String) {
+        uiPrefs.setSkippedAppUpdateVersion(version)
+        dismissUpdate()
     }
 
     companion object {

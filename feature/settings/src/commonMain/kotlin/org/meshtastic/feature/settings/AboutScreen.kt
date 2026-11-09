@@ -137,6 +137,7 @@ fun AboutScreen(
     modifier: Modifier = Modifier,
     updateCheckState: AppUpdateCheckState = AppUpdateCheckState.Idle,
     onCheckForUpdates: () -> Unit = {},
+    onSkipUpdate: (String) -> Unit = {},
 ) {
     val uriHandler = LocalUriHandler.current
 
@@ -171,6 +172,7 @@ fun AboutScreen(
                 onOpenRepoLink = { uriHandler.openUri(GITHUB_REPO_URL) },
                 updateCheckState = updateCheckState,
                 onCheckForUpdates = onCheckForUpdates,
+                onSkipUpdate = onSkipUpdate,
             )
             ProjectInformationSection(
                 onOpenWebsite = { uriHandler.openUri(WEBSITE_URL) },
@@ -214,6 +216,7 @@ private fun AppsSection(
     onOpenRepoLink: () -> Unit,
     updateCheckState: AppUpdateCheckState,
     onCheckForUpdates: () -> Unit,
+    onSkipUpdate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uriHandler = LocalUriHandler.current
@@ -272,6 +275,10 @@ private fun AppsSection(
             onDismiss = { showUpdateDetailsDialog = false },
             onDownload = {
                 uriHandler.openUri(updateCheckState.info.releaseUrl)
+                showUpdateDetailsDialog = false
+            },
+            onSkip = {
+                onSkipUpdate(updateCheckState.info.versionName)
                 showUpdateDetailsDialog = false
             },
         )

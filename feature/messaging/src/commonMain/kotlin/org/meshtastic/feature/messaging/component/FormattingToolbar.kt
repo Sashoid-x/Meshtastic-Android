@@ -16,8 +16,11 @@
  */
 package org.meshtastic.feature.messaging.component
 
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
@@ -50,7 +53,9 @@ import org.meshtastic.core.resources.insert_link_message
 import org.meshtastic.core.resources.insert_link_title
 import org.meshtastic.core.resources.insert_link_url_hint
 import org.meshtastic.core.resources.ok_to_mqtt
+import org.meshtastic.core.resources.use_homoglyph_characters_encoding
 import org.meshtastic.core.ui.component.InlineStyle
+import org.meshtastic.core.ui.icon.Abc
 import org.meshtastic.core.ui.icon.Bold
 import org.meshtastic.core.ui.icon.Cloud
 import org.meshtastic.core.ui.icon.CloudOff
@@ -82,6 +87,9 @@ internal fun FormattingToolbar(
     isCompressionAvailable: Boolean = false,
     isCompressionActive: Boolean = false,
     onToggleCompression: () -> Unit = {},
+    isHomoglyphAvailable: Boolean = true,
+    isHomoglyphEnabled: Boolean = false,
+    onToggleHomoglyph: () -> Unit = {},
 ) {
     var showLinkDialog by remember { mutableStateOf(false) }
     var pendingLinkRange by remember { mutableStateOf<TextRange?>(null) }
@@ -112,7 +120,7 @@ internal fun FormattingToolbar(
     }
 
     Row(
-        modifier = modifier,
+        modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -123,7 +131,10 @@ internal fun FormattingToolbar(
         }
         FormatButton(MeshtasticIcons.Code, stringResource(Res.string.format_code)) { onStyle(InlineStyle.Code) }
         FormatButton(MeshtasticIcons.Link, stringResource(Res.string.format_link)) { onLink() }
-        IconButton(onClick = onToggleOkToMqtt) {
+        IconButton(
+            onClick = onToggleOkToMqtt,
+            modifier = Modifier.size(TOOLBAR_BUTTON_SIZE),
+        ) {
             Icon(
                 imageVector = if (isOkToMqtt) MeshtasticIcons.Cloud else MeshtasticIcons.CloudOff,
                 contentDescription = stringResource(Res.string.ok_to_mqtt),
@@ -133,14 +144,36 @@ internal fun FormattingToolbar(
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = INACTIVE_COMPRESSION_ALPHA)
                 },
+                modifier = Modifier.size(TOOLBAR_ICON_SIZE),
             )
         }
         if (isCompressionAvailable) {
-            IconButton(onClick = onToggleCompression) {
+            IconButton(
+                onClick = onToggleCompression,
+                modifier = Modifier.size(TOOLBAR_BUTTON_SIZE),
+            ) {
                 Text(
                     text = "\uD83D\uDDDC\uFE0F",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.alpha(if (isCompressionActive) 1f else INACTIVE_COMPRESSION_ALPHA),
+                )
+            }
+        }
+        if (isHomoglyphAvailable) {
+            IconButton(
+                onClick = onToggleHomoglyph,
+                modifier = Modifier.size(TOOLBAR_BUTTON_SIZE),
+            ) {
+                Icon(
+                    imageVector = MeshtasticIcons.Abc,
+                    contentDescription = stringResource(Res.string.use_homoglyph_characters_encoding),
+                    tint =
+                    if (isHomoglyphEnabled) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = INACTIVE_COMPRESSION_ALPHA)
+                    },
+                    modifier = Modifier.size(TOOLBAR_ICON_SIZE),
                 )
             }
         }
@@ -162,9 +195,21 @@ internal fun FormattingToolbar(
     }
 }
 
+private val TOOLBAR_BUTTON_SIZE = 40.dp
+private val TOOLBAR_ICON_SIZE = 20.dp
+
 @Composable
 private fun FormatButton(icon: ImageVector, label: String, onClick: () -> Unit) {
-    IconButton(onClick = onClick) { Icon(imageVector = icon, contentDescription = label) }
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(TOOLBAR_BUTTON_SIZE),
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = label,
+            modifier = Modifier.size(TOOLBAR_ICON_SIZE),
+        )
+    }
 }
 
 @Composable

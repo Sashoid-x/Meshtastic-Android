@@ -369,6 +369,11 @@ class UIViewModel(
         _showAppUpdateDialog.value = false
     }
 
+    fun skipUpdate(version: String) {
+        appUpdateService?.skipVersion(version)
+        dismissUpdateDialog()
+    }
+
     private val _sharedContactRequested: MutableStateFlow<SharedContact?> = MutableStateFlow(null)
     val sharedContactRequested: StateFlow<SharedContact?>
         get() = _sharedContactRequested.asStateFlow()

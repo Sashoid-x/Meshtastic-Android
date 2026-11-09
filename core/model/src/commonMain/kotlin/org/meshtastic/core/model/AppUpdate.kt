@@ -48,9 +48,12 @@ data class ModVersion(val major: Int, val minor: Int, val patch: Int, val revisi
     companion object {
         private const val REVISION_GROUP_INDEX = 4
 
-        // Matches: v2.8.2-advanced-5, 2.8.2-adv-5, 2.8.2-advanced.5, 2.8.2-adv, 2.8.2, etc.
+        // Matches: v2.8.2-advanced-5, 2.8.2-adv-3, 2.8.4-advanced-r3, 2.8.4-release, 2.8.2, etc.
         private val REGEX =
-            Regex("""(?:v)?(\d+)\.(\d+)\.(\d+)(?:[-._]?(?:advanced|adv)[-._]?(\d+))?""", RegexOption.IGNORE_CASE)
+            Regex(
+                """(?:v)?(\d+)\.(\d+)\.(\d+)(?:[-._]?(?:advanced|adv|release|rel)?[-._]?[rR]?(\d+)?)?""",
+                RegexOption.IGNORE_CASE,
+            )
 
         /** Parses a raw version string into a [ModVersion], or null if unparseable. */
         fun parse(versionStr: String): ModVersion? {

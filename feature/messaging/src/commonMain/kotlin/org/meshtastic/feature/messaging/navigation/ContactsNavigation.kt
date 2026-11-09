@@ -75,6 +75,8 @@ fun EntryProviderScope<NavKey>.contactsGraph(
             dropUnlessResumed { backStack.add(org.meshtastic.core.navigation.ContactsRoute.QuickChat) },
             navigateToFilterSettings = dropUnlessResumed { backStack.add(SettingsRoute.FilterSettings) },
             onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() },
+            onForwardMessage = { text -> backStack.add(ContactsRoute.Share(text)) },
+            navigateToExtNotification = dropUnlessResumed { backStack.add(SettingsRoute.ExtNotification) },
         )
     }
 

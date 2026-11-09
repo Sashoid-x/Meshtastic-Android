@@ -41,6 +41,14 @@ class FakeAppUpdateService(initialState: AppUpdateCheckState = AppUpdateCheckSta
         _updateState.value = AppUpdateCheckState.Idle
     }
 
+    var skippedVersion: String? = null
+        private set
+
+    override fun skipVersion(version: String) {
+        skippedVersion = version
+        dismissUpdate()
+    }
+
     fun setUpdateState(state: AppUpdateCheckState) {
         _updateState.value = state
     }

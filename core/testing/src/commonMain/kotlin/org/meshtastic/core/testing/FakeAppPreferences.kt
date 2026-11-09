@@ -225,6 +225,12 @@ class FakeUiPrefs : UiPrefs {
         pinnedMessagesEnabled.value = enabled
     }
 
+    override val skippedAppUpdateVersion = MutableStateFlow<String?>(null)
+
+    override fun setSkippedAppUpdateVersion(version: String?) {
+        skippedAppUpdateVersion.value = version
+    }
+
     override val advThemeColorsJson = MutableStateFlow("")
 
     override fun setAdvThemeColorsJson(json: String) {
@@ -281,6 +287,12 @@ class FakeUiPrefs : UiPrefs {
 
     override fun setAutoTopologyDiscoveryEnabled(enabled: Boolean) {
         autoTopologyDiscoveryEnabled.value = enabled
+    }
+
+    override val autoTopologyDiscoveryIntervalMinutes = MutableStateFlow(20)
+
+    override fun setAutoTopologyDiscoveryIntervalMinutes(minutes: Int) {
+        autoTopologyDiscoveryIntervalMinutes.value = minutes
     }
 
     override val eventThemeEnabled = MutableStateFlow(true)

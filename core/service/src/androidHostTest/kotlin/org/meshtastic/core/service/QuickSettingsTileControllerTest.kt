@@ -31,6 +31,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.meshtastic.core.common.di.ApplicationCoroutineScope
 import org.meshtastic.core.di.CoroutineDispatchers
+import org.meshtastic.core.meshbridge.MeshBridgeIntegration
 import org.meshtastic.core.repository.RadioInterfaceService
 import org.meshtastic.core.repository.RadioPrefs
 import org.meshtastic.core.takserver.MeshToCotBroadcaster
@@ -95,6 +96,15 @@ class QuickSettingsTileControllerTest {
                 takPrefs = mock(MockMode.autofill),
             ),
             takPrefs = mock(MockMode.autofill),
+            meshBridgeManager = mock(MockMode.autofill),
+            meshBridgeIntegration =
+            MeshBridgeIntegration(
+                meshBridgeServerManager = mock(MockMode.autofill),
+                commandSender = mock(MockMode.autofill),
+                serviceRepository = mock(MockMode.autofill),
+                meshBridgePrefs = mock(MockMode.autofill),
+            ),
+            meshBridgePrefs = mock(MockMode.autofill),
             databaseManager = mock(MockMode.autofill),
             connectionManager = mock(MockMode.autofill),
             dispatchers = dispatchers,

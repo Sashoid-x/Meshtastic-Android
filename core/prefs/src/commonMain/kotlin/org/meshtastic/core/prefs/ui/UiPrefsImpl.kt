@@ -254,6 +254,21 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         scope.launch { dataStore.edit { it[KEY_PINNED_MESSAGES_ENABLED] = enabled } }
     }
 
+    override val skippedAppUpdateVersion: StateFlow<String?> =
+        dataStore.data.map { it[KEY_SKIPPED_APP_UPDATE_VERSION] }.stateIn(scope, SharingStarted.Eagerly, null)
+
+    override fun setSkippedAppUpdateVersion(version: String?) {
+        scope.launch {
+            dataStore.edit {
+                if (version == null) {
+                    it.remove(KEY_SKIPPED_APP_UPDATE_VERSION)
+                } else {
+                    it[KEY_SKIPPED_APP_UPDATE_VERSION] = version
+                }
+            }
+        }
+    }
+
     override val advThemeColorsJson: StateFlow<String> =
         dataStore.data.map { it[KEY_ADV_THEME_COLORS_JSON] ?: "" }.stateIn(scope, SharingStarted.Eagerly, "")
 
@@ -360,6 +375,17 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
 
     override fun setAutoTopologyDiscoveryEnabled(enabled: Boolean) {
         scope.launch { dataStore.edit { it[KEY_AUTO_TOPOLOGY_DISCOVERY_ENABLED] = enabled } }
+    }
+
+    override val autoTopologyDiscoveryIntervalMinutes: StateFlow<Int> =
+        dataStore.data
+            .map {
+                it[KEY_AUTO_TOPOLOGY_DISCOVERY_INTERVAL_MINUTES] ?: DEFAULT_AUTO_TOPOLOGY_DISCOVERY_INTERVAL_MINUTES
+            }
+            .stateIn(scope, SharingStarted.Eagerly, DEFAULT_AUTO_TOPOLOGY_DISCOVERY_INTERVAL_MINUTES)
+
+    override fun setAutoTopologyDiscoveryIntervalMinutes(minutes: Int) {
+        scope.launch { dataStore.edit { it[KEY_AUTO_TOPOLOGY_DISCOVERY_INTERVAL_MINUTES] = minutes } }
     }
 
     override val eventThemeEnabled: StateFlow<Boolean> =
@@ -598,6 +624,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         val KEY_SHOW_BELL_BUTTON = booleanPreferencesKey("show-bell-button")
         val KEY_REACTION_NOTIFICATION_MODE = stringPreferencesKey("reaction-notification-mode")
         val KEY_PINNED_MESSAGES_ENABLED = booleanPreferencesKey("pinned-messages-enabled")
+        val KEY_SKIPPED_APP_UPDATE_VERSION = stringPreferencesKey("skipped-app-update-version")
         val KEY_EVENT_THEME_ENABLED = booleanPreferencesKey("event-theme-enabled")
         val KEY_ADV_THEME_COLORS_JSON = stringPreferencesKey("adv-theme-colors-json")
         val KEY_CUSTOM_NODE_NAMES = stringPreferencesKey("custom-node-names")
@@ -608,6 +635,8 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         val KEY_REACTION_CHIP_SPACING = intPreferencesKey("reaction-chip-spacing")
         val KEY_PRESSURE_IN_MMHG = booleanPreferencesKey("pressure-in-mm-hg")
         val KEY_AUTO_TOPOLOGY_DISCOVERY_ENABLED = booleanPreferencesKey("auto-topology-discovery-enabled")
+        val KEY_AUTO_TOPOLOGY_DISCOVERY_INTERVAL_MINUTES = intPreferencesKey("auto-topology-discovery-interval-minutes")
+        const val DEFAULT_AUTO_TOPOLOGY_DISCOVERY_INTERVAL_MINUTES = 20
 
         val KEY_APP_INTRO_COMPLETED = booleanPreferencesKey("app_intro_completed")
         val KEY_THEME = intPreferencesKey("theme")

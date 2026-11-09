@@ -763,4 +763,177 @@ object MonochromeImageCodec {
         }
         return result
     }
+
+    fun toAsciiArt(image: DecodedMonochromeImage): String {
+        val sb = StringBuilder()
+        val theme = getTheme(image.themeIndex)
+        val fgInt = theme.foregroundColor.toInt()
+        for (y in 0 until image.height) {
+            for (x in 0 until image.width) {
+                val pixel = image.pixels[y * image.width + x]
+                sb.append(if (pixel == fgInt) "██" else "  ")
+            }
+            if (y < image.height - 1) sb.append('\n')
+        }
+        return sb.toString()
+    }
+
+    fun toPng(image: DecodedMonochromeImage, scale: Int = 8): ByteArray {
+        val safeScale = scale.coerceAtLeast(1)
+        val outWidth = image.width * safeScale
+        val outHeight = image.height * safeScale
+
+        val rowSize = 1 + outWidth * 4
+        val rawData = ByteArray(outHeight * rowSize)
+
+        for (y in 0 until outHeight) {
+            val srcY = y / safeScale
+            val rowOffset = y * rowSize
+            rawData[rowOffset] = 0 // Filter type: None
+            for (x in 0 until outWidth) {
+                val srcX = x / safeScale
+                val argb = image.pixels[srcY * image.width + srcX]
+                val a = ((argb ushr 24) and 0xFF).toByte()
+                val r = ((argb ushr 16) and 0xFF).toByte()
+                val g = ((argb ushr 8) and 0xFF).toByte()
+                val b = (argb and 0xFF).toByte()
+
+                val pixelOffset = rowOffset + 1 + x * 4
+                rawData[pixelOffset] = r
+                rawData[pixelOffset + 1] = g
+                rawData[pixelOffset + 2] = b
+                rawData[pixelOffset + 3] = a
+            }
+        }
+
+        val maxBlockSize = 65535
+        val numBlocks = (rawData.size + maxBlockSize - 1) / maxBlockSize
+        val zlibSize = 2 + (numBlocks * 5) + rawData.size + 4
+        val zlibStream = ByteArray(zlibSize)
+        var zPos = 0
+
+        zlibStream[zPos++] = 0x78.toByte()
+        zlibStream[zPos++] = 0x01.toByte()
+
+        var rawOffset = 0
+        while (rawOffset < rawData.size) {
+            val blockSize = kotlin.math.min(maxBlockSize, rawData.size - rawOffset)
+            val isFinal = (rawOffset + blockSize == rawData.size)
+
+            zlibStream[zPos++] = (if (isFinal) 0x01 else 0x00).toByte()
+            zlibStream[zPos++] = (blockSize and 0xFF).toByte()
+            zlibStream[zPos++] = ((blockSize ushr 8) and 0xFF).toByte()
+            val invBlockSize = blockSize.inv()
+            zlibStream[zPos++] = (invBlockSize and 0xFF).toByte()
+            zlibStream[zPos++] = ((invBlockSize ushr 8) and 0xFF).toByte()
+
+            rawData.copyInto(zlibStream, zPos, rawOffset, rawOffset + blockSize)
+            zPos += blockSize
+            rawOffset += blockSize
+        }
+
+        val adler = computeAdler32(rawData)
+        zlibStream[zPos++] = ((adler ushr 24) and 0xFF).toByte()
+        zlibStream[zPos++] = ((adler ushr 16) and 0xFF).toByte()
+        zlibStream[zPos++] = ((adler ushr 8) and 0xFF).toByte()
+        zlibStream[zPos++] = (adler and 0xFF).toByte()
+
+        val totalPngSize = 8 + 25 + (12 + zlibSize) + 12
+        val png = ByteArray(totalPngSize)
+        var p = 0
+
+        val signature =
+            byteArrayOf(
+                0x89.toByte(),
+                0x50.toByte(),
+                0x4E.toByte(),
+                0x47.toByte(),
+                0x0D.toByte(),
+                0x0A.toByte(),
+                0x1A.toByte(),
+                0x0A.toByte(),
+            )
+        signature.copyInto(png, p)
+        p += signature.size
+
+        // IHDR Chunk
+        val ihdrType = byteArrayOf('I'.code.toByte(), 'H'.code.toByte(), 'D'.code.toByte(), 'R'.code.toByte())
+        val ihdrData = ByteArray(13)
+        writeInt32BE(ihdrData, 0, outWidth)
+        writeInt32BE(ihdrData, 4, outHeight)
+        ihdrData[8] = 8.toByte()
+        ihdrData[9] = 6.toByte() // RGBA
+        ihdrData[10] = 0.toByte()
+        ihdrData[11] = 0.toByte()
+        ihdrData[12] = 0.toByte()
+
+        writeInt32BE(png, p, 13)
+        p += 4
+        ihdrType.copyInto(png, p)
+        p += 4
+        ihdrData.copyInto(png, p)
+        p += ihdrData.size
+        writeInt32BE(png, p, computeCrc32(ihdrType, ihdrData))
+        p += 4
+
+        // IDAT Chunk
+        val idatType = byteArrayOf('I'.code.toByte(), 'D'.code.toByte(), 'A'.code.toByte(), 'T'.code.toByte())
+        writeInt32BE(png, p, zlibSize)
+        p += 4
+        idatType.copyInto(png, p)
+        p += 4
+        zlibStream.copyInto(png, p)
+        p += zlibStream.size
+        writeInt32BE(png, p, computeCrc32(idatType, zlibStream))
+        p += 4
+
+        // IEND Chunk
+        val iendType = byteArrayOf('I'.code.toByte(), 'E'.code.toByte(), 'N'.code.toByte(), 'D'.code.toByte())
+        writeInt32BE(png, p, 0)
+        p += 4
+        iendType.copyInto(png, p)
+        p += 4
+        writeInt32BE(png, p, computeCrc32(iendType, ByteArray(0)))
+        p += 4
+
+        return png
+    }
+
+    private fun writeInt32BE(target: ByteArray, offset: Int, value: Int) {
+        target[offset] = ((value ushr 24) and 0xFF).toByte()
+        target[offset + 1] = ((value ushr 16) and 0xFF).toByte()
+        target[offset + 2] = ((value ushr 8) and 0xFF).toByte()
+        target[offset + 3] = (value and 0xFF).toByte()
+    }
+
+    private fun computeAdler32(data: ByteArray): Int {
+        var s1 = 1
+        var s2 = 0
+        val mod = 65521
+        for (b in data) {
+            s1 = (s1 + (b.toInt() and 0xFF)) % mod
+            s2 = (s2 + s1) % mod
+        }
+        return (s2 shl 16) or s1
+    }
+
+    private val CRC32_TABLE =
+        IntArray(256) { n ->
+            var c = n
+            for (k in 0 until 8) {
+                c = if ((c and 1) != 0) (0xEDB88320.toInt() xor (c ushr 1)) else (c ushr 1)
+            }
+            c
+        }
+
+    private fun computeCrc32(type: ByteArray, data: ByteArray): Int {
+        var crc = -1
+        for (b in type) {
+            crc = CRC32_TABLE[(crc xor (b.toInt() and 0xFF)) and 0xFF] xor (crc ushr 8)
+        }
+        for (b in data) {
+            crc = CRC32_TABLE[(crc xor (b.toInt() and 0xFF)) and 0xFF] xor (crc ushr 8)
+        }
+        return crc.inv()
+    }
 }

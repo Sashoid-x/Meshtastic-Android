@@ -298,15 +298,23 @@ open class MeshUtilApplication :
     }
 
     private fun scheduleTopologyDiscovery() {
-        val discoveryRequest =
-            PeriodicWorkRequestBuilder<TopologyDiscoveryWorker>(repeatInterval = 4.hours.toJavaDuration()).build()
-
-        WorkManager.getInstance(this)
-            .enqueueUniquePeriodicWork(
-                TopologyDiscoveryWorker.WORK_NAME,
-                ExistingPeriodicWorkPolicy.KEEP,
-                discoveryRequest,
-            )
+        val uiPrefs: org.meshtastic.core.repository.UiPrefs = get()
+        applicationScope.launch {
+            kotlinx.coroutines.flow
+                .combine(
+                    uiPrefs.autoTopologyDiscoveryEnabled,
+                    uiPrefs.autoTopologyDiscoveryIntervalMinutes,
+                ) { enabled, interval ->
+                    enabled to interval
+                }
+                .collect { (enabled, interval) ->
+                    TopologyDiscoveryWorker.schedule(
+                        context = this@MeshUtilApplication,
+                        enabled = enabled,
+                        intervalMinutes = interval,
+                    )
+                }
+        }
     }
 
     /**

@@ -52,6 +52,31 @@ class ModVersionTest {
         assertEquals(0, v4.patch)
         assertEquals(0, v4.revision)
 
+        val v5 = ModVersion.parse("2.8.4-advanced-r3")
+        assertNotNull(v5)
+        assertEquals(2, v5.major)
+        assertEquals(8, v5.minor)
+        assertEquals(4, v5.patch)
+        assertEquals(3, v5.revision)
+
+        val v6 = ModVersion.parse("v2.8.4-advanced-2")
+        assertNotNull(v6)
+        assertEquals(2, v6.major)
+        assertEquals(8, v6.minor)
+        assertEquals(4, v6.patch)
+        assertEquals(2, v6.revision)
+
+        val v7 = ModVersion.parse("2.8.4-release")
+        assertNotNull(v7)
+        assertEquals(2, v7.major)
+        assertEquals(8, v7.minor)
+        assertEquals(4, v7.patch)
+        assertEquals(0, v7.revision)
+
+        val v8 = ModVersion.parse("2.8.4-r3")
+        assertNotNull(v8)
+        assertEquals(3, v8.revision)
+
         assertNull(ModVersion.parse("invalid-version"))
     }
 
@@ -62,7 +87,10 @@ class ModVersionTest {
         assertTrue(ModVersion.isNewer(latest = "v2.8.3", current = "v2.8.2-advanced-5"))
         assertTrue(ModVersion.isNewer(latest = "v2.9.0", current = "v2.8.2-advanced-5"))
         assertTrue(ModVersion.isNewer(latest = "v3.0.0", current = "v2.8.2-advanced-5"))
+        assertTrue(ModVersion.isNewer(latest = "v2.8.4-advanced-r4", current = "2.8.4-advanced-r3"))
 
+        assertFalse(ModVersion.isNewer(latest = "v2.8.4-advanced-2", current = "2.8.4-advanced-r3"))
+        assertFalse(ModVersion.isNewer(latest = "v2.8.4-release", current = "2.8.4-advanced-r3"))
         assertFalse(ModVersion.isNewer(latest = "v2.8.2-advanced-5", current = "v2.8.2-advanced-5"))
         assertFalse(ModVersion.isNewer(latest = "v2.8.2-advanced-4", current = "v2.8.2-advanced-5"))
         assertFalse(ModVersion.isNewer(latest = "v2.8.1", current = "v2.8.2-advanced-5"))

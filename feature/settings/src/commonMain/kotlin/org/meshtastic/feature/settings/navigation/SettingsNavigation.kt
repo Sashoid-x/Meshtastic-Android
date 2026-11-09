@@ -429,6 +429,7 @@ fun EntryProviderScope<NavKey>.settingsGraph(
             appVersionName = settingsViewModel.appVersionName,
             updateCheckState = updateCheckState,
             onCheckForUpdates = { settingsViewModel.checkForUpdates() },
+            onSkipUpdate = { version -> settingsViewModel.skipUpdate(version) },
             onNavigateUp = dropUnlessResumed { backStack.removeLastOrNull() },
             onNavigateToAcknowledgements = dropUnlessResumed { backStack.add(SettingsRoute.Acknowledgements) },
         )

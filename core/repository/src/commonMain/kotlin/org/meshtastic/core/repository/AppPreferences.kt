@@ -198,6 +198,11 @@ interface UiPrefs {
 
     fun setPinnedMessagesEnabled(enabled: Boolean)
 
+    /** Version string of an application update that the user chose to skip (e.g. "2.8.4-advanced-r3"). */
+    val skippedAppUpdateVersion: StateFlow<String?>
+
+    fun setSkippedAppUpdateVersion(version: String?)
+
     /** Serialized JSON representation of custom ADV theme color overrides. */
     val advThemeColorsJson: StateFlow<String>
 
@@ -244,6 +249,11 @@ interface UiPrefs {
     val autoTopologyDiscoveryEnabled: StateFlow<Boolean>
 
     fun setAutoTopologyDiscoveryEnabled(enabled: Boolean)
+
+    /** Interval in minutes between auto-topology discovery runs (10, 20, 30; default 20). */
+    val autoTopologyDiscoveryIntervalMinutes: StateFlow<Int>
+
+    fun setAutoTopologyDiscoveryIntervalMinutes(minutes: Int)
 
     /**
      * Whether to apply an event edition's ambient theme (accent wash + custom typeface) app-wide (opt-out; default on).
