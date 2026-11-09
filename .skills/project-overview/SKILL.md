@@ -54,6 +54,9 @@ Module directory, namespacing conventions, environment setup, and troubleshootin
 - **Standard:** Use the `org.meshtastic.*` namespace for all code.
 - **Legacy:** Maintain the `com.geeksville.mesh` Application ID.
 
+## Advanced Branch Versioning Scheme
+The application version (`VERSION_NAME_BASE` in `config.properties`) must be derived from `VERSION_NAME_BASE` of the `main` branch: `<VERSION_NAME_BASE_MAIN>-advanced-<type><buildNumber>`, where `<type>` is `r` for release or `b` for prerelease, and `<buildNumber>` is the incremental build number for that base (e.g. `2.8.5-advanced-r1`, `2.8.5-advanced-b1`).
+
 ## Environment Setup
 1. **JDK 25 MUST be used** to prevent Gradle sync/build failures.
 2. **Secrets (optional):** `androidApp/build.gradle.kts` configures the secrets plugin as

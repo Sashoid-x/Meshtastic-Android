@@ -28,6 +28,7 @@ These are specific to the Copilot CLI environment and are not covered in AGENTS.
 - **Workflow-scope push limit.** The Copilot CLI OAuth token cannot push to `.github/workflows/`. If a push fails with a scope/permission error on workflow files, tell the user to push manually (`gh auth refresh -s workflow && git push`) — do not retry or work around it.
 - **No destructive git in parallel agents.** Agents sharing a worktree must never run `git reset --hard`, `git clean`, or `git checkout -- .`. Commit work before any index/working-tree operation.
 - **Audit before applying.** When porting or migrating external code, evaluate each change for relevance and correctness in our context — don't blindly copy.
+- **Advanced Branch Versioning:** Application version (`VERSION_NAME_BASE` in `config.properties`) is formed from `VERSION_NAME_BASE` in `main` branch + `-advanced-<r|b><build>` (e.g., `2.8.5-advanced-r1` for release, `2.8.5-advanced-b1` for prerelease).
 
 ## Context & Cost Efficiency
 

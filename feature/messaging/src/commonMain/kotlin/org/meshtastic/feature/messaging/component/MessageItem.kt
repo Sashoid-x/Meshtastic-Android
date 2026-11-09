@@ -157,7 +157,7 @@ internal const val MESSAGE_STATUS_LABEL_TEST_TAG = "message_status_label"
 
 private val FORWARD_REGEX =
     Regex(
-        """^\[(?:f:\s*|Forwarded from:\s*|Forwarded:\s*|Переслано от:\s*|Переслано:\s*)([^\]\n]+)\]\s*\n?""",
+        """^\[f:\s*(@?![0-9a-fA-F]{8})\]\s*\n?""",
         RegexOption.IGNORE_CASE,
     )
 
@@ -386,9 +386,14 @@ fun MessageItem(
                             onTogglePin()
                         },
                         hopReaction = computedHopReaction,
-                        onForward = {
-                            activeSheet = null
-                            onForwardMessage(forwardText)
+                        onForward =
+                        if (monoImage != null) {
+                            null
+                        } else {
+                            {
+                                activeSheet = null
+                                onForwardMessage(forwardText)
+                            }
                         },
                         isRtttl = rtttlSong != null,
                         onSetRingtone = {

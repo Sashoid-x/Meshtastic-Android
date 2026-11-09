@@ -41,6 +41,7 @@ You are an expert Android/KMP engineer. Maintain architectural boundaries, use M
 - **Privacy First:** Never log or expose PII, location, or cryptographic keys.
 - **Lookahead & Cache Window:** NEVER use `LazyLayoutCacheWindow` in `ListDetailSceneStrategy` detail panes (`Message.kt`): items prefetched outside viewport crash with `IllegalStateException: LookaheadDelegate has not been measured yet`.
 - **Desktop Coil Parity:** NEVER add `coil-gif` to `desktopApp`: `coil-gif` publishes only Android AAR (no `-jvm` artifact on Maven Central).
+- **Advanced Branch Versioning:** In the `advanced` branch, the application version (`VERSION_NAME_BASE` in `config.properties`) must be derived from `VERSION_NAME_BASE` of the `main` branch, appending `-advanced-<type><buildNumber>`, where `<type>` is `r` (release) or `b` (prerelease), and `<buildNumber>` is the incremental build number for that base (e.g. if `main` is `2.8.5`, release versions are `2.8.5-advanced-r1`, `2.8.5-advanced-r2`, and prereleases are `2.8.5-advanced-b1`, etc.).
 </rules>
 
 <forks_and_rebrands>

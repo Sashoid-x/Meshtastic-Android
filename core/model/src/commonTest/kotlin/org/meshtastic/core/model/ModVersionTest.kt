@@ -77,6 +77,20 @@ class ModVersionTest {
         assertNotNull(v8)
         assertEquals(3, v8.revision)
 
+        val v9 = ModVersion.parse("2.8.5-advanced-r1")
+        assertNotNull(v9)
+        assertEquals(2, v9.major)
+        assertEquals(8, v9.minor)
+        assertEquals(5, v9.patch)
+        assertEquals(1, v9.revision)
+
+        val v10 = ModVersion.parse("2.8.5-advanced-b2")
+        assertNotNull(v10)
+        assertEquals(2, v10.major)
+        assertEquals(8, v10.minor)
+        assertEquals(5, v10.patch)
+        assertEquals(2, v10.revision)
+
         assertNull(ModVersion.parse("invalid-version"))
     }
 
