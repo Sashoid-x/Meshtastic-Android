@@ -733,6 +733,7 @@ device_metrics_voltage_value
 device_model_ar_camera_unavailable
 device_model_ar_failed
 device_model_ar_restart_phone
+device_model_banana_for_scale
 device_model_capture
 device_model_capture_failed
 device_model_capture_saved

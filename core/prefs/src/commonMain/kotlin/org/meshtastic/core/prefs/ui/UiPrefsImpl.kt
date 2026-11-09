@@ -134,7 +134,6 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         scope.launch { dataStore.edit { it[KEY_SHOW_FULL_MESSAGE_TIMESTAMPS] = show } }
     }
 
-<<<<<<< HEAD
     override val textCompressionEnabled: StateFlow<Boolean> =
         dataStore.data.map { it[KEY_TEXT_COMPRESSION_ENABLED] ?: false }.stateIn(scope, SharingStarted.Eagerly, false)
 
@@ -400,6 +399,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
             dataStore.edit { it[KEY_RADIO_SETUP_OFFERED] = it[KEY_RADIO_SETUP_OFFERED].orEmpty() + nodeNum.toString() }
         }
     }
+
     override val eventThemeEnabled: StateFlow<Boolean> =
         dataStore.data.map { it[KEY_EVENT_THEME_ENABLED] ?: true }.stateIn(scope, SharingStarted.Eagerly, true)
 
