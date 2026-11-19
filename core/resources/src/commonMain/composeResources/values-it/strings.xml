@@ -122,7 +122,6 @@
     <string name="bad">Scarso</string>
     <string name="baro_pressure">Pressione atmosferica</string>
     <string name="battery">Batteria</string>
-    <string name="battery_ina_2xx_i2c_address">Indirizzo INA_2XX I2C della batteria</string>
     <string name="ble_devices">Dispositivi Bluetooth</string>
     <!-- BLUETOOTH -->
     <string name="bluetooth">Bluetooth</string>
@@ -156,6 +155,10 @@
     <string name="canned_message_enabled">Messaggi preconfezionati abilitati</string>
     <string name="cant_change_no_radio">Impossibile cambiare il canale, perché la radio non è ancora connessa. Riprova.</string>
     <string name="cant_shutdown">Spegnimento non supportato su questo dispositivo</string>
+    <!-- CARDINAL -->
+    <string name="cardinal_e">E</string>
+    <string name="cardinal_n">N</string>
+    <string name="cardinal_s">S</string>
     <string name="ch_util_definition">Impegno del canale attuale, inclusi TX e RX ben formati e RX malformati (cioè rumore).</string>
     <!-- CHANNEL -->
     <string name="channel">Ch</string>
@@ -206,8 +209,10 @@
     <string name="client_notification">Notifiche Client</string>
     <string name="close">Chiudi</string>
     <string name="close_selection">Chiudi selezione</string>
+    <!-- CO2 -->
     <string name="co2">CO₂</string>
     <string name="co2_humidity">CO₂ Umidità</string>
+    <string name="co2_level_good">Buono</string>
     <string name="co2_temperature">CO₂ Temperatura</string>
     <string name="collapse_chart">Minimizza grafico</string>
     <string name="collapsed">Minimizzato</string>
@@ -553,7 +558,6 @@
     <string name="firmware_gate_update">Aggiorna il firmware</string>
     <string name="firmware_old">Il firmware radio è troppo vecchio per parlare con questa applicazione. Per ulteriori informazioni su questo vedi <a href="https://meshtastic.org/docs/getting-started/flashing-firmware">la nostra guida all'installazione del firmware</a>.</string>
     <string name="firmware_recovery_banner">Completa l'aggiornamento di %1$s</string>
-    <string name="firmware_recovery_ble_failed">Impossibile completare l'aggiornamento via Bluetooth. Il bootloader di serie di questo dispositivo non è in grado di completare in modo affidabile un aggiornamento interrotto via etere. Collegalo a un computer con un cavo USB e riprogrammalo con lo strumento DFU seriale del produttore (per esempio adafruit-nrfutil) per recuperarlo.</string>
     <string name="firmware_recovery_button">Riprendi l'aggiornamento del firmware</string>
     <string name="firmware_recovery_dismiss">Ignora il ripristino del firmware</string>
     <string name="firmware_recovery_explanation">Questo dispositivo è in modalità bootloader a causa di un aggiornamento firmware non completato. Tienilo nelle vicinanze e verrà riprogrammato per completare l'aggiornamento.</string>
@@ -631,7 +635,6 @@
     <string name="firmware_update_unsupported_transport">Gli aggiornamenti firmware non sono supportati su questa connessione per questo dispositivo. Connettiti in un altro modo (ad esempio Bluetooth) per aggiornare.</string>
     <string name="firmware_update_unsupported_update_method">I file firmware locali non sono supportati per questo metodo di aggiornamento.</string>
     <string name="firmware_update_uploading">Caricamento del firmware...</string>
-    <string name="firmware_update_usb_bootloader_warning">%1$s di solito viene fornito con un bootloader che non supporta gli aggiornamenti OTA. Potrebbe essere necessario flashare tramite USB un bootloader con funzione OTA prima di flashare tramite OTA.</string>
     <string name="firmware_update_usb_failed">Aggiornamento USB non riuscito</string>
     <string name="firmware_update_usb_instruction_text">Il dispositivo è stato riavviato in modalità DFU e dovrebbe apparire come un disco USB (ad es. RAK4631).\n\nQuando il selettore di file si apre, selezionare la cartella principale (root) dell'unità per salvare il file con il firmware.</string>
     <string name="firmware_update_usb_instruction_title">Selezionare il Disco DFU USB</string>
@@ -726,7 +729,6 @@
     <string name="ip">IP</string>
     <string name="ip_address">Indirizzo IP:</string>
     <string name="ip_port">Porta:</string>
-    <string name="json_output_enabled">Output JSON abilitato</string>
     <string name="jump_to_latest_from">%1$s</string>
     <!-- KEY -->
     <string name="key_backup_deleted">Backup delle chiavi eliminato</string>
@@ -941,7 +943,6 @@
     <string name="messages">Messaggi</string>
     <string name="micrograms_per_cubic_meter">µg/m³</string>
     <string name="min">Min</string>
-    <string name="minimum_wake_time_seconds">Tempo minimo di risveglio</string>
     <!-- MIRROR -->
     <string name="mirror_back">Indietro</string>
     <string name="mirror_key_ok">Ok</string>
@@ -991,6 +992,7 @@
     <string name="name_cannot_be_empty">Il nome non può essere vuoto.</string>
     <string name="navigate_back">Torna Indietro</string>
     <string name="navigate_into_label">Guidami Verso</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">Informazioni Vicinato</string>
     <string name="neighbor_info_config">Configurazione Info Nodi Vicini</string>
     <string name="network">Rete</string>
@@ -1109,7 +1111,6 @@
     <string name="options">Opzioni</string>
     <string name="orient_north">Orientamento nord</string>
     <string name="overflow_menu">Menu di overflow</string>
-    <string name="override_console_serial_port">Sovrascrivi porta seriale della console</string>
     <!-- PACKET -->
     <string name="packet_authenticity">Autenticità dei pacchetti</string>
     <string name="packet_authenticity_balanced">Bilanciato — Preferisci autenticati</string>
@@ -1173,6 +1174,7 @@
     <string name="preserve_favorites">Conservare I Preferiti?</string>
     <string name="press_and_drag">Premi e trascina per riordinare</string>
     <string name="pressure">Pressione</string>
+    <string name="pressure_high">Alto</string>
     <!-- PREVIEW -->
     <string name="preview_custom_composable_line_one">Questo è un composable personalizzato</string>
     <string name="preview_custom_composable_line_two">Con più righe e stili</string>
@@ -1262,6 +1264,7 @@
     <string name="restore_keys">Ripristina Chiavi</string>
     <string name="restore_keys_confirmation">Ripristina su questo nodo le chiavi pubblica e privata salvate nel backup.</string>
     <string name="retry">Riprova</string>
+    <!-- RINGTONE -->
     <string name="ringtone">Suoneria</string>
     <string name="ringtone_file_empty">Il file è vuoto</string>
     <string name="ringtone_import_error">Errore durante l'importazione: %1$s</string>
@@ -1286,7 +1289,7 @@
     <string name="routing_error_got_nak">Ricevuta una conferma negativa</string>
     <string name="routing_error_max_retransmit">Consegna alla mesh non riuscita</string>
     <string name="routing_error_no_route">Nessun percorso</string>
-    <string name="routing_error_none">Confermato</string>
+    <string name="routing_error_none">Consegnato al destinatario</string>
     <string name="routing_error_pki_failed">Impossibile inviare il messaggio cifrato</string>
     <string name="routing_error_pki_send_fail_public_key">Chiave del destinatario non disponibile</string>
     <string name="routing_error_pki_unknown_pubkey">Il destinatario ha bisogno della tua chiave</string>
@@ -1371,6 +1374,7 @@
     <string name="shutdown">Spegni</string>
     <string name="shutdown_node_name">Nodo: %1$s</string>
     <string name="shutdown_warning">⚠️ Il nodo verrà SPENTO. Sarà necessario un intervento manuale per riaccenderlo.</string>
+    <!-- SIGNAL -->
     <string name="signal">Segnale</string>
     <string name="signal_quality">Qualità Segnale</string>
     <!-- SITE -->
@@ -1412,7 +1416,6 @@
     <string name="store_forward">Store &amp; Forward</string>
     <string name="store_forward_config">Configurazione Store &amp; Forward</string>
     <string name="success">Operazione riuscita</string>
-    <string name="super_deep_sleep_duration_seconds">Durata super deep sleep</string>
     <string name="supported">Supportato</string>
     <string name="supported_by_community">Supportato dalla comunità Meshtastic</string>
     <string name="swipe_action_delete">Elimina</string>
@@ -1562,6 +1565,7 @@
     <string name="weight">Peso</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">Scarso</string>
+    <string name="widget_telemetry_title">Telemetria</string>
     <!-- WIFI -->
     <string name="wifi_devices">Provisioning Wi-Fi per mPWRD-OS</string>
     <string name="wifi_provision_available_networks">Reti disponibili</string>
@@ -1603,6 +1607,8 @@
     <string name="write_nfc_failed">Impossibile scrivere sul tag. Usa un tag NFC scrivibile e vuoto e tienilo fermo.</string>
     <string name="write_nfc_success">Scritto sul tag</string>
     <string name="write_nfc_text">Tieni un tag NFC scrivibile contro il retro del telefono.</string>
+    <!-- XR -->
+    <string name="xr_terrain_layer_elevation">Altezza</string>
     <string name="you">Tu</string>
     <string name="zoom_in">Aumenta zoom</string>
     <string name="zoom_out">Riduci zoom</string>

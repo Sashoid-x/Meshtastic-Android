@@ -44,6 +44,7 @@
     <string name="cancel">Avbryt</string>
     <string name="cant_change_no_radio">Kunne ikke endre kanalen, fordi radio ikke er tilkoblet enda. Vennligst prøv på nytt.</string>
     <string name="cant_shutdown">Avslutning støttes ikke på denne enheten</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">Utnyttelse for denne kanalen, inkludert godt formet TX, RX og feilformet RX (aka støy).</string>
     <!-- CHANNEL -->
     <string name="channel_invalid">Denne kanall URL er ugyldig og kan ikke benyttes</string>
@@ -54,6 +55,8 @@
     <!-- CLEAR -->
     <string name="clear">Tøm</string>
     <string name="close">Lukk</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">Godt</string>
     <!-- COMPASS -->
     <!-- CONFIG -->
     <string name="config_device_ledHeartbeatEnabled_summary">Kontrollerer blinking av LED på enheten. For de fleste enheter vil dette kontrollere en av de opp til 4 lysdiodene. Laderen og GPS-lysene er ikke kontrollerbare.</string>
@@ -175,6 +178,7 @@
     <string name="mute_notifications">Demp varsler</string>
     <string name="name">Navn</string>
     <string name="navigate_back">Gå tilbake</string>
+    <!-- NEIGHBOR -->
     <string name="new_channel_rcvd">Ny kanal URL mottatt</string>
     <!-- NO -->
     <!-- NODE -->
@@ -238,11 +242,11 @@
     <string name="resend">Send på nytt</string>
     <string name="reset">Nullstill</string>
     <string name="reset_to_defaults">Tilbakestill til standard</string>
+    <!-- RINGTONE -->
     <!-- ROLE -->
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Mottok negativ bekreftelse</string>
     <string name="routing_error_no_route">Ingen rute</string>
-    <string name="routing_error_none">Bekreftet</string>
     <string name="routing_error_timeout">Tidsavbrudd</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">"Received Signal Strength Indicator", en måling som brukes til å bestemme strømnivået som mottas av antennen. Høyere RSSI verdi indikerer generelt en sterkere og mer stabil forbindelse.</string>
@@ -258,6 +262,7 @@
     <string name="share_to">Del med…</string>
     <!-- SHOW -->
     <string name="shutdown">Avslutt</string>
+    <!-- SIGNAL -->
     <string name="signal">Signal</string>
     <string name="signal_quality">Signalstyrke</string>
     <!-- SITE -->
@@ -304,5 +309,6 @@
     <string name="wifi_provision_success_ip_address">IP-adresse</string>
     <!-- WIND -->
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">Deg</string>
 </resources>

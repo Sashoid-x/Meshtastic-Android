@@ -81,10 +81,12 @@ Compose Preview Screenshot Testing (AGP/layoutlib) is split into two modules —
 - **`:docs-screenshots`** — **generate-only**, NOT validated in CI. Holds doc-framed compositions (crops/full screens tuned for the docs site). Reframe these freely; it never churns the regression gate.
 
 ```bash
-./gradlew :screenshot-tests:updateDebugScreenshotTest   # regression goldens
-./gradlew :docs-screenshots:updateDebugScreenshotTest   # doc-framed composition images
+./gradlew :screenshot-tests:updateDebugScreenshotTest -Dorg.gradle.isolated-projects=false   # regression goldens
+./gradlew :docs-screenshots:updateDebugScreenshotTest -Dorg.gradle.isolated-projects=false   # doc-framed composition images
 ./gradlew :screenshot-tests:copyDocsScreenshots         # copy doc images from BOTH modules → docs/assets
 ```
+
+The update and validate tasks fail under Isolated Projects after rendering, so pass `-Dorg.gradle.isolated-projects=false`. Run `copyDocsScreenshots` as a separate command after the updates; in one invocation Gradle runs it first.
 
 Rendering is **host-deterministic** (layoutlib): a local `update` produces references byte-identical to CI, so locally-recorded goldens pass `validate`. The convention plugin pins the render JVM to `user.timezone=UTC` (CST itself pins only the locale), so a preview that formats an absolute date records the same day on every host. **Exception — color emoji: do NOT gate CI on them.** Layoutlib bundles the text fonts but resolves color emoji through the host's emoji font, so glyph edges rasterize differently on macOS than on the Linux runner. Layout, text and vectors still match exactly; only the emoji anti-aliasing moves, which is enough to blow the 0.0005 `imageDifferenceThreshold` on an emoji-dense composition and cannot be fixed by re-running `update` locally. Assert the layout rule in a unit test instead — see `core/ui/src/commonTest/.../emoji/EmojiCellSizeTest.kt` — or put the composition in generate-only `:docs-screenshots`. `copyDocsScreenshots` overwrites a stale committed `nodes_detail_local.png` each run; restore it with `git restore --source=HEAD --staged --worktree -- docs/assets/screenshots/nodes_detail_local.png`. Public previews consumed cross-module by a wrapper need a `detekt-baseline.xml` entry (PreviewPublic). New screenshot? Pick the module by purpose; see `docs/assets/screenshots/README.md`.
 
@@ -112,7 +114,7 @@ CI is defined in `.github/workflows/reusable-check.yml` as parallel job groups. 
 2. **`test-shards`** is a 3-shard matrix that runs unit tests in parallel. Shard membership is a load-balancing detail, not a taxonomy: heavy modules are moved between shards to even out wall time, so read the matrix rather than inferring it:
    - `shard-core`: `allTests` for the remaining `core:*` KMP modules, plus `kmpSmokeCompile`, the only iOS compile in CI (the shards pass `-x iosSimulatorArm64Test`).
    - `shard-feature`: `allTests` for the remaining `feature:*` KMP modules **plus `:core:service`**.
-   - `shard-app`: Explicit test tasks for pure-Android/JVM modules (`androidApp`, `desktopApp`, `core:barcode`, `feature:widget`, `schema-strings`) **plus `:core:database`, `:core:network`, `:feature:node` and `:feature:wifi-provision`**.
+   - `shard-app`: Explicit test tasks for pure-Android/JVM modules (`androidApp`, `desktopApp`, `core:barcode`, `feature:widget`, `feature:xr`, `schema-strings`) **plus `:core:database`, `:core:network`, `:feature:node` and `:feature:wifi-provision`**.
    On `main`, `shard-feature` is the only test shard that writes the Gradle cache and the only job that writes the Kotlin/Native cache; `android-check` and `build-desktop` also write the Gradle cache. Every shard uploads its test results to Codecov. Kover XML coverage is generated and uploaded only when `run_coverage` is true, which only `main-check.yml` passes. Codecov flags follow the module group (`core`, `feature`, `app`, `desktop`), not the shard.
    The validation-only jobs (`lint-check`, `screenshot-check`, `test-shards`) pin `VERSION_CODE` to one constant so the versionCode-dependent tasks keep the same cache keys on every commit; `screenshot-check` and `test-shards` also clone shallow (`fetch-depth: 1`). `android-check` and `build-desktop` check out full blob-less history so the build derives the real versionCode.
 3. **`android-check`** builds the fdroid and google debug APKs and checks their native-library ABI parity (`scripts/verify-abi-parity.sh`). The merge queue skips it. On `main` it also generates and submits the dependency graph; no other ref submits one.

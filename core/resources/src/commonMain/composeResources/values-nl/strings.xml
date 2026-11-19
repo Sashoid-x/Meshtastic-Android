@@ -57,6 +57,7 @@
     <string name="cancel">Annuleer</string>
     <string name="cant_change_no_radio">Kon kanaal niet wijzigen, omdat de radio nog niet is aangesloten. Probeer het opnieuw.</string>
     <string name="cant_shutdown">Uitschakelen niet ondersteund op dit apparaat</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">Gebruik voor het huidige kanaal, inclusief goed gevormde TX, RX en misvormde RX (ruis).</string>
     <!-- CHANNEL -->
     <string name="channel_1">Kanaal 1</string>
@@ -76,6 +77,8 @@
     <!-- CLEAR -->
     <string name="clear">Wis</string>
     <string name="close">Sluit</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">Goed</string>
     <!-- COMPASS -->
     <string name="compass_north_top">Kompas Noorden bovenaan</string>
     <!-- CONFIG -->
@@ -177,7 +180,6 @@
     <string name="ip">IP-adres</string>
     <string name="ip_address">IP-adres:</string>
     <string name="ip_port">Poort:</string>
-    <string name="json_output_enabled">JSON uitvoer ingeschakeld</string>
     <!-- KEY -->
     <string name="latitude">Breedtegraad</string>
     <!-- LAYER -->
@@ -253,6 +255,7 @@
     <string name="mute_notifications">Meldingen dempen</string>
     <string name="name">Naam</string>
     <string name="navigate_back">Ga terug</string>
+    <!-- NEIGHBOR -->
     <string name="network">Netwerk</string>
     <string name="new_channel_rcvd">Nieuw kanaal URL ontvangen</string>
     <!-- NO -->
@@ -340,12 +343,12 @@
     <string name="resend">Verzend opnieuw</string>
     <string name="reset">Reset</string>
     <string name="reset_to_defaults">Standaardinstellingen terugzetten</string>
+    <!-- RINGTONE -->
     <string name="ringtone">Beltoon</string>
     <!-- ROLE -->
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Negatieve bevestiging ontvangen</string>
     <string name="routing_error_no_route">Geen route</string>
-    <string name="routing_error_none">Bevestigd</string>
     <string name="routing_error_timeout">Time-Out</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">Ontvangen Signal Sterkte Indicator, een meting gebruikt om het stroomniveau te bepalen dat de antenne ontvangt. Een hogere RSSI-waarde geeft een sterkere en stabielere verbinding aan.</string>
@@ -369,6 +372,7 @@
     <!-- SHOW -->
     <string name="show_password">Wachtwoord tonen</string>
     <string name="shutdown">Zet uit</string>
+    <!-- SIGNAL -->
     <string name="signal">Signaal</string>
     <string name="signal_quality">Signaalkwaliteit</string>
     <!-- SITE -->
@@ -432,11 +436,13 @@
     <string name="weight">Gewicht</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">Slecht</string>
+    <string name="widget_telemetry_title">Telemetrie</string>
     <!-- WIFI -->
     <string name="wifi_provision_success_ip_address">IP-adres</string>
     <string name="wifi_provision_success_username">Gebruikersnaam</string>
     <!-- WIND -->
     <string name="wind">Wind</string>
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">Jij</string>
 </resources>

@@ -1,7 +1,7 @@
 ---
 title: Сообщения и каналы
 nav_order: 3
-last_updated: 2026-10-21
+last_updated: 2026-11-15
 description: Отправляйте и получайте сообщения, управляйте каналами, настраивайте шифрование, ищите по перепискам, а также используйте быстрый чат, реакции и действия с сообщениями.
 aliases:
   - channels
@@ -20,18 +20,18 @@ Meshtastic поддерживает два режима связи: **вещан
 
 ### Канал по умолчанию
 
-Every Meshtastic node comes with a default **LongFast** channel. It is encrypted with a well-known default key, so anyone running Meshtastic on the same preset can read it.
+Каждая нода Meshtastic поставляется с каналом **LongFast** по умолчанию. Он зашифрован с помощью хорошо известного ключа по умолчанию, поэтому любой, кто запускает Meshtastic на том же пресете, может его прочитать.
 
 ### Безопасность канала
 
-Each channel carries a lock icon that shows how well it is protected. Tap the icon to see the same explanation inside the app.
+На каждом канале есть значок блокировки, который показывает, насколько хорошо он защищен. Нажми на значок, чтобы увидеть то же объяснение внутри приложения.
 
-| Иконка                             | Что это значит                                                                                                                                        |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Green closed lock                  | The channel is securely encrypted, with either a 128-bit or a 256-bit AES key.                                                        |
-| Yellow open lock                   | The channel is not securely encrypted — it uses no key at all, or a well-known one-byte key — and it does not carry precise location. |
-| Red open lock                      | Not securely encrypted, and the channel carries precise location data.                                                                |
-| Red open lock with a warning badge | Not securely encrypted, carrying precise location data, and uplinking that data to the internet over MQTT.                            |
+| Иконка                                           | Что это значит                                                                                                                                                      |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Зелёный закрытый замок                           | Канал надежно зашифрован с помощью 128-битного или 256-битного ключа AES.                                                                           |
+| Жёлтый открытый замок                            | Канал небезопасно зашифрован — в нем вообще не используется ключ или хорошо известный однобайтовый ключ - и в нем не указано точное местоположение. |
+| Красный открытый замок                           | Канал не зашифрован надежно, и по нему передаются точные данные о местоположении.                                                                   |
+| Красный открытый замок с предупреждающим значком | Небезопасно зашифрованный, содержащий точные данные о местоположении и передающий эти данные в Интернет через MQTT.                                 |
 
 Key length alone does not change the icon: a 128-bit key and a 256-bit key both show the green lock.
 
@@ -39,15 +39,24 @@ Key length alone does not change the icon: a 128-bit key and a 256-bit key both 
 
 ### Добавление канала
 
-1. Connect to your node. The **Channels** row stays grayed out until the app has a connection — see [Connections](connections).
+1. Подключиться к своей ноде. The **Channels** row stays grayed out until the app has a connection — see [Connections](connections).
 2. Go to **Settings**, then tap **Channels** under **Configuration**.
-3. Tap the **+** button to add a channel. The editor opens on the new entry.
+3. Нажми кнопку **+** чтобы добавить канал. Редактор открывает новую запись.
 4. Set the channel name and the **PSK**, and choose whether the channel uses MQTT uplink and downlink. Naming a new channel generates a fresh 256-bit key for you; the refresh icon beside **PSK** generates another one.
-5. Tap **Save** to close the editor. The change is still only on your phone.
-6. Tap **Send** at the bottom of the channel list to write the changes to the node. **Cancel**, or leaving the screen without tapping **Send**, throws them away.
-7. Optional: share the channel URL or QR code with the people who need access.
+5. Нажми **Сохранить** для закрытия редактора. Изменения все еще только на твоём телефоне.
+6. Нажми **Отправить** внизу списка каналов, чтобы записать изменения в ноду. **Отменить** или покинуть экран, не касаясь **Отправить**, отбрасывает их.
+7. Optional: share the channels with the people who need access — see [Sharing and importing channels](#sharing-and-importing-channels).
 
-Tapping an existing channel opens the same editor, where you can change the name, the PSK, MQTT uplink and downlink, and position precision. Every edit on this screen — adding, editing, deleting, or dragging a channel into a new order — waits on **Send** the same way.
+Tapping an existing channel opens the same editor, where you can change the name, the PSK, MQTT uplink and downlink, and position precision. On a channel that is not securely encrypted, **Precise location** is disabled and the precision slider stops at 15 bits. Every edit on this screen — adding, editing, deleting, or dragging a channel into a new order — waits on **Send** the same way.
+
+### Sharing and importing channels
+
+On the **Channels** screen, tap **Share Channels** to show a QR code and a link for the channels on your node. Choose what the code does on the other person's node before you hand it out:
+
+- **Replace** overwrites every channel on their node with yours and applies your LoRa settings.
+- **Add** keeps their channels and LoRa settings and appends yours.
+
+To take in someone else's channels, use the import button on the same screen: **Scan Shared Channels QR Code**, **Input Shared Channels URL**, or, on a phone with NFC, **Scan Shared Channels NFC**. For an Add code, the app lists the incoming channels so you can select the ones you want and shows how many of your node's channel slots are in use. If the selection doesn't fit, a line says how many channels to uncheck. Unchecking a channel that is already on your node removes it.
 
 ### Archived Channels
 
@@ -88,10 +97,11 @@ can act on it directly:
   still there when you come back. The row shows it as `Draft: …` in place of the last message —
   an unsent draft is the thing the row is waiting on _you_ for.
 - **Unread badge.** A count sits on the row until you open the conversation.
-- **Swipe right to mute** (swipe again to unmute) and **swipe left to delete**. Deleting asks
-  first; muting shows a snackbar with **Undo**.
+- **Swipe right to mute** (swipe again to unmute) and **swipe left to delete**. A swipe mutes
+  until you unmute. Deleting asks first; muting shows a snackbar with **Undo**.
 - **Touch & hold to select** one or more conversations, then use the action bar to **Pin**,
-  **Mark unread**, mute or delete them together. When every selected conversation is already
+  **Mark unread**, mute or delete them together. The action bar's mute opens **Mute notifications**,
+  where you choose **8 hours**, **1 week**, or **Always**, or **Unmute**. When every selected conversation is already
   pinned, **Pin** becomes **Unpin**. Pinned conversations carry a pin marker and rise to the top
   of **their own section**.
 - **The list is split into Channels and Direct Messages**, each with a collapsible header and each

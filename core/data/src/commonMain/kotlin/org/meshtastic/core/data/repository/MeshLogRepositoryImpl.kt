@@ -29,6 +29,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import org.koin.core.annotation.Single
 import org.meshtastic.core.common.util.nowMillis
+import org.meshtastic.core.common.util.validSecondsOrNull
 import org.meshtastic.core.data.datasource.NodeInfoReadDataSource
 import org.meshtastic.core.database.DatabaseProvider
 import org.meshtastic.core.database.entity.asEntity
@@ -39,6 +40,7 @@ import org.meshtastic.core.model.util.TELEMETRY_CHANNEL_COUNT
 import org.meshtastic.core.model.util.TimeConstants
 import org.meshtastic.core.model.util.adcVoltage
 import org.meshtastic.core.model.util.oneWireTemperature
+import org.meshtastic.core.model.util.rxTimeOrNull
 import org.meshtastic.core.model.util.withAdcVoltage
 import org.meshtastic.core.model.util.withLegacyOneWireTemperatures
 import org.meshtastic.core.model.util.withOneWireTemperature
@@ -97,7 +99,11 @@ open class MeshLogRepositoryImpl(
     /** Retrieves all [MeshLog]s associated with a specific [nodeNum] and [portNum]. */
     override fun getLogsFrom(nodeNum: Int, portNum: Int): Flow<List<MeshLog>> = dbManager
         .observeCurrentDb("MeshLogRepository.getLogsFrom") {
-            it.meshLogDao().getLogsFrom(nodeNum, portNum, DEFAULT_MAX_LOGS)
+            if (portNum == ANY_PORT) {
+                it.meshLogDao().getLogsFrom(nodeNum, portNum, DEFAULT_MAX_LOGS)
+            } else {
+                it.meshLogDao().getLogsFromPort(nodeNum, portNum, DEFAULT_MAX_LOGS)
+            }
         }
         .map { list -> list.map { it.asExternalModel() } }
         .distinctUntilChanged()
@@ -112,10 +118,12 @@ open class MeshLogRepositoryImpl(
         .flatMapLatest { logId ->
             dbManager
                 .observeCurrentDb("MeshLogRepository.getTelemetryFrom") {
-                    it.meshLogDao().getLogsFrom(logId, PortNum.TELEMETRY_APP.value, DEFAULT_MAX_LOGS)
+                    it.meshLogDao().getLogsFromPort(logId, PortNum.TELEMETRY_APP.value, DEFAULT_MAX_LOGS)
                 }
                 .distinctUntilChanged()
-                .mapLatest { list -> list.map { it.asExternalModel() }.mapNotNull(::parseTelemetryLog) }
+                .mapLatest { list ->
+                    list.map { it.asExternalModel() }.mapNotNull(::parseTelemetryLog).sortedByDescending { it.time }
+                }
         }
         .flowOn(dispatchers.io)
 
@@ -126,7 +134,7 @@ open class MeshLogRepositoryImpl(
      */
     override fun getRequestLogs(targetNodeNum: Int, portNum: PortNum): Flow<List<MeshLog>> = dbManager
         .observeCurrentDb("MeshLogRepository.getRequestLogs") {
-            it.meshLogDao().getLogsFrom(MeshLog.NODE_NUM_LOCAL, portNum.value, DEFAULT_MAX_LOGS)
+            it.meshLogDao().getLogsFromPort(MeshLog.NODE_NUM_LOCAL, portNum.value, DEFAULT_MAX_LOGS)
         }
         .map { list ->
             list
@@ -160,7 +168,10 @@ open class MeshLogRepositoryImpl(
         telemetry
             .newBuilder()
             .also { wb ->
-                wb.time = (log.received_date / TimeConstants.MS_PER_SEC).toInt()
+                val fallbackTime = (log.received_date / TimeConstants.MS_PER_SEC).toInt()
+                val telemetryTime = validSecondsOrNull(telemetry.time, maxValidTime = fallbackTime)
+                val packetTime = validSecondsOrNull(log.fromRadio.packet?.rxTimeOrNull(), maxValidTime = fallbackTime)
+                wb.time = telemetryTime ?: packetTime ?: fallbackTime
                 wb.environment_metrics = telemetry.environment_metrics?.withSentinelsForAbsentReadings()
             }
             .build()
@@ -176,9 +187,10 @@ open class MeshLogRepositoryImpl(
     /** Returns the cached [MyNodeInfo] from the system logs. */
     override fun getMyNodeInfo(): Flow<MyNodeInfo?> = dbManager
         .observeCurrentDb("MeshLogRepository.getMyNodeInfo") { db ->
-            db.meshLogDao().getLogsFrom(MeshLog.NODE_NUM_LOCAL, 0, DEFAULT_MAX_LOGS)
+            db.meshLogDao().getLatestOfType(MeshLog.TYPE_MY_INFO)
         }
-        .mapLatest { list -> list.map { it.asExternalModel() }.firstOrNull { it.myNodeInfo != null }?.myNodeInfo }
+        .mapLatest { log -> log?.asExternalModel()?.myNodeInfo }
+        .distinctUntilChanged()
         .flowOn(dispatchers.io)
 
     // Writes go through withDb so they register with the cross-transport merge drain barrier (see DatabaseProvider).
@@ -272,6 +284,9 @@ open class MeshLogRepositoryImpl(
 
     companion object {
         private const val TELEMETRY_SNAPSHOT_PAGE_SIZE = 512
+
+        /** The `portNum` that asks for a node's logs on every port. */
+        private const val ANY_PORT = -1
 
         /**
          * Rows per retention delete transaction. Each deleted row also dirties roughly one random page of the uuid

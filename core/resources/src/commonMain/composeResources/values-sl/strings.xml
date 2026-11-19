@@ -44,6 +44,7 @@
     <string name="cancel">Prekliči/zavrzi</string>
     <string name="cant_change_no_radio">Menjava ni možna ni radia.</string>
     <string name="cant_shutdown">Izklop na tej napravi ni podprt</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">Uporaba za trenutni kanal, vključno z dobro oblikovanimi TX, RX in napačno oblikovanim RX (šum).</string>
     <!-- CHANNEL -->
     <string name="channel_invalid">Neveljaven kanal</string>
@@ -54,6 +55,8 @@
     <!-- CLEAR -->
     <string name="clear">Počisti</string>
     <string name="close">Zapri</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">Dober</string>
     <!-- COMPASS -->
     <!-- CONFIG -->
     <string name="config_device_ledHeartbeatEnabled_summary">Upravlja utripajočo LED na napravi. Pri večini naprav bo to krmililo eno od največ 4 LED diod, LED napajanja in GPS ni mogoče nadzorovati.</string>
@@ -177,6 +180,7 @@
     <string name="mute_notifications">Utišaj obvestila</string>
     <string name="name">Ime</string>
     <string name="navigate_back">Pojdi nazaj</string>
+    <!-- NEIGHBOR -->
     <string name="new_channel_rcvd">Prejet je bil novi URL kanala</string>
     <!-- NO -->
     <!-- NODE -->
@@ -240,11 +244,11 @@
     <string name="resend">Ponovno pošlji</string>
     <string name="reset">Ponastavi</string>
     <string name="reset_to_defaults">Ponastavi na osnovno</string>
+    <!-- RINGTONE -->
     <!-- ROLE -->
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Prejeta negativna potrditev</string>
     <string name="routing_error_no_route">Brez poti</string>
-    <string name="routing_error_none">Potrjeno</string>
     <string name="routing_error_timeout">Časovna omejitev</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">Indikator moči sprejetega signala je meritev, ki se uporablja za določanje ravni moči, ki jo sprejema antena. Višja vrednost RSSI na splošno pomeni močnejšo in stabilnejšo povezavo.</string>
@@ -260,6 +264,7 @@
     <string name="share_to">Delite z…</string>
     <!-- SHOW -->
     <string name="shutdown">Ugasni</string>
+    <!-- SIGNAL -->
     <string name="signal">Signal</string>
     <string name="signal_quality">Kakovost signala</string>
     <!-- SITE -->
@@ -308,5 +313,6 @@
     <string name="wifi_provision_success_ip_address">IP naslov</string>
     <!-- WIND -->
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">Jaz</string>
 </resources>

@@ -235,6 +235,7 @@ constructor(
                     hasDeviceModel = hasDeviceModel,
                     reportedTarget = pioEnv,
                     isManaged = identity.profile.config?.security?.is_managed ?: false,
+                    canRequestNeighborInfo = identity.profile.module_config?.neighbor_info?.enabled == true,
                     isFahrenheit = temperatureUnit == TemperatureUnit.FAHRENHEIT,
                     pressureInMmHg = pressureInMmHg,
                     displayUnits = displayUnits,

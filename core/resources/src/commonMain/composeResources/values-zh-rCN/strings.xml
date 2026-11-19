@@ -125,7 +125,6 @@
     <string name="bad">差</string>
     <string name="baro_pressure">气压计</string>
     <string name="battery">电池</string>
-    <string name="battery_ina_2xx_i2c_address">电池INA_2XX I2C 地址</string>
     <string name="ble_devices">蓝牙设备</string>
     <!-- BLUETOOTH -->
     <string name="bluetooth">蓝牙</string>
@@ -159,6 +158,7 @@
     <string name="canned_message_enabled">启用预设消息</string>
     <string name="cant_change_no_radio">无法更改频道，因为装置尚未连接。请再试一次。</string>
     <string name="cant_shutdown">此设备不支持关机</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">当前信道的利用情况，包括格式正确的发送(TX）、接收（RX）以及无法解码的接收(即噪声）。</string>
     <!-- CHANNEL -->
     <string name="channel">Ch</string>
@@ -209,8 +209,10 @@
     <string name="client_notification">客户端通知</string>
     <string name="close">关闭</string>
     <string name="close_selection">关闭选中</string>
+    <!-- CO2 -->
     <string name="co2">二氧化碳</string>
     <string name="co2_humidity">二氧化碳 湿度</string>
+    <string name="co2_level_good">良好</string>
     <string name="co2_temperature">二氧化碳 温度</string>
     <string name="collapse_chart">折叠图表</string>
     <string name="collapsed">已折叠</string>
@@ -561,7 +563,6 @@
     <string name="firmware_gate_update">更新固件</string>
     <string name="firmware_old">版本过旧，无法与此应用程序通讯。欲了解更多信息，请参阅 Meshtastic 网站上的<a href="https://meshtastic.org/docs/getting-started/flashing-firmware">韧体安装指南</a>。</string>
     <string name="firmware_recovery_banner">完成更新 %1$s</string>
-    <string name="firmware_recovery_ble_failed">无法通过蓝牙完成更新该设备的原生引导程序无法可靠地完成被中断的无线更新。请使用 USB 数据线将其连接到电脑，并使用厂商提供的串口 DFU 工具（例如 adafruit-nrfutil）重新刷入固件，以恢复设备。</string>
     <string name="firmware_recovery_button">继续固件升级</string>
     <string name="firmware_recovery_dismiss">取消固件恢复</string>
     <string name="firmware_recovery_explanation">此设备目前处于引导程序模式，原因是之前的固件更新未能完成请将其保持在手机附近系统将重新刷入固件以完成更新。</string>
@@ -644,7 +645,6 @@
     <string name="firmware_update_unsupported_transport">此设备不支持通过当前连接进行固件更新.请通过其他方式 (例如蓝牙) 连接以进行更新。</string>
     <string name="firmware_update_unsupported_update_method">此更新方法不支持本地固件文件。</string>
     <string name="firmware_update_uploading">正在上传固件……</string>
-    <string name="firmware_update_usb_bootloader_warning">%1$s通常配备的引导加载程序不支持OTA更新。在进行OTA刷写之前，您可能需要通过USB刷写一个支持OTA的引导加载程序。</string>
     <string name="firmware_update_usb_failed">USB 更新失败</string>
     <string name="firmware_update_usb_instruction_text">您的设备已经重启到 DFU 模式并应显示为 USB 驱动器(如RAK4631)。\n\n当文件选择器打开时，请选择该驱动器的根目录来保存固件文件。</string>
     <string name="firmware_update_usb_instruction_title">选择 DFU USB 驱动器</string>
@@ -739,7 +739,6 @@
     <string name="ip">IP</string>
     <string name="ip_address">IP地址：</string>
     <string name="ip_port">端口：</string>
-    <string name="json_output_enabled">启用JSON输出</string>
     <string name="jump_to_latest_from">%1$s</string>
     <!-- KEY -->
     <string name="key_backup_deleted">密钥备份已删除</string>
@@ -953,7 +952,6 @@
     <string name="messages">消息</string>
     <string name="micrograms_per_cubic_meter">微克每立方米</string>
     <string name="min">最小值</string>
-    <string name="minimum_wake_time_seconds">最小唤醒时间</string>
     <!-- MIRROR -->
     <string name="mirror_back">后退</string>
     <string name="mirror_key_down">下</string>
@@ -1010,6 +1008,7 @@
     <string name="name_cannot_be_empty">名称不能为空。</string>
     <string name="navigate_back">回溯导航</string>
     <string name="navigate_into_label">导航到</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">邻居信息</string>
     <string name="neighbor_info_config">邻居信息设置</string>
     <string name="network">网络</string>
@@ -1128,7 +1127,6 @@
     <string name="options">选项</string>
     <string name="orient_north">朝北</string>
     <string name="overflow_menu">溢出菜单</string>
-    <string name="override_console_serial_port">覆盖控制台串口端口</string>
     <!-- PACKET -->
     <string name="packet_authenticity">数据包身份验证</string>
     <string name="packet_authenticity_balanced">平衡模式 —优先验证身份</string>
@@ -1189,6 +1187,7 @@
     <string name="preserve_favorites">保留收藏夹？</string>
     <string name="press_and_drag">长按并拖动以重新排序</string>
     <string name="pressure">气压</string>
+    <string name="pressure_high">高</string>
     <!-- PREVIEW -->
     <string name="preview_custom_composable_line_one">这是一个自定义组合式组件</string>
     <string name="preview_custom_composable_line_two">包含多行文本与多种样式</string>
@@ -1278,6 +1277,7 @@
     <string name="restore_keys">恢复密钥</string>
     <string name="restore_keys_confirmation">将备份的公钥和私钥恢复到当前节点。</string>
     <string name="retry">重试</string>
+    <!-- RINGTONE -->
     <string name="ringtone">铃声</string>
     <string name="ringtone_file_empty">文件为空</string>
     <string name="ringtone_import_error">导入错误: %1$s</string>
@@ -1302,7 +1302,7 @@
     <string name="routing_error_got_nak">接收到否定确认</string>
     <string name="routing_error_max_retransmit">发送至MESH失败</string>
     <string name="routing_error_no_route">无路径</string>
-    <string name="routing_error_none">已确认</string>
+    <string name="routing_error_none">正在发送</string>
     <string name="routing_error_pki_failed">无法发送加密消息</string>
     <string name="routing_error_pki_send_fail_public_key">接收方密钥不可用</string>
     <string name="routing_error_pki_unknown_pubkey">接收方需要你的密钥</string>
@@ -1388,6 +1388,7 @@
     <string name="shutdown">关机</string>
     <string name="shutdown_node_name">节点 (%1$s</string>
     <string name="shutdown_warning">⚠️ 警告！此操作将会关闭该节点。你需要使用电源开关按键才能重启设备~</string>
+    <!-- SIGNAL -->
     <string name="signal">信号</string>
     <string name="signal_quality">信号质量</string>
     <!-- SITE -->
@@ -1429,7 +1430,6 @@
     <string name="store_forward">存储 &amp; 转发</string>
     <string name="store_forward_config">存储 &amp; 转发配置</string>
     <string name="success">成功</string>
-    <string name="super_deep_sleep_duration_seconds">深度睡眠时间</string>
     <string name="supported">已支持</string>
     <string name="supported_by_community">由 Meshtastic 社区支持</string>
     <string name="swipe_action_delete">删除</string>
@@ -1582,6 +1582,7 @@
     <string name="what_is_meshtastic_description">这是一个开源、离网、分布式 Mesh 网络，可在价格低廉的低功率无线电设备上运行。</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">差</string>
+    <string name="widget_telemetry_title">遥测传感器</string>
     <!-- WIFI -->
     <string name="wifi_devices">MPWRD-OS 系统 Wi-Fi 配置</string>
     <string name="wifi_provision_available_networks">可用网络</string>
@@ -1623,6 +1624,8 @@
     <string name="write_nfc_failed">无法写入标签请使用一张可写入的空白 NFC 标签，并保持手机与标签贴合稳定。</string>
     <string name="write_nfc_success">数据已成功写入标签</string>
     <string name="write_nfc_text">请将一张可写入的 NFC 标签贴在手机背面。</string>
+    <!-- XR -->
+    <string name="xr_terrain_layer_elevation">高度</string>
     <string name="you">你</string>
     <string name="zoom_in">放大</string>
     <string name="zoom_out">缩小</string>

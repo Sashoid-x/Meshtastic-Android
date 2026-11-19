@@ -125,7 +125,6 @@
     <string name="bad">不良</string>
     <string name="baro_pressure">気圧</string>
     <string name="battery">バッテリー</string>
-    <string name="battery_ina_2xx_i2c_address">バッテリー INA_2XX I2C アドレス</string>
     <string name="ble_devices">Bluetooth デバイス</string>
     <!-- BLUETOOTH -->
     <string name="bluetooth">Bluetooth</string>
@@ -159,6 +158,7 @@
     <string name="canned_message_enabled">定型メッセージを有効化</string>
     <string name="cant_change_no_radio">デバイスが未接続のため、チャンネルが変更できませんでした。もう一度やり直してください。</string>
     <string name="cant_shutdown">このデバイスでシャットダウンはサポートされていません</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">現在のチャンネルの使用率。正常な送信（TX）、正常な受信（RX）、および不正な受信 (ノイズ)を含みます。</string>
     <!-- CHANNEL -->
     <string name="channel">Ch</string>
@@ -209,8 +209,14 @@
     <string name="client_notification">クライアント通知</string>
     <string name="close">閉じる</string>
     <string name="close_selection">選択を閉じる</string>
+    <!-- CO2 -->
     <string name="co2">CO₂</string>
     <string name="co2_humidity">CO₂ 湿度</string>
+    <string name="co2_level_evacuate">退避</string>
+    <string name="co2_level_good">良</string>
+    <string name="co2_level_poor">不良</string>
+    <string name="co2_level_stuffy">空気がこもる</string>
+    <string name="co2_level_unsafe">危険</string>
     <string name="co2_temperature">CO₂ 温度</string>
     <string name="collapse_chart">チャートを折りたたむ</string>
     <string name="collapsed">折りたたみ済み</string>
@@ -555,7 +561,6 @@
     <string name="firmware_gate_update">ファームウェアを更新</string>
     <string name="firmware_old">デバイスのファームウェアが古く、アプリと通信ができません。詳細は<a href="https://meshtastic.org/docs/getting-started/flashing-firmware">Firmware Installation guide</a> に記載されています。</string>
     <string name="firmware_recovery_banner">%1$s の更新を完了</string>
-    <string name="firmware_recovery_ble_failed">Bluetooth 経由で更新を完了できませんでした。このデバイスの標準ブートローダーは、中断された更新を OTA で確実に完了できません。デバイスを復旧するには、USB でコンピューターに接続し、ベンダーのシリアル DFU ツール（例：adafruit-nrfutil）を使って再書き込みしてください。</string>
     <string name="firmware_recovery_button">ファームウェア更新を再開</string>
     <string name="firmware_recovery_dismiss">ファームウェアの復旧を閉じる</string>
     <string name="firmware_recovery_explanation">このデバイスは、完了しなかったファームウェア更新によりブートローダーモードになっています。近くに置いておくと、更新を完了するために再書き込みされます。</string>
@@ -632,7 +637,6 @@
     <string name="firmware_update_unsupported_transport">このデバイスでは、この接続方法でのファームウェア更新はサポートされていません。更新するには別の方法（例：Bluetooth）で接続してください。</string>
     <string name="firmware_update_unsupported_update_method">この更新方法では、ローカルのファームウェアファイルはサポートされていません。</string>
     <string name="firmware_update_uploading">ファームウェアをアップロードしています…</string>
-    <string name="firmware_update_usb_bootloader_warning">%1$s は通常、OTA 更新に対応していないブートローダーを搭載して出荷されます。OTA で書き込む前に、USB 経由で OTA 対応のブートローダーを書き込む必要がある場合があります。</string>
     <string name="firmware_update_usb_failed">USB 更新に失敗しました</string>
     <string name="firmware_update_usb_instruction_text">デバイスが DFU モードで再起動し、USB ドライブとして表示されているはずです（例：RAK4631）。\n\nファイル選択画面が開いたら、そのドライブのルートを選択してファームウェアファイルを保存してください。</string>
     <string name="firmware_update_usb_instruction_title">DFU USB ドライブを選択</string>
@@ -727,7 +731,6 @@
     <string name="ip">IP</string>
     <string name="ip_address">IPアドレス：</string>
     <string name="ip_port">ポート：</string>
-    <string name="json_output_enabled">JSON出力の有効化</string>
     <string name="jump_to_latest_from">%1$s</string>
     <!-- KEY -->
     <string name="key_backup_deleted">鍵のバックアップを削除しました</string>
@@ -937,7 +940,6 @@
     <string name="messages">メッセージ</string>
     <string name="micrograms_per_cubic_meter">µg/m³</string>
     <string name="min">最小</string>
-    <string name="minimum_wake_time_seconds">最小起動時間</string>
     <!-- MIRROR -->
     <string name="mirror_back">戻る</string>
     <string name="mirror_key_ok">OK</string>
@@ -990,6 +992,7 @@
     <string name="name_cannot_be_empty">名前を空にすることはできません。</string>
     <string name="navigate_back">前に戻る</string>
     <string name="navigate_into_label">ナビゲートする</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">隣接ノード情報</string>
     <string name="neighbor_info_config">近隣ノード情報  (Neighbor Info) の設定</string>
     <string name="network">ネットワーク</string>
@@ -1108,7 +1111,6 @@
     <string name="options">オプション</string>
     <string name="orient_north">北を上に向ける</string>
     <string name="overflow_menu">オーバーフローメニュー</string>
-    <string name="override_console_serial_port">コンソールのシリアルポートを上書き</string>
     <!-- PACKET -->
     <string name="packet_authenticity">パケットの真正性</string>
     <string name="packet_authenticity_balanced">バランス：認証済みを優先</string>
@@ -1169,6 +1171,7 @@
     <string name="preserve_favorites">お気に入りを保持しますか？</string>
     <string name="press_and_drag">長押ししてドラッグで並び替え</string>
     <string name="pressure">気圧</string>
+    <string name="pressure_high">高</string>
     <!-- PREVIEW -->
     <string name="preview_custom_composable_line_one">これはカスタムコンポーザブルです</string>
     <string name="preview_custom_composable_line_two">複数行とスタイルを使用</string>
@@ -1259,6 +1262,7 @@
     <string name="restore_keys">鍵を復元</string>
     <string name="restore_keys_confirmation">バックアップした公開鍵と秘密鍵をこのノードに復元します。</string>
     <string name="retry">再試行</string>
+    <!-- RINGTONE -->
     <string name="ringtone">着信音</string>
     <string name="ringtone_file_empty">ファイルが空です</string>
     <string name="ringtone_import_error">インポートエラー：%1$s</string>
@@ -1283,7 +1287,7 @@
     <string name="routing_error_got_nak">相手が正常に受信できませんでした</string>
     <string name="routing_error_max_retransmit">メッシュへの配信に失敗しました</string>
     <string name="routing_error_no_route">ルートがありません</string>
-    <string name="routing_error_none">相手の受信を確認しました</string>
+    <string name="routing_error_none">受信者に配信済み</string>
     <string name="routing_error_pki_failed">暗号化メッセージを送信できませんでした</string>
     <string name="routing_error_pki_send_fail_public_key">受信者の鍵を利用できません</string>
     <string name="routing_error_pki_unknown_pubkey">受信者にあなたの鍵が必要です</string>
@@ -1369,6 +1373,7 @@
     <string name="shutdown">シャットダウン</string>
     <string name="shutdown_node_name">ノード：%1$s</string>
     <string name="shutdown_warning">⚠️ ノードをシャットダウンします。再びオンにするには物理的な操作が必要になります。</string>
+    <!-- SIGNAL -->
     <string name="signal">信号</string>
     <string name="signal_quality">信号品質</string>
     <!-- SITE -->
@@ -1410,7 +1415,6 @@
     <string name="store_forward">ストアアンドフォワード</string>
     <string name="store_forward_config">ストアアンドフォワード設定</string>
     <string name="success">成功</string>
-    <string name="super_deep_sleep_duration_seconds">スーパーディープスリープの時間</string>
     <string name="supported">対応済み</string>
     <string name="supported_by_community">Meshtastic コミュニティによるサポート</string>
     <string name="swipe_action_delete">削除</string>
@@ -1555,6 +1559,7 @@
     <string name="weight">重さ</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">不良</string>
+    <string name="widget_telemetry_title">テレメトリ</string>
     <!-- WIFI -->
     <string name="wifi_devices">mPWRD-OS の Wi-Fi プロビジョニング</string>
     <string name="wifi_provision_available_networks">利用可能なネットワーク</string>
@@ -1596,5 +1601,6 @@
     <string name="write_nfc_failed">タグに書き込めませんでした。書き込み可能な空の NFC タグを使い、動かさずに近づけてください。</string>
     <string name="write_nfc_success">タグに書き込みました</string>
     <string name="write_nfc_text">書き込み可能な NFC タグをスマートフォンの背面に近づけてください。</string>
+    <!-- XR -->
     <string name="you">あなた</string>
 </resources>

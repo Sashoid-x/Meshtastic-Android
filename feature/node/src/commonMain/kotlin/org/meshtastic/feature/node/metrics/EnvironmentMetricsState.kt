@@ -17,6 +17,7 @@
 package org.meshtastic.feature.node.metrics
 
 import androidx.compose.ui.graphics.Color
+import org.meshtastic.core.common.util.MetricFormatter
 import org.meshtastic.core.model.util.UnitConversions
 import org.meshtastic.core.ui.theme.GraphColors.Amber
 import org.meshtastic.core.ui.theme.GraphColors.Blue
@@ -164,6 +165,123 @@ enum class Environment(val color: Color) {
     }
 }
 
+private const val PRESSURE_DEFAULT_MIN = 950.0
+private const val PRESSURE_DEFAULT_MAX = 1050.0
+private const val PRESSURE_WINDOW_HPA = PRESSURE_DEFAULT_MAX - PRESSURE_DEFAULT_MIN
+
+private const val PRESSURE_DEFAULT_MIN_MMHG = PRESSURE_DEFAULT_MIN * MetricFormatter.MMHG_PER_HPA
+private const val PRESSURE_DEFAULT_MAX_MMHG = PRESSURE_DEFAULT_MAX * MetricFormatter.MMHG_PER_HPA
+private const val PRESSURE_WINDOW_MMHG = PRESSURE_WINDOW_HPA * MetricFormatter.MMHG_PER_HPA
+
+/**
+ * Y-axis bounds for the barometric-pressure layer, given the plotted data's [dataMin]/[dataMax].
+ *
+ * Uses a fixed [PRESSURE_WINDOW_HPA]-wide window so a given pressure change is always the same visual size (design#53's
+ * "consistent scale"). Near sea level this is the standard [PRESSURE_DEFAULT_MIN]–[PRESSURE_DEFAULT_MAX]; for a node at
+ * altitude (lower station pressure) the same-width window slides down so readings aren't clipped. It only widens past
+ * the fixed width if a single node's readings genuinely span more than the window.
+ */
+internal fun pressureAxisRange(dataMin: Double, dataMax: Double, inMmHg: Boolean = false): Pair<Double, Double> {
+    val defaultMin = if (inMmHg) PRESSURE_DEFAULT_MIN_MMHG else PRESSURE_DEFAULT_MIN
+    val defaultMax = if (inMmHg) PRESSURE_DEFAULT_MAX_MMHG else PRESSURE_DEFAULT_MAX
+    val window = if (inMmHg) PRESSURE_WINDOW_MMHG else PRESSURE_WINDOW_HPA
+
+    return when {
+        dataMax - dataMin > window -> dataMin to dataMax
+        dataMin < defaultMin -> dataMin to (dataMin + window)
+        dataMax > defaultMax -> (dataMax - window) to dataMax
+        else -> defaultMin to defaultMax
+    }
+}
+
+/** Units that share a chart axis. One chart is drawn per group, and only when a member has data. */
+internal enum class EnvironmentChartGroup {
+    TEMPERATURE,
+    HUMIDITY,
+    PRESSURE,
+    IAQ,
+    GAS_RESISTANCE,
+    LUX,
+    UV_LUX,
+    WIND,
+    RADIATION,
+    VOLTAGE,
+}
+
+internal val Environment.chartGroup: EnvironmentChartGroup
+    get() =
+        when (this) {
+            Environment.TEMPERATURE,
+            Environment.SOIL_TEMPERATURE,
+            in Environment.oneWireTemperatures,
+            -> EnvironmentChartGroup.TEMPERATURE
+
+            Environment.HUMIDITY,
+            Environment.SOIL_MOISTURE,
+            -> EnvironmentChartGroup.HUMIDITY
+
+            Environment.BAROMETRIC_PRESSURE -> EnvironmentChartGroup.PRESSURE
+
+            Environment.IAQ -> EnvironmentChartGroup.IAQ
+
+            Environment.GAS_RESISTANCE -> EnvironmentChartGroup.GAS_RESISTANCE
+
+            Environment.LUX -> EnvironmentChartGroup.LUX
+
+            Environment.UV_LUX -> EnvironmentChartGroup.UV_LUX
+
+            Environment.WIND_SPEED -> EnvironmentChartGroup.WIND
+
+            Environment.RADIATION -> EnvironmentChartGroup.RADIATION
+
+            in Environment.adcVoltages -> EnvironmentChartGroup.VOLTAGE
+
+            else -> error("Unmapped environment metric $this")
+        }
+
+/** Splits [plotted] into chart groups in group order; a group with no plotted metric is absent. */
+internal fun groupEnvironmentMetrics(
+    plotted: Collection<Environment>,
+): List<Pair<EnvironmentChartGroup, List<Environment>>> = EnvironmentChartGroup.entries.mapNotNull { group ->
+    plotted.filter { it.chartGroup == group }.takeIf { it.isNotEmpty() }?.let { group to it }
+}
+
+private const val TEMPERATURE_PAD_FRACTION = 0.1
+private const val TEMPERATURE_MIN_PAD = 1.0
+private const val HUMIDITY_AXIS_MAX = 100.0
+
+/**
+ * Fixed Y bounds for a chart group, or null to autoscale. Temperature is padded around its data and never pinned to
+ * zero, humidity is always 0-100 %, pressure uses [pressureAxisRange].
+ */
+internal fun environmentAxisRange(
+    group: EnvironmentChartGroup,
+    dataMin: Double,
+    dataMax: Double,
+    inMmHg: Boolean = false,
+): Pair<Double, Double>? = when (group) {
+    EnvironmentChartGroup.TEMPERATURE -> {
+        val pad = maxOf((dataMax - dataMin) * TEMPERATURE_PAD_FRACTION, TEMPERATURE_MIN_PAD)
+        (dataMin - pad) to (dataMax + pad)
+    }
+
+    EnvironmentChartGroup.HUMIDITY -> 0.0 to HUMIDITY_AXIS_MAX
+
+    EnvironmentChartGroup.PRESSURE -> pressureAxisRange(dataMin, dataMax, inMmHg)
+
+    else -> null
+}
+
+private const val WHOLE_LABEL_MIN_SPAN = 8.0
+private const val ONE_DECIMAL_LABEL_MIN_SPAN = 0.8
+
+/** Decimal places for axis labels over a Y range [span] wide, so neighboring ticks never round to the same text. */
+internal fun axisLabelDecimals(span: Double): Int = when {
+    span >= WHOLE_LABEL_MIN_SPAN -> 0
+    span >= ONE_DECIMAL_LABEL_MIN_SPAN -> 1
+    else -> 2
+}
+
 /**
  * @param metrics the [List] of [Telemetry]
  * @param shouldPlot a [List] the size of [Environment] used to determine if a metric should be plotted
@@ -214,8 +332,9 @@ data class EnvironmentMetricsState(val environmentMetrics: List<Telemetry> = emp
         }
 
         // Relative Humidity
-        val humidities =
-            telemetries.mapNotNull { it.environment_metrics?.relative_humidity?.takeIf { !it.isNaN() && it != 0.0f } }
+        val humidities = telemetries.mapNotNull {
+            it.environment_metrics?.relative_humidity?.takeIf { !it.isNaN() }
+        }
         if (humidities.isNotEmpty()) {
             minValues.add(humidities.minOf { it })
             maxValues.add(humidities.maxOf { it })
@@ -223,8 +342,9 @@ data class EnvironmentMetricsState(val environmentMetrics: List<Telemetry> = emp
         }
 
         // Soil Temperature
-        val soilTemperatures =
-            telemetries.mapNotNull { it.environment_metrics?.soil_temperature?.takeIf { !it.isNaN() } }
+        val soilTemperatures = telemetries.mapNotNull {
+            it.environment_metrics?.soil_temperature?.takeIf { !it.isNaN() }
+        }
         if (soilTemperatures.isNotEmpty()) {
             var minSoilTemperatureValue = soilTemperatures.minOf { it }
             var maxSoilTemperatureValue = soilTemperatures.maxOf { it }
@@ -238,8 +358,9 @@ data class EnvironmentMetricsState(val environmentMetrics: List<Telemetry> = emp
         }
 
         // Soil Moisture
-        val soilMoistures =
-            telemetries.mapNotNull { it.environment_metrics?.soil_moisture?.takeIf { it != Int.MIN_VALUE } }
+        val soilMoistures = telemetries.mapNotNull {
+            it.environment_metrics?.soil_moisture?.takeIf { it != Int.MIN_VALUE }
+        }
         if (soilMoistures.isNotEmpty()) {
             minValues.add(soilMoistures.minOf { it.toFloat() })
             maxValues.add(soilMoistures.maxOf { it.toFloat() })
@@ -289,8 +410,9 @@ data class EnvironmentMetricsState(val environmentMetrics: List<Telemetry> = emp
         }
 
         // Radiation (uses separate fixed axis with minY=0 per Oscar's guidance)
-        val radiationValues =
-            telemetries.mapNotNull { it.environment_metrics?.radiation?.takeIf { !it.isNaN() && it > 0f } }
+        val radiationValues = telemetries.mapNotNull {
+            it.environment_metrics?.radiation?.takeIf { !it.isNaN() }
+        }
         if (radiationValues.isNotEmpty()) {
             minValues.add(radiationValues.minOf { it })
             maxValues.add(radiationValues.maxOf { it })

@@ -97,7 +97,6 @@
     <string name="bad">Dålig</string>
     <string name="baro_pressure">Tryck</string>
     <string name="battery">Batteri</string>
-    <string name="battery_ina_2xx_i2c_address">Batteriets INA_2XX I2C-adress</string>
     <string name="ble_devices">Blåtandsenheter</string>
     <!-- BLUETOOTH -->
     <string name="bluetooth">Bluetooth</string>
@@ -118,6 +117,7 @@
     <string name="canned_message_enabled">Fördefinierade meddelanden är aktiverat</string>
     <string name="cant_change_no_radio">Det gick inte att byta kanal, eftersom radiomodulen ännu inte är ansluten. Försök igen.</string>
     <string name="cant_shutdown">Enhet stöder inte avstängning</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">Utnyttjande av den nuvarande kanalen, inklusive välformad TX, RX och felformaterad RX (sk. brus).</string>
     <!-- CHANNEL -->
     <string name="channel">Ch</string>
@@ -152,6 +152,8 @@
     <string name="client_notification">Meddelande från enheten</string>
     <string name="close">Stäng</string>
     <string name="close_selection">Stäng markerade</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">Bra</string>
     <string name="collapse_chart">Minimera diagram</string>
     <string name="communicate_off_the_grid">Kommunicera med din släkt och dina vänner utan online- och mobiltjänster.</string>
     <!-- COMPASS -->
@@ -521,7 +523,6 @@
     <string name="ip">Ip-adress</string>
     <string name="ip_address">IP-adress:</string>
     <string name="ip_port">Port:</string>
-    <string name="json_output_enabled">JSON-utdata aktiverad</string>
     <string name="jump_to_latest_from">%1$s</string>
     <!-- KEY -->
     <string name="last_heard_filter_label">Filtrera på senaste kontakt: %1$s</string>
@@ -703,6 +704,7 @@
     <string name="name_cannot_be_empty">Namn kan inte vara tomt.</string>
     <string name="navigate_back">Tillbaka</string>
     <string name="navigate_into_label">Navigera till</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">Granninformation</string>
     <string name="neighbor_info_config">Konfiguration av grannskapsinformation</string>
     <string name="network">Nätverk</string>
@@ -853,6 +855,7 @@
     <string name="preserve_favorites">Behåll favoriter?</string>
     <string name="press_and_drag">Tryck och dra för att ändra ordning</string>
     <string name="pressure">Tryck</string>
+    <string name="pressure_high">Hög</string>
     <!-- PREVIEW -->
     <string name="preview_custom_composable_line_two">Med flera rader och stilar</string>
     <string name="preview_dot">Punkt</string>
@@ -939,6 +942,7 @@
     <string name="reset_to_defaults">Återställ till standardinställningar</string>
     <string name="restore_keys">Återställ nycklar</string>
     <string name="retry">Försök igen</string>
+    <!-- RINGTONE -->
     <string name="ringtone">Ringsignal</string>
     <string name="ringtone_file_empty">Filen är tom</string>
     <string name="ringtone_import_error">Fel vid import: %1$s</string>
@@ -961,7 +965,7 @@
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Misslyckad kvittens</string>
     <string name="routing_error_no_route">Ingen rutt</string>
-    <string name="routing_error_none">Kvitterad</string>
+    <string name="routing_error_none">Levereras till mottagaren</string>
     <string name="routing_error_timeout">Timeout</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">Received Signal Strength Indicator, ett mått som används för att avgöra effektnivån som togs emot av antennen. Ett högre RSSI-värde indikerar generellt en starkare och stabilare anslutning.</string>
@@ -1038,6 +1042,7 @@
     <string name="shutdown">Stäng av</string>
     <string name="shutdown_node_name">Nod: %1$s</string>
     <string name="shutdown_warning">⚠️ Detta kommer STÄNGA AV noden. Fysisk interaktion kommer att krävas för att slå på den.</string>
+    <!-- SIGNAL -->
     <string name="signal">Signal</string>
     <string name="signal_quality">Signalkvalité</string>
     <!-- SITE -->
@@ -1072,7 +1077,6 @@
     <string name="store_forward">Lagra &amp; Vidarebefordra</string>
     <string name="store_forward_config">Lagra &amp; Vidarebefordra konfiguration</string>
     <string name="success">Lyckades</string>
-    <string name="super_deep_sleep_duration_seconds">Tid för djup strömsparläge</string>
     <string name="supported">Stöds</string>
     <string name="supported_by_community">Stöds av Meshtastic Community</string>
     <string name="swipe_action_delete">Radera</string>
@@ -1194,6 +1198,7 @@
     <string name="weight">Vikt</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">Dålig</string>
+    <string name="widget_telemetry_title">Telemetri</string>
     <!-- WIFI -->
     <string name="wifi_provision_available_networks">Tillgängliga nätverk</string>
     <string name="wifi_provision_connect_failed">Kunde inte ansluta: %1$s</string>
@@ -1218,6 +1223,8 @@
     <string name="wind">Vind</string>
     <string name="wind_speed">Vindhastighet</string>
     <!-- WRITE -->
+    <!-- XR -->
+    <string name="xr_terrain_layer_elevation">Höjd</string>
     <string name="you">Du</string>
     <string name="zoom_in">Zooma in</string>
     <string name="zoom_out">Zooma ut</string>

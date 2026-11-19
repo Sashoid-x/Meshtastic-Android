@@ -42,6 +42,7 @@
     <string name="bottom_nav_settings">الإعدادات</string>
     <string name="calculating">جاري الحساب…</string>
     <string name="cancel">إلغاء</string>
+    <!-- CARDINAL -->
     <!-- CHANNEL -->
     <string name="channel_1">القناة 1</string>
     <string name="channel_2">القناة 2</string>
@@ -58,6 +59,8 @@
     <!-- CLEAR -->
     <string name="clear">مسح</string>
     <string name="close">أغلق</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">جيد</string>
     <!-- COMPASS -->
     <!-- CONFIG -->
     <string name="connected_sleeping">تم الاتصال بالراديو، إلا أن الجهاز في وضعية السكون</string>
@@ -164,6 +167,7 @@
     <string name="mute_notifications">كتم الإشهارات</string>
     <string name="name">الاسم</string>
     <string name="navigate_back">العودة إلى الخلف</string>
+    <!-- NEIGHBOR -->
     <string name="new_channel_rcvd">تم تلقي رابط القناة الجديدة</string>
     <!-- NO -->
     <!-- NODE -->
@@ -214,11 +218,11 @@
     <string name="resend">إعادة الإرسال</string>
     <string name="reset">إعادة التشغيل</string>
     <string name="reset_to_defaults">العودة إلى الإعدادات الأصلية</string>
+    <!-- RINGTONE -->
     <!-- ROLE -->
     <!-- ROUTING -->
     <string name="routing_error_got_nak">لم يستلم</string>
     <string name="routing_error_no_route">لاطريق</string>
-    <string name="routing_error_none">استلم</string>
     <string name="routing_error_timeout">استغرق وقت طويل</string>
     <string name="rssi">مؤشر القوة النسبية</string>
     <string name="save">حفظ</string>
@@ -234,6 +238,7 @@
     <string name="share">مشاركة</string>
     <string name="share_to">سجل تتبع المس…</string>
     <!-- SHOW -->
+    <!-- SIGNAL -->
     <string name="signal">الإشارة</string>
     <string name="signal_quality">جودة الإشارة</string>
     <!-- SITE -->
@@ -267,5 +272,6 @@
     <string name="wifi_provision_success_ip_address">عنوان الـ IP</string>
     <!-- WIND -->
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">أنت</string>
 </resources>

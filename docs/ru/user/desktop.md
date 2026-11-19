@@ -1,7 +1,7 @@
 ---
 title: Настольное приложение
 nav_order: 14
-last_updated: 2026-10-21
+last_updated: 2026-11-15
 description: Установка и использование приложения Meshtastic Desktop на Linux, macOS и Windows — подключения, функционал и сочетания клавиш.
 aliases:
   - desktop
@@ -13,36 +13,37 @@ aliases:
 
 # Настольное приложение
 
-This page covers installing the Meshtastic desktop app, connecting a node, and how it differs from Android. The desktop app shares its core codebase with Android via Kotlin Multiplatform, so most features work identically across Linux, macOS, and Windows.
+Эта страница описывает установку приложения Meshtastic для десктопа, подключение ноды и как оно отличается от Android. Десктопное приложение разделяет основной код с Android через Kotlin Multiplatform, так что большинство функций работают идентично Linux, macOS и Windows.
 
 ## Установка
 
 ### Linux
 
-- Download the `.deb`, `.rpm`, or `.AppImage` package from the [releases page](https://github.com/meshtastic/Meshtastic-Android/releases). Each comes in an x86_64 and an arm64 (aarch64) build.
-- The AppImage carries its own update information, so AppImageUpdate and other zsync-based updaters can update it in place to the latest production release.
-- Or install from Flathub: `flatpak install flathub org.meshtastic.MeshtasticDesktop`
+- Скачай `.deb`, `.rpm`, или `.AppImage` со [страницы релизов](https://github.com/meshtastic/Meshtastic-Android/releases). Каждый из них содержит сборку x86_64 и arm64 (aarch64).
+- `.deb` пакет рекомендует `fonts-noto-color-emoji`. Эмодзи рисуются из системных шрифтов, поэтому на минимальном десктопе без шрифта цветовых эмодзи, таких как Raspberry Pi OS, установи его или эмодзи будут отображаться как коробки. `.rpm` и `.AppImage` не содержат такой рекомендации.
+- AppImage содержит свою собственную информацию об обновлении, так что AppImageUpdate и другие обновляющие серверы могут обновить её до последнего выпуска продукта.
+- Или установи из Flathub: `flatpak install flathub org.meshtastic.MeshtasticDesktop`
 - Или соберите из исходного кода с помощью `./gradlew :desktopApp:run`
 
 ### macOS
 
-- Download the `.dmg` package from the [releases page](https://github.com/meshtastic/Meshtastic-Android/releases). It is built for Apple silicon only.
+- Загрузи `.dmg` со [страницы релизов](https://github.com/meshtastic/Meshtastic-Android/releases). Он создан только для Apple silicon.
 - Или соберите из исходных кодов
 
 ### Windows
 
-- Download the `.msi` or `.exe` installer from the [releases page](https://github.com/meshtastic/Meshtastic-Android/releases). Both are x64 builds.
+- Загрузи `.msi` или `.exe` инсталлятор со [страницы релизов](https://github.com/meshtastic/Meshtastic-Android/releases). Обе сборки x64.
 - Или соберите из исходных кодов
 
-## Подключение твоей радиостанции
+## Подключение к ноде
 
-All three transports live on the **Connect** tab, the same as on Android. Pick one with the transport selector. See [Connections](connections) for the full walkthrough.
+Все три вида транспорта доступны на вкладке "Подключение", так же, как и на Android. Выбери один с помощью транспортного селектора. Полное пошаговое руководство приведено в разделе [Подключения] (connections).
 
 ### Последовательная USB (Основной)
 
-The most reliable connection method on desktop:
+Самый надежный метод подключения к компьютеру:
 
-Connect your node by USB, select **USB** in the transport selector, and click the node's serial port in the list. The list refreshes on its own as ports appear and disappear.
+Подключите свою ноду по USB, выбери **USB** в транспортном селекторе и нажми на последовательный порт ноды в списке. The list refreshes on its own as ports appear and disappear.
 
 ### TCP/IP
 
@@ -145,7 +146,7 @@ cd Meshtastic-Android
 - The USB maintenance flow — nRF52/RP2040 factory erase and bootloader upgrade — is Android-only, and the
   desktop app does not offer it. Use the [Web Flasher](https://flasher.meshtastic.org) instead
 - Некоторые специфичные для Android функции (виджеты, отдельные каналы уведомлений) недоступны
-- Производительность может варьироваться на маломощном оборудовании при запуске Compose Desktop
+- Performance may vary on low-spec hardware running Compose Desktop. The JVM sizes the heap itself, at most a quarter of the machine's RAM, so a small board gets a small heap and a large mesh slows it down
 - BLE bonding is not supported on desktop (pairing works without bonding)
 
 ## Связанные темы

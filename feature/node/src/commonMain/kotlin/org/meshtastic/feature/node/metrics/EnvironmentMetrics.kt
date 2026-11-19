@@ -212,7 +212,7 @@ private fun HumidityAndBarometricPressureDisplay(
                         text =
                         "${stringResource(
                             Res.string.humidity,
-                        )} ${MetricFormatter.percent(humidity, decimalPlaces = 2)}",
+                        )} ${MetricFormatter.percent(humidity, decimalPlaces = 0)}",
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(vertical = 0.dp),
@@ -224,7 +224,7 @@ private fun HumidityAndBarometricPressureDisplay(
                     MetricIndicator(Environment.BAROMETRIC_PRESSURE.color)
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = MetricFormatter.pressure(pressure, inMmHg = pressureInMmHg, decimalPlaces = 2),
+                        text = MetricFormatter.pressure(pressure, inMmHg = pressureInMmHg, decimalPlaces = 1),
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.labelLarge,
                         modifier = Modifier.padding(vertical = 0.dp),
@@ -341,7 +341,7 @@ private fun VoltageCurrentDisplay(envMetrics: org.meshtastic.proto.EnvironmentMe
                     text =
                     "${stringResource(
                         Res.string.current,
-                    )} ${MetricFormatter.current(currentValue, decimalPlaces = 2)}",
+                    )} ${MetricFormatter.current(currentValue, decimalPlaces = 1)}",
                     color = MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.labelLarge,
                 )
@@ -375,7 +375,7 @@ private fun GasCompositionDisplay(envMetrics: org.meshtastic.proto.EnvironmentMe
                     MetricIndicator(Environment.GAS_RESISTANCE.color)
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = formatString("%s %.2f Ohm", stringResource(Res.string.gas_resistance), gasResistance),
+                        text = formatString("%s %.2f MΩ", stringResource(Res.string.gas_resistance), gasResistance),
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.labelLarge,
                     )
@@ -388,13 +388,13 @@ private fun GasCompositionDisplay(envMetrics: org.meshtastic.proto.EnvironmentMe
 @Composable
 private fun RadiationDisplay(envMetrics: org.meshtastic.proto.EnvironmentMetrics) {
     envMetrics.radiation?.let { radiation ->
-        if (!radiation.isNaN() && radiation > 0f) {
+        if (!radiation.isNaN()) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     MetricIndicator(Environment.RADIATION.color)
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        text = formatString("%s %.2f µR/h", stringResource(Res.string.radiation), radiation),
+                        text = formatString("%s %.1f µR/h", stringResource(Res.string.radiation), radiation),
                         color = MaterialTheme.colorScheme.onSurface,
                         style = MaterialTheme.typography.labelLarge,
                     )
@@ -608,7 +608,7 @@ private fun EnvironmentMetricsCard(
 }
 
 @Composable
-private fun EnvironmentMetricsContent(
+internal fun EnvironmentMetricsContent(
     telemetry: Telemetry,
     environmentDisplayFahrenheit: Boolean,
     isImperial: Boolean,

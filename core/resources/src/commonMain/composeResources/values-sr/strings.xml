@@ -66,6 +66,7 @@
     <string name="cancel">Откажи</string>
     <string name="cant_change_no_radio">Није било могуће променити канал, јер радио још није повезан. Молимо покушајте поново.</string>
     <string name="cant_shutdown">Искључивање није подржано на овом уређају</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">Искоришћење за тренутни канал, укључујући добро формиран TX, RX и неисправан RX (такође познат као шум).</string>
     <!-- CHANNEL -->
     <string name="channel_1">Канал 1</string>
@@ -86,6 +87,8 @@
     <!-- CLEAR -->
     <string name="clear">Очисти</string>
     <string name="close">Затвори</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">Добро</string>
     <!-- COMPASS -->
     <!-- CONFIG -->
     <string name="config_device_ledHeartbeatEnabled_summary">Контролише трепћућу LED лампицу на уређају. За већину уређаја ово ће контролисати једну од до 4 LED лампице, LED лампице за пуњач и GPS нису контролисане.</string>
@@ -290,6 +293,7 @@
     <string name="mute_notifications">Утишај нотификације</string>
     <string name="name">Назив</string>
     <string name="navigate_back">Иди назад</string>
+    <!-- NEIGHBOR -->
     <string name="network">Мрежа</string>
     <string name="new_channel_rcvd">Примљен нови линк канала</string>
     <!-- NO -->
@@ -380,6 +384,7 @@
     <string name="resend">Поново пошаљи</string>
     <string name="reset">Поново покрени</string>
     <string name="reset_to_defaults">Врати на подразумевана подешавања</string>
+    <!-- RINGTONE -->
     <string name="ringtone">Мелодија звона</string>
     <!-- ROLE -->
     <string name="role">Улога уређаја</string>
@@ -396,7 +401,6 @@
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Примљена негативна потврда</string>
     <string name="routing_error_no_route">Нема руте</string>
-    <string name="routing_error_none">Потврђено</string>
     <string name="routing_error_timeout">Истекло време</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">Индикатор јачине примљеног сигнала RSSI је мера која се користи за одређивање нивоа снаге која се прима преко антене. Виша вредност RSSI генерално указује на јачу и стабилнију везу.</string>
@@ -421,6 +425,7 @@
     <string name="short_name">Кратко име</string>
     <!-- SHOW -->
     <string name="shutdown">Искључи</string>
+    <!-- SIGNAL -->
     <string name="signal">Сингал</string>
     <string name="signal_quality">Квалитет сигнала</string>
     <!-- SITE -->
@@ -489,11 +494,13 @@
     <string name="what_is_meshtastic_description">Отворена, off-grid, децентрализована, меш мрежа која ради на приступачним радио уређајима мале снаге.</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">Лош</string>
+    <string name="widget_telemetry_title">Телеметрија (сензори)</string>
     <!-- WIFI -->
     <string name="wifi_provision_success_ip_address">IP адреса</string>
     <string name="wifi_provision_success_username">Корисничко име</string>
     <!-- WIND -->
     <string name="wind_speed">Брзина ветра</string>
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">Ти</string>
 </resources>

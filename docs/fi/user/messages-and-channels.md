@@ -1,7 +1,7 @@
 ---
 title: Viestit ja kanavat
 nav_order: 3
-last_updated: 2026-10-21
+last_updated: 2026-11-15
 description: Lähetä ja vastaanota viestejä, hallitse kanavia, määritä salaus, hae keskusteluja sekä käytä pikachatia, reaktioita ja viestitoimintoja.
 aliases:
   - kanavat
@@ -45,9 +45,18 @@ Key length alone does not change the icon: a 128-bit key and a 256-bit key both 
 4. Set the channel name and the **PSK**, and choose whether the channel uses MQTT uplink and downlink. Naming a new channel generates a fresh 256-bit key for you; the refresh icon beside **PSK** generates another one.
 5. Tap **Save** to close the editor. The change is still only on your phone.
 6. Tap **Send** at the bottom of the channel list to write the changes to the node. **Cancel**, or leaving the screen without tapping **Send**, throws them away.
-7. Optional: share the channel URL or QR code with the people who need access.
+7. Optional: share the channels with the people who need access — see [Sharing and importing channels](#sharing-and-importing-channels).
 
-Tapping an existing channel opens the same editor, where you can change the name, the PSK, MQTT uplink and downlink, and position precision. Every edit on this screen — adding, editing, deleting, or dragging a channel into a new order — waits on **Send** the same way.
+Tapping an existing channel opens the same editor, where you can change the name, the PSK, MQTT uplink and downlink, and position precision. On a channel that is not securely encrypted, **Precise location** is disabled and the precision slider stops at 15 bits. Every edit on this screen — adding, editing, deleting, or dragging a channel into a new order — waits on **Send** the same way.
+
+### Sharing and importing channels
+
+On the **Channels** screen, tap **Share Channels** to show a QR code and a link for the channels on your node. Choose what the code does on the other person's node before you hand it out:
+
+- **Replace** overwrites every channel on their node with yours and applies your LoRa settings.
+- **Add** keeps their channels and LoRa settings and appends yours.
+
+To take in someone else's channels, use the import button on the same screen: **Scan Shared Channels QR Code**, **Input Shared Channels URL**, or, on a phone with NFC, **Scan Shared Channels NFC**. For an Add code, the app lists the incoming channels so you can select the ones you want and shows how many of your node's channel slots are in use. If the selection doesn't fit, a line says how many channels to uncheck. Unchecking a channel that is already on your node removes it.
 
 ### Archived Channels
 
@@ -85,8 +94,10 @@ On a hardware keyboard, Enter sends the message and Shift+Enter starts a new lin
 
 - **Lähettämättömät luonnokset säilyvät.** Kirjoita viesti keskusteluun ja poistu lähettämättä sitä, niin teksti on edelleen tallessa, kun palaat. Rivillä näkyy viimeisimmän viestin sijasta `Draft: …` — lähettämätön luonnos pitää rivin ylimpänä.
 - **Lukematon**-merkki: Laskuri näkyy rivillä, kunnes avaat keskustelun.
-- **Pyyhkäise oikealle mykistääksesi** (pyyhkäise uudelleen poistaaksesi mykistyksen) ja **pyyhkäise vasemmalle poistaaksesi**. Poistaminen kysyy ensin vahvistuksen, mykistäminen näyttää **Kumoa**-toiminnon sisältävän ilmoituspalkin.
-- **Kosketa pitkään valitaksesi** yhden tai useamman keskustelun ja käytä sitten toimintopalkkia niiden **kiinnittämiseen**, **merkitsemiseen lukemattomiksi**, mykistämiseen tai poistamiseen yhdessä. When every selected conversation is already
+- **Pyyhkäise oikealle mykistääksesi** (pyyhkäise uudelleen poistaaksesi mykistyksen) ja **pyyhkäise vasemmalle poistaaksesi**. A swipe mutes
+  until you unmute. Deleting asks first; muting shows a snackbar with **Undo**.
+- **Kosketa pitkään valitaksesi** yhden tai useamman keskustelun ja käytä sitten toimintopalkkia niiden **kiinnittämiseen**, **merkitsemiseen lukemattomiksi**, mykistämiseen tai poistamiseen yhdessä. The action bar's mute opens **Mute notifications**,
+  where you choose **8 hours**, **1 week**, or **Always**, or **Unmute**. When every selected conversation is already
   pinned, **Pin** becomes **Unpin**. Pinned conversations carry a pin marker and rise to the top
   of **their own section**.
 - **Luettelo on jaettu Kanaviin ja Suoraviesteihin**, joilla kummallakin on oma kutistettava otsikkonsa ja jotka lajitellaan erikseen — siksi kiinnitetty suoraviesti nousee oman osionsa alkuun, ei Kanavat-osion yläpuolelle.

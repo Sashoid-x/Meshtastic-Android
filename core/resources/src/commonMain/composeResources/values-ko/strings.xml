@@ -63,6 +63,7 @@
     <string name="canned_message_enabled">빠른 답장 활성화</string>
     <string name="cant_change_no_radio">장치가 연결되지않아 채널을 변경할 수 없습니다. 다시 시도해주세요.</string>
     <string name="cant_shutdown">종료 기능이 이 장치에서 지원되지 않습니다</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">현재 채널 사용, 올바르게 형성된 TX, RX, 잘못 형성된 RX(일명 노이즈)를 포함.</string>
     <!-- CHANNEL -->
     <string name="channel_1">채널 1</string>
@@ -83,6 +84,8 @@
     <string name="clear">삭제</string>
     <string name="client_notification">클라이언트 알림</string>
     <string name="close">닫기</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">좋음</string>
     <!-- COMPASS -->
     <string name="compass_north_top">나침반 상단을 북쪽으로 고정</string>
     <string name="compromised_keys">손상된 키가 감지되었습니다. 다시 생성하려면 OK를 선택하세요.</string>
@@ -205,7 +208,6 @@
     <string name="ip">IP</string>
     <string name="ip_address">IP 주소:</string>
     <string name="ip_port">포트:</string>
-    <string name="json_output_enabled">JSON 사용</string>
     <!-- KEY -->
     <string name="last_position_update">최근 위치 업데이트</string>
     <string name="latitude">위도</string>
@@ -298,6 +300,7 @@
     <string name="mute_notifications">알림 끄기</string>
     <string name="name">이름</string>
     <string name="navigate_back">뒤로 가기</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">이웃 정보</string>
     <string name="neighbor_info_config">이웃 정보 설정</string>
     <string name="network">네트워크</string>
@@ -404,12 +407,12 @@
     <string name="resend">재전송</string>
     <string name="reset">초기화</string>
     <string name="reset_to_defaults">기본값으로 재설정</string>
+    <!-- RINGTONE -->
     <string name="ringtone">벨소리</string>
     <!-- ROLE -->
     <!-- ROUTING -->
     <string name="routing_error_got_nak">수락 거부됨</string>
     <string name="routing_error_no_route">루트 없음</string>
-    <string name="routing_error_none">수락 됨</string>
     <string name="routing_error_timeout">시간 초과됨</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">수신 신호 강도 지표 Received Signal Strength Indicator, RSSI는 안테나가 수신하는 신호의 전력 수준을 측정하는 데 사용되는 지표입니다. RSSI 값이 높을수록 일반적으로 더 강력하고 안정적인 연결을 나타냅니다.</string>
@@ -439,6 +442,7 @@
     <string name="show_precision_circle">정밀도 반경 보이기</string>
     <string name="show_waypoints">웨이포인트 보기</string>
     <string name="shutdown">종료</string>
+    <!-- SIGNAL -->
     <string name="signal">신호</string>
     <string name="signal_quality">신호 감도</string>
     <!-- SITE -->
@@ -511,12 +515,15 @@
     <string name="weight">무게</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">나쁨</string>
+    <string name="widget_telemetry_title">텔레메트리</string>
     <!-- WIFI -->
     <string name="wifi_provision_success_ip_address">IP 주소</string>
     <string name="wifi_provision_success_username">사용자명</string>
     <!-- WIND -->
     <string name="wind">바람</string>
     <!-- WRITE -->
+    <!-- XR -->
+    <string name="xr_terrain_layer_elevation">고도</string>
     <string name="you">나</string>
     <string name="zoom_in">확대</string>
     <string name="zoom_out">축소</string>

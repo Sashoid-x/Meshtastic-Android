@@ -55,7 +55,6 @@
     <string name="backup_keys">Anahtarları Yedekle</string>
     <string name="bad">Kötü</string>
     <string name="battery">Pil</string>
-    <string name="battery_ina_2xx_i2c_address">Pilin INA_2XX I2C adresi</string>
     <!-- BLUETOOTH -->
     <string name="bluetooth">Bluetooth</string>
     <string name="bluetooth_config">Bluetooth Ayarı</string>
@@ -70,6 +69,7 @@
     <string name="canned_message_enabled">Önceden Hazırlanmış mesaj etkinleştirildi</string>
     <string name="cant_change_no_radio">Radyo bağlı olmadığından, kanal değiştirilemedi. Lütfen tekrar deneyin.</string>
     <string name="cant_shutdown">Bu cihazda kapatma desteklenmiyor</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">İyi biçimlendirilmiş TX ve RX ile hatalı biçimlendirilmiş RX (gürültü) dahil olmak üzere mevcut kanal için kullanım.</string>
     <!-- CHANNEL -->
     <string name="channel_1">Kanal 1</string>
@@ -89,6 +89,8 @@
     <!-- CLEAR -->
     <string name="clear">Temizle</string>
     <string name="close">Kapat</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">İyi</string>
     <!-- COMPASS -->
     <string name="compass_north_top">Pusula kuzey üstte</string>
     <!-- CONFIG -->
@@ -221,7 +223,6 @@
     <string name="ip">IP</string>
     <string name="ip_address">IP Adresi:</string>
     <string name="ip_port">Bağlantı noktası:</string>
-    <string name="json_output_enabled">JSON çıktısı etkin</string>
     <!-- KEY -->
     <string name="latitude">Enlem</string>
     <!-- LAYER -->
@@ -311,6 +312,7 @@
     <string name="mute_notifications">Bildirimleri sessize al</string>
     <string name="name">İsmi</string>
     <string name="navigate_back">Geri Dön</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">Komşu Bilgisi</string>
     <string name="neighbor_info_config">Komşu Bilgisi Ayarı</string>
     <string name="network">Ağ</string>
@@ -354,7 +356,6 @@
     <string name="one_week">1H</string>
     <string name="only_favorites">Sadece Favoriler</string>
     <!-- OPEN -->
-    <string name="override_console_serial_port">Konsol seri portunu geçersiz kıl</string>
     <!-- PACKET -->
     <string name="password">Şifre</string>
     <!-- PAX -->
@@ -415,12 +416,12 @@
     <string name="resend">Tekrar gönder</string>
     <string name="reset">Sıfırla</string>
     <string name="reset_to_defaults">Varsayılana dön</string>
+    <!-- RINGTONE -->
     <string name="ringtone">Zil tipi</string>
     <!-- ROLE -->
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Negatif bir onay alındı</string>
     <string name="routing_error_no_route">Rota yok</string>
-    <string name="routing_error_none">Onaylandı</string>
     <string name="routing_error_timeout">Zaman Aşımı</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">Alınan Sinyal Gücü Göstergesi, anten tarafından alınan güç seviyesini belirlemek için kullanılan bir ölçüdür. Daha yüksek bir RSSI değeri genellikle daha güçlü ve daha istikrarlı bir bağlantıya işaret eder.</string>
@@ -450,6 +451,7 @@
     <!-- SHOW -->
     <string name="show_password">Şifreyi göster</string>
     <string name="shutdown">Kapat</string>
+    <!-- SIGNAL -->
     <string name="signal">Sinyal</string>
     <string name="signal_quality">Sinyal Kalitesi</string>
     <!-- SITE -->
@@ -525,11 +527,13 @@
     <string name="weight">Ağırlık</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">Kötü</string>
+    <string name="widget_telemetry_title">Telemetri</string>
     <!-- WIFI -->
     <string name="wifi_provision_success_ip_address">IP Adresi</string>
     <string name="wifi_provision_success_username">Kullanıcı adı</string>
     <!-- WIND -->
     <string name="wind">Rüzgar</string>
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">Siz</string>
 </resources>

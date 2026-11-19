@@ -1,8 +1,8 @@
 ---
 title: Обновления прошивки
 nav_order: 13
-last_updated: 2026-10-28
-description: Update your node's firmware over Bluetooth, Wi-Fi, or USB — OTA process, version channels, pre-flight checks, and recovery.
+last_updated: 2026-11-15
+description: Обновление встроенного ПО вашей ноды через Bluetooth, Wi-Fi или USB — процесс OTA, каналы обновления версий, предполетную проверку и восстановление.
 aliases:
   - firmware
   - update
@@ -12,15 +12,15 @@ aliases:
 
 # Обновления прошивки
 
-Keep your Meshtastic node up to date with the latest firmware for new features, bug fixes, and security improvements.
+Поддерживай свою ноду Meshtastic с помощью последней версии встроенного ПО для получения новых функций, исправлений ошибок и улучшений безопасности.
 
 ## Проверка обновлений
 
-1. Open **Settings** for the connected node and, under **Advanced**, tap **Firmware Update**. The entry appears only for OTA-capable nodes.
+1. Открой **Настройки** для подключенной ноды и в разделе **Дополнительно** нажми **Обновление прошивки**. Этот пункт появляется только для нод, поддерживающих OTA.
 2. Приложение проверяет доступные версии прошивки.
-3. Available updates show the version number and release notes.
+3. Доступные обновления показывают номер версии и примечания к выпуску.
 
-The app also tells you when the connected node is behind the latest stable release. The **Connect** tab shows a **Firmware update available** card naming the installed and the stable version, and a notification says the same once per node and release. Its button reads **Open Firmware Updates** when the app can update the node over the current connection, or **Open Meshtastic Flasher** when it can't.
+Приложение также сообщает, когда подключенная нода находится за последним стабильным выпуском. The **Connect** tab shows a **Firmware update available** card naming the installed and the stable version, and a notification says the same once per node and release. Its button reads **Open Firmware Updates** when the app can update the node over the current connection, or **Open Meshtastic Flasher** when it can't.
 
 ## Методы обновления
 
@@ -43,10 +43,10 @@ Where the table has no method, the screen says firmware updates are not supporte
 1. Ensure your node is connected via Bluetooth.
 2. Перейдите на экран "Обновление прошивки".
 3. Выберите нужную версию прошивки.
-4. Tap **Update via BLE OTA**. An **Update Warning** dialog lists the pre-flight checks — read it, then tap **I know what I'm doing.** to start. This dialog appears for every update method, including Wi-Fi OTA, USB, and a local firmware file.
+4. Нажми **Обновление через BLE OTA**. An **Update Warning** dialog lists the pre-flight checks — read it, then tap **I know what I'm doing.** to start. This dialog appears for every update method, including Wi-Fi OTA, USB, and a local firmware file.
 5. Wait for the update to complete. Do not disconnect during the update.
 
-While the update downloads, uploads or verifies, you can tap **Play Chirpy Hop** to play a short runner game: tap to jump, swipe down to crouch. The update's progress stays visible above the game, and back returns to the update screen. When the update finishes or fails, the game stops and offers **Back to update**. Your best score is kept on this device.
+While the update downloads, processes, uploads or verifies, the screen stays on. The system back button or gesture during an update, including the bootloader review, asks **Stop update?** with **Stop** and **Keep going**. The arrow in the top bar leaves without asking. A node that is mid-update stays in update mode until you finish or recover it. You can also tap **Play Chirpy Hop** to play a short runner game: tap to jump, swipe down to crouch. The update's progress stays visible above the game, and back returns to the update screen. When the update finishes or fails, the game stops and offers **Back to update**. Your best score is kept on this device.
 
 ![Проверка обновлений прошивки](../../assets/screenshots/firmware_checking.png)
 
@@ -56,20 +56,20 @@ Some boards ship with a bootloader that cannot take a Bluetooth update. For thes
 
 Where the app offers it, an **Erase device during update** switch appears above the update button. It is a per-update opt-in and is never remembered.
 
-| Method          | What erasing does                                                                                                                      |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| BLE / Wi-Fi OTA | Factory-resets the device once the update is verified. All settings and Bluetooth pairing are removed. |
-| USB             | Полностью стирает флэш-память устройства, а затем устанавливает выбранную прошивку с нуля.                             |
+| Метод           | Что делает стирание                                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| BLE / Wi-Fi OTA | После подтверждения обновления устройство сбрасывается к заводским настройкам. Все настройки и Bluetooth-соединение удалены. |
+| USB             | Полностью стирает флэш-память устройства, а затем устанавливает выбранную прошивку с нуля.                                                   |
 
-It is not offered for a local firmware file, during a recovery update, or over USB in the desktop app — the USB erase runs the Android-only maintenance sequence below. Over USB it is offered for nRF52 and RP2040 nodes only, and when the app can't erase one safely, the switch is shown disabled with the reason. Afterwards the device needs setting up — and pairing — again.
+It is not offered for a local firmware file, during a recovery update, or over USB in the desktop app — the USB erase runs the Android-only maintenance sequence below. Over USB it is offered for nRF52 and RP2040 nodes only, and when the app can't erase one safely, the switch is shown disabled with the reason. После этого устройство необходимо снова настроить и выполнить сопряжение.
 
-### OTA via Wi-Fi (network-connected ESP32)
+### OTA через Wi-Fi (подключенный к сети ESP32)
 
-When an ESP32 node is connected over the network rather than Bluetooth, the app offers **Wi-Fi OTA**, which pushes the same update over TCP:
+Когда нода ESP32 подключена по сети, а не по Bluetooth, приложение предлагает \*\* Wi-Fi OTA\*\*, которая отправляет то же обновление по протоколу TCP:
 
-1. Connect to the node over the network (see [Connections](connections)).
-2. Open the Firmware Update screen and pick a version.
-3. Tap **Update via Wi-Fi OTA**. Keep the node and phone on the same network for the whole transfer.
+1. Подключиться к ноде по сети (см. [Подключения](connections)).
+2. Открой экран "Обновление прошивки" и выбери версию.
+3. Нажми **Обновление через Wi-Fi OTA**. Держи ноду и телефон в одной сети в течение всего процесса передачи данных.
 
 Wi-Fi OTA installs the ESP32 app image, a `.bin` file, rather than the `.uf2` a USB update uses. The app selects the right file from the release for you.
 
@@ -77,7 +77,7 @@ Wi-Fi OTA installs the ESP32 app image, a `.bin` file, rather than the `.uf2` a 
 
 When your nRF52 or RP2040 node is connected over **USB/serial** (rather than Bluetooth), the Firmware Update screen offers **USB File Transfer**. Приложение перезагружает устройство в режим DFU, а затем предлагает сохранить файл `.uf2` на DFU-диск устройства с помощью системного выбора файлов. This option appears only on a USB/serial connection. It is not available over Bluetooth, and ESP32 nodes have no USB update path in the app.
 
-A vendor nRF bootloader supplied as a `.zip` (e.g. RAK WisBlock RAK4631) has to be flashed with a serial DFU tool such as `adafruit-nrfutil` — copying that `.zip` to the drive won't work. Загрузчик, поставляемый в виде `update-....uf2`, **можно** установить, скопировав его на диск; именно так работает обновление загрузчика из самого приложения. Приложение показывает подсказку, когда требуется использование последовательного способа.
+A vendor nRF bootloader supplied as a `.zip` (e.g. RAK WisBlock RAK4631) can't be copied to the drive. Use the app's bootloader upgrade, or flash the `.zip` with a serial DFU tool such as `adafruit-nrfutil`. Загрузчик, поставляемый в виде `update-....uf2`, **можно** установить, скопировав его на диск; именно так работает обновление загрузчика из самого приложения. Приложение показывает подсказку, когда требуется использование последовательного способа.
 
 ### Полное стирание и обновление загрузчика
 
@@ -91,7 +91,7 @@ Both a USB erase and a bootloader upgrade write two files in turn, so you are as
 
 Приложение считывает `INFO_UF2.TXT` с выбранного тобою диска, чтобы убедиться, что это действительно диск обновления устройства, и определить плату до записи чего-либо.
 
-For a bootloader upgrade, the app also reads the installed bootloader version from `INFO_UF2.TXT` and shows it next to the latest release before writing anything. The running firmware doesn't report its bootloader, so the installed version appears only once the device has restarted into update mode, never on the firmware screen while connected. If the two match, the bootloader is left as it is and the app moves straight on to reinstalling the firmware. Otherwise choose **Upgrade bootloader** to write it, or **Skip** to reinstall the firmware without changing it.
+For a bootloader upgrade, the app also reads the installed bootloader version from `INFO_UF2.TXT` and shows it next to the latest release before writing anything. When the running firmware doesn't report its bootloader, the installed version appears only once the device has restarted into update mode. If the two match, the bootloader is left as it is and the app moves straight on to reinstalling the firmware. Otherwise choose **Upgrade bootloader** to write it, or **Skip** to reinstall the firmware without changing it.
 
 On nRF52 the app must already know which Bluetooth stack your device uses before it starts, because it can't read the bootloader until the device has rebooted. If it can't confirm the stack, it refuses to erase and points you at the [Web Flasher](https://flasher.meshtastic.org) instead. In the Web Flasher, choosing the wrong Bluetooth stack can leave the node recoverable only with a hardware programmer.
 
@@ -102,12 +102,31 @@ Once the drive is readable, how an nRF52 device is erased depends on its bootloa
 
 The app picks the path from what the drive reports; you don't choose it.
 
+### Bootloader version and upgrade over Bluetooth
+
+An nRF52 node on firmware that reports its bootloader version shows it while it runs. The device card on the firmware screen then shows a **Bootloader** row with the latest release beside it, on any connection. Every bootloader before 2.6.0 reports the same value, so those read **Bootloader: older than 2.6.0**. A node that reports no version shows no row. A node that reports the latest release isn't offered an upgrade.
+
+The screen offers **Upgrade bootloader** over Bluetooth when all of these hold:
+
+- the node is connected over Bluetooth
+- it reports a bootloader older than the latest release
+- a firmware version is selected
+
+Unplug the USB cable before starting. With a cable attached, the new bootloader comes up as an update drive, not over Bluetooth, and the app cannot send the firmware.
+
+The app sends the new bootloader over Bluetooth, then reinstalls the selected firmware, because writing the bootloader erases it. The whole upgrade takes about 10 minutes. Afterward the **Bootloader** row shows the latest release.
+
+Before writing, the app verifies the download and reads the board name from the bootloader. If the package fails verification, nothing is written. Over Bluetooth the upgrade works only on a bootloader that uses Legacy DFU. On any other the update stops with nothing written and the app tries to return the node to its firmware. If it stays in update mode, see [Update Stuck](#update-stuck). If the bootloader names a different board or none, nothing is written and the node restarts into its firmware.
+
+A node that doesn't come back over Bluetooth after the bootloader is written can be finished either way: install the firmware from its update drive over USB, or unplug it, reset it, and use **Resume firmware update** on the **Connect** tab.
+
 ### What the nRF52 bootloader does
 
 Version 2.6.0 and later of the Meshtastic nRF52 Bootloader does the following while the update drive is up.
 
 - **Backup.** `CURRENT.UF2` on the drive is a copy of the installed firmware. Copy it off to back up, or back onto the drive to reinstall.
 - **Screen.** On a node with a screen, the title reads BOOTLOADER, ERASE, WRONG FILE or NO FIRMWARE, and a progress bar shows the copy.
+- **Fault report.** After a fault the bootloader records it once, and the app shows **Bootloader reported a fault:** with the `id`, `pc` and `info` values the first time it reads the drive during a USB update.
 - **Wrong file.** A firmware file the board cannot take is refused as WRONG FILE.
 - **Interrupted copy.** If the cable is pulled mid-copy, the node has no firmware. Plug it in again and copy the firmware once more.
 - **Idle.** After 6 minutes with no update activity, a node with firmware boots it. A node with no firmware keeps waiting.
@@ -163,7 +182,7 @@ Version 2.6.0 and later of the Meshtastic nRF52 Bootloader does the following wh
 - If it is still stuck after that, power-cycle the node.
 - Attempt the update again.
 
-The message **Verification timed out. Device did not reconnect in time.** means the image was written but the node did not come back within that window. Power-cycle it and check the version under **Currently Installed** before re-running the update.
+The message **Verification timed out. Device did not reconnect in time.** means the image was written but the node did not come back within that window. **Retry** waits for the node again without writing anything, and **Done** leaves the screen. If the node still doesn't return, power-cycle it and check the version under **Currently Installed** before re-running the update.
 
 ![Ошибка обновления прошивки](../../assets/screenshots/firmware_error.png)
 

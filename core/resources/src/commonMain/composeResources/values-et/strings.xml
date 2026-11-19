@@ -131,7 +131,6 @@
     <string name="bandwidth_unsupported_summary">Ühendatud raadio ei toeta valitud piirkonna ribalaiust. Enne salvestamist vali toetatud väärtus.</string>
     <string name="baro_pressure">Õhurõhk</string>
     <string name="battery">Aku</string>
-    <string name="battery_ina_2xx_i2c_address">Aku INA_2XX I2C aadress</string>
     <string name="ble_devices">Sinihamba seade</string>
     <!-- BLUETOOTH -->
     <string name="bluetooth">Sinihammas</string>
@@ -171,6 +170,7 @@
     <string name="canned_message_enabled">Salvestatud sõnumid lubatud</string>
     <string name="cant_change_no_radio">Kanalit ei saanud vahetada, kuna raadio pole veel ühendatud. Proovi uuesti.</string>
     <string name="cant_shutdown">Seade ei toeta väljalülitamist</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">Praeguse kanali kasutamine, sealhulgas korrektne TX, RX ja vigane RX (ehk müra).</string>
     <!-- CHANNEL -->
     <string name="channel">Kanal</string>
@@ -225,8 +225,13 @@
     <string name="client_notification">Kliendi teated</string>
     <string name="close">Sule</string>
     <string name="close_selection">Sulge valik</string>
+    <!-- CO2 -->
     <string name="co2">CO₂</string>
     <string name="co2_humidity">CO₂ Nsk</string>
+    <string name="co2_level_evacuate">Evakueeru</string>
+    <string name="co2_level_good">Hea</string>
+    <string name="co2_level_poor">Kehv</string>
+    <string name="co2_level_unsafe">Ebaturvaline</string>
     <string name="co2_temperature">CO₂ Temp</string>
     <string name="collapse_chart">Ahenda diagrammi</string>
     <string name="collapsed">Langenud</string>
@@ -604,12 +609,10 @@
     <string name="firmware_maintenance_unknown_softdevice">See rakendus ei saa kinnitada, millist sinihamba protokolli see seade kasutab, seega pole selle kustutamine ohutu. Kasuta selle asemel veebipõhist uuendust aadressil flasher.meshtastic.org.</string>
     <string name="firmware_maintenance_unsupported_device">See seade ei toeta rakenduse sisest kustutamist.</string>
     <string name="firmware_maintenance_upgrade_bootloader_action">Uuenda alglaadurit</string>
-    <string name="firmware_maintenance_upgrade_confirm_text">See paigaldab seadmesse %1$s uuendatud alglaaduri, mis muudab tulevased Bluetoothi ​​värskendused palju kiiremaks. Püsivara paigaldatakse pärast uuesti.\n\nÄrge ühendage seadet selle töötamise ajal lahti.</string>
     <string name="firmware_maintenance_upgrade_confirm_title">Kas uuendada alglaadurit?</string>
     <string name="firmware_maintenance_wrong_destination">See asukoht ei ole seadme uuendusketas, seega ei kirjutatud seadmesse midagi. Valige eemaldatav ketas, mis kuvatakse, kui seade on uuendusrežiimis.</string>
     <string name="firmware_old">Raadio püsivara on selle rakenduse kasutamiseks liiga vana. Lisateabe saamiseks vaata meie <a href="https://meshtastic.org/docs/getting-started/flashing-firmware">püsivara paigaldusjuhendit</a>.</string>
     <string name="firmware_recovery_banner">Lõpeta värskendamine: %1$s</string>
-    <string name="firmware_recovery_ble_failed">Sinihamba ​​kaudu värskendust ei õnnestunud lõpule viia. Selle seadme alglaadur ei suuda katkenud värskendust õhu kaudu usaldusväärselt lõpule viia. Ühenda see USB kaudu arvutiga ja püsivarauuenda see uuesti tootja jadapordi DFU-tööriista (näiteks adafruit-nrfutil) abil, et seade taastada.</string>
     <string name="firmware_recovery_button">Jätka püsivara värskendamist</string>
     <string name="firmware_recovery_dismiss">Keela püsivara taastamine</string>
     <string name="firmware_recovery_explanation">See seade on püsivara värskenduse tõttu alglaaduri režiimis, mis ei ole lõppenud. Hoidke seda läheduses ja see püsivarauuendatakse uuesti värskenduse lõpuleviimiseks.</string>
@@ -664,7 +667,6 @@
     <string name="firmware_update_ota_failed">Üle-õhu värskendus ebaõnnestus: %1$s</string>
     <string name="firmware_update_ota_unsupported_reason">Selle seadme OTA laadur lükkas tagasi taotletud värskendusmeetodi: %1$s</string>
     <string name="firmware_update_preparing_flash">Seadme ettevalmistamine: välkmälu kustutamine. See võib võtta kuni minuti...</string>
-    <string name="firmware_update_rak4631_bootloader_hint">RAK WisBlock RAK4631 puhul tuleb tootja alglaaduri .zip-fail paigaldada jadapordi DFU-tööriistaga, näiteks adafruit-nrfutil – selle .zip-faili kopeerimine seadme kettale ei toimi. Teise võimalusena ühendage seade USB kaudu ja kasutage selle rakenduse alglaaduri uuendust.</string>
     <string name="firmware_update_rebooting">Taaskäivitamine DFU reziimi...</string>
     <string name="firmware_update_release_notes">Väljalaske märkmed</string>
     <string name="firmware_update_requires_bin">%1$s nõuab sihtmärgile vastavat .bin faili.</string>
@@ -692,7 +694,6 @@
     <string name="firmware_update_unsupported_transport">Selle seadme püsivara värskendus ei toetata üle selle ühenduse. Värskendamiseks loo ühendus muul viisil (nt sinihamba ​​kaudu).</string>
     <string name="firmware_update_unsupported_update_method">See värskendusmeetod ei toeta kohalikke püsivara faile.</string>
     <string name="firmware_update_uploading">Laen püsivara...</string>
-    <string name="firmware_update_usb_bootloader_warning">%1$s on tavaliselt varustatud alglaaduriga, mis ei toeta OTA värskendusi. Enne OTA värskendamist pead võib-olla USB kaudu OTA-toega alglaaduri käivitama.</string>
     <string name="firmware_update_usb_failed">USB-värskendus ebaõnnestus</string>
     <string name="firmware_update_usb_instruction_text">Seade on taaskäivitatud DFU režiimis ja kuvatakse USB kettana (nt RAK4631).\n\nKui failivalija avaneb, vali püsivara faili salvestamiseks selle ketta juurkaust.</string>
     <string name="firmware_update_usb_instruction_title">Vali DFU USB ketas</string>
@@ -795,7 +796,6 @@
     <string name="ip">IP</string>
     <string name="ip_address">IP-aadress:</string>
     <string name="ip_port">Port:</string>
-    <string name="json_output_enabled">JSON väljund lubatud</string>
     <string name="jump_to_latest_from">%1$s</string>
     <string name="jump_to_latest_from_and_more">%1$s +%2$d</string>
     <!-- KEY -->
@@ -1052,7 +1052,6 @@
     <string name="metric_channel_label">%1$s %2$d</string>
     <string name="micrograms_per_cubic_meter">µg/m³</string>
     <string name="min">Min</string>
-    <string name="minimum_wake_time_seconds">Minimaalne ärkveloleku aeg</string>
     <!-- MIRROR -->
     <string name="mirror_back">Tagasi</string>
     <string name="mirror_key_ok">Olgu</string>
@@ -1108,8 +1107,10 @@
     <string name="nearby_devices_permission">Lähedal olevate seadmete load</string>
     <string name="need_hardware">Vajad raudvara?</string>
     <string name="need_hardware_description">Meshtastic vajab ühilduvat seadet. Meie toetajad ja partnerid pakuvad kasutusvalmis riistvara. Siin on mõned populaarseimad valikud.</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">Naabruse teave</string>
     <string name="neighbor_info_config">Naabruskonna teabe sätted</string>
+    <string name="neighbor_info_received">Kätte saadud</string>
     <string name="network">Võrk</string>
     <string name="new_channel_rcvd">Uued kanalid vastu võetud</string>
     <string name="new_messages_below">Uued sõnumid allpool</string>
@@ -1231,7 +1232,6 @@
     <string name="options">Valikud</string>
     <string name="orient_north">Põhja suund</string>
     <string name="overflow_menu">Lisa valikud</string>
-    <string name="override_console_serial_port">Konsooli jadapordi alistamine</string>
     <!-- PACKET -->
     <string name="packet_authenticity">Paketi autentsus</string>
     <string name="packet_authenticity_balanced">Tasakaalustatud — eelista autentitud</string>
@@ -1310,6 +1310,7 @@
     <string name="preserve_favorites">Säilita lemmikud?</string>
     <string name="press_and_drag">Järjestamiseks vajuta ja lohista</string>
     <string name="pressure">Õhurõhk</string>
+    <string name="pressure_high">Kõrge</string>
     <!-- PREVIEW -->
     <string name="preview_custom_composable_line_one">See on kasutaja määratav</string>
     <string name="preview_custom_composable_line_two">Mitme rea ja stiiliga</string>
@@ -1401,6 +1402,7 @@
     <string name="restore_keys">Taasta võtmed</string>
     <string name="restore_keys_confirmation">Taastab selle sõlme varundatud avalikud ja privaatvõtmed.</string>
     <string name="retry">Proovi uuesti</string>
+    <!-- RINGTONE -->
     <string name="ringtone">Helin</string>
     <string name="ringtone_file_empty">Fail on tühi</string>
     <string name="ringtone_import_error">Viga importimisel: %1$s</string>
@@ -1432,7 +1434,7 @@
     <string name="routing_error_no_interface">Raadioliides puudub</string>
     <string name="routing_error_no_response">Rakendus ei vasta</string>
     <string name="routing_error_no_route">Marsruuti pole</string>
-    <string name="routing_error_none">Kinnitatud</string>
+    <string name="routing_error_none">Saajale kätte toimetatud</string>
     <string name="routing_error_not_authorized">Pole autoriseeritud</string>
     <string name="routing_error_pki_failed">Krüptitud sõnumi saatmine ebaõnnestus</string>
     <string name="routing_error_pki_send_fail_public_key">Saaja võti pole saadaval</string>
@@ -1522,6 +1524,7 @@
     <string name="shutdown">Lülita välja</string>
     <string name="shutdown_node_name">Sõlm: %1$s</string>
     <string name="shutdown_warning">⚠️ See LÜLITAB sõlme välja. Uuesti sisselülitamiseks on vaja füüsilist sekkumist.</string>
+    <!-- SIGNAL -->
     <string name="signal">Levi</string>
     <string name="signal_quality">Levi Kvaliteet</string>
     <!-- SITE -->
@@ -1563,7 +1566,6 @@
     <string name="store_forward">Salvesa &amp; edasta</string>
     <string name="store_forward_config">Salvesta &amp; edasta sätted</string>
     <string name="success">Edukas</string>
-    <string name="super_deep_sleep_duration_seconds">Super sügava une kestus</string>
     <string name="supported">Toetatud</string>
     <string name="supported_by_community">Toetatud Meshtastic kommuuni poolt</string>
     <string name="swipe_action_delete">Eemalda</string>
@@ -1740,6 +1742,7 @@
     <!-- WIDGET -->
     <string name="widget_packets_bad">Halb</string>
     <string name="widget_packets_received">Kätte saadud</string>
+    <string name="widget_telemetry_title">Telemeetria</string>
     <!-- WIFI -->
     <string name="wifi_config">Wi-Fi valikud</string>
     <string name="wifi_devices">WiFi ühenduse loomine mPWRD-OS-i jaoks</string>
@@ -1784,6 +1787,7 @@
     <string name="write_nfc_failed">Sildile ei õnnestunud kirjutada. Kasuta kirjutatavat, tühja NFC silti ja hoia seda paigal.</string>
     <string name="write_nfc_success">Kirjutatud sildile</string>
     <string name="write_nfc_text">Hoia kirjutatavat NFC silti telefoni tagakülje vastas.</string>
+    <!-- XR -->
     <string name="you">Sina</string>
     <string name="zoom_in">Zoomi sisse</string>
     <string name="zoom_out">Zoomi välja</string>

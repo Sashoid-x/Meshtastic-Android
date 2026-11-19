@@ -65,7 +65,6 @@
     <string name="available_pins">Pines disponibles</string>
     <string name="bad">Mal</string>
     <string name="battery">Batería</string>
-    <string name="battery_ina_2xx_i2c_address">Dirección I2C del INA_2xx para la batería</string>
     <!-- BLUETOOTH -->
     <string name="bluetooth">Bluetooth</string>
     <string name="bluetooth_config">Configuración Bluetooth</string>
@@ -81,6 +80,7 @@
     <string name="canned_message_enabled">Mensaje predefinidos activados</string>
     <string name="cant_change_no_radio">No se puede cambiar de canal porque la radio aún no está conectada. Por favor inténtelo de nuevo.</string>
     <string name="cant_shutdown">Apagado no compatible con este dispositivo</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">Utilización del canal actual, incluyendo TX, RX bien formado y RX mal formado (ruido similar).</string>
     <!-- CHANNEL -->
     <string name="channel_1">Canal 1</string>
@@ -109,6 +109,8 @@
     <string name="clear_selection">Limpiar selección</string>
     <string name="close">Cerrar</string>
     <string name="close_selection">Cerrar selección</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">Bien</string>
     <!-- COMPASS -->
     <string name="compass_distance">Distancia: %1$s</string>
     <string name="compass_no_magnetometer">Este dispositivo no tiene un sensor de brújula. El rumbo no está disponible.</string>
@@ -317,7 +319,6 @@ Rango de Valores 0 - 500.</string>
     <string name="ip">IP</string>
     <string name="ip_address">Dirección IP:</string>
     <string name="ip_port">Puerto:</string>
-    <string name="json_output_enabled">Salida JSON activada</string>
     <!-- KEY -->
     <string name="last_heard_filter_label">Filtrar por tiempo de la última escucha: %1$s</string>
     <string name="last_position_update">Última actualización</string>
@@ -446,6 +447,7 @@ Estos datos de ubicación pueden ser utilizados para fines como aparecer en un m
     <string name="name_cannot_be_empty">Nombre no puede estar vacío.</string>
     <string name="navigate_back">Ir atrás</string>
     <string name="navigate_into_label">Navegar hacia</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">Información de Vecinos</string>
     <string name="neighbor_info_config">Configuración de Información de Vecinos</string>
     <string name="network">Conexión Red</string>
@@ -511,7 +513,6 @@ Estos datos de ubicación pueden ser utilizados para fines como aparecer en un m
     <string name="open_settings">Abrir ajustes</string>
     <string name="options">Opciones</string>
     <string name="orient_north">Orientación norte</string>
-    <string name="override_console_serial_port">Sobreescribir el puerto serie de la consola</string>
     <!-- PACKET -->
     <string name="password">Contraseña</string>
     <!-- PAX -->
@@ -606,6 +607,7 @@ Estos datos de ubicación pueden ser utilizados para fines como aparecer en un m
     <string name="reset">Reiniciar</string>
     <string name="reset_to_defaults">Restablecer los valores predeterminados</string>
     <string name="retry">Volver a intentar</string>
+    <!-- RINGTONE -->
     <string name="ringtone">Tono de notificación</string>
     <!-- ROLE -->
     <string name="role">Rol del dispositivo</string>
@@ -624,7 +626,6 @@ Estos datos de ubicación pueden ser utilizados para fines como aparecer en un m
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Recibido un reconocimiento negativo</string>
     <string name="routing_error_no_route">Sin ruta</string>
-    <string name="routing_error_none">Reconocido</string>
     <string name="routing_error_timeout">Tiempo agotado</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">Indicador de Fuerza de Señal Recibida (RSSI en inglés), una medida utilizada para determinar el nivel de potencia que está siendo recibido por la antena. Un valor de RSSI más alto generalmente indica una conexión más fuerte y estable.</string>
@@ -674,6 +675,7 @@ Estos datos de ubicación pueden ser utilizados para fines como aparecer en un m
     <string name="shutdown">Apagar</string>
     <string name="shutdown_node_name">Nodo: %1$s</string>
     <string name="shutdown_warning">⚠️ Esto APAGARÁ el nodo. Se necesitará interacción física para volver a encenderlo.</string>
+    <!-- SIGNAL -->
     <string name="signal">Señal</string>
     <string name="signal_quality">Calidad de señal</string>
     <!-- SITE -->
@@ -684,7 +686,6 @@ Estos datos de ubicación pueden ser utilizados para fines como aparecer en un m
     <string name="snr_definition">SNR: Ratio de señal a ruido, una medida utilizada en las comunicaciones para cuantificar el nivel de una señal deseada respecto al nivel del ruido de fondo. En Meshtastic y otros sistemas inalámbricos, un mayor SNR indica una señal más clara que puede mejorar la fiabilidad y la calidad de la transmisión de datos.</string>
     <string name="speed">Velocidad</string>
     <string name="stay_connected_anywhere">Manténgase conectado en cualquier lugar</string>
-    <string name="super_deep_sleep_duration_seconds">Duración del sueño súper profundo</string>
     <string name="supported">Soportado nativamente</string>
     <string name="supported_by_community">Apoyado por la comunidad Meshtastic</string>
     <string name="swipe_action_delete">Eliminar</string>
@@ -769,6 +770,7 @@ Estos datos de ubicación pueden ser utilizados para fines como aparecer en un m
     <string name="weight">Peso</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">Mal</string>
+    <string name="widget_telemetry_title">Telemetría</string>
     <!-- WIFI -->
     <string name="wifi_provision_success_done">Hecho</string>
     <string name="wifi_provision_success_ip_address">Dirección IP</string>
@@ -776,5 +778,6 @@ Estos datos de ubicación pueden ser utilizados para fines como aparecer en un m
     <!-- WIND -->
     <string name="wind">Viento</string>
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">Usted</string>
 </resources>

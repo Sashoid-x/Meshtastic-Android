@@ -59,6 +59,8 @@ import org.meshtastic.core.repository.TracerouteSnapshotRepository
 import org.meshtastic.core.repository.toNodeMapFilter
 import org.meshtastic.core.ui.util.toPosition
 import org.meshtastic.feature.map.mergeStationaryRuns
+import org.meshtastic.feature.map.survey.SURVEY_CELL_METERS
+import org.meshtastic.feature.map.survey.SignalSurveyCellSource
 import org.meshtastic.proto.PortNum
 import org.meshtastic.proto.Position as ProtoPosition
 
@@ -149,6 +151,7 @@ class MeshHudViewModel(
     private val notificationPrefs: NotificationPrefs,
     localeUnitsProvider: LocaleUnitsProvider,
     dispatchers: CoroutineDispatchers,
+    surveyCells: SignalSurveyCellSource,
 ) : ViewModel() {
 
     private val focusKey = MutableStateFlow<String?>(null)
@@ -256,11 +259,13 @@ class MeshHudViewModel(
      */
     val pose: StateFlow<CameraPoseState> =
         combine(poseProvider.poseUpdates().conflate(), declinationDeg) { state, declination ->
-            if (state.trueNorth) {
-                state.copy(pose = state.pose?.rotatedAboutVertical(-declination.toDouble()), trueNorth = false)
-            } else {
-                state
-            }
+            val magnetic =
+                if (state.trueNorth) {
+                    state.copy(pose = state.pose?.rotatedAboutVertical(-declination.toDouble()), trueNorth = false)
+                } else {
+                    state
+                }
+            magnetic.finiteOnly()
         }
             .flowOn(dispatchers.default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CameraPoseState())
@@ -325,6 +330,14 @@ class MeshHudViewModel(
             .flowOn(dispatchers.default)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MeshHudTargets())
 
+    /** The signal survey's visible squares laid on the ground around the phone, farthest first. */
+    val surveyTiles: StateFlow<List<HudSurveyTile>> =
+        combine(location, declinationDeg, surveyCells.cells(flowOf(SURVEY_CELL_METERS))) { state, declination, cells ->
+            state.location?.let { here -> cells.toHudTiles(here, declination) }.orEmpty()
+        }
+            .flowOn(dispatchers.default)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), emptyList())
+
     /** The traceroute in view, if one was opened, as legs of points from here. */
     val route: StateFlow<HudRoute?> =
         combine(location, routeSource, nodeRepository.nodeDBbyNum, nodeRepository.myNodeInfo) {
@@ -368,7 +381,9 @@ class MeshHudViewModel(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     private fun declinationAt(here: PhoneLocation): Float =
-        magneticFieldProvider.getDeclination(here.latitude, here.longitude, here.altitude ?: 0.0, nowMillis)
+        magneticFieldProvider.getDeclination(here.latitude, here.longitude, here.altitude ?: 0.0, nowMillis).takeIf {
+            it.isFinite()
+        } ?: 0f
 
     /** Waypoint ids of foreign geofences the user opted in to crossing alerts for, as the map's dialog shows them. */
     val geofenceAlertOptIns: StateFlow<Set<Int>> = notificationPrefs.geofenceAlertOptIns

@@ -38,6 +38,7 @@
     <string name="camera_permission">Dozvola za kameru</string>
     <string name="cancel">Odustani</string>
     <string name="cant_change_no_radio">Nije moguće promijeniti kanal jer radio još nije povezan. Molim pokušajte ponovno.</string>
+    <!-- CARDINAL -->
     <!-- CHANNEL -->
     <string name="channel_invalid">Ovaj URL kanala je nevažeći i ne može se koristiti</string>
     <string name="channel_name">Naziv kanala</string>
@@ -47,6 +48,7 @@
     <!-- CLEAR -->
     <string name="clear">Očisti</string>
     <string name="close">Zatvori</string>
+    <!-- CO2 -->
     <!-- COMPASS -->
     <!-- CONFIG -->
     <string name="connected_sleeping">Povezan na radio, ali je u stanju mirovanja</string>
@@ -156,6 +158,7 @@
     <string name="mute_always">Uvijek</string>
     <string name="mute_notifications">Isključi obavijesti</string>
     <string name="name">Ime</string>
+    <!-- NEIGHBOR -->
     <string name="new_channel_rcvd">Primljen je URL novog kanala</string>
     <!-- NO -->
     <!-- NODE -->
@@ -213,9 +216,9 @@
     <string name="resend">Ponovno pošalji</string>
     <string name="reset">Resetiraj</string>
     <string name="reset_to_defaults">Vrati na početne postavke</string>
+    <!-- RINGTONE -->
     <!-- ROLE -->
     <!-- ROUTING -->
-    <string name="routing_error_none">Potvrđeno</string>
     <string name="save">Spremi</string>
     <string name="save_changes">Spremi</string>
     <!-- SCAN -->
@@ -227,6 +230,7 @@
     <string name="share">Podijeli</string>
     <!-- SHOW -->
     <string name="shutdown">Isključi</string>
+    <!-- SIGNAL -->
     <!-- SITE -->
     <string name="swipe_action_delete">Obriši</string>
     <string name="swipe_action_mute">Utišaj</string>
@@ -258,5 +262,6 @@
     <string name="wifi_provision_success_ip_address">IP Adresa</string>
     <!-- WIND -->
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">Vi</string>
 </resources>

@@ -44,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -54,7 +55,6 @@ import org.jetbrains.compose.resources.stringResource
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.air_quality_icon
 import org.meshtastic.core.resources.close
-import org.meshtastic.core.resources.iaq_level_dangerously_polluted
 import org.meshtastic.core.resources.iaq_level_excellent
 import org.meshtastic.core.resources.iaq_level_extremely_polluted
 import org.meshtastic.core.resources.iaq_level_good
@@ -76,7 +76,8 @@ import org.meshtastic.core.ui.icon.MeshtasticIcons
 import org.meshtastic.core.ui.icon.ThumbUp
 import org.meshtastic.core.ui.icon.Warning
 import org.meshtastic.core.ui.theme.AppTheme
-import org.meshtastic.core.ui.theme.IAQColors.IAQDangerouslyPolluted
+import org.meshtastic.core.ui.theme.AqiSeverityColors
+import org.meshtastic.core.ui.theme.IAQColors
 import org.meshtastic.core.ui.theme.IAQColors.IAQExcellent
 import org.meshtastic.core.ui.theme.IAQColors.IAQExtremelyPolluted
 import org.meshtastic.core.ui.theme.IAQColors.IAQGood
@@ -85,16 +86,50 @@ import org.meshtastic.core.ui.theme.IAQColors.IAQLightlyPolluted
 import org.meshtastic.core.ui.theme.IAQColors.IAQModeratelyPolluted
 import org.meshtastic.core.ui.theme.IAQColors.IAQSeverelyPolluted
 
+private const val DARK_SURFACE_LUMINANCE = 0.5f
+
 @Suppress("MagicNumber")
-enum class Iaq(val color: Color, val label: StringResource, val range: IntRange) {
-    Excellent(IAQExcellent, Res.string.iaq_level_excellent, 0..50),
-    Good(IAQGood, Res.string.iaq_level_good, 51..100),
-    LightlyPolluted(IAQLightlyPolluted, Res.string.iaq_level_lightly_polluted, 101..150),
-    ModeratelyPolluted(IAQModeratelyPolluted, Res.string.iaq_level_moderately_polluted, 151..200),
-    HeavilyPolluted(IAQHeavilyPolluted, Res.string.iaq_level_heavily_polluted, 201..300),
-    SeverelyPolluted(IAQSeverelyPolluted, Res.string.iaq_level_severely_polluted, 301..400),
-    ExtremelyPolluted(IAQExtremelyPolluted, Res.string.iaq_level_extremely_polluted, 401..500),
-    DangerouslyPolluted(IAQDangerouslyPolluted, Res.string.iaq_level_dangerously_polluted, 501..Int.MAX_VALUE),
+enum class Iaq(val color: Color, val tones: AqiSeverityColors.Tones, val label: StringResource, val range: IntRange) {
+    Excellent(IAQExcellent, IAQColors.Text.Excellent, Res.string.iaq_level_excellent, 0..50),
+    Good(IAQGood, IAQColors.Text.Good, Res.string.iaq_level_good, 51..100),
+    LightlyPolluted(
+        IAQLightlyPolluted,
+        IAQColors.Text.LightlyPolluted,
+        Res.string.iaq_level_lightly_polluted,
+        101..150,
+    ),
+    ModeratelyPolluted(
+        IAQModeratelyPolluted,
+        IAQColors.Text.ModeratelyPolluted,
+        Res.string.iaq_level_moderately_polluted,
+        151..200,
+    ),
+    HeavilyPolluted(
+        IAQHeavilyPolluted,
+        IAQColors.Text.HeavilyPolluted,
+        Res.string.iaq_level_heavily_polluted,
+        201..250,
+    ),
+    SeverelyPolluted(
+        IAQSeverelyPolluted,
+        IAQColors.Text.SeverelyPolluted,
+        Res.string.iaq_level_severely_polluted,
+        251..350,
+    ),
+    ExtremelyPolluted(
+        IAQExtremelyPolluted,
+        IAQColors.Text.ExtremelyPolluted,
+        Res.string.iaq_level_extremely_polluted,
+        351..Int.MAX_VALUE,
+    ),
+    ;
+
+    /** The text tone for [darkTheme], legible on `surface` and `surfaceVariant`; [color] is the pill and dot fill. */
+    fun textColorFor(darkTheme: Boolean): Color = if (darkTheme) tones.dark else tones.light
+
+    /** The text tone for the applied theme, resolved from the surface in use as `PmAqiSeverity.color` does. */
+    @Composable
+    fun textColor(): Color = textColorFor(MaterialTheme.colorScheme.surface.luminance() < DARK_SURFACE_LUMINANCE)
 }
 
 fun getIaq(iaq: Int): Iaq? = when {
@@ -105,8 +140,7 @@ fun getIaq(iaq: Int): Iaq? = when {
     iaq in Iaq.ModeratelyPolluted.range -> Iaq.ModeratelyPolluted
     iaq in Iaq.HeavilyPolluted.range -> Iaq.HeavilyPolluted
     iaq in Iaq.SeverelyPolluted.range -> Iaq.SeverelyPolluted
-    iaq in Iaq.ExtremelyPolluted.range -> Iaq.ExtremelyPolluted
-    else -> Iaq.DangerouslyPolluted
+    else -> Iaq.ExtremelyPolluted
 }
 
 @Composable

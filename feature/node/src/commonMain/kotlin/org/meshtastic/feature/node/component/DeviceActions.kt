@@ -83,6 +83,7 @@ fun DeviceActions(
     pressureInMmHg: Boolean = false,
     airQualityHistory: List<Telemetry> = emptyList(),
     trackedInLiveUpdate: Boolean? = null,
+    canRequestNeighborInfo: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         SectionCard(title = Res.string.actions) {
@@ -111,6 +112,7 @@ fun DeviceActions(
             isLocal = isLocal,
             pressureInMmHg = pressureInMmHg,
             airQualityHistory = airQualityHistory,
+            canRequestNeighborInfo = canRequestNeighborInfo,
         )
     }
 }

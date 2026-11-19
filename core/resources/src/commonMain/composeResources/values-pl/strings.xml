@@ -72,6 +72,7 @@
     <string name="canned_message_config">Konfiguracja gotowych wiadomości</string>
     <string name="cant_change_no_radio">Nie można zmienić kanału, ponieważ urządzenie nie jest jeszcze podłączone. Proszę, spróbuj ponownie.</string>
     <string name="cant_shutdown">Wyłączenie nie jest obsługiwane w tym urządzeniu</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">Wykorzystanie dla bieżącego kanału, w tym prawidłowego TX/RX oraz zniekształconego RX (czyli szumu).</string>
     <!-- CHANNEL -->
     <string name="channel_1">Kanał 1</string>
@@ -97,6 +98,8 @@
     <string name="clear">Czyść</string>
     <string name="close">Zamknij</string>
     <string name="close_selection">Zamknij wybór</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">dobry</string>
     <!-- COMPASS -->
     <string name="compass_bearing">Kurs: %1$s</string>
     <string name="compass_bearing_na">Kurs: N/A</string>
@@ -316,7 +319,6 @@
     <string name="ip">IP</string>
     <string name="ip_address">Adres IP:</string>
     <string name="ip_port">Port:</string>
-    <string name="json_output_enabled">Włącz wyjście JSON</string>
     <!-- KEY -->
     <string name="last_position_update">Ostatnia aktualizacja lokalizacji</string>
     <string name="latest_alpha_firmware">Ostatnia wersja alpha</string>
@@ -445,6 +447,7 @@
     <string name="mute_status_unmuted">Nie wyciszony</string>
     <string name="name">Nazwa</string>
     <string name="navigate_back">Przejdź wstecz</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">Informacje o sąsiadze</string>
     <string name="neighbor_info_config">Konfiguracja Info o sąsiedzie</string>
     <string name="network">Sieć</string>
@@ -583,6 +586,7 @@
     <string name="reset">Zresetuj</string>
     <string name="reset_to_defaults">Przywróć domyślne</string>
     <string name="retry">Ponów próbę</string>
+    <!-- RINGTONE -->
     <string name="ringtone">Dzwonek</string>
     <!-- ROLE -->
     <string name="role">Rola urządzenia</string>
@@ -596,7 +600,6 @@
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Otrzymano negatywne potwierdzenie</string>
     <string name="routing_error_no_route">Brak trasy</string>
-    <string name="routing_error_none">Potwierdzone</string>
     <string name="routing_error_timeout">Upłynął limit czasu</string>
     <string name="rssi">RSSI:</string>
     <string name="rssi_definition">Received Signal Strength Indicator - miara używana do określenia poziomu mocy odbieranej przez antenę. Wyższa wartość RSSI zazwyczaj oznacza silniejsze i bardziej stabilne połączenie.</string>
@@ -640,6 +643,7 @@
     <string name="shutdown">Wyłącz</string>
     <string name="shutdown_node_name">Węzeł: %1$s</string>
     <string name="shutdown_warning">⚠️ Spowoduje to WYŁĄCZENIE węzła. Do ponownego włączenia węzła, konieczna będzie fizyczna interakcja.</string>
+    <!-- SIGNAL -->
     <string name="signal">Sygnał:</string>
     <string name="signal_quality">Jakość sygnału</string>
     <!-- SITE -->
@@ -728,6 +732,7 @@
     <string name="waypoint_received">Otrzymano punkt orientacyjny: %1$s</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">słaby</string>
+    <string name="widget_telemetry_title">Telemetria</string>
     <!-- WIFI -->
     <string name="wifi_provision_signal_strength">%1$d%</string>
     <string name="wifi_provision_success_done">Wykonano</string>
@@ -736,6 +741,8 @@
     <!-- WIND -->
     <string name="wind">Wiatr</string>
     <!-- WRITE -->
+    <!-- XR -->
+    <string name="xr_terrain_layer_elevation">Elewacja</string>
     <string name="you">Ty</string>
     <string name="zoom_in">Powiększ</string>
     <string name="zoom_out">Oddal</string>

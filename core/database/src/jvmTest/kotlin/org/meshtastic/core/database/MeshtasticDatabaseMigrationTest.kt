@@ -782,6 +782,51 @@ class MeshtasticDatabaseMigrationTest {
             }
     }
 
+    /**
+     * 70 → 71 adds the empty signal survey tables, indexes log, and leaves existing rows alone.
+     */
+    @Test
+    fun signalSurveyTablesAddedEmptyWithoutDisturbingQuickChat() = runTest {
+        helper.createDatabase(SIGNAL_SAMPLE_FROM_VERSION).use { connection ->
+            connection.execSQL(
+                "INSERT INTO quick_chat (uuid, name, message, mode, position) VALUES (1, 'Hi', 'yo', 'Append', 0)",
+            )
+            connection.execSQL(
+                "INSERT INTO log (rowid, uuid, type, received_date, message, from_num, port_num) " +
+                    "VALUES (40, 'log-a', 'Packet', 1000, 'first', 42, 3)",
+            )
+        }
+
+        helper.runMigrationsAndValidate(SIGNAL_SAMPLE_TO_VERSION, MANUAL_MIGRATIONS).use { connection ->
+            assertEquals(listOf("Hi"), queryColumn(connection, "SELECT name FROM quick_chat"))
+            assertEquals(listOf("0"), queryColumn(connection, "SELECT COUNT(*) FROM signal_survey_session"))
+            assertEquals(listOf("0"), queryColumn(connection, "SELECT COUNT(*) FROM signal_sample"))
+
+            connection.execSQL("PRAGMA foreign_keys = ON")
+            connection.execSQL("INSERT INTO signal_survey_session (id, started_at) VALUES (4, 5000)")
+            connection.execSQL(
+                "INSERT INTO signal_sample (session_id, time, latitude, longitude, from_num, rssi, direct) " +
+                    "VALUES (4, 5000, 1.5, 2.5, 7, -90, 1)",
+            )
+            assertEquals(listOf(null), queryColumn(connection, "SELECT snr FROM signal_sample"))
+            assertEquals(listOf(null), queryColumn(connection, "SELECT accuracy_m FROM signal_sample"))
+            assertEquals(listOf(null), queryColumn(connection, "SELECT ended_at FROM signal_survey_session"))
+            assertEquals(listOf(null), queryColumn(connection, "SELECT modem_preset FROM signal_survey_session"))
+
+            connection.execSQL("DELETE FROM signal_survey_session WHERE id = 4")
+            assertEquals(listOf("0"), queryColumn(connection, "SELECT COUNT(*) FROM signal_sample"))
+
+            val fromPortPlan =
+                queryPlan(
+                    connection,
+                    "SELECT * FROM log WHERE from_num = 42 AND port_num = 3 ORDER BY received_date DESC LIMIT 5000",
+                )
+            assertTrue(
+                fromPortPlan.any { "index_log_from_num_port_num_received_date" in it },
+                fromPortPlan.toString(),
+            )
+        }
+    }
     /** The `detail` column of `EXPLAIN QUERY PLAN` for [sql], one entry per plan step. */
     private fun queryPlan(connection: SQLiteConnection, sql: String): List<String> =
         connection.prepare("EXPLAIN QUERY PLAN $sql").use { statement ->
@@ -841,10 +886,12 @@ class MeshtasticDatabaseMigrationTest {
         const val SCHEMA_66_TO_VERSION = 66
         const val REACTION_TRANSPORT_FROM_VERSION = 69
         const val REACTION_TRANSPORT_TO_VERSION = 70
+        const val SIGNAL_SAMPLE_FROM_VERSION = 70
+        const val SIGNAL_SAMPLE_TO_VERSION = 71
         const val QUERY_PLAN_DETAIL_COLUMN = 3
 
         /**
-         * Every hand-written migration, which a walk across 52→53, 58→60, 61→63, 63→64, 64→65, or 65→66 must be given.
+         * Every hand-written migration.
          */
         val MANUAL_MIGRATIONS =
             listOf(
@@ -874,6 +921,11 @@ class MeshtasticDatabaseMigrationTest {
                 MeshtasticDatabase.MIGRATION_67_70,
                 MeshtasticDatabase.MIGRATION_68_70,
                 MeshtasticDatabase.MIGRATION_69_70,
+                MeshtasticDatabase.MIGRATION_64_71,
+                MeshtasticDatabase.MIGRATION_67_71,
+                MeshtasticDatabase.MIGRATION_68_71,
+                MeshtasticDatabase.MIGRATION_69_71,
+                MeshtasticDatabase.MIGRATION_70_71,
             )
         const val PUBLIC_KEY_BYTES = 32
         const val STORED_CHANNEL_SET_HEX = "0A0612044D657368"

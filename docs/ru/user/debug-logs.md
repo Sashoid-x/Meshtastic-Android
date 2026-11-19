@@ -1,7 +1,7 @@
 ---
 title: Отладочные журналы
 nav_order: 22
-last_updated: 2026-10-21
+last_updated: 2026-11-15
 description: Просматривайте и экспортируйте отладочные журналы приложения из самого приложения, а также прикрепляйте их к задаче на GitHub для помощи в диагностике ошибок — без необходимости в adb.
 aliases:
   - debug-logs
@@ -12,7 +12,7 @@ aliases:
 
 # Отладочные журналы
 
-Когда что-то работает неправильно, отладочные журналы приложения — это самое полезное, что вы можете приложить к отчёту об ошибке. Meshtastic can capture them **for you, from inside the app** — you don't need `adb` or any desktop tooling to collect them.
+Когда что-то работает неправильно, отладочные журналы приложения — это самое полезное, что вы можете приложить к отчёту об ошибке. Meshtastic может захватить их **для тебя, внутри приложения** — тебе не нужно `adb` или каких-либо десктопных инструментов, чтобы собрать их.
 
 Откройте **Панель отладки** через **Настройки → Дополнительно → Панель отладки**.
 
@@ -20,14 +20,15 @@ If you're filing an issue, export your logs (see [Exporting](#exporting)) and at
 
 ## Две вкладки
 
-Панель отладки содержит две вкладки:
+Панель отладки имеет три вкладки:
 
-- **Packets** — the decoded mesh traffic your node has sent and received (protocol-level messages). Полезно для диагностики поведения mesh-сети и маршрутизации.
+- **Пакеты** — декодированный сетевой трафик, который твоя нода отправила и получила (сообщения уровня протокола). Полезно для диагностики поведения mesh-сети и маршрутизации.
 - **Журналы приложения** — собственный диагностический журнал приложения (Android _logcat_), включая предупреждения, ошибки и трассировки стека самого приложения. Обычно именно это требуется для отчёта об ошибке.
+- **Зеркало** — живой вид экрана подключенной ноды с пультом дистанционного управления; см. [Mirror]#mirror).
 
-Каждая вкладка имеет собственную кнопку **экспорта** и создаёт отдельный файл, поэтому вы можете сохранить тот, который нужен — или сразу оба.
+The **Packets** and **App logs** tabs each have their own **export** button and produce their own file, so you can grab whichever is relevant — or both.
 
-## Viewing packets
+## Просмотр пакетов
 
 The **Packets** tab lists each logged packet; tap one to expand it, including its decoded payload where there is one.
 
@@ -45,6 +46,18 @@ The **App logs** tab shows the most recent log lines from **this app only** — 
 - **Обновить** — значок обновления заново считывает последние записи журнала.
 
 Строки с ошибками и предупреждениями подсвечиваются цветом, чтобы проблемы выделялись.
+
+## Зеркало
+
+The **Mirror** tab shows the screen of the connected node. It reads **Not connected to a device.** with no connection, and **Screen mirroring needs newer firmware** when the node does not report a display; the D-pad still sends keys in that case.
+
+- **Mirror off / Mirroring** — the switch streams the screen continuously, and **Refresh** fetches one frame. On an e-ink display prefer **Refresh**, since the screen updates slowly.
+- **D-pad** — arrow keys, **OK**, and **Back** press the node's buttons.
+- **Keyboard** — the **Keyboard** chip captures keys: arrows navigate, Enter is OK, Esc is back, and typed text reaches the node. On a node without a touch panel, tapping the mirrored screen toggles it too. On a touch-capable node, a tap or touch & hold on the image sends a touch, and a swipe sends one direction.
+
+Mirroring stops when you leave the tab, and the controls are off on a managed node.
+
+Mirroring needs firmware newer than 2.8.2 on a node running BaseUI. InkHUD nodes can't be mirrored, and Meshtastic UI (MUI) nodes only on firmware built with MUI mirroring, which no release enables, and only on boards that can also run BaseUI. An MUI node streams to one connection at a time, so a second app gets no picture until the first stops.
 
 ## Экспорт
 

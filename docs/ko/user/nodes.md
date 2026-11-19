@@ -1,7 +1,7 @@
 ---
 title: 노드
 nav_order: 4
-last_updated: 2026-10-24
+last_updated: 2026-11-15
 description: Browse, filter, and sort mesh nodes — view details, signal quality, roles, and quick actions.
 aliases:
   - node-list
@@ -104,10 +104,11 @@ From the node list, you can:
 
 - **Tap** a node to view its detail page
 - **Touch & hold** for quick actions:
-  - **Add to favorites** or **Remove from favorites**
-  - **Mute notifications** or **Unmute**, shown only once that node has reported firmware 2.7.18 or newer
   - **Message**, to open a direct message
-  - **Trace Route**, which stays disabled for 30 seconds after any traceroute request
+  - **Set display name**, to give the node a [local name](#display-names)
+  - **Add to favorites** or **Remove from favorites**
+  - **Mute notifications** or **Unmute**, shown only once your own node has reported firmware 2.7.18 or newer
+  - **Trace Route**, which reads **Trace Route in** _N_ **s** and stays disabled for 30 seconds after any traceroute request
   - **Open Compass**, for a node with a position
   - **Open mesh view**, for a node with a position on a phone that supports the [AR mesh view](map-and-waypoints#ar-mesh-view)
   - **Ignore** or **Remove from ignored**
@@ -115,10 +116,11 @@ From the node list, you can:
 
 While a node is ignored, its favorite, message, trace route, and remove actions are disabled.
 
-Touch & hold **your own node** instead and you get one action, **Update status**, which opens the
-User settings screen with the cursor already in the Status Message field. It appears only while the
-node is connected and running firmware 2.7.20 or newer with the Status Message module included. See
-[Settings — Radio & User](settings-radio-user) for the field itself.
+Touch & hold **your own node** instead and you get a menu of its own, with only these actions, each shown only while the node is connected:
+
+- **Update status** opens the User settings screen with the cursor already in the Status Message field. It needs firmware 2.7.20 or newer with the Status Message module included. See [Settings — Radio & User](settings-radio-user) for the field itself.
+- **Edit name** opens [Settings - Radio & User](settings-radio-user), where you change the name your node broadcasts to everyone.
+- **Share Contact** opens the [contact dialog](#sharing-a-contact), on firmware 2.6.8 or newer.
 
 ## Sharing a contact
 
@@ -136,7 +138,7 @@ The avatar always shows the node's broadcast short name. While a display name is
 
 Display names are stored only on this device. They are never sent over the mesh or handed to another app, so QR codes, contact sharing, opening a position in a maps app, and the message, node database and GPX exports all use the node's real name. App backups do include display names, the same as notes. Removing a node also removes its display name.
 
-Your own node can have a display name too, from its **Display name** card. The **Edit name** item in your own node's long-press menu does something different: it opens [Settings - Radio & User](settings-radio-user), where you change the name your node broadcasts to everyone.
+Your own node can have a display name too, from its **Display name** card. The **Edit name** item in your own node's long-press menu does something different: it changes the name your node broadcasts to everyone.
 
 ## Filtering & sorting
 
@@ -232,6 +234,10 @@ The label always accompanies the mark, so the status is never conveyed by color 
 
 When the Meshtastic web flasher has a 3D model of the node's hardware, the device picture on the detail screen carries a 3D badge. Tap it to open the model full screen, where a drag turns it. On Google Play builds, **View in your space** places the model on a real surface at real size through ARCore, and on Android 10 and later the shutter button saves the view to Pictures/Meshtastic. F-Droid and desktop builds show the model without the AR view.
 
+The banana button (**Banana for scale**) stands a real-size banana beside the device, in the model viewer and in the AR view. The banana is 185 mm (7.3 in) tall, so it shows how big the device is. It is off each time you open the model.
+
+On an Android XR headset, the Google Play build's **View in your space** stands the model in the room beside the app, at real size. The banana comes with it when it is on. Pinch and drag the model to move it.
+
 ### Device links ("I want one")
 
 When a node's hardware is recognized, the detail view shows a collapsible **"I want one"** section linking to places to buy or learn more about that device: the vendor's product page, product variants, and regional marketplace listings (such as AliExpress, Amazon, and supported retailers), filtered to your country. Each link opens through the `msh.to` redirect service. Devices with no matching links don't show the section.
@@ -242,7 +248,7 @@ Some of these are affiliate links. Both places say so above the links: product l
 
 ### Remote shell
 
-**Open terminal**, in the node's **Administration** card, opens a shell on a Linux node running `meshtasticd` 2.8.2 or later, carried over the mesh. The node accepts it only from a node whose public key is in its **Security → Admin key** list, the same list remote administration uses. The app starts that admin session first if there isn't one, and the card's title shows whether it is active. The row can appear on any `meshtasticd` node before the app knows its firmware version; an older node refuses the shell when it opens. The terminal takes the whole window. If the node never answers, the screen says so after a minute.
+**Open terminal**, in the node's **Administration** card, opens a shell on a Linux node running `meshtasticd` 2.8.2 or later, carried over the mesh. The node accepts it only from a node whose public key is in its **Security → Admin key** list, the same list remote administration uses. The shell is off unless the node's operator turns it on, with `DMShell: true` under `Security` in its `config.yaml`. The app starts that admin session first if there isn't one, and the card's title shows whether it is active. The row can appear on any `meshtasticd` node before the app knows its firmware version; an older node refuses the shell when it opens. The terminal takes the whole window. If the node never answers, the screen says so after a minute; a node with the shell off answers nothing.
 
 The mesh carries a few hundred bytes a second, and the terminal is built around that:
 

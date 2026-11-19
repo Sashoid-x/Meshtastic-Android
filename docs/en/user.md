@@ -17,21 +17,21 @@ Documentation for using the Meshtastic Android and Desktop app.
 Keep the last 5–8 entries and archive older ones by removing them.
 -->
 
-**October 2026** — [Firmware Updates](user/firmware) — What the Meshtastic nRF52 Bootloader does while the update drive is up, and where a node waits after a dropped Bluetooth update.
+**November 2026** — [Home Screen Widget](user/widget) — A Telemetry widget shows one node's environment, air quality and power readings as tiles.
 
-**October 2026** — [Settings — Radio & User](user/settings-radio-user) — Each configuration screen has its own section, settings use the app's exact labels, and every table lists the default value.
+**November 2026** — [MQTT](user/mqtt) — A root topic can use letters in any script, and the field names the rules that would make the node reject one.
 
-**October 2026** — [Firmware Updates](user/firmware) — A node on firmware from 2.3.15 up to 2.5.14 stays connected behind a required-update screen, and the Connect tab flags a newer stable release.
+**November 2026** — [Connections](user/connections) — A connect code can be scanned from the **Connect** tab or read from an NFC tag, and a PIN with a leading zero is ignored.
 
-**October 2026** — [Messages & Channels](user/messages-and-channels) — A failed message can be resent in place, and on firmware 2.8.1 or newer a direct message can show **Delivered to recipient · proven**.
+**November 2026** — [Connections](user/connections) — A node with no region opens a guided setup for its region, preset, name, and nearby meshes.
 
-**October 2026** — [Desktop App](user/desktop) — Site Planner computes coverage inside the app and adds it to the map as a layer.
+**November 2026** — [Firmware Updates](user/firmware) — The firmware screen shows the nRF52 bootloader version a node reports, and an outdated bootloader can be upgraded over Bluetooth.
 
-**October 2026** — [Map & Waypoints](user/map-and-waypoints) — The AR mesh view draws nodes and waypoints over the phone's camera and turns you toward the one you are finding.
+**November 2026** — [Messages & Channels](user/messages-and-channels) — **Share Channels** offers Replace or Add on the code itself, and an Add import shows how many channel slots are in use.
 
-**September 2026** — [Notifications](user/notifications) — A page that lists every notification category, what each opens when tapped, when a message stays quiet, and what a message notification lets you do from the shade or a watch.
+**November 2026** — [Node Metrics](user/node-metrics) — A traceroute request reads **Waiting for response**, **No Response**, or **Rate limited**, MQTT hops are marked, and environment readings chart one unit per chart.
 
-**September 2026** — [Nodes](user/nodes) — On firmware 2.8.1 or newer, nodes your node has not heard since its LoRa settings changed carry an orange marker, a **Hide unheard nodes** filter, and a banner whose **Remove** action deletes them after you confirm.
+**November 2026** — [Map & Waypoints](user/map-and-waypoints) — On an Android XR headset, a 3D terrain table shows the mesh with base map, contours, buildings, and links.
 
 <!-- WHATS_NEW_END -->
 

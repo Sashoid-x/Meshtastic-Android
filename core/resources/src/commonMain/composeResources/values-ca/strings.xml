@@ -35,6 +35,7 @@
     <string name="camera_permission">Permisos de la càmera</string>
     <string name="cancel">Cancel·lar</string>
     <string name="cant_change_no_radio">No s'ha pogut canviar el canal perquè la ràdio no està configurada correctament. Si us plau torna-ho a provar.</string>
+    <!-- CARDINAL -->
     <!-- CHANNEL -->
     <string name="channel_invalid">La URL d'aquest canal és invàlida i no es pot fer servir</string>
     <string name="channel_name">Nom del canal</string>
@@ -44,6 +45,7 @@
     <!-- CLEAR -->
     <string name="clear">Netejar</string>
     <string name="close">Tancar</string>
+    <!-- CO2 -->
     <!-- COMPASS -->
     <!-- CONFIG -->
     <string name="connected_sleeping">Connectat a ràdio, però està hivernant</string>
@@ -151,6 +153,7 @@
     <string name="mute_always">Sempre</string>
     <string name="mute_notifications">Silenciar notificacions</string>
     <string name="name">Nom</string>
+    <!-- NEIGHBOR -->
     <string name="new_channel_rcvd">Nova URL de canal rebuda</string>
     <!-- NO -->
     <!-- NODE -->
@@ -213,11 +216,11 @@
     <string name="resend">Reenviar</string>
     <string name="reset">Restablir</string>
     <string name="reset_to_defaults">Restablir els defectes</string>
+    <!-- RINGTONE -->
     <!-- ROLE -->
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Rebuda confirmació negativa</string>
     <string name="routing_error_no_route">Sense ruta</string>
-    <string name="routing_error_none">Confirmat</string>
     <string name="routing_error_timeout">Temps esgotat</string>
     <string name="save">Desar</string>
     <string name="save_changes">Desar</string>
@@ -230,6 +233,7 @@
     <string name="share">Compartir</string>
     <!-- SHOW -->
     <string name="shutdown">Apagar</string>
+    <!-- SIGNAL -->
     <!-- SITE -->
     <string name="swipe_action_delete">Esborrar</string>
     <string name="swipe_action_mute">Silenciar</string>
@@ -263,5 +267,6 @@
     <string name="wifi_provision_success_ip_address">Adreça IP</string>
     <!-- WIND -->
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">Tu</string>
 </resources>

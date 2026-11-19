@@ -59,6 +59,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -86,11 +87,14 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.Dash
+import com.google.android.gms.maps.model.Gap
 import com.google.android.gms.maps.model.GroundOverlay
 import com.google.android.gms.maps.model.GroundOverlayOptions
 import com.google.android.gms.maps.model.JointType
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
+import com.google.android.gms.maps.model.PatternItem
 import com.google.android.gms.maps.model.StrokeStyle
 import com.google.android.gms.maps.model.StyleSpan
 import com.google.maps.android.SphericalUtil
@@ -123,6 +127,8 @@ import com.google.maps.android.data.renderer.model.MultiGeometry
 import com.google.maps.android.data.renderer.model.PointGeometry
 import com.google.maps.android.data.renderer.model.PointStyle
 import com.google.maps.android.data.renderer.model.PolygonStyle
+import com.google.maps.android.heatmaps.Gradient
+import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -133,6 +139,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -150,6 +158,7 @@ import org.meshtastic.app.map.tiles.RasterBasemap
 import org.meshtastic.core.common.util.MeasurementSystem
 import org.meshtastic.core.common.util.NumberFormatter
 import org.meshtastic.core.common.util.ioDispatcher
+import org.meshtastic.core.common.util.nowMillis
 import org.meshtastic.core.common.util.nowSeconds
 import org.meshtastic.core.model.Node
 import org.meshtastic.core.model.TracerouteOverlay
@@ -187,6 +196,7 @@ import org.meshtastic.core.resources.timestamp
 import org.meshtastic.core.resources.track_point
 import org.meshtastic.core.resources.unknown
 import org.meshtastic.core.ui.component.NodeChip
+import org.meshtastic.core.ui.component.Quality
 import org.meshtastic.core.ui.icon.Layers
 import org.meshtastic.core.ui.icon.Map
 import org.meshtastic.core.ui.icon.MeshtasticIcons
@@ -228,10 +238,16 @@ import org.meshtastic.feature.map.kml.ICON_URL_PROPERTY
 import org.meshtastic.feature.map.kml.KmlGroundOverlay
 import org.meshtastic.feature.map.layers.LayerType
 import org.meshtastic.feature.map.layers.MapLayerItem
+import org.meshtastic.feature.map.layers.MapLayerRefusal
 import org.meshtastic.feature.map.layers.opacityOf
 import org.meshtastic.feature.map.layers.toPickedMapFile
 import org.meshtastic.feature.map.mergeStationaryRuns
 import org.meshtastic.feature.map.stackCoincident
+import org.meshtastic.feature.map.survey.SignalSurveyCellInfo
+import org.meshtastic.feature.map.survey.SignalSurveySection
+import org.meshtastic.feature.map.survey.SignalSurveyViewModel
+import org.meshtastic.feature.map.survey.SurveyCellUi
+import org.meshtastic.feature.map.survey.SurveyLink
 import org.meshtastic.feature.map.terrain.GeoBounds
 import org.meshtastic.feature.map.terrain.MapterhornEndpoints
 import org.meshtastic.feature.map.tiles.mapAttributionText
@@ -443,6 +459,18 @@ fun MapView(
         if (mode is GoogleMapMode.Main) mapViewModel.cameraPositionState else rememberCameraPositionState()
     val cameraInitialization by mapViewModel.cameraInitialization.collectAsStateWithLifecycle()
     var isMapLoaded by remember { mutableStateOf(false) }
+
+    // --- Signal survey ---
+    val survey: SignalSurveyViewModel = koinViewModel()
+    val surveyCells by survey.cells.collectAsStateWithLifecycle()
+    val surveyHeatPoints by survey.heatPoints.collectAsStateWithLifecycle()
+    val surveyColors = Quality.entries.associateWith { it.color() }
+    // Squares grow as the map zooms out, so a survey stays visible at city scale.
+    LaunchedEffect(cameraPositionState, survey) {
+        snapshotFlow { cameraPositionState.position }
+            .collect { camera -> survey.setCamera(zoom = camera.zoom.toDouble(), latitude = camera.target.latitude) }
+    }
+    val surveyLinks by survey.selectedLinks.collectAsStateWithLifecycle()
 
     if (mode is GoogleMapMode.Main) {
         LaunchedEffect(cameraPositionState.isMoving, cameraInitialization) {
@@ -858,6 +886,17 @@ fun MapView(
                 }
             }
 
+            if (mode is GoogleMapMode.Main) {
+                SignalSurveyPolygons(
+                    surveyCells,
+                    surveyColors,
+                    survey::selectCell,
+                    clickable = boxAuthoringDraft == null,
+                )
+                SignalSurveyHeatmap(surveyHeatPoints, surveyColors)
+                SignalSurveyLinkLines(surveyLinks.links, surveyColors)
+            }
+
             when (mode) {
                 is GoogleMapMode.Main ->
                     MainMapContent(
@@ -1094,6 +1133,8 @@ fun MapView(
             )
         }
 
+        if (mode is GoogleMapMode.Main) SignalSurveyCellInfo(modifier = Modifier.align(Alignment.BottomStart))
+
         MapControlsOverlay(
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 8.dp),
             onToggleFilterMenu = { mapFilterMenuExpanded = true },
@@ -1241,6 +1282,8 @@ fun MapView(
                     opacity = layerOpacity,
                     onOpacityChange = { key, value -> mapViewModel.setLayerOpacity(key, value) },
                 )
+                HorizontalDivider()
+                SignalSurveySection()
             }
         }
     }
@@ -1650,6 +1693,8 @@ private fun speedFromPosition(position: Position, displayUnits: MeasurementSyste
 
 // region --- Traceroute Map Content ---
 
+private val TracerouteReturnPattern: List<PatternItem> = listOf(Dash(24f), Gap(12f))
+
 @OptIn(MapsComposeExperimentalApi::class)
 @Composable
 private fun TracerouteMapContent(
@@ -1674,6 +1719,7 @@ private fun TracerouteMapContent(
             jointType = JointType.ROUND,
             color = TracerouteColors.ReturnRoute,
             width = 7f,
+            pattern = TracerouteReturnPattern,
             zIndex = 2.5f,
         )
     }
@@ -1736,16 +1782,38 @@ private fun offsetPolyline(
 @OptIn(MapsComposeExperimentalApi::class)
 @Composable
 private fun MapLayerOverlay(layerItem: MapLayerItem, opacity: Float, mapViewModel: MapViewModel) {
-    var currentLayer by remember { mutableStateOf<RenderedMapLayer?>(null) }
+    val slot = remember { MapLayerSlot() }
 
     // Opacity is part of the key: maps-utils has no way to restyle a layer already on the map, so a fade is a
-    // teardown and a redraw.
-    MapEffect(layerItem.id, layerItem.refreshToken, opacity) { map ->
-        currentLayer?.safeHide()
-        currentLayer = null
-        val layer =
+    // teardown and a redraw. Visibility is too: a hidden layer is not read or parsed, and holds nothing.
+    MapEffect(layerItem.id, layerItem.refreshToken, opacity, layerItem.isVisible) { map ->
+        slot.clear()
+        if (!layerItem.isVisible) return@MapEffect
+        // One layer at a time: each holds its bytes, its JSON tree and its model at once while it loads.
+        mapLayerLoadMutex.withLock { slot.load(map, layerItem, opacity, mapViewModel) }
+    }
+
+    DisposableEffect(layerItem.id) { onDispose { slot.clear() } }
+}
+
+/** The layer one [MapLayerOverlay] has on the map, and the share of [mapLayerBudget] it holds. */
+private class MapLayerSlot {
+    private var layer: RenderedMapLayer? = null
+    private var vertices = 0
+
+    fun clear() {
+        layer?.safeHide()
+        layer = null
+        mapLayerBudget.release(vertices)
+        vertices = 0
+    }
+
+    @Suppress("TooGenericExceptionCaught", "LongMethod")
+    suspend fun load(map: GmsGoogleMap, layerItem: MapLayerItem, opacity: Float, mapViewModel: MapViewModel) {
+        val started = nowMillis
+        val rendered =
             try {
-                val bytes = mapViewModel.readLayerBytes(layerItem) ?: return@MapEffect
+                val bytes = mapViewModel.readLayerBytes(layerItem) ?: return
                 val dataLayer =
                     withContext(ioDispatcher) {
                         // Buffered because the KMZ sniff marks and resets the stream before the parser reads it.
@@ -1753,11 +1821,40 @@ private fun MapLayerOverlay(layerItem: MapLayerItem, opacity: Float, mapViewMode
                             parseMapLayer(layerItem.layerType, stream)
                         }
                     }
-                if (dataLayer == null) {
-                    Logger.withTag("MapView").e { "Error loading map layer: ${layerItem.name} (unrecognized format)" }
-                    null
-                } else {
-                    RenderedMapLayer(map, dataLayer.scaledByOpacity(opacity), opacity)
+                val count = dataLayer?.vertexCount() ?: 0
+                when {
+                    dataLayer == null -> {
+                        // The type, not the name: a layer's name is whatever the user called the file.
+                        Logger.withTag("MapView").e {
+                            "Map layer not drawn, unrecognized format: type=${layerItem.layerType}"
+                        }
+                        mapViewModel.reportLayerUndrawable(layerItem, MapLayerRefusal.NOT_MAP_DATA)
+                        null
+                    }
+
+                    !mapLayerBudget.tryAcquire(count) -> {
+                        Logger.withTag("MapView").e {
+                            "Map layer not drawn, over the vertex budget: type=${layerItem.layerType} " +
+                                "vertices=$count drawn=${mapLayerBudget.inUse} " +
+                                "perLayer=${mapLayerBudget.perLayer} total=${mapLayerBudget.total}"
+                        }
+                        // Too big on its own never changes; too big beside the others does when one is hidden.
+                        mapViewModel.reportLayerUndrawable(
+                            layerItem,
+                            MapLayerRefusal.TOO_DETAILED,
+                            permanent = count > mapLayerBudget.perLayer,
+                        )
+                        null
+                    }
+
+                    else -> {
+                        vertices = count
+                        Logger.withTag("MapView").i {
+                            "Map layer loaded: type=${layerItem.layerType} bytes=${bytes.size} " +
+                                "features=${dataLayer.features.size} vertices=$count ms=${nowMillis - started}"
+                        }
+                        RenderedMapLayer(map, dataLayer.scaledByOpacity(opacity), opacity)
+                    }
                 }
             } catch (e: CancellationException) {
                 // Not a load failure: this MapEffect is relaunched on every refresh (refreshToken) and cancelled when
@@ -1765,30 +1862,23 @@ private fun MapLayerOverlay(layerItem: MapLayerItem, opacity: Float, mapViewMode
                 // Swallowing it broke structured concurrency and reported routine refreshes to error tracking.
                 throw e
             } catch (e: Exception) {
-                Logger.withTag("MapView").e(e) { "Error loading map layer: ${layerItem.name}" }
+                Logger.withTag("MapView").e(e) { "Error loading map layer: type=${layerItem.layerType}" }
                 null
             } catch (e: OutOfMemoryError) {
                 // The parser builds the whole JSON tree beside the raw bytes; a layer too big for the heap fails alone.
-                Logger.withTag("MapView").e(e) { "Map layer too large to load: ${layerItem.name}" }
+                Logger.withTag("MapView").e(e) { "Map layer too large to load: type=${layerItem.layerType}" }
                 null
             }
-        layer?.let {
-            if (layerItem.isVisible) it.safeShow()
-            currentLayer = it
-        }
+        layer = rendered
+        // Nothing drawn means nothing held: the reservation goes back whether the load or the draw failed.
+        if (rendered == null || !rendered.safeShow()) clear()
     }
+}
 
-    DisposableEffect(layerItem.id) {
-        onDispose {
-            currentLayer?.safeHide()
-            currentLayer = null
-        }
-    }
+private val mapLayerLoadMutex = Mutex()
 
-    LaunchedEffect(layerItem.isVisible) {
-        val layer = currentLayer ?: return@LaunchedEffect
-        if (layerItem.isVisible) layer.safeShow() else layer.safeHide()
-    }
+private val mapLayerBudget: MapLayerVertexBudget by lazy {
+    MapLayerVertexBudget.forHeap(Runtime.getRuntime().maxMemory())
 }
 
 /**
@@ -1851,11 +1941,11 @@ private class RenderedMapLayer(
 
     fun show() {
         if (renderer != null) return
-        renderer =
-            MapViewRenderer(map, UrlIconProvider()).also { r ->
-                localImages.forEach { (path, bitmap) -> r.cacheImageData(path, bitmap) }
-                r.addLayer(dataLayer)
-            }
+        // Held before anything is added: a draw that fails part-way still has its shapes on the map, and hide()
+        // can only clear a renderer it knows about.
+        val r = MapViewRenderer(map, UrlIconProvider()).also { renderer = it }
+        localImages.forEach { (path, bitmap) -> r.cacheImageData(path, bitmap) }
+        r.addLayer(dataLayer)
         groundOverlays.forEach { overlay ->
             val image = localImages[overlay.href]
             if (image == null) {
@@ -1887,16 +1977,19 @@ private class RenderedMapLayer(
     }
 }
 
-private fun RenderedMapLayer.safeShow() {
-    try {
-        show()
-    } catch (e: Exception) {
-        Logger.withTag("MapView").e(e) { "Error adding map layer" }
-    } catch (e: OutOfMemoryError) {
-        // A layer that parsed can still exhaust the heap drawing; drop what it added rather than the app.
-        Logger.withTag("MapView").e(e) { "Map layer too large to draw" }
-        safeHide()
-    }
+/** Draw the layer; false when it could not be drawn, in which case whatever it added has been removed. */
+private fun RenderedMapLayer.safeShow(): Boolean = try {
+    show()
+    true
+} catch (e: Exception) {
+    Logger.withTag("MapView").e(e) { "Error adding map layer" }
+    safeHide()
+    false
+} catch (e: OutOfMemoryError) {
+    // A layer that parsed can still exhaust the heap drawing; drop what it added rather than the app.
+    Logger.withTag("MapView").e(e) { "Map layer too large to draw" }
+    safeHide()
+    false
 }
 
 private fun RenderedMapLayer.safeHide() {
@@ -2073,6 +2166,107 @@ private fun boundingBoxFromCorners(a: LatLng, b: LatLng): BoundingBox = Bounding
     .build()
 
 // endregion
+
+private const val SURVEY_FILL_ALPHA = 0.6f
+
+// Above the tile overlays, below tracks and the mesh's own markers.
+private const val SURVEY_Z_INDEX = 0.1f
+
+/**
+ * The signal survey's squares, colored by signal quality and tappable. No outline: neighbors share edges, and a stroke
+ * on each would draw a grid over what should read as one band along the route.
+ */
+@Composable
+private fun SignalSurveyPolygons(
+    cells: List<SurveyCellUi>,
+    colors: Map<Quality, Color>,
+    onCellClick: (String) -> Unit,
+    // Off while a box is being drawn: a tapped polygon swallows the tap meant for the map.
+    clickable: Boolean = true,
+) {
+    cells.forEach { item ->
+        val cell = item.cell
+        key(item.id) {
+            Polygon(
+                points =
+                listOf(
+                    LatLng(cell.south, cell.west),
+                    LatLng(cell.north, cell.west),
+                    LatLng(cell.north, cell.east),
+                    LatLng(cell.south, cell.east),
+                ),
+                fillColor = (colors[item.quality] ?: Color.Gray).copy(alpha = SURVEY_FILL_ALPHA),
+                strokeColor = Color.Transparent,
+                strokeWidth = 0f,
+                clickable = clickable,
+                onClick = { onCellClick(item.id) },
+                zIndex = SURVEY_Z_INDEX,
+            )
+        }
+    }
+}
+
+// Google's heatmap radius is in screen pixels and fixed across zooms; 40 px keeps a 50 m route one band at street zoom.
+private const val SURVEY_HEAT_RADIUS_PX = 40
+private const val SURVEY_HEAT_OPACITY = 0.75f
+private const val SURVEY_HEAT_FAINT_START = 0.15f
+
+/**
+ * The signal survey as a heatmap: one tile layer per signal band, each fading from clear to that band's color, drawn
+ * worst first so good coverage reads on top where bands meet. Heat counts 50 m squares, not raw readings.
+ */
+@Composable
+private fun SignalSurveyHeatmap(points: List<SurveyCellUi>, colors: Map<Quality, Color>) {
+    val bands = remember(points) { points.groupBy { it.quality } }
+    Quality.entries.reversed().forEachIndexed { index, quality ->
+        val band = bands[quality].orEmpty()
+        val color = colors[quality] ?: return@forEachIndexed
+        if (band.isEmpty()) return@forEachIndexed
+        val provider =
+            remember(band, color) {
+                HeatmapTileProvider.Builder()
+                    .data(band.map { LatLng((it.cell.south + it.cell.north) / 2, (it.cell.west + it.cell.east) / 2) })
+                    .radius(SURVEY_HEAT_RADIUS_PX)
+                    .opacity(SURVEY_HEAT_OPACITY.toDouble())
+                    .gradient(
+                        Gradient(
+                            intArrayOf(color.copy(alpha = 0f).toArgb(), color.toArgb()),
+                            floatArrayOf(SURVEY_HEAT_FAINT_START, 1f),
+                        ),
+                    )
+                    .build()
+            }
+        key(quality, provider) { TileOverlay(tileProvider = provider, zIndex = SURVEY_Z_INDEX + index * 0.01f) }
+    }
+}
+
+// Above the survey squares and heat, below the mesh's own markers.
+private const val SURVEY_LINK_Z_INDEX = 0.5f
+private const val SURVEY_LINK_WIDTH = 8f
+private const val SURVEY_LINK_CASING_WIDTH = 13f
+
+/** Lines from the tapped survey square to each node heard directly there, cased so they read over the squares. */
+@Composable
+private fun SignalSurveyLinkLines(links: List<SurveyLink>, colors: Map<Quality, Color>) {
+    links.forEach { link ->
+        key(link.nodeNum) {
+            val points =
+                listOf(LatLng(link.fromLatitude, link.fromLongitude), LatLng(link.toLatitude, link.toLongitude))
+            Polyline(
+                points = points,
+                color = Color.Black,
+                width = SURVEY_LINK_CASING_WIDTH,
+                zIndex = SURVEY_LINK_Z_INDEX,
+            )
+            Polyline(
+                points = points,
+                color = colors[link.quality] ?: Color.Gray,
+                width = SURVEY_LINK_WIDTH,
+                zIndex = SURVEY_LINK_Z_INDEX + 0.01f,
+            )
+        }
+    }
+}
 
 /** A shared [MapBounds] as the box the Google map wants. */
 private fun MapBounds.toLatLngBounds(): LatLngBounds = LatLngBounds(LatLng(south, west), LatLng(north, east))

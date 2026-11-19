@@ -120,7 +120,6 @@
     <string name="bandwidth_unsupported_summary">Cette bande passante n'est pas prise en charge par la radio connectée dans la région sélectionnée. Choisissez une valeur supportée avant d'enregistrer.</string>
     <string name="baro_pressure">Baro</string>
     <string name="battery">Batterie</string>
-    <string name="battery_ina_2xx_i2c_address">Adresse I2C de la batterie INA_2XX</string>
     <string name="ble_devices">Appareils Bluetooth</string>
     <string name="ble_scan_needs_location_services">La recherche Bluetooth nécessite également des services de localisation activés pour cette version d'Android. Votre position n'est pas utilisée.</string>
     <!-- BLUETOOTH -->
@@ -170,6 +169,7 @@
     <string name="canned_message_enabled">Messages prédéfinis activés</string>
     <string name="cant_change_no_radio">Impossible de modifier le canal, car la radio n'est pas encore connectée. Veuillez réessayer.</string>
     <string name="cant_shutdown">Arrêt non pris en charge sur cet appareil</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">Utilisation pour le canal actuel, y compris TX bien formé, RX et RX mal formé (AKA bruit).</string>
     <!-- CHANNEL -->
     <string name="channel">Ch</string>
@@ -220,8 +220,10 @@
     <string name="client_notification">Notification client</string>
     <string name="close">Fermer</string>
     <string name="close_selection">Fermer le choix</string>
+    <!-- CO2 -->
     <string name="co2">CO₂</string>
     <string name="co2_humidity">CO₂ Humidité</string>
+    <string name="co2_level_good">Bon</string>
     <string name="co2_temperature">CO₂ Température</string>
     <string name="collapse_chart">Réduire le graphique</string>
     <string name="collapsed">Réduit</string>
@@ -536,7 +538,6 @@
     <string name="firmware_maintenance_upgrade_confirm_title">Mettre à jour le chargeur de démarrage ?</string>
     <string name="firmware_old">Le micrologiciel de la radio est trop ancien pour communiquer avec cette application. Pour des informations, voir <a href="https://meshtastic.org/docs/getting-started/flashing-firmware">Guide d'installation du micrologiciel</a>.</string>
     <string name="firmware_recovery_banner">Fin de la mise à jour %1$s</string>
-    <string name="firmware_recovery_ble_failed">Impossible de terminer la mise à jour via le Bluetooth. Le programme d'amorçage par défaut ne peut pas correctement effectuer une mise à jour OTA. Connectez l'appareil sur un ordinateur via USB et tentez de flasher en utilisant les outils DFU du vendeur (par exemple, adafruit-nrfutil) pour restaurer l'appareil.</string>
     <string name="firmware_recovery_button">Reprendre la mise à jour du micrologiciel</string>
     <string name="firmware_too_old">Mise à jour du micrologiciel requise.</string>
     <string name="firmware_update_almost_there">On y est presque...</string>
@@ -610,7 +611,6 @@
     <string name="firmware_update_unsupported_transport">Les mises à jour du microprogramme ne sont pas prises en charge par cette connexion pour cet appareil. Connectez une autre manière (par exemple Bluetooth) pour mettre à jour.</string>
     <string name="firmware_update_unsupported_update_method">Les fichiers du firmware local ne sont pas pris en charge pour cette méthode de mise à jour.</string>
     <string name="firmware_update_uploading">Transfert du Firmware...</string>
-    <string name="firmware_update_usb_bootloader_warning">%1$s est généralement livré avec un chargeur d'amorçage qui ne prend pas en charge les mises à jour via Bluetooth (OTA ou Over The Air). Vous devrez peut-être flasher un chargeur d'amorçage compatible OTA via USB avant de flasher OTA.</string>
     <string name="firmware_update_usb_failed">Échec de la mise à jour USB</string>
     <string name="firmware_update_usb_instruction_text">Votre appareil a redémarré en mode DFU et devrait apparaître comme une clé USB (par exemple, RAK4631).\n\nLorsque le sélecteur de fichier s'ouvre, veuillez sélectionner la racine de ce lecteur pour enregistrer le fichier firmware.</string>
     <string name="firmware_update_usb_instruction_title">Sélectionnez un lecteur USB DFU</string>
@@ -685,7 +685,6 @@
     <string name="ip">IP</string>
     <string name="ip_address">Adresse IP:</string>
     <string name="ip_port">Port :</string>
-    <string name="json_output_enabled">Sortie JSON activée</string>
     <string name="jump_to_latest_from">%1$s</string>
     <!-- KEY -->
     <string name="key_verification_final_title">Vérification de la clé terminée</string>
@@ -855,7 +854,6 @@
     <string name="message_status_unknown">Inconnu</string>
     <string name="messages">Messages</string>
     <string name="min">Min</string>
-    <string name="minimum_wake_time_seconds">Durée minimale de réveil</string>
     <!-- MIRROR -->
     <string name="mirror_back">Retour</string>
     <string name="mirror_key_down">Bas</string>
@@ -905,6 +903,7 @@
     <string name="name_cannot_be_empty">Le nom ne peut pas être vide.</string>
     <string name="navigate_back">Précédent</string>
     <string name="navigate_into_label">Naviguer vers</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">Informations sur les voisins</string>
     <string name="neighbor_info_config">Configuration des informations du voisinage</string>
     <string name="network">Réseau</string>
@@ -1000,7 +999,6 @@
     <string name="options">Options</string>
     <string name="orient_north">Orienter vers le nord</string>
     <string name="overflow_menu">Menu supplémentaire</string>
-    <string name="override_console_serial_port">Outrepasser le port série de la console</string>
     <!-- PACKET -->
     <string name="password">Mot de passe</string>
     <!-- PAX -->
@@ -1050,6 +1048,7 @@
     <string name="preserve_favorites">Conserver les favoris ?</string>
     <string name="press_and_drag">Appuyez et faites glisser pour réorganiser</string>
     <string name="pressure">Pression</string>
+    <string name="pressure_high">Haut</string>
     <!-- PREVIEW -->
     <string name="preview_custom_composable_line_one">Ceci est un composable personnalisé</string>
     <string name="preview_custom_composable_line_two">Avec plusieurs lignes et styles</string>
@@ -1138,6 +1137,7 @@
     <string name="reset">Réinitialiser</string>
     <string name="reset_to_defaults">Rétablir les valeurs par défaut</string>
     <string name="retry">Réessayer</string>
+    <!-- RINGTONE -->
     <string name="ringtone">Sonnerie</string>
     <string name="ringtone_file_empty">Le fichier est vide</string>
     <string name="ringtone_import_error">Erreur d'importation : %1$s</string>
@@ -1161,7 +1161,6 @@
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Accusé de réception négatif</string>
     <string name="routing_error_no_route">Pas de routage</string>
-    <string name="routing_error_none">Entendu par un autre nœud (mais dans le cas d'un message direct, nous n'avons pas reçu la confirmation de réception par le destinataire : soit il n'a pas reçu le message, soit sa confirmation ne nous est pas parvenue)</string>
     <string name="routing_error_timeout">Délai dépassé</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">Indicateur de force du signal reçu, une mesure utilisée pour déterminer le niveau de puissance reçu par l'antenne. Une valeur RSSI plus élevée indique généralement une connexion plus forte et plus stable.</string>
@@ -1230,6 +1229,7 @@
     <string name="shutdown">Éteindre</string>
     <string name="shutdown_node_name">Nœud : %1$s</string>
     <string name="shutdown_warning">⚠️ Vous allez ETEINDRE le nœud. Une interaction physique sera requise pour le rallumer.</string>
+    <!-- SIGNAL -->
     <string name="signal">Signal</string>
     <string name="signal_quality">Qualité du signal</string>
     <!-- SITE -->
@@ -1246,7 +1246,6 @@
     <string name="stay_connected_anywhere">Restez connecté n'importe où</string>
     <string name="store_forward">Stocker &amp; Transférer</string>
     <string name="store_forward_config">Stocker &amp; Transférer la configuration</string>
-    <string name="super_deep_sleep_duration_seconds">Durée du sommeil extra profond</string>
     <string name="supported">Pris en charge</string>
     <string name="supported_by_community">Soutenu par la communauté Meshtastic</string>
     <string name="swipe_action_delete">Effacer</string>
@@ -1373,6 +1372,7 @@
     <string name="weight">Poids</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">Mauvais</string>
+    <string name="widget_telemetry_title">Télémetrie (Capteurs)</string>
     <!-- WIFI -->
     <string name="wifi_devices">Approvisionnement Wi-Fi pour mPWRD-OS</string>
     <string name="wifi_provision_available_networks">Réseaux disponibles</string>
@@ -1408,6 +1408,8 @@
     <string name="wind_lull">Vent à la traîne</string>
     <string name="wind_speed">Vitesse du vent</string>
     <!-- WRITE -->
+    <!-- XR -->
+    <string name="xr_terrain_layer_elevation">Altitude</string>
     <string name="you">Vous</string>
     <string name="zoom_in">Zoom +</string>
     <string name="zoom_out">Zoom -</string>

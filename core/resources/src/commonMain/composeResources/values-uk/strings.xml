@@ -90,7 +90,6 @@
     <string name="bad">Поганий</string>
     <string name="baro_pressure">Бар</string>
     <string name="battery">Батарея</string>
-    <string name="battery_ina_2xx_i2c_address">I2C адреса INA_2XX батареї</string>
     <string name="ble_devices">Bluetooth пристрої</string>
     <!-- BLUETOOTH -->
     <string name="bluetooth">Bluetooth</string>
@@ -110,6 +109,7 @@
     <string name="canned_message_enabled">Шаблонне повідомлення активоване</string>
     <string name="cant_change_no_radio">Неможливо змінити канал, тому що радіо поки що не підключені. Будь ласка, спробуйте ще раз.</string>
     <string name="cant_shutdown">Вимкнення не підтримується на цьому пристрої</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">Загальна завантаженість поточного каналу, включно з коректною передачею TX, прийом RX та помилкові пакети (шум).</string>
     <!-- CHANNEL -->
     <string name="channel">Кн</string>
@@ -148,8 +148,10 @@
     <string name="client_notification">Клієнтські повідомлення</string>
     <string name="close">Закрити</string>
     <string name="close_selection">Закрити вибір</string>
+    <!-- CO2 -->
     <string name="co2">CO₂</string>
     <string name="co2_humidity">CO₂ Волог</string>
+    <string name="co2_level_good">Хороший</string>
     <string name="co2_temperature">CO₂ Темп</string>
     <string name="collapse_chart">Згорнути графік</string>
     <string name="communicate_off_the_grid">Спілкуйтеся з друзями та спільнотою поза мережею, навіть без мобільного зв'язку.</string>
@@ -411,7 +413,6 @@
     <string name="firmware_update_unknown_hardware">Невідома модель обладнання: %1$d</string>
     <string name="firmware_update_unknown_release">Невідомий віддалений реліз</string>
     <string name="firmware_update_uploading">Завантаження прошивки...</string>
-    <string name="firmware_update_usb_bootloader_warning">%1$s зазвичай постачається із завантажувачем, який не підтримує оновлення OTA. Вам може знадобитися завантажувач з можливістю оновлень OTA через USB перед прошиванням OTA.</string>
     <string name="firmware_update_usb_instruction_text">Ваш пристрій перезавантажився в режим DFU і повинен з'явитися як USB накопичувач (наприклад, RAK4631).\n\nУ вікні "Зберегти як", виберіть кореневу теку цього диску, щоб зберегти файл прошивки.</string>
     <string name="firmware_update_usb_instruction_title">Оберіть USB DFU накопичувач</string>
     <string name="firmware_update_validating">Перевірка прошивки...</string>
@@ -479,7 +480,6 @@
     <string name="ip">IP-адреса</string>
     <string name="ip_address">IP Адреса:</string>
     <string name="ip_port">Порт:</string>
-    <string name="json_output_enabled">Вивід JSON увімкнено</string>
     <string name="jump_to_latest_from">%1$s</string>
     <!-- KEY -->
     <string name="key_verification_final_title">Перевірку ключа завершено</string>
@@ -622,7 +622,6 @@
     <string name="messages">Повідомлення</string>
     <string name="micrograms_per_cubic_meter">мкг/м³</string>
     <string name="min">Мінімум</string>
-    <string name="minimum_wake_time_seconds">Мінімальний час в робочому режимі</string>
     <!-- MIRROR -->
     <string name="mirror_back">Назад</string>
     <string name="mirror_key_ok">Гаразд</string>
@@ -669,6 +668,7 @@
     <string name="name_cannot_be_empty">Назва не може бути порожньою.</string>
     <string name="navigate_back">Перейти назад</string>
     <string name="navigate_into_label">Навігаційна інформація</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">Інформація про сусідів</string>
     <string name="neighbor_info_config">Налаштування інформації про сусідів</string>
     <string name="network">Мережа</string>
@@ -765,7 +765,6 @@
     <string name="options">Налаштування</string>
     <string name="orient_north">Орієнтація північ</string>
     <string name="overflow_menu">Додаткове меню</string>
-    <string name="override_console_serial_port">Перевизначити послідовний порт</string>
     <!-- PACKET -->
     <string name="password">Пароль</string>
     <!-- PAX -->
@@ -820,6 +819,7 @@
     <string name="preserve_favorites">Зберегти улюблені?</string>
     <string name="press_and_drag">Натисніть і перетягніть, щоб змінити порядок</string>
     <string name="pressure">Атмосферний тиск</string>
+    <string name="pressure_high">Високий</string>
     <!-- PREVIEW -->
     <string name="preview_custom_composable_line_one">Це кастомна комбінація</string>
     <string name="preview_custom_composable_line_two">З декількома лініями та стилями</string>
@@ -906,6 +906,7 @@
     <string name="reset">Скинути</string>
     <string name="reset_to_defaults">Відновити налаштування за замовчуванням</string>
     <string name="retry">Повторити</string>
+    <!-- RINGTONE -->
     <string name="ringtone">Мелодія</string>
     <string name="ringtone_file_empty">Файл порожній</string>
     <string name="ringtone_import_error">Помилка імпорту: %1$s</string>
@@ -929,7 +930,6 @@
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Отримано негативне підтвердження</string>
     <string name="routing_error_no_route">Маршрут відсутній</string>
-    <string name="routing_error_none">Підтверджено</string>
     <string name="routing_error_timeout">Таймаут</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">Показник рівня потужності сигналу — вимірювання, що використовується для визначення рівня потужності, що приймається антеною. Вище значення RSSI зазвичай вказує на міцніше та стабільніше з'єднання.</string>
@@ -993,6 +993,7 @@
     <string name="shutdown">Вимкнути</string>
     <string name="shutdown_node_name">Вузол: %1$s</string>
     <string name="shutdown_warning">⚠️ Це призведе до ВИМКНЕННЯ вузла. Знадобиться фізична взаємодія для його увімкнення.</string>
+    <!-- SIGNAL -->
     <string name="signal">Сигнал</string>
     <string name="signal_quality">Якість сигналу</string>
     <!-- SITE -->
@@ -1013,7 +1014,6 @@
     <string name="speed_kmh">%1$d км/год</string>
     <string name="status_message">Статус повідомлення</string>
     <string name="stay_connected_anywhere">Залишайтесь на зв'язку будь-де</string>
-    <string name="super_deep_sleep_duration_seconds">Тривалість глибокого сну</string>
     <string name="supported">Підтримується</string>
     <string name="supported_by_community">Підтримується спільнотою Meshtastic</string>
     <string name="swipe_action_delete">Видалити</string>
@@ -1126,6 +1126,7 @@
     <string name="weight">Вага</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">Поганий</string>
+    <string name="widget_telemetry_title">Телеметрія</string>
     <!-- WIFI -->
     <string name="wifi_devices">Налаштування Wi-Fi для mPWRD-OS</string>
     <string name="wifi_provision_available_networks">Доступні мережі</string>
@@ -1150,6 +1151,7 @@
     <string name="wind_lull">Затишшя вітру</string>
     <string name="wind_speed">Швидкість вітру</string>
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">Ви</string>
     <string name="zoom_in">Приблизити</string>
     <string name="zoom_out">Віддалити</string>

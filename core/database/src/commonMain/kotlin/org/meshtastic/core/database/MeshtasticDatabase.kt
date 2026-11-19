@@ -26,7 +26,6 @@ import androidx.room3.migration.AutoMigrationSpec
 import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import org.meshtastic.core.common.util.ioDispatcher
 import org.meshtastic.core.database.dao.AutomationDao
 import org.meshtastic.core.database.dao.BootloaderOtaQuirksDao
@@ -43,6 +42,7 @@ import org.meshtastic.core.database.dao.MqttRootsDao
 import org.meshtastic.core.database.dao.NodeInfoDao
 import org.meshtastic.core.database.dao.PacketDao
 import org.meshtastic.core.database.dao.QuickChatActionDao
+import org.meshtastic.core.database.dao.SignalSampleDao
 import org.meshtastic.core.database.dao.TopologyEdgeDao
 import org.meshtastic.core.database.dao.TracerouteNodePositionDao
 import org.meshtastic.core.database.entity.AutomationLogEntity
@@ -68,6 +68,8 @@ import org.meshtastic.core.database.entity.Packet
 import org.meshtastic.core.database.entity.PacketFts
 import org.meshtastic.core.database.entity.QuickChatAction
 import org.meshtastic.core.database.entity.ReactionEntity
+import org.meshtastic.core.database.entity.SignalSampleEntity
+import org.meshtastic.core.database.entity.SignalSurveySessionEntity
 import org.meshtastic.core.database.entity.TopologyEdge
 import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
 
@@ -99,6 +101,8 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         AutomationRuleEntity::class,
         AutomationLogEntity::class,
         TopologyEdge::class,
+        SignalSurveySessionEntity::class,
+        SignalSampleEntity::class,
     ],
     autoMigrations =
     [
@@ -166,12 +170,13 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         AutoMigration(from = 64, to = 65),
         // 65 -> 66 is the manual MIGRATION_65_66 (automation tables created), applied via configureCommon().
         // 66 -> 67 is the manual MIGRATION_66_67 (topology_edge table created), applied via configureCommon().
-        // 67 -> 68 is the manual MIGRATION_67_68 (mqtt_roots_cache table created), applied via configureCommon().
+        // 67 -> 68 is the manual MIGRATION_67_68 (mqtt_roots_cache table created & log indexes), applied via configureCommon().
         // 68 -> 69 is the manual MIGRATION_68_69 (nodes.display_name column added), applied via configureCommon().
         // 69 -> 70 is the manual MIGRATION_69_70 (reactions.via_mqtt & transport_mechanism columns added), applied
         // via configureCommon().
+        // 70 -> 71 is the manual MIGRATION_70_71 (signal survey tables and log indexes added), applied via configureCommon().
     ],
-    version = 70,
+    version = 71,
     exportSchema = true,
 )
 @androidx.room3.ConstructedBy(MeshtasticDatabaseConstructor::class)
@@ -212,6 +217,8 @@ abstract class MeshtasticDatabase : RoomDatabase() {
     abstract fun automationDao(): AutomationDao
 
     abstract fun topologyEdgeDao(): TopologyEdgeDao
+
+    abstract fun signalSampleDao(): SignalSampleDao
 
     companion object {
         /**
@@ -574,7 +581,7 @@ abstract class MeshtasticDatabase : RoomDatabase() {
         /**
          * Idempotent migration from schema 67 to 68.
          *
-         * Ensures `mqtt_roots_cache`, topology, automation, and pinned_message exist.
+         * Ensures `mqtt_roots_cache`, topology, automation, log indexes, and pinned_message exist.
          */
         internal val MIGRATION_67_68: Migration =
             object : Migration(67, 68) {
@@ -583,6 +590,7 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     createAutomationTables(connection)
                     createTopologyTables(connection)
                     ensurePacketPinnedMessage(connection)
+                    ensureLogIndexes(connection)
                 }
             }
 
@@ -769,21 +777,126 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                 }
             }
 
+        private fun createSignalSurveyTables(connection: SQLiteConnection) {
+            connection.execSQL(
+                "CREATE TABLE IF NOT EXISTS `signal_survey_session` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`started_at` INTEGER NOT NULL, " +
+                    "`ended_at` INTEGER, " +
+                    "`modem_preset` TEXT)",
+            )
+            connection.execSQL(
+                "CREATE TABLE IF NOT EXISTS `signal_sample` (" +
+                    "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                    "`session_id` INTEGER NOT NULL, " +
+                    "`time` INTEGER NOT NULL, " +
+                    "`latitude` REAL NOT NULL, " +
+                    "`longitude` REAL NOT NULL, " +
+                    "`accuracy_m` REAL, " +
+                    "`from_num` INTEGER NOT NULL, " +
+                    "`rssi` INTEGER NOT NULL, " +
+                    "`snr` REAL, " +
+                    "`direct` INTEGER NOT NULL, " +
+                    "FOREIGN KEY(`session_id`) REFERENCES `signal_survey_session`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)",
+            )
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_signal_sample_session_id` ON `signal_sample` (`session_id`)",
+            )
+        }
+
+        private fun ensureLogIndexes(connection: SQLiteConnection) {
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_log_from_num_port_num_received_date` " +
+                    "ON `log` (`from_num`, `port_num`, `received_date`)",
+            )
+            connection.execSQL(
+                "CREATE INDEX IF NOT EXISTS `index_log_type_received_date` ON `log` (`type`, `received_date`)",
+            )
+        }
+
+        /**
+         * Idempotent migration from schema 70 to 71.
+         *
+         * Ensures all tables and columns exist, plus `signal_survey_session`, `signal_sample`, and log indexes.
+         */
+        internal val MIGRATION_70_71: Migration =
+            object : Migration(70, 71) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                    ensureReactionsMqttColumns(connection)
+                    createSignalSurveyTables(connection)
+                    ensureLogIndexes(connection)
+                }
+            }
+
+        internal val MIGRATION_69_71: Migration =
+            object : Migration(69, 71) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                    ensureReactionsMqttColumns(connection)
+                    createSignalSurveyTables(connection)
+                    ensureLogIndexes(connection)
+                }
+            }
+
+        internal val MIGRATION_68_71: Migration =
+            object : Migration(68, 71) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                    ensureReactionsMqttColumns(connection)
+                    createSignalSurveyTables(connection)
+                    ensureLogIndexes(connection)
+                }
+            }
+
+        internal val MIGRATION_67_71: Migration =
+            object : Migration(67, 71) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                    ensureReactionsMqttColumns(connection)
+                    createSignalSurveyTables(connection)
+                    ensureLogIndexes(connection)
+                }
+            }
+
+        internal val MIGRATION_64_71: Migration =
+            object : Migration(64, 71) {
+                override suspend fun migrate(connection: SQLiteConnection) {
+                    createMqttRootsCacheTable(connection)
+                    createAutomationTables(connection)
+                    createTopologyTables(connection)
+                    ensurePacketPinnedMessage(connection)
+                    ensureNodeDisplayName(connection)
+                    ensureReactionsMqttColumns(connection)
+                    createSignalSurveyTables(connection)
+                    ensureLogIndexes(connection)
+                }
+            }
+
         /**
          * Configures a [RoomDatabase.Builder] with standard settings for this project.
          *
-         * All platforms force [setSingleConnectionPool]. Without it, Room defaults to a 4-reader pool for named
-         * databases, and under coroutine cancellation churn (e.g. DB switches via `flatMapLatest`) the reader-pool
-         * permit semaphore can wedge: all reader connections report `Free` but `permits=0`, so every read acquisition
-         * waits indefinitely (Room logs "Timed out attempting to acquire a reader connection" and retries; nothing is
-         * thrown). Android hit this first; desktop (Flathub, 2026-07-10) reproduced the identical wedge in field logs,
-         * so JVM/iOS were moved off the multi-reader pool too. Single-connection eliminates the separate reader permit
-         * pool entirely.
-         *
-         * For in-memory databases (tests) this is a no-op for pooling — Room already serves `name == null` databases
-         * from a single connection — it just serializes the query dispatcher.
+         * A file database keeps Room's default pool: one writer and several readers in WAL, so the query every observed
+         * Flow re-runs after a write reads beside the next write instead of ahead of it on one connection. A reader
+         * pool that stops serving surfaces as a `DbFlowStalledException`, which [DatabaseManager] recovers by replacing
+         * the pool. Room serves an in-memory database (tests) from a single connection whatever is set here.
          */
-        @OptIn(ExperimentalCoroutinesApi::class)
         fun <T : RoomDatabase> RoomDatabase.Builder<T>.configureCommon(): RoomDatabase.Builder<T> =
             this.fallbackToDestructiveMigration(dropAllTables = false)
                 .addMigrations(
@@ -813,14 +926,16 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     MIGRATION_67_70,
                     MIGRATION_68_70,
                     MIGRATION_69_70,
+                    MIGRATION_64_71,
+                    MIGRATION_67_71,
+                    MIGRATION_68_71,
+                    MIGRATION_69_71,
+                    MIGRATION_70_71,
                 )
-                .setSingleConnectionPool()
                 .setConnectionPoolTimeout(ROOM_POOL_ACQUIRE_TIMEOUT)
-                .setQueryCoroutineContext(
-                    // limitedParallelism(1) has the same throughput ceiling as the single-connection pool
-                    // (already serialized), so this only blocks the cancellation pileup — not real I/O concurrency.
-                    ioDispatcher.limitedParallelism(1),
-                )
+                .setQueryCoroutineContext(ioDispatcher)
+                .setConnectionPoolTimeout(ROOM_POOL_ACQUIRE_TIMEOUT)
+                .setQueryCoroutineContext(ioDispatcher)
     }
 }
 

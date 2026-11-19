@@ -127,6 +127,7 @@ include(
     ":androidApp",
     ":core:barcode",
     ":feature:widget",
+    ":feature:xr",
     ":screenshot-tests",
     ":docs-screenshots",
     ":schema-strings",

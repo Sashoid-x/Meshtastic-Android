@@ -30,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -94,6 +95,7 @@ import org.meshtastic.core.resources.firmware_update_method_wifi
 import org.meshtastic.core.resources.firmware_update_missing_target
 import org.meshtastic.core.resources.firmware_update_no_device
 import org.meshtastic.core.resources.firmware_update_node_info_missing
+import org.meshtastic.core.resources.firmware_update_ota_failed
 import org.meshtastic.core.resources.firmware_update_requires_bin
 import org.meshtastic.core.resources.firmware_update_requires_ota_zip
 import org.meshtastic.core.resources.firmware_update_requires_uf2
@@ -194,8 +196,17 @@ class FirmwareUpdateViewModel(
     private var pendingLocalFirmwareArtifact: FirmwareArtifact? = null
     private var originalDeviceAddress: String? = null
 
+    /** The firmware version verification waits for, from the release being installed; null for a local file. */
+    private var expectedFirmwareVersion: String? = null
+
     /** Set when [checkForUpdates] enters recovery mode (disconnected + a saved record); consumed by [startUpdate]. */
     private var pendingRecovery: PendingFirmwareRecovery? = null
+
+    /** True while the running update job started on a device already stranded in its bootloader. */
+    private var runStrandedBefore = false
+
+    /** True once the running update job persisted its own recovery record, so only it may retire one. */
+    private var runPersistedRecord = false
 
     /** Remaining legs of an in-flight USB maintenance sequence, head first. Empty outside a maintenance flow. */
     private var pendingUsbPasses: List<UsbFileSavePass> = emptyList()
@@ -278,7 +289,10 @@ class FirmwareUpdateViewModel(
     }
 
     fun cancelUpdate() {
+        // Still downloading means the device never left its application, so no recovery record is owed.
+        val retireRecord = !runStrandedBefore && runPersistedRecord && _state.value is FirmwareUpdateState.Downloading
         updateJob?.cancel()
+        if (retireRecord) viewModelScope.launch { retireRecoveryRecord() }
         val write = maintenanceWriteJob
         if (write?.isActive == true) {
             // A pass is mid-write on its own job, which updateJob?.cancel() does not reach. Cancelling it is what
@@ -295,6 +309,9 @@ class FirmwareUpdateViewModel(
         _state.value = FirmwareUpdateState.Idle
         checkForUpdates()
     }
+
+    private fun FirmwareUpdateState.Error.isRawOtaFailure() =
+        (error as? UiText.Resource)?.res == Res.string.firmware_update_ota_failed
 
     /** Drops a USB maintenance sequence and the hold it owns. Idempotent. */
     private fun endMaintenanceSequence() {
@@ -329,6 +346,9 @@ class FirmwareUpdateViewModel(
                 // maintenance gate.
                 maintenanceUf2Repository.reconcile()
                 val maintenanceUf2Manifest = maintenanceUf2Repository.getSnapshot()
+                // Metadata is persisted after the handshake, so the first read can still be the previous session's.
+                val bootloaderVersionFlow =
+                    nodeRepository.ourNodeInfo.map { it?.metadata?.bootloader_version ?: 0 }.distinctUntilChanged()
 
                 val releaseFlow =
                     if (_selectedReleaseType.value == FirmwareReleaseType.LOCAL) {
@@ -336,8 +356,9 @@ class FirmwareUpdateViewModel(
                     } else {
                         firmwareReleaseRepository.getReleaseFlow(_selectedReleaseType.value)
                     }
-                releaseFlow.collectLatest { release ->
+                releaseFlow.combine(bootloaderVersionFlow, ::Pair).collectLatest { (release, bootloaderVersion) ->
                     _selectedRelease.value = release
+                    val bootloader = bootloaderStatus(bootloaderVersion, maintenanceUf2Manifest)
 
                     val dismissed = bootloaderWarningDataSource.isDismissed(address)
                     val firmwareUpdateMethod =
@@ -379,7 +400,8 @@ class FirmwareUpdateViewModel(
                             showBootloaderWarning =
                             deviceHardware.requiresBootloaderUpgradeForOta == true &&
                                 !dismissed &&
-                                radioPrefs.isBle(),
+                                radioPrefs.isBle() &&
+                                bootloader?.isCurrent != true,
                             updateMethod = firmwareUpdateMethod,
                             currentFirmwareVersion = ourNode.firmwareVersion,
                             maintenance =
@@ -389,6 +411,16 @@ class FirmwareUpdateViewModel(
                                 updateMethod = firmwareUpdateMethod,
                                 hasRelease = release != null,
                                 platformSupportsMaintenance = usbManager.supportsUf2Maintenance,
+                                bootloader = bootloader,
+                            ),
+                            bootloader = bootloader,
+                            bleBootloaderUpgrade =
+                            bleBootloaderUpgradeFor(
+                                manifest = maintenanceUf2Manifest,
+                                hardware = deviceHardware,
+                                updateMethod = firmwareUpdateMethod,
+                                hasRelease = release != null,
+                                bootloader = bootloader,
                             ),
                         )
                 }
@@ -504,59 +536,133 @@ class FirmwareUpdateViewModel(
         }
     }
 
-    @Suppress("SuspendFunSwallowedCancellation") // cancellation resets the UI state, then is rethrown
-    private fun startNormalUpdate(currentState: FirmwareUpdateState.Ready, release: FirmwareRelease) {
+    /** Upgrades the bootloader over BLE with the Ready state's package, then reinstalls the selected release. */
+    @Suppress("ReturnCount") // preconditions; each missing one must abort before the device is rebooted
+    fun startBleBootloaderUpgrade() {
+        val currentState = _state.value as? FirmwareUpdateState.Ready ?: return
+        val release = currentState.release ?: return
+        val bootloader = currentState.bleBootloaderUpgrade ?: return
+        pendingFactoryResetAfterUpdate = false
+        _bootloaderFault.value = null
+        trackUpdateStart(currentState, release.id, wipeDevice = false)
+        startNormalUpdate(currentState, release) {
+            firmwareUpdateManager.upgradeBootloaderOverBle(
+                release = release,
+                hardware = currentState.deviceHardware,
+                address = currentState.address,
+                bootloader = bootloader,
+                updateState = { _state.value = it },
+            )
+        }
+    }
+
+    private fun startNormalUpdate(
+        currentState: FirmwareUpdateState.Ready,
+        release: FirmwareRelease,
+        runUpdate: suspend () -> FirmwareArtifact? = {
+            firmwareUpdateManager.startUpdate(
+                release = release,
+                hardware = currentState.deviceHardware,
+                address = currentState.address,
+                updateState = { _state.value = it },
+            )
+        },
+    ) {
         originalDeviceAddress = radioPrefs.devAddr.value
-
+        expectedFirmwareVersion = release.reportedVersion()
         viewModelScope.launch {
-            if (checkBatteryLevel()) {
-                updateJob?.cancel()
-                updateJob = viewModelScope.launch {
-                    try {
-                        // Persist a recovery record before flashing so a stranded bootloader (interrupted upload,
-                        // app closed, missed reconnect) can be re-flashed later while disconnected.
-                        maybeRecordRecovery(currentState)
-                        tempFirmwareFile =
-                            firmwareUpdateManager.startUpdate(
-                                release = release,
-                                hardware = currentState.deviceHardware,
-                                address = currentState.address,
-                                updateState = { _state.value = it },
-                            )
-
-                        when (val finalState = _state.value) {
-                            is FirmwareUpdateState.Success ->
-                                verifyUpdateResult(originalDeviceAddress, finalState.wasLowSpeedTransfer)
-
-                            // USB/UF2 path intentionally pauses here: the UI launches the file picker and
-                            // saveDfuFile() resumes the flow. Leave the state intact (tempFirmwareFile holds
-                            // the artifact for cleanup after the copy completes).
-                            is FirmwareUpdateState.AwaitingFileSave -> Unit
-
-                            is FirmwareUpdateState.Error -> {
-                                tempFirmwareFile = cleanupTemporaryFiles(fileHandler, tempFirmwareFile)
-                            }
-
-                            else -> {
-                                // Defense-in-depth: handler returned without setting a terminal state
-                                Logger.w { "Firmware update returned without terminal state: ${_state.value}" }
-                                _state.value =
-                                    FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_update_failed))
-                                tempFirmwareFile = cleanupTemporaryFiles(fileHandler, tempFirmwareFile)
-                            }
-                        }
-                    } catch (e: CancellationException) {
-                        Logger.w(e) { "Firmware update cancelled — cause: ${e.cause} message: ${e.message}" }
-                        _state.value = FirmwareUpdateState.Idle
-                        checkForUpdates()
-                        throw e
-                    } catch (e: Exception) {
-                        Logger.e(e) { "Firmware update failed" }
-                        _state.value = FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_update_failed))
-                    }
-                }
+            if (!checkBatteryLevel()) return@launch
+            launchUpdateJob {
+                // Persist a recovery record before flashing so a stranded bootloader (interrupted upload, app closed,
+                // missed reconnect) can be re-flashed later while disconnected.
+                runPersistedRecord = maybeRecordRecovery(currentState)
+                runUpdate()
             }
         }
+    }
+
+    /**
+     * Runs [runUpdate] as the update job, then carries on from the state the handler ended in: verify a flashed device,
+     * wait at a USB save, or show the error.
+     *
+     * @param mapError Rewrites a handler's error, for flows whose guidance differs (recovery).
+     * @param strandedBefore True when the device was already in its bootloader before this run, so an error that wrote
+     *   nothing still leaves it stranded and its recovery record must stay.
+     */
+    @Suppress("SuspendFunSwallowedCancellation") // cancellation resets the UI state, then is rethrown
+    private fun launchUpdateJob(
+        mapError: (FirmwareUpdateState.Error) -> FirmwareUpdateState.Error = { it },
+        strandedBefore: Boolean = false,
+        runUpdate: suspend () -> FirmwareArtifact?,
+    ) {
+        val endFailed: suspend (FirmwareUpdateState.Error) -> Unit = { endFailedUpdate(mapError(it), strandedBefore) }
+        updateJob?.cancel()
+        runStrandedBefore = strandedBefore
+        runPersistedRecord = false
+        updateJob = viewModelScope.launch {
+            val failed = FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_update_failed))
+            try {
+                tempFirmwareFile = runUpdate()
+                when (val finalState = _state.value) {
+                    is FirmwareUpdateState.Success ->
+                        verifyUpdateResult(originalDeviceAddress, finalState.wasLowSpeedTransfer)
+
+                    // The USB path pauses for the user to pick a save location; saveDfuFile() resumes it.
+                    is FirmwareUpdateState.AwaitingFileSave -> Unit
+
+                    is FirmwareUpdateState.Error -> endFailed(finalState)
+
+                    else -> {
+                        Logger.w { "Firmware update returned without terminal state: $finalState" }
+                        endFailed(failed)
+                    }
+                }
+            } catch (e: CancellationException) {
+                Logger.w(e) { "Firmware update cancelled" }
+                // A run that a newer one replaced must not touch the shared state or the newer run's record.
+                val self = coroutineContext[Job]
+                if (updateJob === self) {
+                    if (!strandedBefore && runPersistedRecord && _state.value is FirmwareUpdateState.Downloading) {
+                        withContext(NonCancellable) { retireRecoveryRecord() }
+                    }
+                    // Retiring the record suspends, so ownership is checked again before the shared-state writes.
+                    if (updateJob === self) {
+                        _state.value = FirmwareUpdateState.Idle
+                        checkForUpdates()
+                    }
+                }
+                throw e
+            } catch (e: Exception) {
+                Logger.e(e) { "Firmware update failed" }
+                endFailed(failed)
+            }
+        }
+    }
+
+    /**
+     * Shows [error] and drops the update's files. A device that was never written to, and was running its application
+     * before ([strandedBefore] false), boots it as before, so its recovery record is retired and the radio is bound to
+     * it again.
+     */
+    private suspend fun endFailedUpdate(error: FirmwareUpdateState.Error, strandedBefore: Boolean) {
+        _state.value = error
+        tempFirmwareFile = cleanupTemporaryFiles(fileHandler, tempFirmwareFile)
+        if (!error.nothingWritten || strandedBefore) return
+        // Only a record this run wrote is its own to retire; another device's record stays.
+        if (runPersistedRecord) retireRecoveryRecord()
+        originalDeviceAddress?.takeIf { it != radioPrefs.devAddr.value }?.let { radioController.setDeviceAddress(it) }
+    }
+
+    private suspend fun retireRecoveryRecord() {
+        pendingRecovery = null
+        firmwareRecoveryDataSource.clear()
+    }
+
+    /** Waits again for a flashed device to come back after [FirmwareUpdateState.VerificationFailed]. */
+    fun retryVerification() {
+        if (_state.value !is FirmwareUpdateState.VerificationFailed) return
+        updateJob?.cancel()
+        updateJob = viewModelScope.launch { verifyUpdateResult(originalDeviceAddress) }
     }
 
     /**
@@ -564,17 +670,18 @@ class FirmwareUpdateViewModel(
      * device in bootloader mode can be recovered later. Scoped to BLE + non-ESP32 + a re-fetchable release channel
      * (STABLE/ALPHA/NIGHTLY); ESP32 OTA and local-file flashes are intentionally not recoverable in this flow. A
      * NIGHTLY record re-asserts the hidden-features unlock on recovery (see [enterRecoveryModeOrError]).
+     *
+     * @return True when a record was persisted.
      */
-    private suspend fun maybeRecordRecovery(state: FirmwareUpdateState.Ready) {
+    private suspend fun maybeRecordRecovery(state: FirmwareUpdateState.Ready): Boolean {
         val type = _selectedReleaseType.value
         val recoverable =
             state.updateMethod is FirmwareUpdateMethod.Ble &&
                 !state.deviceHardware.isEsp32Arc &&
                 type != FirmwareReleaseType.LOCAL
-        if (!recoverable) return
         val fullAddress = radioPrefs.devAddr.value
         val pioEnv = nodeRepository.myNodeInfo.value?.pioEnv
-        if (fullAddress == null || pioEnv == null) return
+        if (!recoverable || fullAddress == null || pioEnv == null) return false
         firmwareRecoveryDataSource.set(
             PendingFirmwareRecovery(
                 fullAddress = fullAddress,
@@ -584,55 +691,34 @@ class FirmwareUpdateViewModel(
                 deviceName = radioPrefs.devName.value ?: state.deviceHardware.displayName,
             ),
         )
+        return true
     }
 
     /**
      * Re-flash a device stranded in bootloader mode. Routes straight to BLE DFU (the device is disconnected, so the
      * connection-type dispatch can't run) and reuses the same verify/cleanup tail as a normal update.
      */
-    @Suppress("SuspendFunSwallowedCancellation") // cancellation resets the UI state, then is rethrown
     private fun startRecoveryUpdate(currentState: FirmwareUpdateState.Ready, release: FirmwareRelease) {
         originalDeviceAddress = pendingRecovery?.fullAddress
-        updateJob?.cancel()
-        updateJob = viewModelScope.launch {
-            try {
-                tempFirmwareFile =
-                    firmwareUpdateManager.recoverDfuDevice(
-                        release = release,
-                        hardware = currentState.deviceHardware,
-                        address = currentState.address,
-                        updateState = { _state.value = it },
-                    )
-
-                when (val finalState = _state.value) {
-                    is FirmwareUpdateState.Success ->
-                        verifyUpdateResult(originalDeviceAddress, finalState.wasLowSpeedTransfer)
-
-                    is FirmwareUpdateState.Error -> {
-                        // BLE re-flash of a stranded device failed. A stock nRF bootloader can't reliably finish
-                        // an interrupted OTA update over the air, so point the user at USB serial-DFU recovery
-                        // rather than surfacing the low-level connection error.
-                        _state.value =
-                            FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_recovery_ble_failed))
-                        tempFirmwareFile = cleanupTemporaryFiles(fileHandler, tempFirmwareFile)
-                    }
-
-                    else -> {
-                        Logger.w { "Firmware recovery returned without terminal state: ${_state.value}" }
-                        _state.value =
-                            FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_recovery_ble_failed))
-                        tempFirmwareFile = cleanupTemporaryFiles(fileHandler, tempFirmwareFile)
-                    }
+        expectedFirmwareVersion = release.reportedVersion()
+        // A failed BLE re-flash of a stranded device points at USB serial-DFU recovery instead of the low-level
+        // error; an error that wrote nothing keeps its own message.
+        launchUpdateJob(
+            mapError = {
+                if (it.nothingWritten && !it.isRawOtaFailure()) {
+                    it
+                } else {
+                    FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_recovery_ble_failed))
                 }
-            } catch (e: CancellationException) {
-                Logger.w(e) { "Firmware recovery cancelled" }
-                _state.value = FirmwareUpdateState.Idle
-                checkForUpdates()
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Firmware recovery failed" }
-                _state.value = FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_recovery_ble_failed))
-            }
+            },
+            strandedBefore = true,
+        ) {
+            firmwareUpdateManager.recoverDfuDevice(
+                release = release,
+                hardware = currentState.deviceHardware,
+                address = currentState.address,
+                updateState = { _state.value = it },
+            )
         }
     }
 
@@ -674,8 +760,12 @@ class FirmwareUpdateViewModel(
         }
 
         originalDeviceAddress = radioPrefs.devAddr.value
+        expectedFirmwareVersion = release.reportedVersion()
         maintenanceHardware = currentState.deviceHardware
         destructiveWriteDone = false
+        // A maintenance run is a new flow: it owns no record, whatever an earlier run left in these flags.
+        runStrandedBefore = false
+        runPersistedRecord = false
         _bootloaderFault.value = null
 
         viewModelScope.launch {
@@ -909,7 +999,8 @@ class FirmwareUpdateViewModel(
         // A maintenance pass carries no artifact — it goes through writeMaintenancePass with a tree URI instead.
         val firmwareArtifact = currentState.uf2Artifact ?: return
 
-        viewModelScope.launch {
+        // Tracked so cancelUpdate() stops the copy and the detach wait instead of letting them overwrite Idle.
+        maintenanceWriteJob = viewModelScope.launch {
             // The plain single-pass USB write happens here, not in FirmwareUpdateManager.startUpdate — that returned
             // at AwaitingFileSave so the UI could open the file picker, releasing its lease. Without a hold of its own
             // the copy, the flash and the detach wait run with no foreground service and no wake lock.
@@ -1181,10 +1272,16 @@ class FirmwareUpdateViewModel(
         }
         trackUpdateStart(currentState, LOCAL_RELEASE_ID)
         originalDeviceAddress = radioPrefs.devAddr.value
+        expectedFirmwareVersion = null
 
-        updateJob?.cancel()
-        updateJob = viewModelScope.launch {
-            try {
+        viewModelScope.launch {
+            if (!checkBatteryLevel()) {
+                cleanupPendingLocalFirmwareArtifact(pendingArtifact)
+                return@launch
+            }
+            launchUpdateJob {
+                // Owned before the handler runs, so a throw still cleans it up.
+                tempFirmwareFile = pendingArtifact
                 val updateArtifact =
                     firmwareUpdateManager.startUpdate(
                         release = FirmwareRelease(id = LOCAL_RELEASE_ID, zipUrl = "", releaseNotes = ""),
@@ -1193,36 +1290,12 @@ class FirmwareUpdateViewModel(
                         updateState = { _state.value = it },
                         firmwareUri = uri,
                     )
-                tempFirmwareFile = updateArtifact?.takeIf { it.isTemporary } ?: pendingArtifact
-                // If the handler created its own temp copy (e.g. ESP32 importFromUri),
-                // clean up the extracted bundle artifact to prevent a leak.
-                if (pendingArtifact != null && pendingArtifact != tempFirmwareFile) {
+                val kept = updateArtifact?.takeIf { it.isTemporary } ?: pendingArtifact
+                // The handler made its own temp copy (e.g. ESP32 importFromUri), so the extracted bundle goes.
+                if (pendingArtifact != null && pendingArtifact != kept) {
                     cleanupTemporaryFiles(fileHandler, pendingArtifact)
                 }
-
-                when (val finalState = _state.value) {
-                    is FirmwareUpdateState.Success ->
-                        verifyUpdateResult(originalDeviceAddress, finalState.wasLowSpeedTransfer)
-
-                    // USB/UF2 path pauses here for the user to pick a save location; saveDfuFile() resumes it.
-                    is FirmwareUpdateState.AwaitingFileSave -> Unit
-
-                    is FirmwareUpdateState.Error -> {
-                        tempFirmwareFile = cleanupTemporaryFiles(fileHandler, tempFirmwareFile)
-                    }
-
-                    else -> {
-                        Logger.w { "Firmware update returned without terminal state: ${_state.value}" }
-                        _state.value = FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_update_failed))
-                        tempFirmwareFile = cleanupTemporaryFiles(fileHandler, tempFirmwareFile)
-                    }
-                }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Error starting update from file" }
-                _state.value = FirmwareUpdateState.Error(UiText.Resource(Res.string.firmware_update_failed))
-                tempFirmwareFile = cleanupTemporaryFiles(fileHandler, tempFirmwareFile ?: pendingArtifact)
+                kept
             }
         }
     }
@@ -1341,17 +1414,23 @@ class FirmwareUpdateViewModel(
         }
 
         // Wait for device to reconnect and settle
+        val expected = expectedFirmwareVersion
         val result =
             withTimeoutOrNull(VERIFY_TIMEOUT) {
                 // Wait for both Connected state and node info to be present
                 connectionState.first { it is ConnectionState.Connected }
                 nodeRepository.ourNodeInfo.filterNotNull().first()
+                // A reconnect alone can be the old firmware still running; wait for the release it was given.
+                if (expected != null) nodeRepository.myNodeInfo.first { it?.firmwareVersion == expected }
                 delay(VERIFY_DELAY) // Extra buffer for initial config sync
                 true
             }
 
         if (result == null) {
-            Logger.w { "Post-update verification timed out for ${address.anonymize()}" }
+            Logger.w {
+                "Post-update verification timed out for ${address.anonymize()} (expected=$expected, " +
+                    "reported=${nodeRepository.myNodeInfo.value?.firmwareVersion})"
+            }
             // The opted-in wipe is deliberately skipped: a device we could not verify is never wiped.
             _state.value = FirmwareUpdateState.VerificationFailed
         } else {
@@ -1433,6 +1512,14 @@ private sealed interface LocalFirmwareResolution {
 
     data class Invalid(val reason: LocalFirmwareFileValidationReason, val fileName: String) : LocalFirmwareResolution
 }
+
+private val REPORTED_VERSION = Regex("""\d+\.\d+\.\d+\.[0-9a-f]+""")
+
+/**
+ * The `firmware_version` a device reports once it runs this release (`v2.8.2.d5f1619` reports `2.8.2.d5f1619`), or null
+ * when the id has no such form and verification cannot check it.
+ */
+internal fun FirmwareRelease.reportedVersion(): String? = id.removePrefix("v").takeIf { REPORTED_VERSION.matches(it) }
 
 private fun shouldTryLocalFirmwareBundle(fileName: String, reason: LocalFirmwareFileValidationReason): Boolean {
     val normalizedFileName = fileName.substringAfterLast('/').substringAfterLast('\\').lowercase()

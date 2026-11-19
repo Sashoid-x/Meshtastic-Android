@@ -97,7 +97,6 @@
     <string name="bad">不良</string>
     <string name="baro_pressure">氣壓</string>
     <string name="battery">電池</string>
-    <string name="battery_ina_2xx_i2c_address">電池 INA_2XX I2C 地址</string>
     <string name="ble_devices">藍牙裝置</string>
     <!-- BLUETOOTH -->
     <string name="bluetooth">藍牙</string>
@@ -118,6 +117,74 @@
     <string name="canned_message_enabled">啟用罐頭訊息</string>
     <string name="cant_change_no_radio">無法更改頻道，因為裝置尚未連接。請再試一次。</string>
     <string name="cant_shutdown">此裝置不支援關機功能</string>
+    <!-- CARDINAL -->
+    <string name="cardinal_n">Meshtastic is a remarkable open-source project that leverages the power of low-power, long-range radio communication. It allows you to create a decentralized, encrypted, and resilient mesh network for text messaging and data transfer, even without cellular or WiFi connectivity.
+
+**Key Features of Meshtastic:**
+
+*   **Long-Range Communication:** Utilizing LoRa radio technology, Meshtastic devices can communicate over distances of several kilometers, depending on environmental conditions and antenna configurations.
+
+*   **Mesh Networking:** Devices automatically forward messages to each other, extending the network's reach and creating redundancy.
+
+*   **Encryption:** All messages are encrypted end-to-end, ensuring privacy and security.
+
+*   **Open Source:** The entire project is open source, allowing for community contributions, customization, and auditing.
+
+*   **Hardware Flexibility:** Meshtastic supports a variety of inexpensive, readily available hardware platforms, such as ESP32, nRF52, and RP2040 based boards.
+
+**Hardware Options:**
+
+Several popular hardware options are available for running Meshtastic, including:
+
+*   **RAK Wireless WisBlock:** A modular and versatile platform with a wide range of available modules.
+
+*   **T-Beam:** A popular, integrated solution with a built-in GPS module.
+
+*   **Heltec WiFi LoRa:** A compact and widely used board with WiFi and LoRa capabilities.
+
+*   **LilyGo T-Echo:** A ruggedized device designed for outdoor use.
+
+**Software and Configuration:**
+
+Meshtastic devices are typically configured using a companion app (available for Android and iOS) or via a CLI interface. The firmware can be updated over the air (OTA) via BLE or USB.
+
+**Technical Details:**
+
+*   **Radio Technology:** LoRa
+
+*   **Microcontrollers:** ESP32, nRF52, RP2040
+
+*   **Connectivity:** LoRa, BLE, WiFi (depending on the hardware)
+
+*   **Power:** Typically powered by USB or battery
+
+*   **Interfaces:** GPIO, USB, UART, SPI, I2C
+
+**Use Cases:**
+
+Meshtastic can be used in a variety of scenarios, including:
+
+*   **Emergency Communication:** Providing communication during natural disasters or other emergencies when cellular networks are down.
+
+*   **Outdoor Adventures:** Maintaining communication while hiking, camping, or engaging in other outdoor activities in areas with limited or no cellular coverage.
+
+*   **Off-Grid Communication:** Creating a local communication network in areas without internet access.
+
+*   **IoT Applications:** Connecting sensors and devices in remote locations.
+
+**Integration with Other Systems:**
+
+Meshtastic can be integrated with other systems via MQTT or a custom API. This allows for data to be exchanged between Meshtastic devices and other applications.
+
+**Getting Started:**
+
+To get started with Meshtastic, you will need:
+
+1.  A compatible hardware device (e.g., RAK, T-Beam, Heltec, LilyGo).
+2.  The Meshtastic firmware.
+3.  The Meshtastic companion app (Android or iOS) or CLI.
+
+You can find detailed instructions and documentation on the official Meshtastic website.</string>
     <string name="ch_util_definition">目前頻道的使用情況，包括格式正確的傳輸（TX）、接收（RX）和格式錯誤的接收（也稱為雜訊）。</string>
     <!-- CHANNEL -->
     <string name="channel">頻道</string>
@@ -168,6 +235,8 @@
     <string name="client_notification">客户端通知</string>
     <string name="close">關閉</string>
     <string name="close_selection">關閉選取</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">良好</string>
     <string name="collapse_chart">收起圖表</string>
     <string name="communicate_off_the_grid">無需手機訊號，也能與您的朋友和社群離線通訊。</string>
     <!-- COMPASS -->
@@ -463,7 +532,6 @@
     <string name="firmware_update_unknown_hardware">未知的硬體型號: %1$d</string>
     <string name="firmware_update_unknown_release">無法識別的遠端版本</string>
     <string name="firmware_update_uploading">正在上傳韌體⋯⋯</string>
-    <string name="firmware_update_usb_bootloader_warning">%1$s 裝置出廠時預載的開機載入程式通常不支援 OTA 更新功能。在執行 OTA 韌體更新前,您可能需要先透過 USB 連線刷入具備 OTA 功能的開機載入程式。</string>
     <string name="firmware_update_usb_failed">USB 更新失敗</string>
     <string name="firmware_update_usb_instruction_text">您的裝置已重新啟動進入 DFU 模式，應該會顯示為 USB 磁碟機（例如：RAK4631）。\n\n當檔案管理器開啟時，請選擇該磁碟機的根目錄以儲存韌體檔案。</string>
     <string name="firmware_update_usb_instruction_title">選擇 DFU USB 磁碟機</string>
@@ -525,7 +593,6 @@
     <string name="ip">IP</string>
     <string name="ip_address">IP地址：</string>
     <string name="ip_port">IP連接埠：</string>
-    <string name="json_output_enabled">JSON輸出已啟用</string>
     <string name="jump_to_latest_from">%1$s</string>
     <!-- KEY -->
     <string name="key_verification_final_title">金鑰驗證已完成</string>
@@ -735,7 +802,6 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <string name="message_status_unknown">不明</string>
     <string name="messages">訊息</string>
     <string name="min">最小</string>
-    <string name="minimum_wake_time_seconds">最小喚醒時間</string>
     <!-- MIRROR -->
     <string name="mirror_back">返回</string>
     <string name="mirror_key_ok">好的</string>
@@ -785,8 +851,10 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <string name="name_cannot_be_empty">名稱不得空白。</string>
     <string name="navigate_back">返回上一頁</string>
     <string name="navigate_into_label">導航至</string>
+    <!-- NEIGHBOR -->
     <string name="neighbor_info">相鄰設備資訊</string>
     <string name="neighbor_info_config">鄰居資訊配置</string>
+    <string name="neighbor_info_received">已接收</string>
     <string name="network">網路</string>
     <string name="new_channel_rcvd">收到新的頻道 URL</string>
     <string name="new_messages_below">下方有新的訊息</string>
@@ -893,7 +961,6 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <string name="options">選項</string>
     <string name="orient_north">定位朝北</string>
     <string name="overflow_menu">溢出選單</string>
-    <string name="override_console_serial_port">覆蓋控制台序列埠</string>
     <!-- PACKET -->
     <string name="password">密碼</string>
     <!-- PAX -->
@@ -940,6 +1007,7 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <string name="preserve_favorites">保留我的最愛？</string>
     <string name="press_and_drag">長按後可拖曳排列順序</string>
     <string name="pressure">氣壓</string>
+    <string name="pressure_high">高</string>
     <!-- PREVIEW -->
     <string name="preview_custom_composable_line_one">這是一個一個一個可客製化的組合元件</string>
     <string name="preview_custom_composable_line_two">還支援多行文字與多種樣式</string>
@@ -1027,6 +1095,7 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <string name="reset">重設</string>
     <string name="reset_to_defaults">恢復預設設置</string>
     <string name="retry">重試</string>
+    <!-- RINGTONE -->
     <string name="ringtone">鈴聲</string>
     <string name="ringtone_file_empty">檔案為空</string>
     <string name="ringtone_import_error">匯入錯誤：%1$s</string>
@@ -1050,7 +1119,6 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <!-- ROUTING -->
     <string name="routing_error_got_nak">接收到拒絕確認</string>
     <string name="routing_error_no_route">無路徑</string>
-    <string name="routing_error_none">已確認</string>
     <string name="routing_error_timeout">逾時</string>
     <string name="rssi">RSSI</string>
     <string name="rssi_definition">接收信號強度指示（RSSI）用於測量天線所接收到信號的功率強度。 RSSI 值越高通常代表連線越強且穩定。</string>
@@ -1119,6 +1187,7 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <string name="shutdown">關機</string>
     <string name="shutdown_node_name">裝置：%1$s</string>
     <string name="shutdown_warning">⚠️ 這將會關閉節點。需要實體操作才能重新開啟。</string>
+    <!-- SIGNAL -->
     <string name="signal">信號</string>
     <string name="signal_quality">信號品質</string>
     <!-- SITE -->
@@ -1136,7 +1205,6 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <string name="store_forward">儲存 &amp; 轉發</string>
     <string name="store_forward_config">儲存 &amp; 轉發設定</string>
     <string name="success">成功</string>
-    <string name="super_deep_sleep_duration_seconds">超深度睡眠時長</string>
     <string name="supported">已支援</string>
     <string name="supported_by_community">由 Meshtastic 社群協作</string>
     <string name="swipe_action_delete">刪除</string>
@@ -1274,6 +1342,7 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <!-- WIDGET -->
     <string name="widget_packets_bad">不良</string>
     <string name="widget_packets_received">已接收</string>
+    <string name="widget_telemetry_title">遙測</string>
     <!-- WIFI -->
     <string name="wifi_devices">mPWRD-OS 的 Wi-Fi 設定</string>
     <string name="wifi_provision_available_networks">可用的網路</string>
@@ -1310,6 +1379,8 @@ You can find detailed instructions and documentation on the official Meshtastic 
     <string name="wind_lull">風停</string>
     <string name="wind_speed">風速</string>
     <!-- WRITE -->
+    <!-- XR -->
+    <string name="xr_terrain_layer_elevation">高度</string>
     <string name="you">你</string>
     <string name="zoom_in">放大</string>
     <string name="zoom_out">縮小</string>

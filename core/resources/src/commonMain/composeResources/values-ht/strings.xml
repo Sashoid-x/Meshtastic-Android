@@ -43,6 +43,7 @@
     <string name="cancel">Anile</string>
     <string name="cant_change_no_radio">Nou pa t kapab chanje kanal la paske radyo a poko konekte. Tanpri eseye ankò.</string>
     <string name="cant_shutdown">Fèmen pa sipòte sou aparèy sa a</string>
+    <!-- CARDINAL -->
     <string name="ch_util_definition">Itilizasyon pou kanal aktyèl la, ki enkli TX, RX byen fòme ak RX mal fòme (sa yo rele bri).</string>
     <!-- CHANNEL -->
     <string name="channel_invalid">Kanal URL sa a pa valab e yo pa kapab itilize li</string>
@@ -53,6 +54,8 @@
     <!-- CLEAR -->
     <string name="clear">Netwaye</string>
     <string name="close">Fèmen</string>
+    <!-- CO2 -->
+    <string name="co2_level_good">Bon</string>
     <!-- COMPASS -->
     <!-- CONFIG -->
     <string name="connected_sleeping">Konekte ak radyo, men li ap dòmi</string>
@@ -170,6 +173,7 @@
     <string name="mute_notifications">Fèmen notifikasyon</string>
     <string name="name">Non</string>
     <string name="navigate_back">Navige Tounen</string>
+    <!-- NEIGHBOR -->
     <string name="new_channel_rcvd">Nouvo kanal URL resevwa</string>
     <!-- NO -->
     <!-- NODE -->
@@ -230,11 +234,11 @@
     <string name="resend">Reenvwaye</string>
     <string name="reset">Reyajiste</string>
     <string name="reset_to_defaults">Reyajiste nan paramèt default yo</string>
+    <!-- RINGTONE -->
     <!-- ROLE -->
     <!-- ROUTING -->
     <string name="routing_error_got_nak">Rekòmanse avèk yon refi negatif</string>
     <string name="routing_error_no_route">Pa gen wout</string>
-    <string name="routing_error_none">Rekonekte</string>
     <string name="routing_error_timeout">Tan pase</string>
     <string name="rssi_definition">Endikatè Fòs Siynal Resevwa, yon mezi ki itilize pou detèmine nivo pouvwa siynal ki resevwa pa antèn nan. Yon RSSI pi wo jeneralman endike yon koneksyon pi fò ak plis estab.</string>
     <string name="save">Sove</string>
@@ -248,6 +252,7 @@
     <string name="share">Pataje</string>
     <!-- SHOW -->
     <string name="shutdown">Fèmen</string>
+    <!-- SIGNAL -->
     <string name="signal">Siynal</string>
     <string name="signal_quality">Kalite Siynal</string>
     <!-- SITE -->
@@ -285,5 +290,6 @@
     <string name="wifi_provision_success_ip_address">Adrès IP</string>
     <!-- WIND -->
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">Ou</string>
 </resources>

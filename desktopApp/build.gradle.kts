@@ -177,9 +177,10 @@ compose.desktop {
                 .asFile
                 .absolutePath
 
+        // No -Xmx: the JVM's default max heap is a quarter of the machine's RAM. A fixed cap above
+        // physical RAM lets the heap outgrow a small board and the kernel kills the app.
         val desktopJvmArgs =
             listOf(
-                "-Xmx2G",
                 // maplibre-compose's desktop renderer reaches native code through the FFM API,
                 // which refuses to load without this. Omitting it fails at first map composition,
                 // not at startup, so the map tab would simply be blank.
@@ -226,7 +227,6 @@ compose.desktop {
             )
 
             // Default JVM arguments for the packaged application
-            // Increase max heap size to prevent OOM issues on complex maps/data
             jvmArgs(*desktopJvmArgs.toTypedArray())
 
             // App Icon & OS Specific Configurations
@@ -337,6 +337,9 @@ abstract class RewriteDebDependencyNames : Action<Task> {
     private val dependencyLine = Regex("^(?:Depends|Pre-Depends|Recommends):.*$", RegexOption.MULTILINE)
     private val t64Suffix = Regex("(lib[a-z0-9.+-]*)t64(?=[,( ]|$)")
     private val t64Survivor = Regex("\\blib[a-z0-9.+-]*t64\\b")
+    private val dependsLine = Regex("^Depends:.*$", RegexOption.MULTILINE)
+    private val recommendsLine = Regex("^Recommends:.*$", RegexOption.MULTILINE)
+    private val emojiFont = "fonts-noto-color-emoji"
 
     override fun execute(task: Task) {
         val debs = (task as AbstractJPackageTask).destinationDir.get().asFile.listFiles { f -> f.extension == "deb" }
@@ -354,12 +357,20 @@ abstract class RewriteDebDependencyNames : Action<Task> {
                 }
             val survivor = dependencyLine.findAll(rewritten).firstOrNull { t64Survivor.containsMatchIn(it.value) }
             check(survivor == null) { "t64 dependency name survived the rewrite in ${deb.name}: ${survivor?.value}" }
-            control.writeText(rewritten)
+            control.writeText(withEmojiFont(rewritten))
             execOps.exec { commandLine("dpkg-deb", "-b", "--root-owner-group", work.absolutePath, deb.absolutePath) }
-            task.logger.lifecycle("Rewrote t64 dependency names in ${deb.name}")
+            task.logger.lifecycle("Rewrote t64 dependency names and recommended $emojiFont in ${deb.name}")
         } finally {
             fileOps.delete { delete(work) }
         }
+    }
+
+    // Emoji are drawn from the system's fonts, and a minimal desktop such as Raspberry Pi OS has no
+    // color emoji font, so every emoji renders as a box. Recommends, so installing without it still works.
+    private fun withEmojiFont(control: String): String = when {
+        emojiFont in control -> control
+        recommendsLine.containsMatchIn(control) -> recommendsLine.replace(control) { "${it.value}, $emojiFont" }
+        else -> dependsLine.replace(control) { "${it.value}\nRecommends: $emojiFont" }
     }
 }
 
@@ -456,6 +467,12 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.client.logging)
     implementation(libs.ktor.serialization.kotlinx.json)
+
+    // Debug-only agent MCP server (mcp/DesktopMcpServer.kt); the SDK ships no Ktor engine. The BOM lifts the
+    // server modules the SDK pins to an older Ktor onto the repo's Ktor.
+    implementation(platform(libs.ktor.bom))
+    implementation(libs.mcp.kotlin.sdk.server)
+    implementation(libs.ktor.server.cio)
 
     implementation(libs.androidx.paging.common)
     implementation(libs.androidx.datastore.preferences)

@@ -35,6 +35,7 @@
     <string name="camera_permission">Aðgangur að myndavél</string>
     <string name="cancel">Hætta við</string>
     <string name="cant_change_no_radio">Gat ekki skipt um rás vegna þess að radíó er ekki enn tengt. Vinsamlegast reyndu aftur.</string>
+    <!-- CARDINAL -->
     <!-- CHANNEL -->
     <string name="channel_invalid">Þetta rásar URL er ógilt og ónothæft</string>
     <string name="channel_name">Heiti rásar</string>
@@ -44,6 +45,7 @@
     <!-- CLEAR -->
     <string name="clear">Hreinsa</string>
     <string name="close">Loka</string>
+    <!-- CO2 -->
     <!-- COMPASS -->
     <!-- CONFIG -->
     <string name="connected_sleeping">Tengdur við radíó, en það er í svefnham</string>
@@ -134,6 +136,7 @@
     <string name="must_update">Þú verður að uppfæra þetta smáforrit í app store (eða Github). Það er of gamalt til að geta talað við fastbúnað þessa radíó. Vinsamlegast lestu <a href="https://meshtastic.org/docs/software/android/installation">leiðbeiningar </a> okkar um þetta mál.</string>
     <!-- MUTE -->
     <string name="name">Heiti</string>
+    <!-- NEIGHBOR -->
     <string name="new_channel_rcvd">Ný slóð fyrir rás móttekin</string>
     <!-- NO -->
     <!-- NODE -->
@@ -178,6 +181,7 @@
     <string name="resend">Endursenda</string>
     <string name="reset">Endurræsa</string>
     <string name="reset_to_defaults">Endursetja tæki</string>
+    <!-- RINGTONE -->
     <!-- ROLE -->
     <!-- ROUTING -->
     <string name="save">Vista</string>
@@ -191,6 +195,7 @@
     <string name="share">Deila</string>
     <!-- SHOW -->
     <string name="shutdown">Slökkva</string>
+    <!-- SIGNAL -->
     <!-- SITE -->
     <string name="swipe_action_delete">Eyða</string>
     <!-- TAK -->
@@ -219,5 +224,6 @@
     <string name="wifi_provision_success_ip_address">IP Tala</string>
     <!-- WIND -->
     <!-- WRITE -->
+    <!-- XR -->
     <string name="you">Þú</string>
 </resources>
