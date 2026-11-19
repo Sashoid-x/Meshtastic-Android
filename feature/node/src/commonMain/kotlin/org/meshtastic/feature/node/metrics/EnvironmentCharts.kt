@@ -167,7 +167,7 @@ internal fun chartValue(
         Environment.WIND_SPEED ->
             if (isImperial) UnitConversions.metersPerSecondToMph(it) else UnitConversions.metersPerSecondToKph(it)
 
-        Environment.BAROMETRIC_PRESSURE -> if (pressureInMmHg) it * MetricFormatter.MMHG_PER_HPA.toFloat() else it
+        Environment.BAROMETRIC_PRESSURE -> if (pressureInMmHg) it * MetricFormatter.MMHG_PER_HPA else it
 
         else -> it
     }

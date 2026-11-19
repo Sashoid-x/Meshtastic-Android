@@ -30,6 +30,7 @@ import org.meshtastic.core.testing.FakeLocaleUnitsProvider
 import org.meshtastic.core.testing.FakeMeshLogRepository
 import org.meshtastic.core.testing.FakeNodeRepository
 import org.meshtastic.core.testing.FakeRadioConfigRepository
+import org.meshtastic.core.testing.FakeUiPrefs
 import org.meshtastic.feature.node.detail.NodeRequestActions
 import org.meshtastic.proto.DeviceProfile
 import org.meshtastic.proto.LocalModuleConfig
@@ -64,6 +65,7 @@ class NeighborInfoRequestGateTest {
             firmwareReleaseRepository = FakeFirmwareReleaseRepository(),
             nodeRequestActions = nodeRequestActions,
             localeUnitsProvider = FakeLocaleUnitsProvider(),
+            uiPrefs = FakeUiPrefs(),
         )
 
     private fun radioNeighborInfo(enabled: Boolean) = radioConfigRepository.setDeviceProfile(

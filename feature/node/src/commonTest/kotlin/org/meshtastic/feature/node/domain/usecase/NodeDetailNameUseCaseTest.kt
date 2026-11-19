@@ -31,6 +31,7 @@ import org.meshtastic.core.testing.FakeLocaleUnitsProvider
 import org.meshtastic.core.testing.FakeMeshLogRepository
 import org.meshtastic.core.testing.FakeNodeRepository
 import org.meshtastic.core.testing.FakeRadioConfigRepository
+import org.meshtastic.core.testing.FakeUiPrefs
 import org.meshtastic.feature.node.detail.NodeRequestActions
 import org.meshtastic.proto.User
 import kotlin.test.Test
@@ -58,6 +59,7 @@ class NodeDetailNameUseCaseTest {
             firmwareReleaseRepository = FakeFirmwareReleaseRepository(),
             nodeRequestActions = nodeRequestActions,
             localeUnitsProvider = FakeLocaleUnitsProvider(),
+            uiPrefs = FakeUiPrefs(),
         )
 
     private suspend fun nodeNameFor(longName: String, displayName: String): UiText {
