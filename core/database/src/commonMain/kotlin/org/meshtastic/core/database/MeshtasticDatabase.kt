@@ -170,11 +170,13 @@ import org.meshtastic.core.database.entity.TracerouteNodePositionEntity
         AutoMigration(from = 64, to = 65),
         // 65 -> 66 is the manual MIGRATION_65_66 (automation tables created), applied via configureCommon().
         // 66 -> 67 is the manual MIGRATION_66_67 (topology_edge table created), applied via configureCommon().
-        // 67 -> 68 is the manual MIGRATION_67_68 (mqtt_roots_cache table created & log indexes), applied via configureCommon().
+        // 67 -> 68 is the manual MIGRATION_67_68 (mqtt_roots_cache table created & log indexes), applied via
+        // configureCommon().
         // 68 -> 69 is the manual MIGRATION_68_69 (nodes.display_name column added), applied via configureCommon().
         // 69 -> 70 is the manual MIGRATION_69_70 (reactions.via_mqtt & transport_mechanism columns added), applied
         // via configureCommon().
-        // 70 -> 71 is the manual MIGRATION_70_71 (signal survey tables and log indexes added), applied via configureCommon().
+        // 70 -> 71 is the manual MIGRATION_70_71 (signal survey tables and log indexes added), applied via
+        // configureCommon().
     ],
     version = 71,
     exportSchema = true,

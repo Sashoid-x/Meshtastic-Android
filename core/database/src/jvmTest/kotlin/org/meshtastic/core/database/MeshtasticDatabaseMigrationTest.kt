@@ -782,9 +782,7 @@ class MeshtasticDatabaseMigrationTest {
             }
     }
 
-    /**
-     * 70 → 71 adds the empty signal survey tables, indexes log, and leaves existing rows alone.
-     */
+    /** 70 → 71 adds the empty signal survey tables, indexes log, and leaves existing rows alone. */
     @Test
     fun signalSurveyTablesAddedEmptyWithoutDisturbingQuickChat() = runTest {
         helper.createDatabase(SIGNAL_SAMPLE_FROM_VERSION).use { connection ->
@@ -827,6 +825,7 @@ class MeshtasticDatabaseMigrationTest {
             )
         }
     }
+
     /** The `detail` column of `EXPLAIN QUERY PLAN` for [sql], one entry per plan step. */
     private fun queryPlan(connection: SQLiteConnection, sql: String): List<String> =
         connection.prepare("EXPLAIN QUERY PLAN $sql").use { statement ->
@@ -890,9 +889,7 @@ class MeshtasticDatabaseMigrationTest {
         const val SIGNAL_SAMPLE_TO_VERSION = 71
         const val QUERY_PLAN_DETAIL_COLUMN = 3
 
-        /**
-         * Every hand-written migration.
-         */
+        /** Every hand-written migration. */
         val MANUAL_MIGRATIONS =
             listOf(
                 MeshtasticDatabase.MIGRATION_52_53,

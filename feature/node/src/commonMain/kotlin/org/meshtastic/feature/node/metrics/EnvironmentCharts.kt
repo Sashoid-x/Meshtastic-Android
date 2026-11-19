@@ -162,16 +162,16 @@ internal fun chartValue(
     telemetry: Telemetry,
     isImperial: Boolean,
     pressureInMmHg: Boolean = false,
-): Float? =
-    metric.getValue(telemetry)?.let {
-        when (metric) {
-            Environment.WIND_SPEED ->
-                if (isImperial) UnitConversions.metersPerSecondToMph(it) else UnitConversions.metersPerSecondToKph(it)
-            Environment.BAROMETRIC_PRESSURE ->
-                if (pressureInMmHg) it * MetricFormatter.MMHG_PER_HPA.toFloat() else it
-            else -> it
-        }
+): Float? = metric.getValue(telemetry)?.let {
+    when (metric) {
+        Environment.WIND_SPEED ->
+            if (isImperial) UnitConversions.metersPerSecondToMph(it) else UnitConversions.metersPerSecondToKph(it)
+
+        Environment.BAROMETRIC_PRESSURE -> if (pressureInMmHg) it * MetricFormatter.MMHG_PER_HPA.toFloat() else it
+
+        else -> it
     }
+}
 
 /**
  * Unit suffix for a plotted metric's axis and marker labels, in the user's display units, or "" for a dimensionless
@@ -211,15 +211,16 @@ internal fun unitSuffix(
 private val CHART_GROUP_HEIGHT_MIN = 140.dp
 private const val MAX_FILLING_GROUPS = 2
 
-private fun groupRangeProvider(group: EnvironmentChartGroup, pressureInMmHg: Boolean) = object : CartesianLayerRangeProvider {
-    override fun getMinY(minY: Double, maxY: Double, extraStore: ExtraStore) =
-        environmentAxisRange(group, minY, maxY, pressureInMmHg)?.first
-            ?: CartesianLayerRangeProvider.auto().getMinY(minY, maxY, extraStore)
+private fun groupRangeProvider(group: EnvironmentChartGroup, pressureInMmHg: Boolean) =
+    object : CartesianLayerRangeProvider {
+        override fun getMinY(minY: Double, maxY: Double, extraStore: ExtraStore) =
+            environmentAxisRange(group, minY, maxY, pressureInMmHg)?.first
+                ?: CartesianLayerRangeProvider.auto().getMinY(minY, maxY, extraStore)
 
-    override fun getMaxY(minY: Double, maxY: Double, extraStore: ExtraStore) =
-        environmentAxisRange(group, minY, maxY, pressureInMmHg)?.second
-            ?: CartesianLayerRangeProvider.auto().getMaxY(minY, maxY, extraStore)
-}
+        override fun getMaxY(minY: Double, maxY: Double, extraStore: ExtraStore) =
+            environmentAxisRange(group, minY, maxY, pressureInMmHg)?.second
+                ?: CartesianLayerRangeProvider.auto().getMaxY(minY, maxY, extraStore)
+    }
 
 @Suppress("LongMethod", "CyclomaticComplexMethod")
 @Composable
@@ -317,7 +318,6 @@ fun EnvironmentMetricsChart(
                 }
             }
         }
-        }
 
         Legend(
             legendData = allLegendData,
@@ -382,7 +382,8 @@ private fun EnvironmentGroupChart(
         )
     }
 
-    val unit = metrics.map { unitSuffix(it, isFahrenheit, isImperial, pressureInMmHg) }.distinct().singleOrNull().orEmpty()
+    val unit =
+        metrics.map { unitSuffix(it, isFahrenheit, isImperial, pressureInMmHg) }.distinct().singleOrNull().orEmpty()
     val axisColor = metrics.singleOrNull()?.color ?: MaterialTheme.colorScheme.onSurface
     GenericMetricChart(
         modelProducer = modelProducer,
