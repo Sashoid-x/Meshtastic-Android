@@ -31,14 +31,10 @@ import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.DeviceType
 import org.meshtastic.core.model.InterfaceId
 import org.meshtastic.core.model.MeshActivity
-import org.meshtastic.core.repository.AppWidgetUpdater
-import org.meshtastic.core.repository.DataPair
+import org.meshtastic.core.model.TransportStatus
 import org.meshtastic.core.repository.Location
 import org.meshtastic.core.repository.LocationRepository
 import org.meshtastic.core.repository.MeshLocationManager
-import org.meshtastic.core.repository.MeshWorkerManager
-import org.meshtastic.core.repository.PersistedPacketId
-import org.meshtastic.core.repository.PlatformAnalytics
 import org.meshtastic.core.repository.RadioInterfaceService
 import org.meshtastic.core.repository.RadioSessionContext
 import org.meshtastic.core.repository.RadioSessionLease
@@ -88,6 +84,7 @@ class NoopRadioInterfaceService : RadioInterfaceService {
     override val receivedData = MutableSharedFlow<ReceivedRadioFrame>()
     override val meshActivity: Flow<MeshActivity> = MutableSharedFlow<MeshActivity>()
     override val connectionError: Flow<String> = MutableSharedFlow<String>()
+    override val transportStatus: StateFlow<TransportStatus?> = MutableStateFlow(null)
 
     override fun trySendToRadio(bytes: ByteArray): Boolean {
         logWarn("NoopRadioInterfaceService.trySendToRadio(${bytes.size} bytes)")
@@ -132,30 +129,10 @@ class NoopRadioInterfaceService : RadioInterfaceService {
 
 // endregion
 
-// region Notification / Platform Stubs (Android-only)
-
-class NoopPlatformAnalytics : PlatformAnalytics {
-    override fun track(event: String, vararg properties: DataPair) {}
-
-    override fun setDeviceAttributes(firmwareVersion: String, model: String) {}
-
-    override val isPlatformServicesAvailable: Boolean = false
-}
-
-class NoopAppWidgetUpdater : AppWidgetUpdater {
-    override suspend fun updateAll() {}
-}
-
-// endregion
-
 // region WorkManager / Location Stubs (Android-only)
 
-class NoopMeshWorkerManager : MeshWorkerManager {
-    override fun enqueueSendMessage(persistedId: PersistedPacketId) {}
-}
-
 class NoopMeshLocationManager : MeshLocationManager {
-    override fun start(scope: CoroutineScope, sendPositionFn: suspend (ProtoPosition) -> Unit) {}
+    override fun start(scope: CoroutineScope, sendPositionFn: suspend (ProtoPosition) -> Boolean) {}
 
     override fun restart() {}
 

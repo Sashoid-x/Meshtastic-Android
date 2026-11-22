@@ -223,6 +223,7 @@ dependencies {
     implementation(projects.core.meshbridge)
     implementation(projects.core.takserver)
     implementation(projects.feature.automation)
+    implementation(projects.appShell)
     implementation(projects.feature.intro)
     implementation(projects.feature.messaging)
     implementation(projects.feature.connections)

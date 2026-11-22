@@ -19,12 +19,25 @@ pluginManagement {
     includeBuild("build-logic/settings-plugin")
     includeBuild("build-logic")
     repositories {
-        google {
-            content {
+        // Google-only groups resolve from Google's repository alone, as in the root settings.
+        exclusiveContent {
+            forRepositories(
+                google { content { includeGroupByRegex("com\\.google.*") } },
+                maven {
+                    name = "OfflineGoogleArtifacts"
+                    url = uri("./offline-repository")
+                },
+            )
+            filter {
                 includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
                 includeGroupByRegex("androidx.*")
             }
+        }
+        // Ahead of Central, as in dependencyResolutionManagement below.
+        maven {
+            name = "MavenCentralMirror"
+            url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+            mavenContent { releasesOnly() }
         }
         mavenCentral()
         gradlePluginPortal()
@@ -48,14 +61,44 @@ dependencyResolutionManagement {
     repositories {
         // Only enable mavenLocal for local JitPack testing; never in CI.
         if (providers.gradleProperty("useMavenLocal").isPresent) mavenLocal()
-        google {
-            content {
+        // AndroidX and the Android build tools are published only to Google's repository. Exclusive, so no other
+        // repository is asked for them: Gradle stops at a repository's error, and Central's 429 ahead of Google's
+        // repository failed the build before Google's was reached. The offline repository is the network-less copy a
+        // Flatpak build resolves from. com.google.* stays open to the other repositories, which host much of it.
+        exclusiveContent {
+            forRepositories(
+                google { content { includeGroupByRegex("com\\.google.*") } },
+                maven {
+                    name = "OfflineGoogleArtifacts"
+                    url = uri("./offline-repository")
+                },
+            )
+            filter {
                 includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
                 includeGroupByRegex("androidx.*")
             }
         }
-        mavenCentral()
+        // Central rate-limits CI's shared egress (429) and sometimes answers 404 for a module it serves. Gradle stops at
+        // an error and moves on only for a missing module, so Google's mirror of Central goes first and Central serves
+        // only what the mirror has not caught up with yet.
+        maven {
+            name = "MavenCentralMirror"
+            url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+            mavenContent { releasesOnly() }
+            // The Ivy repositories below serve the Wasm tooling; a Maven repository's error must not fail it first.
+            content {
+                excludeModule("org.nodejs", "node")
+                excludeModule("com.yarnpkg", "yarn")
+                excludeModule("com.github.webassembly", "binaryen")
+            }
+        }
+        mavenCentral {
+            content {
+                excludeModule("org.nodejs", "node")
+                excludeModule("com.yarnpkg", "yarn")
+                excludeModule("com.github.webassembly", "binaryen")
+            }
+        }
         maven {
             url = uri("https://central.sonatype.com/repository/maven-snapshots/")
             mavenContent { snapshotsOnly() }
@@ -67,6 +110,27 @@ dependencyResolutionManagement {
             }
         }
         maven { url = uri("./offline-repository") }
+
+        // Kotlin/Wasm tooling; WasmTooling.kt stops KGP declaring these per project.
+        ivy {
+            url = uri("https://nodejs.org/dist")
+            patternLayout { artifact("v[revision]/[artifact](-v[revision]-[classifier]).[ext]") }
+            metadataSources { artifact() }
+            content { includeModule("org.nodejs", "node") }
+        }
+        ivy {
+            url = uri("https://github.com/yarnpkg/yarn/releases/download")
+            patternLayout { artifact("v[revision]/yarn-v[revision].[ext]") }
+            metadataSources { artifact() }
+            content { includeModule("com.yarnpkg", "yarn") }
+        }
+        // Binaryen release tags are "version_<n>"; KGP's coordinate uses the bare number as [revision].
+        ivy {
+            url = uri("https://github.com/WebAssembly/binaryen/releases/download")
+            patternLayout { artifact("version_[revision]/binaryen-version_[revision]-[classifier].[ext]") }
+            metadataSources { artifact() }
+            content { includeModule("com.github.webassembly", "binaryen") }
+        }
     }
 }
 
@@ -123,6 +187,7 @@ include(
     ":feature:docs",
     ":feature:firmware",
     ":feature:wifi-provision",
+    ":appShell",
     ":desktopApp",
     ":androidApp",
     ":core:barcode",
@@ -134,4 +199,7 @@ include(
     ":baselineprofile",
     ":store-screenshots",
 )
+
+// The web app and every module's wasmJs target are opt-in (WEB_TARGET_PROPERTY in build-logic's Web.kt).
+if (providers.gradleProperty("meshtastic.web").map(String::toBoolean).getOrElse(false)) include(":webApp")
 

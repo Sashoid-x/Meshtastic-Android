@@ -40,6 +40,7 @@ import org.meshtastic.core.common.BuildConfigProvider
 import org.meshtastic.core.common.util.safeCatching
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.model.MqttJsonPayload
+import org.meshtastic.core.network.transport.StreamFrameCodec
 import org.meshtastic.core.testing.FakeNodeRepository
 import org.meshtastic.core.testing.FakeRadioConfigRepository
 import org.meshtastic.mqtt.ConnectionState
@@ -57,7 +58,9 @@ import org.meshtastic.proto.Data
 import org.meshtastic.proto.LocalModuleConfig
 import org.meshtastic.proto.MeshPacket
 import org.meshtastic.proto.ModuleConfig
+import org.meshtastic.proto.MqttClientProxyMessage
 import org.meshtastic.proto.ServiceEnvelope
+import org.meshtastic.proto.ToRadio
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -72,6 +75,10 @@ import kotlin.test.assertTrue
 class MQTTRepositoryImplTest {
 
     private val buildConfigProvider: BuildConfigProvider = mock(MockMode.autofill)
+
+    private companion object {
+        const val PROXY_TEST_TOPIC = "msh/2/e/alpha/node"
+    }
 
     @BeforeTest
     fun setUp() {
@@ -469,6 +476,68 @@ class MQTTRepositoryImplTest {
     }
 
     @Test
+    fun `a broker the client cannot open ends the proxy without connecting`() = runTest {
+        val harness = createHarness()
+        harness.client.opensEndpoints = false
+
+        val outcome = backgroundScope.async { safeCatching { harness.repository.proxyMessageFlow.collect {} } }
+        runCurrent()
+        advanceTimeBy(60_000)
+        runCurrent()
+
+        assertEquals(0, harness.client.connectCalls.size)
+        assertEquals(1, harness.client.closeCalls)
+        assertIs<MqttEndpointUnsupportedException>(outcome.await().exceptionOrNull())
+    }
+
+    @Test
+    fun `a wildcard root ends the proxy without creating a client or connecting`() = runTest {
+        val harness = createHarness(radioConfigRepository = radioConfigWithRoot("msh/#"))
+
+        val outcome = backgroundScope.async { safeCatching { harness.repository.proxyMessageFlow.collect {} } }
+        runCurrent()
+        advanceTimeBy(60_000)
+        runCurrent()
+
+        assertEquals(0, harness.setups.size)
+        assertEquals(0, harness.client.connectCalls.size)
+        assertIs<MqttRootWildcardException>(outcome.await().exceptionOrNull())
+    }
+
+    @Test
+    fun `a plus wildcard in the root ends the proxy without connecting`() = runTest {
+        val harness = createHarness(radioConfigRepository = radioConfigWithRoot("msh/+/US"))
+
+        val outcome = backgroundScope.async { safeCatching { harness.repository.proxyMessageFlow.collect {} } }
+        runCurrent()
+
+        assertEquals(0, harness.client.connectCalls.size)
+        assertIs<MqttRootWildcardException>(outcome.await().exceptionOrNull())
+    }
+
+    @Test
+    fun `a root with a leading slash still connects`() = runTest {
+        val harness = createHarness(radioConfigRepository = radioConfigWithRoot("/msh"))
+
+        val collector = startProxyCollection(harness.repository)
+        runCurrent()
+
+        assertEquals(1, harness.client.connectCalls.size)
+        assertEquals(listOf("/msh/2/e/PKI/+"), harness.client.subscribeCalls.single().map { it.topicFilter })
+
+        collector.cancelAndJoin()
+        runCurrent()
+    }
+
+    private fun radioConfigWithRoot(root: String) = FakeRadioConfigRepository().apply {
+        setLocalModuleConfigDirect(
+            LocalModuleConfig.Builder()
+                .also { wb -> wb.mqtt = ModuleConfig.MQTTConfig.Builder().also { it.root = root }.build() }
+                .build(),
+        )
+    }
+
+    @Test
     fun `only credential and identity reason codes classify as credential rejections`() {
         val fatal =
             listOf(
@@ -699,11 +768,11 @@ class MQTTRepositoryImplTest {
         val firstCollector = startProxyCollection(repository)
         runCurrent()
 
-        repeat(20) { index -> repository.publish("busy/$index", byteArrayOf(index.toByte()), retained = false) }
+        repeat(20) { index -> repository.publish("msh/busy/$index", byteArrayOf(index.toByte()), retained = false) }
         runCurrent()
         assertEquals(20, firstClient.publishStarted.size)
 
-        repository.publish("queued/after-replacement", byteArrayOf(42), retained = false)
+        repository.publish("msh/queued/after-replacement", byteArrayOf(42), retained = false)
         runCurrent()
         assertEquals(20, firstClient.publishStarted.size, "the target publish must still be waiting for a permit")
 
@@ -712,11 +781,61 @@ class MQTTRepositoryImplTest {
         publishGate.complete(Unit)
         runCurrent()
 
-        assertFalse(firstClient.publishedMessages.any { it.topic == "queued/after-replacement" })
-        assertTrue(replacementClient.publishedMessages.any { it.topic == "queued/after-replacement" })
+        assertFalse(firstClient.publishedMessages.any { it.topic == "msh/queued/after-replacement" })
+        assertTrue(replacementClient.publishedMessages.any { it.topic == "msh/queued/after-replacement" })
 
         firstCollector.cancelAndJoin()
         replacementCollector.cancelAndJoin()
+        runCurrent()
+    }
+
+    @Test
+    fun `publishes under the root keep the retained flag`() = runTest {
+        val harness = createHarness()
+        val collector = startProxyCollection(harness.repository)
+        runCurrent()
+
+        harness.repository.publish("msh/2/e/alpha/!12345678", byteArrayOf(1), retained = false)
+        harness.repository.publish("msh/2/map/", byteArrayOf(2), retained = true)
+        runCurrent()
+
+        assertEquals(
+            listOf("msh/2/e/alpha/!12345678" to false, "msh/2/map/" to true),
+            harness.client.publishedMessages.map { it.topic to it.retain },
+        )
+
+        collector.cancelAndJoin()
+        runCurrent()
+    }
+
+    @Test
+    fun `publishes under a root with a leading slash go out`() = runTest {
+        val harness = createHarness(radioConfigRepository = radioConfigWithRoot("/msh"))
+        val collector = startProxyCollection(harness.repository)
+        runCurrent()
+
+        harness.repository.publish("/msh/2/e/alpha/!12345678", byteArrayOf(1), retained = false)
+        runCurrent()
+
+        assertEquals(listOf("/msh/2/e/alpha/!12345678"), harness.client.publishedMessages.map { it.topic })
+
+        collector.cancelAndJoin()
+        runCurrent()
+    }
+
+    @Test
+    fun `publishes outside the root are dropped`() = runTest {
+        val harness = createHarness(radioConfigRepository = radioConfigWithRoot("msh"))
+        val collector = startProxyCollection(harness.repository)
+        runCurrent()
+
+        listOf("other/2/e/alpha/!12345678", "msh", "msh/", "msh2/2/e/alpha/!12345678", "msh/2/e/+/!12345678", "msh/#")
+            .forEach { harness.repository.publish(it, byteArrayOf(1), retained = true) }
+        runCurrent()
+
+        assertEquals(emptyList(), harness.client.publishedMessages.map { it.topic })
+
+        collector.cancelAndJoin()
         runCurrent()
     }
 
@@ -884,6 +1003,126 @@ class MQTTRepositoryImplTest {
     }
 
     @Test
+    fun `a binary downlink whose ToRadio exceeds the frame limit is dropped and the next one still flows`() = runTest {
+        val harness = createHarness()
+        val largestFitting = largestFittingProxyPayload(PROXY_TEST_TOPIC)
+        val small = byteArrayOf(0x01, 0x23, 0x45)
+
+        val next = backgroundScope.async { harness.repository.proxyMessageFlow.first() }
+        runCurrent()
+        harness.client.emitMessage(
+            MqttMessage(
+                topic = PROXY_TEST_TOPIC,
+                payload = ByteArray(largestFitting + 1) { 0xFF.toByte() },
+                retain = false,
+            ),
+        )
+        harness.client.emitMessage(MqttMessage(topic = PROXY_TEST_TOPIC, payload = small, retain = false))
+
+        assertContentEquals(small, next.await().data_?.toByteArray())
+    }
+
+    @Test
+    fun `a binary downlink whose ToRadio is exactly the frame limit is forwarded`() = runTest {
+        val harness = createHarness()
+        val largestFitting = largestFittingProxyPayload(PROXY_TEST_TOPIC)
+
+        val next = backgroundScope.async { harness.repository.proxyMessageFlow.first() }
+        runCurrent()
+        harness.client.emitMessage(
+            MqttMessage(
+                topic = PROXY_TEST_TOPIC,
+                payload = ByteArray(largestFitting) { 0xFF.toByte() },
+                retain = false,
+            ),
+        )
+
+        assertEquals(largestFitting, next.await().data_?.size)
+    }
+
+    // The largest payload whose wrapped ToRadio still fits one frame, found against the encoder rather than assumed.
+    private fun largestFittingProxyPayload(topic: String): Int = (0..600).last { size ->
+        val toRadio =
+            ToRadio.Builder()
+                .also { wb ->
+                    wb.mqttClientProxyMessage =
+                        MqttClientProxyMessage.Builder()
+                            .also { m ->
+                                m.topic = topic
+                                m.data_ = ByteArray(size) { 0xFF.toByte() }.toByteString()
+                                m.retained = false
+                            }
+                            .build()
+                }
+                .build()
+        ToRadio.ADAPTER.encodedSize(toRadio) <= StreamFrameCodec.MAX_TO_FROM_RADIO_SIZE
+    }
+
+    @Test
+    fun `a json downlink larger than the frame limit is dropped and the next one still flows`() = runTest {
+        val harness =
+            createHarness(
+                radioConfigRepository =
+                FakeRadioConfigRepository().apply {
+                    setLocalModuleConfigDirect(
+                        LocalModuleConfig.Builder()
+                            .also { wb ->
+                                wb.mqtt =
+                                    ModuleConfig.MQTTConfig.Builder().also { wb -> wb.json_enabled = true }.build()
+                            }
+                            .build(),
+                    )
+                },
+            )
+        fun json(text: String) = """{"type":"text","from":1,"to":2,"payload":"$text","hop_limit":3,"id":4,"time":5}"""
+        val oversize = json("x".repeat(StreamFrameCodec.MAX_TO_FROM_RADIO_SIZE))
+        val small = json("hello")
+
+        val next = backgroundScope.async { harness.repository.proxyMessageFlow.first() }
+        runCurrent()
+        harness.client.emitMessage(
+            MqttMessage(topic = "msh/2/json/alpha/node", payload = oversize.encodeToByteArray(), retain = false),
+        )
+        harness.client.emitMessage(
+            MqttMessage(topic = "msh/2/json/alpha/node", payload = small.encodeToByteArray(), retain = false),
+        )
+
+        assertEquals(small, next.await().text)
+    }
+
+    @Test
+    fun `channels whose names hold a wildcard or a slash get no subscription`() = runTest {
+        fun channel(channelName: String) = ChannelSettings.Builder()
+            .also { wb ->
+                wb.name = channelName
+                wb.downlink_enabled = true
+                wb.psk = byteArrayOf(1).toByteString()
+            }
+            .build()
+        val radioConfigRepository =
+            FakeRadioConfigRepository().apply {
+                setChannelSet(
+                    ChannelSet.Builder()
+                        .also { wb ->
+                            wb.settings = listOf(channel("a+b"), channel("c#"), channel("d/e"), channel("fine"))
+                        }
+                        .build(),
+                )
+            }
+        val harness = createHarness(radioConfigRepository = radioConfigRepository)
+
+        val collector = startProxyCollection(harness.repository)
+        runCurrent()
+
+        assertEquals(
+            listOf("msh/2/e/fine/+", "msh/2/e/PKI/+"),
+            harness.client.subscribeCalls.single().map { it.topicFilter },
+        )
+
+        collector.cancel()
+    }
+
+    @Test
     fun `a 3 1 1 broker is subscribed without the MQTT 5 noLocal option`() = runTest {
         val client = FakeMqttClientSession().apply { negotiatedProtocolVersion = MqttProtocolVersion.V3_1_1 }
         val harness = createHarness(client = client)
@@ -998,8 +1237,9 @@ class MQTTRepositoryImplTest {
         return RepositoryHarness(repository = repository, client = client, setups = setups)
     }
 
-    private fun TestScope.startProxyCollection(repository: MQTTRepositoryImpl): Job =
-        backgroundScope.launch { repository.proxyMessageFlow.collect {} }
+    private fun TestScope.startProxyCollection(repository: MQTTRepositoryImpl): Job = backgroundScope.launch {
+        repository.proxyMessageFlow.collect {}
+    }
 
     private fun defaultRadioConfigRepository(): FakeRadioConfigRepository = FakeRadioConfigRepository().apply {
         setChannelSet(
@@ -1032,6 +1272,7 @@ class MQTTRepositoryImplTest {
         override val connectionState = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected.Idle)
         override var negotiatedProtocolVersion: MqttProtocolVersion = MqttProtocolVersion.V5_0
         val connectCalls = mutableListOf<MqttEndpoint>()
+        var opensEndpoints = true
         val subscribeCalls = mutableListOf<List<Subscription>>()
         val publishStarted = mutableListOf<MqttMessage>()
         val publishedMessages = mutableListOf<MqttMessage>()
@@ -1041,6 +1282,8 @@ class MQTTRepositoryImplTest {
         private val connectFailures = ArrayDeque<Throwable>()
         private val subscribeFailures = ArrayDeque<Throwable>()
         private var publishGate: CompletableDeferred<Unit>? = null
+
+        override fun opens(endpoint: MqttEndpoint): Boolean = opensEndpoints
 
         override suspend fun connect(endpoint: MqttEndpoint) {
             connectCalls += endpoint

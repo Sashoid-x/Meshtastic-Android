@@ -16,6 +16,7 @@
  */
 plugins {
     alias(libs.plugins.meshtastic.kmp.feature)
+    alias(libs.plugins.meshtastic.kmp.web)
     alias(libs.plugins.meshtastic.kotlinx.serialization)
 }
 
@@ -37,6 +38,13 @@ kotlin {
             implementation(projects.core.ui)
 
             implementation(libs.kotlinx.serialization.json)
+        }
+
+        // Compose UI tests live in jvmTest: in commonTest they would also run as Android host tests, where they NPE on
+        // the host-test stubs' null Build.FINGERPRINT.
+        jvmTest.dependencies {
+            implementation(libs.compose.multiplatform.ui.test)
+            implementation(compose.desktop.currentOs)
         }
     }
 }

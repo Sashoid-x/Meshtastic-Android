@@ -25,6 +25,7 @@ import okio.FileSystem
 import okio.Path.Companion.toPath
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
+import org.meshtastic.core.database.createOwnerOnlyDirectories
 import org.meshtastic.core.database.desktopDataDir
 import org.meshtastic.core.datastore.di.CoreLocalConfigDataStore
 import org.meshtastic.core.datastore.di.CoreLocalStatsDataStore
@@ -36,9 +37,11 @@ import org.meshtastic.core.datastore.di.asCoreModuleConfigDataStore
 import org.meshtastic.core.datastore.serializer.LocalConfigSerializer
 import org.meshtastic.core.datastore.serializer.LocalStatsSerializer
 import org.meshtastic.core.datastore.serializer.ModuleConfigSerializer
+import org.meshtastic.core.datastore.store.asStore
 import org.meshtastic.proto.LocalConfig
 import org.meshtastic.proto.LocalModuleConfig
 import org.meshtastic.proto.LocalStats
+import java.io.File
 
 /** Proto [DataStore] instances (OkioStorage-backed). */
 @Module
@@ -47,16 +50,19 @@ class DesktopProtoDataStoreModule {
     @Single
     fun localConfigDataStore(scope: DataStoreScope): CoreLocalConfigDataStore =
         protoStore(LocalConfigSerializer, "local_config.pb", { LocalConfig.Builder().build() }, scope)
+            .asStore()
             .asCoreLocalConfigDataStore()
 
     @Single
     fun moduleConfigDataStore(scope: DataStoreScope): CoreModuleConfigDataStore =
         protoStore(ModuleConfigSerializer, "module_config.pb", { LocalModuleConfig.Builder().build() }, scope)
+            .asStore()
             .asCoreModuleConfigDataStore()
 
     @Single
     fun localStatsDataStore(scope: DataStoreScope): CoreLocalStatsDataStore =
         protoStore(LocalStatsSerializer, "local_stats.pb", { LocalStats.Builder().build() }, scope)
+            .asStore()
             .asCoreLocalStatsDataStore()
 }
 
@@ -68,7 +74,7 @@ private fun <T> protoStore(
     scope: DataStoreScope,
 ): DataStore<T> {
     val dir = desktopDataDir() + "/datastore"
-    FileSystem.SYSTEM.createDirectories(dir.toPath())
+    createOwnerOnlyDirectories(File(dir))
     return DataStoreFactory.create(
         storage =
         OkioStorage(

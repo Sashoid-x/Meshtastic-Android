@@ -161,6 +161,7 @@
     <string name="connected_device">Dispozitive conectate</string>
     <string name="connected_sleeping">Connectat la dispozitivi, dar e în modul de sleep</string>
     <string name="connecting">Conectare</string>
+    <!-- CONNECTION -->
     <string name="connection_status">Conexiuni actuale:</string>
     <string name="connections">Conexiune</string>
     <string name="conversations">Conversații</string>
@@ -595,7 +596,6 @@
     <string name="neighbor_info">Informații vecin</string>
     <string name="neighbor_info_config">Configurare informații vecin</string>
     <string name="network">Rețea</string>
-    <string name="new_channel_rcvd">Am primit un nou URL de canal</string>
     <string name="new_messages_below">Mesaje noi mai jos</string>
     <string name="new_node_seen">Nod nou găsit: %1$s</string>
     <string name="new_nodes">Noduri Noi</string>
@@ -772,7 +772,6 @@
     <string name="remove_layer">Elimină strat</string>
     <string name="remove_node_text">Acest nod va fi eliminat din listă până când nodul dvs. va primi din nou date de la acesta.</string>
     <string name="replace">Înlocuire</string>
-    <string name="replace_channels_and_settings_description">Acest cod QR conţine o configuraţie completă. Aceasta va REPLACE canalele existente şi setările radio existente. Toate canalele existente vor fi eliminate.</string>
     <string name="reply">Răspunde</string>
     <string name="replying_to">Răspunde la %1$s</string>
     <string name="report">Raportare</string>
@@ -853,6 +852,7 @@
     <string name="selected">Selectat</string>
     <string name="selected_map_type">Tipul hărții selectate</string>
     <string name="send">Trimite</string>
+    <!-- SERIAL -->
     <string name="serial">Serial</string>
     <string name="serial_config">Configurație serial</string>
     <string name="set_your_region">Setează-ți regiunea</string>
@@ -999,6 +999,8 @@
     <string name="waypoint_edit">Editează waypoint</string>
     <string name="waypoint_new">Waypoint nou</string>
     <string name="waypoint_received">Reper recepționat: $1%1$s</string>
+    <!-- WEB -->
+    <!-- WEBSOCKET -->
     <string name="weight">Greutate</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">Slab</string>

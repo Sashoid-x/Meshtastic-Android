@@ -59,7 +59,6 @@ adc_voltage
 ### ADD ###
 add
 add_a_note
-add_channels_description
 add_custom_tile_source
 add_favorite
 add_layer
@@ -67,6 +66,7 @@ add_local_mbtiles_file
 add_network_device
 add_network_device_manually
 add_network_layer
+add_usb_device
 address
 admin_keys
 administration
@@ -173,10 +173,12 @@ app_database_backup_failed
 app_database_backup_no_device
 app_database_backup_saved
 app_database_restore_confirmation
+app_database_restore_confirmation_all_radios
 app_database_restore_corrupt
 app_database_restore_failed
 app_database_restore_not_backup
 app_database_restore_staged
+app_database_restore_staged_reload
 app_database_restore_wrong_version
 app_functions_get_channel_info
 app_functions_get_device_status
@@ -473,6 +475,7 @@ bluetooth_permission_blocked_notice
 bluetooth_permission_blocked_notice_pre31
 bluetooth_permission_blocked_rationale
 bluetooth_permission_blocked_rationale_pre31
+bluetooth_permission_browser
 bluetooth_permission_denied_notice
 bluetooth_permission_denied_notice_pre31
 bluetooth_permission_rationale
@@ -497,6 +500,7 @@ cache_limit_eviction_warning
 calculating
 call_sign
 call_sign_summary
+camera_blocked_in_browser
 camera_permission
 camera_permission_rationale
 camera_unavailable
@@ -529,6 +533,16 @@ channel_7
 channel_8
 channel_already_on_radio
 channel_features
+channel_import_add_description
+channel_import_confirm_add
+channel_import_confirm_replace
+channel_import_downlink
+channel_import_mode_label
+channel_import_position_approximate
+channel_import_position_precise
+channel_import_replace_description
+channel_import_title
+channel_import_uplink
 channel_invalid
 channel_name
 channel_slots_full
@@ -643,6 +657,25 @@ connected
 connected_device
 connected_sleeping
 connecting
+### CONNECTION ###
+connection_failure_bluetooth_or_location_unavailable
+connection_failure_bluetooth_unavailable
+connection_failure_connect_failed
+connection_failure_connection_rejected
+connection_failure_link_lost
+connection_failure_out_of_range
+connection_failure_pairing_failed
+connection_failure_pairing_required
+connection_failure_unknown
+connection_phase_connecting
+connection_phase_discovering_services
+connection_phase_finding_device
+connection_phase_handshake_config
+connection_phase_handshake_nodes
+connection_phase_pairing
+connection_phase_subscribing
+connection_retry_in
+connection_retry_now
 connection_status
 connections
 contact_draft_prefix
@@ -653,6 +686,7 @@ contrast_high
 contrast_medium
 contrast_standard
 conversations
+copied_to_clipboard
 copy
 copyright_notice
 create_your_own_networks
@@ -1189,6 +1223,7 @@ firmware_update_transfer_progress
 firmware_update_unknown_error
 firmware_update_unknown_hardware
 firmware_update_unknown_release
+firmware_update_unsupported_in_browser
 firmware_update_unsupported_transport
 firmware_update_unsupported_update_method
 firmware_update_uploading
@@ -1221,6 +1256,7 @@ fr_HT
 free_memory
 free_memory_description
 freq
+frequency_value_mhz
 gas_resistance
 generate_qr_code
 ### GEOFENCE ###
@@ -1493,11 +1529,24 @@ long_name
 longitude
 ### LORA ###
 lora
+lora_change_spoken
+lora_change_values
+lora_changes_alert_description
+lora_changes_alert_heading
+lora_changes_heading
 lora_config
-lora_config_change_value
-lora_config_changes
+lora_fem_lna_auto
+lora_fem_lna_not_present
+lora_field_fem_lna_mode
+lora_field_frequency_offset
+lora_field_modem_preset
+lora_field_serial_hal_only
+lora_field_transparent_mode
+lora_field_unrecognized
 lora_preset_custom
 lora_preset_region
+lora_value_none
+lora_value_not_used
 low_battery
 low_battery_message
 low_battery_title
@@ -1799,6 +1848,7 @@ mqtt_error_connection_lost
 mqtt_error_credentials_rejected
 mqtt_error_proxy_failed
 mqtt_error_rejected
+mqtt_needs_websocket_url
 mqtt_probe_dns_failure
 mqtt_probe_other_failure
 mqtt_probe_rejected
@@ -1810,10 +1860,10 @@ mqtt_probe_timeout
 mqtt_probe_tls_failure
 mqtt_proxy_local
 mqtt_proxy_local_summary
+mqtt_root_has_wildcard
 mqtt_root_problem_empty
 mqtt_root_problem_empty_segment
 mqtt_root_problem_ends_with_version
-mqtt_root_problem_leading_slash
 mqtt_root_problem_too_long
 mqtt_root_problem_trailing_slash
 mqtt_root_problem_whitespace
@@ -1892,7 +1942,7 @@ neighbor_mean_snr
 neighbor_mean_snr_description
 network
 network_layer_url_hint
-new_channel_rcvd
+network_scan_unavailable
 new_messages_below
 new_node_seen
 new_nodes
@@ -1910,11 +1960,14 @@ no_local_stats
 no_map_layers_loaded
 no_network_devices_found
 no_network_devices_hint
+no_network_devices_saved
 no_network_devices_seen
 no_pax_metrics_logs
 no_pinned_messages
 no_public_key
 no_public_key_text
+no_serial_ports_allowed
+no_serial_ports_allowed_hint
 no_usb_devices_found
 no_usb_devices_hint
 no_usb_devices_seen
@@ -2007,11 +2060,14 @@ notification_permission_rationale
 notification_permissions_description
 notification_reaction_to
 ### NOTIFICATIONS ###
+notifications_blocked_by_browser
 notifications_for_channel_and_direct_messages
 notifications_for_low_battery_alerts
 notifications_for_newly_discovered_nodes
 notifications_on_alert_bell_receipt
 notifications_on_message_receipt
+notifications_turn_on
+notifications_turn_on_summary
 now
 ### OFFLINE ###
 offline_maps
@@ -2069,6 +2125,7 @@ paxcounter
 paxcounter_config
 periodic_position_broadcast
 ### PERMISSION ###
+permission_blocked_in_browser_notice
 permission_camera_summary
 permission_local_network_summary
 permission_location_summary
@@ -2141,6 +2198,8 @@ pm2_5
 position
 position_config_set_fixed_from_phone
 position_enabled
+position_location_blocked
+position_location_unavailable
 position_log
 position_packet
 potassium
@@ -2180,6 +2239,7 @@ pt_BR
 public_key
 public_key_changed
 qr_code
+qr_code_not_found
 ### QUICK ###
 quick_chat
 quick_chat_append
@@ -2235,6 +2295,7 @@ regenerate_keys_confirmation
 regenerate_private_key
 relayed_by
 relays
+reload
 ### REMOTE ###
 remote
 remote_admin
@@ -2292,7 +2353,6 @@ remove_node_text
 remove_nodes_text
 rename
 replace
-replace_channels_and_settings_description
 reply
 replying_to
 report
@@ -2387,6 +2447,7 @@ scan_connect_code_qr
 scan_network_devices
 scan_nfc
 scan_nfc_text
+scan_qr_from_image
 scan_shared_contact_nfc
 scan_shared_contact_qr
 scanning_bluetooth
@@ -2441,8 +2502,12 @@ send_bell_with_alert_message
 send_on_enter
 send_on_enter_summary
 sender_message_interval_seconds
+### SERIAL ###
 serial
 serial_config
+serial_port_chip
+serial_port_unknown
+serial_port_usb_ids
 session_active
 session_refresh_required
 set_display_name
@@ -2472,6 +2537,7 @@ shared_contact_no_public_key
 short_name
 ### SHOW ###
 show_all_key_title
+show_all_serial_ports
 show_bell_button
 show_bell_button_summary
 show_full_message_timestamps
@@ -2794,7 +2860,26 @@ waypoint_delete
 waypoint_edit
 waypoint_new
 waypoint_received
+### WEB ###
+web_bluetooth_unsupported
+web_database_asking_other_tab
+web_database_busy
+web_database_moved
+web_database_other_tab_silent
+web_database_unavailable
+web_database_use_here
+web_serial_unsupported
+web_transports_unsupported
 website
+### WEBSOCKET ###
+websocket_connect_failed
+websocket_handshake_rejected
+websocket_message_too_big
+websocket_not_supported
+websocket_port_in_url
+websocket_replaced_by_another_client
+websocket_slot_contested
+websocket_tls_failed
 weight
 what_is_meshtastic
 what_is_meshtastic_description
@@ -2827,18 +2912,32 @@ wifi_config
 wifi_devices
 wifi_ip
 wifi_provision_available_networks
+wifi_provision_choose_device
+wifi_provision_choose_device_detail
+wifi_provision_confirm_compare
+wifi_provision_confirm_consequence
+wifi_provision_confirm_title
+wifi_provision_confirm_title_named
 wifi_provision_connect_failed
 wifi_provision_description
 wifi_provision_device_found
 wifi_provision_device_found_detail
+wifi_provision_device_not_found
 wifi_provision_hidden_network
+wifi_provision_link_unsupported
 wifi_provision_mpwrd_disclaimer
+wifi_provision_no_devices
+wifi_provision_no_devices_detail
 wifi_provision_no_networks
+wifi_provision_no_response
+wifi_provision_pick_device
+wifi_provision_rescan
 wifi_provision_scan_failed
 wifi_provision_scan_networks
 wifi_provision_scanning_ble
 wifi_provision_scanning_wifi
 wifi_provision_sending_credentials
+wifi_provision_signal_dbm
 wifi_provision_signal_strength
 wifi_provision_ssid_label
 wifi_provision_ssid_placeholder

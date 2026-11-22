@@ -20,4 +20,25 @@ package org.meshtastic.core.repository
 enum class TransportDisconnectReason {
     /** Android denied USB device access for the current connection attempt. */
     UsbPermissionDenied,
+
+    /** The radio gave its one WebSocket client slot to another client, WebSocket close code 4001. */
+    ReplacedByAnotherClient,
+
+    /** A WebSocket could not be opened: the host refused, timed out or did not resolve. */
+    WebSocketConnectFailed,
+
+    /** The server answered a WebSocket upgrade with something other than 101, such as a 403 or a 401. */
+    WebSocketHandshakeRejected,
+
+    /** The WebSocket path answered the upgrade with a 404: the radio's firmware predates the WebSocket phone API. */
+    WebSocketNotSupported,
+
+    /** The `wss://` TLS handshake failed, most often on the radio's self-signed certificate. */
+    WebSocketTlsFailed,
+
+    /** The radio closed the WebSocket with 1009: a message over its 512-byte limit. */
+    WebSocketMessageTooBig,
+
+    /** The WebSocket kept dropping right after opening without a close frame, the sign of two clients taking turns. */
+    WebSocketSlotContested,
 }

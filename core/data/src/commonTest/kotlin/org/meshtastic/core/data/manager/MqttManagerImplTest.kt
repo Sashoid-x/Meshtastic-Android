@@ -29,9 +29,13 @@ import kotlinx.coroutines.test.runTest
 import org.meshtastic.core.common.di.asServiceScope
 import org.meshtastic.core.model.MqttConnectionState
 import org.meshtastic.core.network.repository.MQTTRepository
+import org.meshtastic.core.network.repository.MqttRootWildcardException
 import org.meshtastic.core.repository.PacketHandler
 import org.meshtastic.core.repository.ServiceStateWriter
 import org.meshtastic.core.repository.TopologyManager
+import org.meshtastic.core.resources.Res
+import org.meshtastic.core.resources.mqtt_error_proxy_failed
+import org.meshtastic.core.resources.mqtt_root_has_wildcard
 import org.meshtastic.core.testing.FakeMeshPrefs
 import org.meshtastic.core.testing.FakeNodeRepository
 import org.meshtastic.mqtt.ConnectionState
@@ -150,6 +154,16 @@ class MqttManagerImplTest {
         runCurrent()
         // Device B was never enabled, so client should not be enabled
         assertFalse(harness.manager.isClientEnabled.value)
+    }
+
+    @Test
+    fun `a wildcard root topic is named in the proxy error instead of the generic failure`() {
+        assertEquals(Res.string.mqtt_root_has_wildcard, proxyFailureMessage(MqttRootWildcardException()))
+    }
+
+    @Test
+    fun `an unclassified failure keeps the generic proxy error`() {
+        assertEquals(Res.string.mqtt_error_proxy_failed, proxyFailureMessage(IllegalStateException("boom")))
     }
 
     private fun refusal(refused: Map<String, ReasonCode>, granted: List<String>) = MqttException.SubscriptionRefused(

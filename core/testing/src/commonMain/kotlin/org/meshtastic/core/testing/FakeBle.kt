@@ -78,6 +78,9 @@ class FakeBleScanner :
     var lastScanAddress: String? = null
         private set
 
+    /** Set false to stand in for a platform whose device identifier is not a MAC. */
+    override var addressIsHardware: Boolean = true
+
     override fun scan(timeout: Duration, serviceUuid: Uuid?, address: String?): Flow<BleDevice> {
         lastScanServiceUuid = serviceUuid
         lastScanAddress = address
@@ -127,6 +130,9 @@ class FakeBleConnection :
 
     /** Number of times [profile] has been invoked. */
     var profileCalls: Int = 0
+
+    /** What the transport reads as the absorbed platform failure; tests set it to stand in for one. */
+    override var lastFailureCause: Throwable? = null
 
     /** Externally simulate a remote disconnect (e.g. node power-cycle) for tests that exercise reconnect. */
     fun simulateRemoteDisconnect(reason: DisconnectReason = DisconnectReason.Timeout) {

@@ -16,14 +16,7 @@
  */
 package org.meshtastic.core.prefs.ui
 
-import androidx.datastore.preferences.core.MutablePreferences
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.floatPreferencesKey
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.core.stringSetPreferencesKey
+import org.meshtastic.core.prefs.store.floatPrefsKey
 import kotlinx.atomicfu.atomic
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.CoroutineScope
@@ -45,6 +38,11 @@ import org.meshtastic.core.model.PhotoHostingProvider
 import org.meshtastic.core.model.ReactionNotificationMode
 import org.meshtastic.core.prefs.cachedFlow
 import org.meshtastic.core.prefs.di.UiDataStore
+import org.meshtastic.core.prefs.store.PrefsSnapshot
+import org.meshtastic.core.prefs.store.booleanPrefsKey
+import org.meshtastic.core.prefs.store.intPrefsKey
+import org.meshtastic.core.prefs.store.stringPrefsKey
+import org.meshtastic.core.prefs.store.stringSetPrefsKey
 import org.meshtastic.core.repository.NodeFilterPrefs
 import org.meshtastic.core.repository.UiPrefs
 
@@ -482,12 +480,12 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
 
     override fun shouldProvideNodeLocation(nodeNum: Int): StateFlow<Boolean> =
         cachedFlow(provideNodeLocationFlows, nodeNum) {
-            val key = booleanPreferencesKey(provideLocationKey(nodeNum))
+            val key = booleanPrefsKey(provideLocationKey(nodeNum))
             dataStore.data.map { it[key] ?: false }.stateIn(scope, SharingStarted.Eagerly, false)
         }
 
     override fun setShouldProvideNodeLocation(nodeNum: Int, provide: Boolean) {
-        scope.launch { dataStore.edit { it[booleanPreferencesKey(provideLocationKey(nodeNum))] = provide } }
+        scope.launch { dataStore.edit { it[booleanPrefsKey(provideLocationKey(nodeNum))] = provide } }
     }
 
     private fun provideLocationKey(nodeNum: Int) = "provide-location-$nodeNum"
@@ -595,7 +593,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         }
     }
 
-    private fun Preferences.toNodeFilterPrefs() = NodeFilterPrefs(
+    private fun PrefsSnapshot.toNodeFilterPrefs() = NodeFilterPrefs(
         includeUnknown = this[KEY_INCLUDE_UNKNOWN] ?: NodeFilterPrefs().includeUnknown,
         excludeInfrastructure = this[KEY_EXCLUDE_INFRASTRUCTURE] ?: false,
         onlyOnline = this[KEY_ONLY_ONLINE] ?: false,
@@ -607,7 +605,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         excludeUnheard = this[KEY_EXCLUDE_UNHEARD] ?: false,
     )
 
-    private fun MutablePreferences.writeNodeFilterPrefs(prefs: NodeFilterPrefs) {
+    private fun PrefsSnapshot.Editor.writeNodeFilterPrefs(prefs: NodeFilterPrefs) {
         this[KEY_INCLUDE_UNKNOWN] = prefs.includeUnknown
         this[KEY_EXCLUDE_INFRASTRUCTURE] = prefs.excludeInfrastructure
         this[KEY_ONLY_ONLINE] = prefs.onlyOnline
@@ -620,60 +618,60 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
     }
 
     companion object {
-        val KEY_HAS_SHOWN_NOT_PAIRED_WARNING_PREF = booleanPreferencesKey("has_shown_not_paired_warning")
-        val KEY_SHOW_QUICK_CHAT_PREF = booleanPreferencesKey("show-quick-chat")
-        val KEY_SHOW_FULL_MESSAGE_TIMESTAMPS = booleanPreferencesKey("show-full-message-timestamps")
-        val KEY_TEXT_COMPRESSION_ENABLED = booleanPreferencesKey("text-compression-enabled")
-        val KEY_PIXEL_ART_ENABLED = booleanPreferencesKey("pixel-art-enabled")
-        val KEY_FILE_TRANSFER_ENABLED = booleanPreferencesKey("file-transfer-enabled")
-        val KEY_PHOTO_HOSTING_ENABLED = booleanPreferencesKey("photo-hosting-enabled")
-        val KEY_PHOTO_HOSTING_PROVIDER = stringPreferencesKey("photo-hosting-provider")
-        val KEY_INSERT_PHOTO_LINK_ENABLED = booleanPreferencesKey("insert-photo-link")
-        val KEY_IMGBB_API_KEY = stringPreferencesKey("imgbb-api-key")
-        val KEY_IMGBB_EXPIRATION = stringPreferencesKey("imgbb-expiration")
-        val KEY_MESHPIC_RETENTION = stringPreferencesKey("meshpic-retention")
-        val KEY_LINK_PREVIEW_ENABLED = booleanPreferencesKey("link-preview-enabled")
-        val KEY_SHOW_BELL_BUTTON = booleanPreferencesKey("show-bell-button")
-        val KEY_REACTION_NOTIFICATION_MODE = stringPreferencesKey("reaction-notification-mode")
-        val KEY_PINNED_MESSAGES_ENABLED = booleanPreferencesKey("pinned-messages-enabled")
-        val KEY_SKIPPED_APP_UPDATE_VERSION = stringPreferencesKey("skipped-app-update-version")
-        val KEY_EVENT_THEME_ENABLED = booleanPreferencesKey("event-theme-enabled")
-        val KEY_ADV_THEME_COLORS_JSON = stringPreferencesKey("adv-theme-colors-json")
-        val KEY_CUSTOM_NODE_NAMES = stringPreferencesKey("custom-node-names")
-        val KEY_MESSAGE_BUBBLE_SPACING = intPreferencesKey("message-bubble-spacing")
-        val KEY_MESSAGE_BUBBLE_PADDING = intPreferencesKey("message-bubble-padding")
-        val KEY_MESSAGE_BUBBLE_CORNER_RADIUS = intPreferencesKey("message-bubble-corner-radius")
-        val KEY_MESSAGE_FONT_SIZE_SCALE = floatPreferencesKey("message-font-size-scale")
-        val KEY_REACTION_CHIP_SPACING = intPreferencesKey("reaction-chip-spacing")
-        val KEY_PRESSURE_IN_MMHG = booleanPreferencesKey("pressure-in-mm-hg")
-        val KEY_AUTO_TOPOLOGY_DISCOVERY_ENABLED = booleanPreferencesKey("auto-topology-discovery-enabled")
-        val KEY_AUTO_TOPOLOGY_DISCOVERY_INTERVAL_MINUTES = intPreferencesKey("auto-topology-discovery-interval-minutes")
+        val KEY_HAS_SHOWN_NOT_PAIRED_WARNING_PREF = booleanPrefsKey("has_shown_not_paired_warning")
+        val KEY_SHOW_QUICK_CHAT_PREF = booleanPrefsKey("show-quick-chat")
+        val KEY_SHOW_FULL_MESSAGE_TIMESTAMPS = booleanPrefsKey("show-full-message-timestamps")
+        val KEY_TEXT_COMPRESSION_ENABLED = booleanPrefsKey("text-compression-enabled")
+        val KEY_PIXEL_ART_ENABLED = booleanPrefsKey("pixel-art-enabled")
+        val KEY_FILE_TRANSFER_ENABLED = booleanPrefsKey("file-transfer-enabled")
+        val KEY_PHOTO_HOSTING_ENABLED = booleanPrefsKey("photo-hosting-enabled")
+        val KEY_PHOTO_HOSTING_PROVIDER = stringPrefsKey("photo-hosting-provider")
+        val KEY_INSERT_PHOTO_LINK_ENABLED = booleanPrefsKey("insert-photo-link")
+        val KEY_IMGBB_API_KEY = stringPrefsKey("imgbb-api-key")
+        val KEY_IMGBB_EXPIRATION = stringPrefsKey("imgbb-expiration")
+        val KEY_MESHPIC_RETENTION = stringPrefsKey("meshpic-retention")
+        val KEY_LINK_PREVIEW_ENABLED = booleanPrefsKey("link-preview-enabled")
+        val KEY_SHOW_BELL_BUTTON = booleanPrefsKey("show-bell-button")
+        val KEY_REACTION_NOTIFICATION_MODE = stringPrefsKey("reaction-notification-mode")
+        val KEY_PINNED_MESSAGES_ENABLED = booleanPrefsKey("pinned-messages-enabled")
+        val KEY_SKIPPED_APP_UPDATE_VERSION = stringPrefsKey("skipped-app-update-version")
+        val KEY_EVENT_THEME_ENABLED = booleanPrefsKey("event-theme-enabled")
+        val KEY_ADV_THEME_COLORS_JSON = stringPrefsKey("adv-theme-colors-json")
+        val KEY_CUSTOM_NODE_NAMES = stringPrefsKey("custom-node-names")
+        val KEY_MESSAGE_BUBBLE_SPACING = intPrefsKey("message-bubble-spacing")
+        val KEY_MESSAGE_BUBBLE_PADDING = intPrefsKey("message-bubble-padding")
+        val KEY_MESSAGE_BUBBLE_CORNER_RADIUS = intPrefsKey("message-bubble-corner-radius")
+        val KEY_MESSAGE_FONT_SIZE_SCALE = floatPrefsKey("message-font-size-scale")
+        val KEY_REACTION_CHIP_SPACING = intPrefsKey("reaction-chip-spacing")
+        val KEY_PRESSURE_IN_MMHG = booleanPrefsKey("pressure-in-mm-hg")
+        val KEY_AUTO_TOPOLOGY_DISCOVERY_ENABLED = booleanPrefsKey("auto-topology-discovery-enabled")
+        val KEY_AUTO_TOPOLOGY_DISCOVERY_INTERVAL_MINUTES = intPrefsKey("auto-topology-discovery-interval-minutes")
         const val DEFAULT_AUTO_TOPOLOGY_DISCOVERY_INTERVAL_MINUTES = 20
-        val KEY_RADIO_SETUP_OFFERED = stringSetPreferencesKey("radio-setup-offered-nodes")
+        val KEY_RADIO_SETUP_OFFERED = stringSetPrefsKey("radio-setup-offered-nodes")
 
-        val KEY_APP_INTRO_COMPLETED = booleanPreferencesKey("app_intro_completed")
-        val KEY_THEME = intPreferencesKey("theme")
-        private val KEY_UNITS_OVERRIDE = intPreferencesKey("units_override")
-        val KEY_LOCALE = stringPreferencesKey("locale")
-        val KEY_NODE_SORT = intPreferencesKey("node-sort-option")
-        val KEY_CHIRPY_HOP_BEST_SCORE = intPreferencesKey("chirpy-hop-best-score")
-        val KEY_INCLUDE_UNKNOWN = booleanPreferencesKey("include-unknown")
-        val KEY_EXCLUDE_INFRASTRUCTURE = booleanPreferencesKey("exclude-infrastructure")
-        val KEY_ONLY_ONLINE = booleanPreferencesKey("only-online")
-        val KEY_ONLY_DIRECT = booleanPreferencesKey("only-direct")
-        val KEY_ONLY_SIGNED = booleanPreferencesKey("only-signed")
-        val KEY_ONLY_ENCRYPTED = booleanPreferencesKey("only-encrypted")
-        val KEY_SHOW_IGNORED = booleanPreferencesKey("show-ignored")
-        val KEY_EXCLUDE_MQTT = booleanPreferencesKey("exclude-mqtt")
-        val KEY_EXCLUDE_UNHEARD = booleanPreferencesKey("exclude-unheard")
-        val KEY_BLE_AUTO_SCAN = booleanPreferencesKey("ble-auto-scan")
-        val KEY_NETWORK_AUTO_SCAN = booleanPreferencesKey("network-auto-scan")
-        val KEY_SELECTED_CONNECTION_TRANSPORT = stringPreferencesKey("selected-connection-transport")
-        val KEY_FIRMWARE_UPDATE_NOTIFICATION_KEYS = stringPreferencesKey("firmware-update-notification-keys")
-        val KEY_SHOW_BLE_TRANSPORT = booleanPreferencesKey("show-ble-transport")
-        val KEY_SHOW_NETWORK_TRANSPORT = booleanPreferencesKey("show-network-transport")
-        val KEY_SHOW_USB_TRANSPORT = booleanPreferencesKey("show-usb-transport")
-        val KEY_KEPT_UNHEARD_NODES = stringPreferencesKey("kept-unheard-nodes")
+        val KEY_APP_INTRO_COMPLETED = booleanPrefsKey("app_intro_completed")
+        val KEY_THEME = intPrefsKey("theme")
+        private val KEY_UNITS_OVERRIDE = intPrefsKey("units_override")
+        val KEY_LOCALE = stringPrefsKey("locale")
+        val KEY_NODE_SORT = intPrefsKey("node-sort-option")
+        val KEY_CHIRPY_HOP_BEST_SCORE = intPrefsKey("chirpy-hop-best-score")
+        val KEY_INCLUDE_UNKNOWN = booleanPrefsKey("include-unknown")
+        val KEY_EXCLUDE_INFRASTRUCTURE = booleanPrefsKey("exclude-infrastructure")
+        val KEY_ONLY_ONLINE = booleanPrefsKey("only-online")
+        val KEY_ONLY_DIRECT = booleanPrefsKey("only-direct")
+        val KEY_ONLY_SIGNED = booleanPrefsKey("only-signed")
+        val KEY_ONLY_ENCRYPTED = booleanPrefsKey("only-encrypted")
+        val KEY_SHOW_IGNORED = booleanPrefsKey("show-ignored")
+        val KEY_EXCLUDE_MQTT = booleanPrefsKey("exclude-mqtt")
+        val KEY_EXCLUDE_UNHEARD = booleanPrefsKey("exclude-unheard")
+        val KEY_BLE_AUTO_SCAN = booleanPrefsKey("ble-auto-scan")
+        val KEY_NETWORK_AUTO_SCAN = booleanPrefsKey("network-auto-scan")
+        val KEY_SELECTED_CONNECTION_TRANSPORT = stringPrefsKey("selected-connection-transport")
+        val KEY_FIRMWARE_UPDATE_NOTIFICATION_KEYS = stringPrefsKey("firmware-update-notification-keys")
+        val KEY_SHOW_BLE_TRANSPORT = booleanPrefsKey("show-ble-transport")
+        val KEY_SHOW_NETWORK_TRANSPORT = booleanPrefsKey("show-network-transport")
+        val KEY_SHOW_USB_TRANSPORT = booleanPrefsKey("show-usb-transport")
+        val KEY_KEPT_UNHEARD_NODES = stringPrefsKey("kept-unheard-nodes")
         private const val MAX_FIRMWARE_UPDATE_NOTIFICATION_KEYS = 100
 
         // Kept nums leave only when heard again; this bounds the ones deleted from the DB while still kept.
@@ -685,7 +683,7 @@ class UiPrefsImpl(private val dataStore: UiDataStore, dispatchers: CoroutineDisp
         private fun parseNodeNums(stored: String?): List<Int> =
             stored?.split(',')?.mapNotNull(String::toIntOrNull)?.distinct().orEmpty()
 
-        private fun legacySelectedConnectionTransport(preferences: Preferences): DeviceType? {
+        private fun legacySelectedConnectionTransport(preferences: PrefsSnapshot): DeviceType? {
             val hasLegacyTransportPreference =
                 KEY_SHOW_BLE_TRANSPORT in preferences ||
                     KEY_SHOW_NETWORK_TRANSPORT in preferences ||

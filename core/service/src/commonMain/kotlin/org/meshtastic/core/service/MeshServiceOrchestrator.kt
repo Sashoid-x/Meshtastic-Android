@@ -46,11 +46,10 @@ import org.meshtastic.core.repository.NodeManager
 import org.meshtastic.core.repository.RadioInterfaceService
 import org.meshtastic.core.repository.ServiceStateWriter
 import org.meshtastic.core.repository.TakPrefs
+import org.meshtastic.core.repository.TakServerIntegration
 import org.meshtastic.core.resources.Res
 import org.meshtastic.core.resources.getStringSuspend
 import org.meshtastic.core.resources.local_network_permission_denied_hint
-import org.meshtastic.core.takserver.TAKMeshIntegration
-import org.meshtastic.core.takserver.TAKServerManager
 
 // English fallback for local_network_permission_denied_hint when resource lookup is unavailable. Kept above the
 // class KDoc so that KDoc still binds to the class. Internal so tests can assert the exact surfaced text.
@@ -74,8 +73,7 @@ class MeshServiceOrchestrator(
     private val nodeManager: NodeManager,
     private val messageProcessor: MeshMessageProcessor,
     private val serviceNotifications: MeshNotificationManager,
-    private val takServerManager: TAKServerManager,
-    private val takMeshIntegration: TAKMeshIntegration,
+    private val takServerIntegration: TakServerIntegration,
     private val takPrefs: TakPrefs,
     private val meshBridgeManager: MeshBridgeServerManager,
     private val meshBridgeIntegration: MeshBridgeIntegration,
@@ -121,7 +119,7 @@ class MeshServiceOrchestrator(
         // later successful manual connect with no recovery layer for the life of the process. The OS enforces the
         // permission at the socket, so a genuinely local connect fails exactly as it would have; the difference is
         // the user now has an explanation and the fix in hand.
-        if (DeviceAddress.parse(address)?.interfaceId == InterfaceId.TCP && !localNetworkAccess.isGranted()) {
+        if (DeviceAddress.parse(address)?.interfaceId?.isNetwork == true && !localNetworkAccess.isGranted()) {
             Logger.w { "Local network access not granted; the persisted TCP reconnect may time out" }
             serviceStateWriter.setErrorMessage(
                 // Same shape as ScannerViewModel's scan-failure messages: resource lookup can fail outside a
@@ -177,12 +175,12 @@ class MeshServiceOrchestrator(
         // Observe TAK server pref to start/stop
         takPrefs.isTakServerEnabled
             .onEach { isEnabled ->
-                if (isEnabled && !takServerManager.isRunning.value) {
+                if (isEnabled && !takServerIntegration.isRunning.value) {
                     Logger.i { "TAK Server enabled by preference, starting integration" }
-                    takMeshIntegration.start(newScope)
+                    takServerIntegration.start(newScope)
                 } else if (!isEnabled) {
                     Logger.i { "TAK Server disabled by preference, stopping integration" }
-                    takMeshIntegration.stop()
+                    takServerIntegration.stop()
                 }
             }
             .launchIn(newScope)
@@ -248,7 +246,7 @@ class MeshServiceOrchestrator(
      */
     fun stop() {
         Logger.i { "Stopping mesh service orchestrator" }
-        takMeshIntegration.stop()
+        takServerIntegration.stop()
         meshBridgeIntegration.stop()
         automationEngine?.stop()
         // Best-effort polite goodbye on service teardown (onDestroy / process shutdown). We launch

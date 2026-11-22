@@ -20,7 +20,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -78,13 +77,14 @@ import org.koin.core.context.stopKoin
 import org.koin.plugin.module.dsl.startKoin
 import org.maplibre.compose.desktop.ProvideMapPresentationHost
 import org.maplibre.compose.desktop.rememberAwtComposeMapPresentationHost
+import org.meshtastic.appshell.MeshServiceLifecycle
 import org.meshtastic.core.common.BuildConfigProvider
 import org.meshtastic.core.common.log.RoomPoolTimeoutLog
 import org.meshtastic.core.common.state.LaunchOptions
 import org.meshtastic.core.common.util.CommonUri
 import org.meshtastic.core.common.util.ioDispatcher
+import org.meshtastic.core.database.createOwnerOnlyDirectories
 import org.meshtastic.core.database.desktopDataDir
-import org.meshtastic.core.model.DeviceAddress
 import org.meshtastic.core.navigation.MultiBackstack
 import org.meshtastic.core.navigation.SettingsRoute
 import org.meshtastic.core.navigation.TopLevelDestination
@@ -100,8 +100,9 @@ import org.meshtastic.core.resources.desktop_update_available_title
 import org.meshtastic.core.resources.desktop_update_download
 import org.meshtastic.core.resources.getStringSuspend
 import org.meshtastic.core.service.MeshLogCleanup
-import org.meshtastic.core.service.MeshServiceOrchestrator
+import org.meshtastic.core.ui.navigation.startDestination
 import org.meshtastic.core.ui.theme.AppTheme
+import org.meshtastic.core.ui.theme.isDarkTheme
 import org.meshtastic.core.ui.util.LocalDiscoveryMapProvider
 import org.meshtastic.core.ui.util.LocalEventBranding
 import org.meshtastic.core.ui.util.LocalInlineMapProvider
@@ -116,7 +117,6 @@ import org.meshtastic.core.ui.util.rememberOpenUrl
 import org.meshtastic.core.ui.viewmodel.UIViewModel
 import org.meshtastic.desktop.data.DesktopPreferencesDataSource
 import org.meshtastic.desktop.di.DesktopKoinApp
-import org.meshtastic.desktop.map.DesktopTracerouteMap
 import org.meshtastic.desktop.map.desktopMapViewProvider
 import org.meshtastic.desktop.mcp.DesktopMcpLifecycle
 import org.meshtastic.desktop.notification.DesktopOS
@@ -132,7 +132,9 @@ import org.meshtastic.feature.map.SharedMapViewModel
 import org.meshtastic.feature.map.maplibre.MapLibreDiscoveryMap
 import org.meshtastic.feature.map.maplibre.MapLibreInlineMap
 import org.meshtastic.feature.map.maplibre.MapLibreNodeTrackMap
+import org.meshtastic.feature.map.maplibre.MapLibreTracerouteMapSlot
 import java.awt.Desktop
+import java.io.File
 import java.util.Locale
 import kotlin.system.exitProcess
 import coil3.util.Logger as CoilLogger
@@ -168,6 +170,8 @@ private fun svgPainterResource(path: String, density: Density): Painter = rememb
 
 @OptIn(ExperimentalCoilApi::class)
 fun main(args: Array<String>) {
+    // Resolving the data directory first restricts the default location before any store writes into it.
+    desktopDataDir()
     installQuitHandler()
     // exitProcessOnExit = false is what makes the shutdown block below reachable at all: with the default (true),
     // application() calls System.exit(0) itself as soon as the Compose loop ends, and control never returns here.
@@ -248,16 +252,6 @@ private fun ApplicationScope.DeepLinkHandler(
 
 // ----- Mesh service lifecycle -----
 
-/** Starts [MeshServiceOrchestrator] on composition and stops it on disposal. */
-@Composable
-private fun MeshServiceLifecycle() {
-    val meshServiceController = koinInject<MeshServiceOrchestrator>()
-    DisposableEffect(Unit) {
-        meshServiceController.start()
-        onDispose { meshServiceController.stop() }
-    }
-}
-
 // ----- Theme, locale, and application shell -----
 
 /** Resolves the user's theme/locale preferences and renders the full application UI. */
@@ -271,14 +265,7 @@ private fun ApplicationScope.ThemeAndLocaleProvider(uiViewModel: UIViewModel) {
     val localePref by uiPrefs.locale.collectAsState(initial = "")
     Locale.setDefault(resolveLocale(localePref, systemLocale))
 
-    val isDarkTheme =
-        when (themePref) {
-            1 -> false
-            2 -> true
-            else -> isSystemInDarkTheme()
-        }
-
-    MeshtasticDesktopApp(uiViewModel, isDarkTheme)
+    MeshtasticDesktopApp(uiViewModel, isDarkTheme(themePref))
 }
 
 // ----- Application chrome (tray, window, navigation) -----
@@ -450,15 +437,7 @@ private fun ApplicationScope.MeshtasticWindow(
     visible: Boolean,
     onCloseRequest: () -> Unit,
 ) {
-    val multiBackstack =
-        rememberMultiBackstack(
-            // Land on Connections for first-run / no-device-selected; otherwise on Nodes.
-            if (DeviceAddress.parse(uiViewModel.currentDeviceAddressFlow.value) == null) {
-                TopLevelDestination.Connect.route
-            } else {
-                TopLevelDestination.Nodes.route
-            },
-        )
+    val multiBackstack = rememberMultiBackstack(startDestination(uiViewModel.currentDeviceAddressFlow.value))
 
     Window(
         onCloseRequest = onCloseRequest,
@@ -508,7 +487,7 @@ private fun ApplicationScope.MeshtasticWindow(
                     },
                 LocalTracerouteMapProvider provides
                     { overlay, nodePositions, onMappableCountChanged, modifier ->
-                        DesktopTracerouteMap(overlay, nodePositions, onMappableCountChanged, modifier)
+                        MapLibreTracerouteMapSlot(overlay, nodePositions, onMappableCountChanged, modifier)
                     },
                 // Clear of the MapLibre logo and attribution row along the bottom edge.
                 LocalTracerouteMapOverlayInsetsProvider provides
@@ -568,6 +547,7 @@ private fun CoilImageLoaderSetup() {
 
     setSingletonImageLoaderFactory { context ->
         val cacheDir = desktopDataDir() + "/image_cache_v3"
+        createOwnerOnlyDirectories(File(cacheDir))
         ImageLoader.Builder(context)
             .components {
                 add(

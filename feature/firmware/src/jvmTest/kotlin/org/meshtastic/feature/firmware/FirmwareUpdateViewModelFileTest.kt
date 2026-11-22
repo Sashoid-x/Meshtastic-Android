@@ -45,8 +45,6 @@ import org.meshtastic.core.common.state.HiddenFeaturesUnlock
 import org.meshtastic.core.common.state.RadioOperation
 import org.meshtastic.core.common.state.RadioOperationLock
 import org.meshtastic.core.common.util.CommonUri
-import org.meshtastic.core.datastore.BootloaderWarningDataSource
-import org.meshtastic.core.datastore.FirmwareRecoveryDataSource
 import org.meshtastic.core.model.DeviceHardware
 import org.meshtastic.core.model.EraseImageEntry
 import org.meshtastic.core.model.FirmwareRelease
@@ -95,8 +93,8 @@ class FirmwareUpdateViewModelFileTest {
     private val nodeRepository = FakeNodeRepository()
     private val radioController = FakeRadioController()
     private val radioPrefs: RadioPrefs = mock(MockMode.autofill)
-    private val bootloaderWarningDataSource: BootloaderWarningDataSource = mock(MockMode.autofill)
-    private val firmwareRecoveryDataSource: FirmwareRecoveryDataSource = mock(MockMode.autofill)
+    private val bootloaderWarningDataSource: BootloaderWarningSource = mock(MockMode.autofill)
+    private val firmwareRecoveryDataSource: FirmwareRecoverySource = mock(MockMode.autofill)
     private val firmwareUpdateManager: FirmwareUpdateManager = mock(MockMode.autofill)
     private val usbManager: FirmwareUsbManager = mock(MockMode.autofill)
     private val fileHandler: FirmwareFileHandler = mock(MockMode.autofill)
@@ -1178,7 +1176,7 @@ class FirmwareUpdateViewModelFileTest {
         everySuspend { maintenanceUf2Repository.getSnapshot() } returns
             testMaintenanceUf2Manifest.copy(
                 otafixReleaseTag = "0.9.2-OTAFIX2.5",
-                otafixBase = "https://example.invalid/otafix",
+                otafixBase = "https://github.com/meshtastic/nRF52_Bootloader/releases/download/0.9.2-OTAFIX2.5",
                 otafixByBoardId =
                 mapOf("WisBlock-RAK4631-Board" to OtafixAssetEntry("wiscore_rak4631_board", "0".repeat(64))),
                 otafixSupportedTargets = listOf("rak4631"),

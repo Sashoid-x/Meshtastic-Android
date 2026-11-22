@@ -41,6 +41,8 @@ import org.meshtastic.core.model.ConnectionState
 import org.meshtastic.core.model.DeviceType
 import org.meshtastic.core.model.InterfaceId
 import org.meshtastic.core.model.TelemetryType
+import org.meshtastic.core.model.TransportPhase
+import org.meshtastic.core.model.TransportStatus
 import org.meshtastic.core.repository.AdminRequestRegistry
 import org.meshtastic.core.repository.AppWidgetUpdater
 import org.meshtastic.core.repository.CommandSender
@@ -220,6 +222,7 @@ class MeshConnectionManagerImpl(
                                                     "Location update failed unexpectedly; collector kept alive"
                                                 }
                                         }
+                                        failure == null
                                     }
                                 } else {
                                     locationRejectionLogged.value = false
@@ -563,6 +566,7 @@ class MeshConnectionManagerImpl(
     }
 
     override fun startConfigOnly() {
+        radioInterfaceService.onStatus(TransportStatus(TransportPhase.HandshakeConfig))
         stageProgressSignals.value = 0
         armStageGuard(1, HANDSHAKE_TIMEOUT_STAGE1)
         packetHandler.sendToRadio(
@@ -579,6 +583,7 @@ class MeshConnectionManagerImpl(
     }
 
     override fun startNodeInfoOnly() {
+        radioInterfaceService.onStatus(TransportStatus(TransportPhase.HandshakeNodes))
         stageProgressSignals.value = 0
         armStageGuard(2, HANDSHAKE_TIMEOUT_STAGE2)
         packetHandler.sendToRadio(
@@ -601,6 +606,9 @@ class MeshConnectionManagerImpl(
     }
 
     override fun onMyNodeInfoReceived(myNodeNum: Int) {
+        // A handshake restart drops the radio's pending requests, and a renumbered radio no longer answers to the
+        // old node number, so nothing registered before this point can be answered.
+        adminRequestRegistry.clearAll()
         // Set device time as early as possible: MyNodeInfo is the first Stage 1 frame, so this
         // lands before the firmware flushes its queued packet backlog and lets it stamp those
         // packets with a corrected clock (firmware #11274). A single small write ahead of the
@@ -768,6 +776,7 @@ class MeshConnectionManagerImpl(
         // state guard inside onHandshakeProgress() is insufficient on its own. The latch is
         // cleared at the start of the next fresh handshake in handleConnected().
         handshakeCompleteLatch.value = true
+        radioInterfaceService.onStatus(TransportStatus(TransportPhase.Connected))
         // A successful handshake breaks the recovery failure streak — reset the consecutive
         // failure counter so the next stall starts from a fresh count.
         consecutiveRecoveryFailures.value = 0

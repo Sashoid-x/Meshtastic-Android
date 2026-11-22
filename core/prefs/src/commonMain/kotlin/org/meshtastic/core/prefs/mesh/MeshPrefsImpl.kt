@@ -16,10 +16,7 @@
  */
 package org.meshtastic.core.prefs.mesh
 
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.core.stringPreferencesKey
+import org.meshtastic.core.prefs.store.booleanPrefsKey
 import kotlinx.atomicfu.atomic
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.CoroutineScope
@@ -35,6 +32,8 @@ import org.meshtastic.core.common.util.normalizeAddress
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.prefs.cachedFlow
 import org.meshtastic.core.prefs.di.MeshDataStore
+import org.meshtastic.core.prefs.store.intPrefsKey
+import org.meshtastic.core.prefs.store.stringPrefsKey
 import org.meshtastic.core.repository.MeshPrefs
 
 @Single
@@ -65,14 +64,14 @@ class MeshPrefsImpl(private val dataStore: MeshDataStore, dispatchers: Coroutine
         dataStore.data.first()[KEY_DEVICE_ADDRESS_PREF] ?: NO_DEVICE_SELECTED
 
     override fun getStoreForwardLastRequest(address: String?): StateFlow<Int> = cachedFlow(storeForwardFlows, address) {
-        val key = intPreferencesKey(storeForwardKey(address))
+        val key = intPrefsKey(storeForwardKey(address))
         dataStore.data.map { it[key] ?: 0 }.stateIn(scope, SharingStarted.Eagerly, 0)
     }
 
     override fun setStoreForwardLastRequest(address: String?, timestamp: Int) {
         scope.launch {
             dataStore.edit { prefs ->
-                val key = intPreferencesKey(storeForwardKey(address))
+                val key = intPrefsKey(storeForwardKey(address))
                 if (timestamp <= 0) {
                     prefs.remove(key)
                 } else {
@@ -85,14 +84,14 @@ class MeshPrefsImpl(private val dataStore: MeshDataStore, dispatchers: Coroutine
     private fun storeForwardKey(address: String?): String = "store-forward-last-request-${normalizeAddress(address)}"
 
     override fun getMqttClientEnabled(address: String?): StateFlow<Boolean> = cachedFlow(mqttClientFlows, address) {
-        val key = booleanPreferencesKey(mqttClientKey(address))
+        val key = booleanPrefsKey(mqttClientKey(address))
         dataStore.data.map { it[key] ?: false }.stateIn(scope, SharingStarted.Eagerly, false)
     }
 
     override fun setMqttClientEnabled(address: String?, enabled: Boolean) {
         scope.launch {
             dataStore.edit { prefs ->
-                val key = booleanPreferencesKey(mqttClientKey(address))
+                val key = booleanPrefsKey(mqttClientKey(address))
                 if (!enabled) {
                     prefs.remove(key)
                 } else {
@@ -103,14 +102,14 @@ class MeshPrefsImpl(private val dataStore: MeshDataStore, dispatchers: Coroutine
     }
 
     override suspend fun awaitMqttClientEnabled(address: String?): Boolean {
-        val key = booleanPreferencesKey(mqttClientKey(address))
+        val key = booleanPrefsKey(mqttClientKey(address))
         return dataStore.data.first()[key] ?: false
     }
 
     private fun mqttClientKey(address: String?): String = "mqtt-client-enabled-${normalizeAddress(address)}"
 
     companion object {
-        val KEY_DEVICE_ADDRESS_PREF = stringPreferencesKey("device_address")
+        val KEY_DEVICE_ADDRESS_PREF = stringPrefsKey("device_address")
     }
 }
 

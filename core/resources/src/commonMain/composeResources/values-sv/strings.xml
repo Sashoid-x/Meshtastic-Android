@@ -189,6 +189,7 @@
     <string name="connected_device">Ansluten enhet</string>
     <string name="connected_sleeping">Ansluten till radioenhet, men den är i sovläge</string>
     <string name="connecting">Ansluter</string>
+    <!-- CONNECTION -->
     <string name="connection_status">Aktuella anslutningar:</string>
     <string name="connections">Anslutning</string>
     <string name="contrast">Kontrast</string>
@@ -708,7 +709,6 @@
     <string name="neighbor_info">Granninformation</string>
     <string name="neighbor_info_config">Konfiguration av grannskapsinformation</string>
     <string name="network">Nätverk</string>
-    <string name="new_channel_rcvd">Ny kanal-länk mottagen</string>
     <string name="new_messages_below">Nya meddelanden här nedan</string>
     <string name="new_node_seen">Ny nod: %1$s</string>
     <string name="new_nodes">Nya noder</string>
@@ -922,7 +922,6 @@
     <string name="remove_layer">Ta bort lager</string>
     <string name="remove_node_text">Denna nod kommer att tas bort från din lista till dess att din nod tar emot data från den igen.</string>
     <string name="replace">Ersätt</string>
-    <string name="replace_channels_and_settings_description">Denna QR-kod innehåller en komplett konfiguration. Detta kommer att ERSÄTTA dina befintliga kanaler och radioinställningar. Alla befintliga kanaler kommer att tas bort.</string>
     <string name="reply">Svara</string>
     <string name="replying_to">Svarar till %1$s</string>
     <string name="report">Rapportera</string>
@@ -1016,6 +1015,7 @@
     <string name="selected">Vald</string>
     <string name="selected_map_type">Vald karttyp</string>
     <string name="send">Skicka</string>
+    <!-- SERIAL -->
     <string name="serial">Seriell kommunikation</string>
     <string name="serial_config">Seriell konfiguration</string>
     <string name="session_active">Session aktiv</string>
@@ -1195,6 +1195,8 @@
     <string name="waypoint_edit">Redigera vägpunkt</string>
     <string name="waypoint_new">Ny vägpunkt</string>
     <string name="waypoint_received">Mottagen vägpunkt: %1$s</string>
+    <!-- WEB -->
+    <!-- WEBSOCKET -->
     <string name="weight">Vikt</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">Dålig</string>

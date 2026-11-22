@@ -17,8 +17,9 @@
 
 plugins {
     alias(libs.plugins.meshtastic.kmp.feature)
-    alias(libs.plugins.meshtastic.kotlinx.serialization)
+    alias(libs.plugins.meshtastic.kmp.web)
     alias(libs.plugins.meshtastic.kmp.jvm.android)
+    alias(libs.plugins.meshtastic.kotlinx.serialization)
 }
 
 kotlin {
@@ -45,13 +46,17 @@ kotlin {
             implementation(libs.coil)
         }
 
+        // The TAK screens: core:takserver binds a TLS server socket, which a browser cannot.
+        getByName("nonWebMain").dependencies { implementation(projects.core.takserver) }
+
         androidMain.dependencies { implementation(libs.androidx.appcompat) }
 
-        commonTest.dependencies {
-            implementation(projects.core.testing)
-            implementation(libs.compose.multiplatform.ui.test)
-        }
+        commonTest.dependencies { implementation(libs.compose.multiplatform.ui.test) }
 
         jvmTest.dependencies { implementation(compose.desktop.currentOs) }
     }
 }
+
+// The test bundle never reports to Karma: headless Chrome stays silent until the 300 s no-activity timeout, with no
+// test started. Its wasmJs tests compile, but nothing runs them until that is diagnosed.
+meshtasticWeb.browserTests = false

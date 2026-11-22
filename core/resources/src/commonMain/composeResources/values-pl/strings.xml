@@ -127,6 +127,7 @@
     <string name="connected_device">Połączone urządzenia</string>
     <string name="connected_sleeping">Połączono z urządzeniem, ale jest ono w stanie uśpienia</string>
     <string name="connecting">Łączenie</string>
+    <!-- CONNECTION -->
     <string name="connection_status">Bieżące połączenia:</string>
     <string name="connections">Połączenie</string>
     <string name="contrast_standard">Standardowy</string>
@@ -451,7 +452,6 @@
     <string name="neighbor_info">Informacje o sąsiadze</string>
     <string name="neighbor_info_config">Konfiguracja Info o sąsiedzie</string>
     <string name="network">Sieć</string>
-    <string name="new_channel_rcvd">Otrzymano nowy URL kanału</string>
     <string name="new_messages_below">Nowe wiadomości poniżej</string>
     <string name="new_node_seen">Wykryto nowy węzeł: %1$s</string>
     <string name="new_nodes">Nowe węzły</string>
@@ -559,6 +559,7 @@
     <string name="range_test">Test zasięgu</string>
     <string name="range_test_config">Konfiguracja testu zasięgu</string>
     <string name="reboot">Restart</string>
+    <string name="reload">Odśwież</string>
     <!-- REMOTE -->
     <string name="remote_admin">Zdalne zarządzanie</string>
     <string name="remote_shell_modifier_locked">Zablokowany</string>
@@ -626,6 +627,7 @@
     <string name="selected">Wybrane</string>
     <string name="selected_map_type">Wybierz typ mapy</string>
     <string name="send">Wyślij</string>
+    <!-- SERIAL -->
     <string name="serial">Seryjny</string>
     <string name="serial_config">Konfiguracja seryjna</string>
     <string name="set_your_region">Wybierz swój region</string>
@@ -730,6 +732,8 @@
     <string name="waypoint_edit">Edytuj punkt nawigacji</string>
     <string name="waypoint_new">Nowy punkt nawigacyjny</string>
     <string name="waypoint_received">Otrzymano punkt orientacyjny: %1$s</string>
+    <!-- WEB -->
+    <!-- WEBSOCKET -->
     <!-- WIDGET -->
     <string name="widget_packets_bad">słaby</string>
     <string name="widget_telemetry_title">Telemetria</string>

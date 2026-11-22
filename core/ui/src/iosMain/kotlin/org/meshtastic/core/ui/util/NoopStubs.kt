@@ -19,6 +19,7 @@ package org.meshtastic.core.ui.util
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLinkStyles
 import org.jetbrains.compose.resources.StringResource
@@ -27,7 +28,7 @@ import org.meshtastic.core.common.util.CommonUri
 actual fun createClipEntry(text: String, label: String, sensitive: Boolean): ClipEntry =
     throw UnsupportedOperationException("ClipEntry instantiation not supported on iOS stub")
 
-actual fun ClipEntry.plainText(): String? = null
+actual suspend fun Clipboard.readPlainText(): String? = null
 
 actual fun annotatedStringFromHtml(html: String, linkStyles: TextLinkStyles?): AnnotatedString = AnnotatedString(html)
 
@@ -71,18 +72,9 @@ actual fun KeepScreenOn(enabled: Boolean) {
 
 actual val bleScanRequiresLocationServices: Boolean = false
 
-@Composable actual fun isGpsDisabled(): Boolean = false
-
 @Composable actual fun isBluetoothDisabled(): Boolean = false
 
 @Composable actual fun isBluetoothSupported(): Boolean = true
-
-@Composable actual fun isWifiUnavailable(): Boolean = false
-
-@Composable
-actual fun SetScreenBrightness(brightness: Float) {
-    // No-op iOS stub.
-}
 
 @Composable actual fun rememberOpenAppSettings(): () -> Unit = {}
 
@@ -97,7 +89,6 @@ actual fun SetScreenBrightness(brightness: Float) {
 @Composable actual fun rememberLocalNetworkPermissionState(): PermissionUiState = grantedPermissionUiState()
 
 @Composable actual fun rememberCameraPermissionState(): PermissionUiState = grantedPermissionUiState()
-
 @Composable
 actual fun rememberReadImageGrayValuesFromUri():
     suspend (uri: CommonUri, reqWidth: Int, reqHeight: Int) -> FloatArray? =

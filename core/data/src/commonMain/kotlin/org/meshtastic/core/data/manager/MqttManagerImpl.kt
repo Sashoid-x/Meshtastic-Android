@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.jetbrains.compose.resources.StringResource
 import org.koin.core.annotation.Single
 import org.meshtastic.core.common.di.ServiceScope
 import org.meshtastic.core.common.util.isValidDeviceAddress
@@ -44,8 +45,12 @@ import org.meshtastic.core.model.MqttProbeStatus
 import org.meshtastic.core.model.TopologySource
 import org.meshtastic.core.network.repository.MQTTRepository
 import org.meshtastic.core.network.repository.MQTT_KEEPALIVE_SECONDS
+import org.meshtastic.core.network.repository.MqttEndpointUnsupportedException
+import org.meshtastic.core.network.repository.MqttRootWildcardException
 import org.meshtastic.core.network.repository.isCredentialRejection
+import org.meshtastic.core.network.repository.isOpenableHere
 import org.meshtastic.core.network.repository.mqttTlsConfig
+import org.meshtastic.core.network.repository.mqttTransportFactory
 import org.meshtastic.core.network.repository.resolveEndpoint
 import org.meshtastic.core.repository.MeshPrefs
 import org.meshtastic.core.repository.MqttManager
@@ -59,15 +64,14 @@ import org.meshtastic.core.resources.mqtt_error_connection_lost
 import org.meshtastic.core.resources.mqtt_error_credentials_rejected
 import org.meshtastic.core.resources.mqtt_error_proxy_failed
 import org.meshtastic.core.resources.mqtt_error_rejected
+import org.meshtastic.core.resources.mqtt_needs_websocket_url
+import org.meshtastic.core.resources.mqtt_root_has_wildcard
 import org.meshtastic.core.resources.unknown
 import org.meshtastic.mqtt.ConnectionState
 import org.meshtastic.mqtt.MqttClient
 import org.meshtastic.mqtt.MqttException
 import org.meshtastic.mqtt.ProbeResult
-import org.meshtastic.mqtt.plus
 import org.meshtastic.mqtt.probe
-import org.meshtastic.mqtt.transport.tcp.TcpTransportFactory
-import org.meshtastic.mqtt.transport.ws.WebSocketTransportFactory
 import org.meshtastic.proto.MqttClientProxyMessage
 import org.meshtastic.proto.ToRadio
 import kotlin.uuid.Uuid
@@ -212,18 +216,12 @@ class MqttManagerImpl(
                     // safeCatchingAll swallows the Skiko ExceptionInInitializerError that
                     // compose-resources raises on headless JVM tests; production resolves the
                     // localized string and the error is still surfaced either way.
+                    val resource = proxyFailureMessage(throwable)
                     val message = safeCatchingAll {
-                        when {
-                            throwable is MqttException.ConnectionRejected && throwable.isCredentialRejection() ->
-                                getStringSuspend(Res.string.mqtt_error_credentials_rejected)
-
-                            throwable is MqttException.ConnectionRejected ->
-                                getStringSuspend(Res.string.mqtt_error_rejected, throwable.detail())
-
-                            throwable is MqttException.ConnectionLost ->
-                                getStringSuspend(Res.string.mqtt_error_connection_lost)
-
-                            else -> getStringSuspend(Res.string.mqtt_error_proxy_failed, throwable.detail())
+                        if (resource in DETAILED_PROXY_FAILURES) {
+                            getStringSuspend(resource, throwable.detail())
+                        } else {
+                            getStringSuspend(resource)
                         }
                     }
                         .getOrDefault("")
@@ -302,12 +300,13 @@ class MqttManagerImpl(
         password: String?,
     ): MqttProbeStatus {
         val endpoint = resolveEndpoint(address, tlsEnabled)
+        if (!endpoint.isOpenableHere()) return MqttProbeStatus.NeedsWebSocketUrl
         val result =
             MqttClient.probe(endpoint = endpoint) {
                 // probe() requires a transportFactory in 0.4.0 (errors otherwise); mirror the live client,
                 // including its scoped private-CA trust hook — otherwise a probe would fail where a connect succeeds.
                 val tls = mqttTlsConfig()
-                transportFactory = TcpTransportFactory(tls) + WebSocketTransportFactory(tls)
+                transportFactory = mqttTransportFactory(tls)
                 // Mirror the live client's keepalive too: the library default is 0 (no keepalive),
                 // which some brokers reject — misleadingly, as CLIENT_IDENTIFIER_NOT_VALID.
                 keepAliveSeconds = MQTT_KEEPALIVE_SECONDS
@@ -354,6 +353,24 @@ class MqttManagerImpl(
         is ProbeResult.Other -> MqttProbeStatus.Other(message = cause.message)
     }
 }
+
+/** The message shown when the MQTT proxy flow ends with [throwable]. */
+internal fun proxyFailureMessage(throwable: Throwable): StringResource = when {
+    throwable is MqttEndpointUnsupportedException -> Res.string.mqtt_needs_websocket_url
+
+    throwable is MqttRootWildcardException -> Res.string.mqtt_root_has_wildcard
+
+    throwable is MqttException.ConnectionRejected && throwable.isCredentialRejection() ->
+        Res.string.mqtt_error_credentials_rejected
+
+    throwable is MqttException.ConnectionRejected -> Res.string.mqtt_error_rejected
+
+    throwable is MqttException.ConnectionLost -> Res.string.mqtt_error_connection_lost
+
+    else -> Res.string.mqtt_error_proxy_failed
+}
+
+private val DETAILED_PROXY_FAILURES = setOf(Res.string.mqtt_error_rejected, Res.string.mqtt_error_proxy_failed)
 
 /** Failure detail for a user-facing message; a throwable without a message still needs a placeholder to substitute. */
 private suspend fun Throwable.detail(): String = message ?: getStringSuspend(Res.string.unknown)

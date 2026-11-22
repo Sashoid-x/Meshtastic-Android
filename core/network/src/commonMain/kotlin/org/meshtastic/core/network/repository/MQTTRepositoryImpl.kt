@@ -51,6 +51,8 @@ import org.meshtastic.core.model.MqttJsonPayload
 import org.meshtastic.core.model.NodeAddress
 import org.meshtastic.core.model.util.decodeOrNull
 import org.meshtastic.core.model.util.subscribeList
+import org.meshtastic.core.network.mqtt.MqttRootTopic
+import org.meshtastic.core.network.transport.StreamFrameCodec
 import org.meshtastic.core.repository.NodeRepository
 import org.meshtastic.core.repository.RadioConfigRepository
 import org.meshtastic.mqtt.ConnectionState
@@ -63,12 +65,10 @@ import org.meshtastic.mqtt.MqttProtocolVersion
 import org.meshtastic.mqtt.QoS
 import org.meshtastic.mqtt.ReasonCode
 import org.meshtastic.mqtt.packet.Subscription
-import org.meshtastic.mqtt.plus
-import org.meshtastic.mqtt.transport.tcp.TcpTransportFactory
-import org.meshtastic.mqtt.transport.ws.WebSocketTransportFactory
 import org.meshtastic.proto.ModuleConfig
 import org.meshtastic.proto.MqttClientProxyMessage
 import org.meshtastic.proto.ServiceEnvelope
+import org.meshtastic.proto.ToRadio
 import kotlin.uuid.Uuid
 
 @Single(binds = [MQTTRepository::class])
@@ -147,6 +147,13 @@ class MQTTRepositoryImpl(
 
         val rootTopic = mqttConfig?.root?.ifEmpty { DEFAULT_TOPIC_ROOT } ?: DEFAULT_TOPIC_ROOT
 
+        // Every filter under a wildcard root is invalid, so retrying cannot help.
+        if (MqttRootTopic.hasWildcard(rootTopic)) {
+            Logger.w { "MQTT root topic contains a wildcard, stopping" }
+            close(MqttRootWildcardException())
+            return@callbackFlow
+        }
+
         val rawAddress = mqttConfig?.address?.ifEmpty { DEFAULT_SERVER_ADDRESS } ?: DEFAULT_SERVER_ADDRESS
         val endpoint = resolveEndpoint(rawAddress, effectiveTlsEnabled(rawAddress, mqttConfig?.tls_enabled == true))
 
@@ -158,7 +165,14 @@ class MQTTRepositoryImpl(
                     logLevel = if (buildConfigProvider.isDebug) MqttLogLevel.DEBUG else MqttLogLevel.WARN,
                 ),
             )
-        val session = ActiveMqttSession(newClient)
+        // Retrying cannot help a broker the client has no transport for, so it ends here, as a rejection does.
+        if (!newClient.opens(endpoint)) {
+            Logger.w { "MQTT broker address needs a ws:// or wss:// URL on this platform, stopping" }
+            newClient.close()
+            close(MqttEndpointUnsupportedException())
+            return@callbackFlow
+        }
+        val session = ActiveMqttSession(newClient, rootTopic)
         closeSession(replaceActiveSession(session))
 
         // Collect from the SharedFlow before connecting to avoid missing retained messages
@@ -324,6 +338,11 @@ class MQTTRepositoryImpl(
         val noLocal = version == MqttProtocolVersion.V5_0
         return buildList {
             globalIds.forEach { globalId ->
+                // A name holding a wildcard or level separator would subscribe outside its own channel topic.
+                if (!MqttRootTopic.isSubscribableChannelName(globalId)) {
+                    Logger.w { "MQTT channel skipped: its name holds a wildcard or '/'" }
+                    return@forEach
+                }
                 add(
                     Subscription(
                         "$rootTopic$DEFAULT_TOPIC_LEVEL$globalId/+",
@@ -375,7 +394,7 @@ class MQTTRepositoryImpl(
                 if (selfTraffic != MqttSelfTraffic.FORWARD) {
                     Logger.d { "MQTT json dropped ($selfTraffic)" }
                 } else {
-                    trySend(
+                    forwardIfFits(
                         MqttClientProxyMessage.Builder()
                             .also { wb ->
                                 wb.topic = topic
@@ -420,7 +439,7 @@ class MQTTRepositoryImpl(
                     }
 
                 else ->
-                    trySend(
+                    forwardIfFits(
                         MqttClientProxyMessage.Builder()
                             .also { wb ->
                                 wb.topic = topic
@@ -430,6 +449,17 @@ class MQTTRepositoryImpl(
                             .build(),
                     )
             }
+        }
+    }
+
+    /** Forwards [message] only when the `ToRadio` that wraps it fits one phone API frame. */
+    private fun ProducerScope<MqttClientProxyMessage>.forwardIfFits(message: MqttClientProxyMessage) {
+        val toRadio = ToRadio.Builder().also { wb -> wb.mqttClientProxyMessage = message }.build()
+        val encodedSize = ToRadio.ADAPTER.encodedSize(toRadio)
+        if (encodedSize > StreamFrameCodec.MAX_TO_FROM_RADIO_SIZE) {
+            Logger.w { "MQTT downlink dropped: $encodedSize-byte ToRadio over the phone API frame limit" }
+        } else {
+            trySend(message)
         }
     }
 
@@ -445,6 +475,10 @@ class MQTTRepositoryImpl(
                             "MQTT publish dropped: client not connected"
                         }
                     }
+                    return@withPermit
+                }
+                if (!MqttRootTopic.isUnder(session.rootTopic, topic)) {
+                    Logger.w { "MQTT publish dropped: topic is outside the root" }
                     return@withPermit
                 }
                 safeCatching {
@@ -466,7 +500,8 @@ class MQTTRepositoryImpl(
     }
 }
 
-private class ActiveMqttSession(val client: MqttClientSession) {
+/** [rootTopic] is the root the subscriptions were built under, fixed for the life of the session. */
+private class ActiveMqttSession(val client: MqttClientSession, val rootTopic: String) {
     val closeStarted = atomic(false)
     val connectJob = atomic<Job?>(null)
     val subscriptionRefusal = MutableStateFlow<MqttException.SubscriptionRefused?>(null)
@@ -523,6 +558,9 @@ internal interface MqttClientSession {
     /** The version the broker accepted, valid only after [connect] returns. */
     val negotiatedProtocolVersion: MqttProtocolVersion
 
+    /** Whether this client has a transport for [endpoint]; a browser's has none for TCP. */
+    fun opens(endpoint: MqttEndpoint): Boolean = true
+
     suspend fun connect(endpoint: MqttEndpoint)
 
     suspend fun subscribe(subscriptions: List<Subscription>)
@@ -539,6 +577,8 @@ private class DefaultMqttClientSession(private val delegate: MqttClient) : MqttC
     // Read through on every access: the client resets it on connect and preserves it across auto-reconnects.
     override val negotiatedProtocolVersion: MqttProtocolVersion
         get() = delegate.negotiatedProtocolVersion
+
+    override fun opens(endpoint: MqttEndpoint): Boolean = endpoint.isOpenableHere()
 
     override suspend fun connect(endpoint: MqttEndpoint) {
         delegate.connect(endpoint)
@@ -560,10 +600,10 @@ private class DefaultMqttClientSession(private val delegate: MqttClient) : MqttC
 private fun defaultMqttClientFactory(setup: MqttClientSetup): MqttClientSession = DefaultMqttClientSession(
     MqttClient(setup.ownerId) {
         // mqtt-client 0.4.0 makes transport a required SPI: the client throws at connect if unset.
-        // Register TCP/TLS (the default) + WebSocket (for user-entered ws://-/wss:// brokers).
-        // Both get the same private-CA trust hook so the grant stays scoped to this socket — see [mqttTlsConfig].
+        // TCP/TLS (the default) + WebSocket off web, WebSocket only on web; all get the same private-CA trust
+        // hook so the grant stays scoped to this socket — see [mqttTlsConfig].
         val tls = mqttTlsConfig()
-        transportFactory = TcpTransportFactory(tls) + WebSocketTransportFactory(tls)
+        transportFactory = mqttTransportFactory(tls)
         keepAliveSeconds = MQTT_KEEPALIVE_SECONDS
         // Some brokers send topic aliases even when the client allows none, a protocol error that drops the
         // connection; accepting a few keeps them working. A 3.1.1 fallback drops the offer.

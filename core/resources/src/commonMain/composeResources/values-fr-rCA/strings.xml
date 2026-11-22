@@ -49,7 +49,6 @@
     <!-- ADD -->
     <string name="add">Ajouter</string>
     <string name="add_a_note">Ajouter une note privée…</string>
-    <string name="add_channels_description">Les canaux suivants ont été trouvés dans le QR code. Sélectionnez ceux que vous souhaitez ajouter à votre appareil. Les canaux existants seront préservés.</string>
     <string name="add_custom_tile_source">Ajouter un réseau de tuile personnalisée</string>
     <string name="add_favorite">Ajouter aux favoris</string>
     <string name="add_layer">Ajouter un calque</string>
@@ -265,6 +264,7 @@
     <string name="connected_device">Périphérique connecté</string>
     <string name="connected_sleeping">Connecté à la radio, mais en mode veille</string>
     <string name="connecting">Connexion en cours</string>
+    <!-- CONNECTION -->
     <string name="connection_status">Connexions actuelles :</string>
     <string name="connections">Connexion</string>
     <string name="contact_muted_snackbar">Muet %1$s</string>
@@ -907,7 +907,6 @@
     <string name="neighbor_info">Informations sur les voisins</string>
     <string name="neighbor_info_config">Configuration des informations du voisinage</string>
     <string name="network">Réseau</string>
-    <string name="new_channel_rcvd">Réception de l'URL d'un nouveau cana</string>
     <string name="new_messages_below">Nouveaux messages au-dessous</string>
     <string name="new_node_seen">Nouveau nœud vu : %1$s</string>
     <string name="new_nodes">Nouveaux nœuds</string>
@@ -1096,6 +1095,7 @@
         <item quantity="one">Entendu par %1$d relai</item>
         <item quantity="other">Entendu par %1$d relais</item>
     </plurals>
+    <string name="reload">Recharger</string>
     <!-- REMOTE -->
     <string name="remote">Distant</string>
     <string name="remote_admin">Administration à distance</string>
@@ -1117,7 +1117,6 @@
     <string name="remove_layer">Supprimer le calque</string>
     <string name="remove_node_text">Ce nœud sera supprimé de votre liste jusqu'à ce que votre nœud reçoive à nouveau des données.</string>
     <string name="replace">Remplacer</string>
-    <string name="replace_channels_and_settings_description">Ce code QR contient une configuration complète. Cela remplacera vos canaux et paramètres radio existants. Tous les canaux existants seront supprimés.</string>
     <string name="reply">Répondre</string>
     <string name="replying_to">Répondre à %1$s</string>
     <string name="report">Rapport</string>
@@ -1205,6 +1204,7 @@
     <string name="selected">Sélectionné</string>
     <string name="selected_map_type">Type de carte sélectionné</string>
     <string name="send">Envoyer</string>
+    <!-- SERIAL -->
     <string name="serial">Série</string>
     <string name="serial_config">Configuration série</string>
     <string name="session_active">Session active</string>
@@ -1369,6 +1369,8 @@
     <string name="waypoint_edit">Modifier le repère</string>
     <string name="waypoint_new">Nouveau point de repère</string>
     <string name="waypoint_received">Point de passage reçu : %1$s</string>
+    <!-- WEB -->
+    <!-- WEBSOCKET -->
     <string name="weight">Poids</string>
     <!-- WIDGET -->
     <string name="widget_packets_bad">Mauvais</string>

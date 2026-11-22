@@ -25,7 +25,6 @@ object MqttRootTopic {
         EMPTY,
         WHITESPACE,
         WILDCARD,
-        LEADING_SLASH,
         TRAILING_SLASH,
         EMPTY_SEGMENT,
         ENDS_WITH_VERSION,
@@ -48,14 +47,23 @@ object MqttRootTopic {
         if (root.any { it.isWhitespace() || it.isISOControl() || it.category == CharCategory.FORMAT }) {
             return Problem.WHITESPACE
         }
-        if (root.contains('+') || root.contains('#')) return Problem.WILDCARD
-        if (root.startsWith("/")) return Problem.LEADING_SLASH
+        if (hasWildcard(root)) return Problem.WILDCARD
         if (root.endsWith("/")) return Problem.TRAILING_SLASH
         if (root.contains("//")) return Problem.EMPTY_SEGMENT
         if (root.split('/').last() == "2") return Problem.ENDS_WITH_VERSION
         if (root.encodeToByteArray().size > BYTE_CAP) return Problem.TOO_LONG
         return null
     }
+
+    /** Whether [root] holds an MQTT wildcard, which makes every filter built under it invalid. */
+    fun hasWildcard(root: String): Boolean = root.contains('+') || root.contains('#')
+
+    /** Whether [name] can be interpolated into a topic filter without adding a level or a wildcard. */
+    fun isSubscribableChannelName(name: String): Boolean = !hasWildcard(name) && !name.contains('/')
+
+    /** Whether [topic] is [root], a "/" and a non-empty remainder, with no wildcard. [root] is compared as typed. */
+    fun isUnder(root: String, topic: String): Boolean =
+        topic.length > root.length + 1 && topic.startsWith("$root/") && !hasWildcard(topic)
 
     /** Split on "/", each segment trimmed, empties dropped. */
     fun segments(root: String): List<String> = root.split('/').map { it.trim() }.filter { it.isNotEmpty() }

@@ -52,7 +52,6 @@
     <!-- ADD -->
     <string name="add">Lisää</string>
     <string name="add_a_note">Lisää yksityinen viesti…</string>
-    <string name="add_channels_description">Seuraavat kanavat löydettiin QR-koodista. Valitse ne, jotka haluat lisätä laitteeseesi. Olemassa olevat kanavat säilytetään.</string>
     <string name="add_custom_tile_source">Lisää karttatiilien verkkolähde</string>
     <string name="add_favorite">Lisää suosikkeihin</string>
     <string name="add_layer">Lisää taso</string>
@@ -285,6 +284,7 @@
     <string name="connected_device">Yhdistetty laite</string>
     <string name="connected_sleeping">Yhdistetty radioon, mutta se on lepotilassa</string>
     <string name="connecting">Yhdistetään</string>
+    <!-- CONNECTION -->
     <string name="connection_status">Aktiiviset yhteydet:</string>
     <string name="connections">Yhteys</string>
     <string name="contact_draft_prefix">Luonnos: %1$s</string>
@@ -1143,7 +1143,6 @@
     <string name="neighbor_info_config">Naapuritietojen asetukset</string>
     <string name="neighbor_info_received">Vastaanotettu</string>
     <string name="network">Verkko</string>
-    <string name="new_channel_rcvd">Uusi kanavan URL-osoite vastaanotettu</string>
     <string name="new_messages_below">Uudet viestit alla</string>
     <string name="new_node_seen">Uusi laite nähty: %1$s</string>
     <string name="new_nodes">Uudet laitteet</string>
@@ -1402,6 +1401,7 @@
         <item quantity="one">Kuultu %1$d radion kautta</item>
         <item quantity="other">Kuultu %1$d radion kautta</item>
     </plurals>
+    <string name="reload">Lataa uudelleen</string>
     <!-- REMOTE -->
     <string name="remote">Etäyhteys</string>
     <string name="remote_admin">Etähallinta</string>
@@ -1424,7 +1424,6 @@
     <string name="remove_layer">Poista taso</string>
     <string name="remove_node_text">Tämä laite poistetaan luettelosta siihen saakka, kunnes sen tiedot vastaanotetaan uudelleen.</string>
     <string name="replace">Korvaa</string>
-    <string name="replace_channels_and_settings_description">Tämä QR-koodi sisältää täydellisen määrityksen. Se KORVAA nykyiset kanava- ja radioasetuksesi. Kaikki olemassa olevat kanavat poistetaan.</string>
     <string name="reply">Vastaa</string>
     <string name="replying_to">Vastataan käyttäjälle %1$s</string>
     <string name="report">Raportti</string>
@@ -1537,6 +1536,7 @@
     <string name="selected">Valittu</string>
     <string name="selected_map_type">Valittu karttatyyppi</string>
     <string name="send">Lähetä</string>
+    <!-- SERIAL -->
     <string name="serial">Sarjaliitäntä</string>
     <string name="serial_config">Sarjaportin asetukset</string>
     <string name="session_active">Istunto aktiivinen</string>
@@ -1787,7 +1787,9 @@
     <string name="waypoint_edit">Muokkaa reittipistettä</string>
     <string name="waypoint_new">Uusi reittipiste</string>
     <string name="waypoint_received">Vastaanotettu reittipiste: %1$s</string>
+    <!-- WEB -->
     <string name="website">Verkkosivusto</string>
+    <!-- WEBSOCKET -->
     <string name="weight">Paino</string>
     <string name="what_is_meshtastic">Mikä on Meshtastic?</string>
     <string name="what_is_meshtastic_description">Avoimen lähdekoodin, internetistä riippumaton ja hajautettu mesh-verkko, joka toimii edullisilla ja vähän virtaa kuluttavilla radioilla.</string>
