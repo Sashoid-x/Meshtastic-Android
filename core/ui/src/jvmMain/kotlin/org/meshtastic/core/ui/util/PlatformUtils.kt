@@ -20,7 +20,6 @@ package org.meshtastic.core.ui.util
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-
 import co.touchlab.kermit.Logger
 import org.jetbrains.compose.resources.StringResource
 import org.meshtastic.core.common.util.CommonUri

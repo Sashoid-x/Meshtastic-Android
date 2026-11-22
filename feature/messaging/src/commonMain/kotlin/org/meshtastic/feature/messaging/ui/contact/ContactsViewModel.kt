@@ -182,7 +182,12 @@ class ContactsViewModel(
                     longName = longName,
                     lastMessageTime = if (packetData.time != 0L) packetData.time else null,
                     lastMessageText =
-                    if (packetData.dataType == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
+                    if (
+                        packetData.dataType == org.meshtastic.proto.PortNum.PRIVATE_APP.value &&
+                        org.meshtastic.feature.messaging.image.MonochromeImageCodec.isPixelArt(
+                            packetData.bytes?.toByteArray(),
+                        )
+                    ) {
                         getString(Res.string.message_image_preview)
                     } else if (fromLocal) {
                         decodedText

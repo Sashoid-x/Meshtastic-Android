@@ -18,7 +18,9 @@ package org.meshtastic.feature.messaging.image
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class MonochromeImageCodecTest {
@@ -192,5 +194,67 @@ class MonochromeImageCodecTest {
         assertEquals('P'.code.toByte(), png[1])
         assertEquals('N'.code.toByte(), png[2])
         assertEquals('G'.code.toByte(), png[3])
+    }
+
+    @Test
+    fun testIsPixelArtValidation() {
+        val preset = MonochromeImageCodec.getPreset(0)
+        val bits = BooleanArray(preset.totalPixels) { i -> i % 4 == 0 }
+        val encodedWithTrailer = MonochromeImageCodec.encode(bits, 0, themeIndex = 2, showGrid = true)
+        val encodedNoTrailer = encodedWithTrailer.copyOfRange(0, encodedWithTrailer.size - 1)
+
+        assertTrue(MonochromeImageCodec.isPixelArt(encodedWithTrailer))
+        assertTrue(MonochromeImageCodec.isPixelArt(encodedNoTrailer))
+
+        // Null and empty/short checks
+        assertFalse(MonochromeImageCodec.isPixelArt(null as ByteArray?))
+        assertFalse(MonochromeImageCodec.isPixelArt(ByteArray(0)))
+        assertFalse(MonochromeImageCodec.isPixelArt(byteArrayOf(0x01, 0x02)))
+        assertFalse(MonochromeImageCodec.isPixelArt(byteArrayOf(0x01, 0x02, 0x03)))
+
+        // MFT packet header (0x4D, 0x46, 0x54)
+        val mftPacket = byteArrayOf(0x4D.toByte(), 0x46.toByte(), 0x54.toByte(), 0x01, 0x02)
+        assertFalse(MonochromeImageCodec.isPixelArt(mftPacket))
+
+        // Invalid preset index (> 9)
+        val invalidPreset = encodedWithTrailer.copyOf()
+        invalidPreset[0] = ((invalidPreset[0].toInt() and 0xF0) or 0x0A).toByte()
+        assertFalse(MonochromeImageCodec.isPixelArt(invalidPreset))
+
+        // Invalid encoding algorithm (> 6)
+        val invalidEnc = encodedWithTrailer.copyOf()
+        invalidEnc[0] = (0x70 or (invalidEnc[0].toInt() and 0x0F)).toByte()
+        assertFalse(MonochromeImageCodec.isPixelArt(invalidEnc))
+
+        // Invalid theme in trailer (> 23)
+        val invalidTrailer = encodedWithTrailer.copyOf()
+        invalidTrailer[invalidTrailer.size - 1] = 0x18.toByte() // theme 24
+        assertFalse(MonochromeImageCodec.isPixelArt(invalidTrailer))
+
+        // Trailing garbage bytes
+        val garbageAppended = encodedWithTrailer + byteArrayOf(0x01, 0x02)
+        assertFalse(MonochromeImageCodec.isPixelArt(garbageAppended))
+
+        // Random short bytes that should not be recognized as pixel art
+        val randomPacket = byteArrayOf(0x00, 0x12, 0x34, 0x56, 0x78)
+        assertFalse(MonochromeImageCodec.isPixelArt(randomPacket))
+    }
+
+    @Test
+    fun testRejectInvalidOrCorruptedPackets() {
+        // Truncated packet
+        val preset = MonochromeImageCodec.getPreset(0)
+        val bits = BooleanArray(preset.totalPixels) { i -> i % 5 == 0 }
+        val encoded = MonochromeImageCodec.encode(bits, 0)
+        val truncated = encoded.copyOfRange(0, encoded.size / 2)
+        assertNull(MonochromeImageCodec.decode(truncated))
+        assertFalse(MonochromeImageCodec.isPixelArt(truncated))
+
+        // ENC_RAW with size less than expected rawByteCount
+        val rawHeader = 0x00.toByte() // ENC_RAW, preset 0 (requires 195 raw bytes)
+        val incompleteRaw = ByteArray(10) { 0x00 }
+        incompleteRaw[0] = rawHeader
+        assertNull(MonochromeImageCodec.decode(incompleteRaw))
+        assertFalse(MonochromeImageCodec.isPixelArt(incompleteRaw))
     }
 }

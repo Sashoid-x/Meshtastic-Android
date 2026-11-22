@@ -176,11 +176,17 @@ object MonochromeImageCodec {
         var bitPos = 0
             private set
 
+        var hasUnderflow = false
+            private set
+
         val hasBits: Boolean
             get() = bitPos < bytes.size * 8
 
         fun readBit(): Boolean {
-            if (bitPos >= bytes.size * 8) return false
+            if (bitPos >= bytes.size * 8) {
+                hasUnderflow = true
+                return false
+            }
             val byteIdx = bitPos / 8
             val bitOffset = 7 - (bitPos % 8)
             bitPos++
@@ -269,6 +275,7 @@ object MonochromeImageCodec {
 
     private fun readVarRleRun(reader: BitReader): Int {
         val tag2 = reader.readBits(2)
+        if (reader.hasUnderflow) return -1
         return when (tag2) {
             0b00 -> 1
 
@@ -311,19 +318,22 @@ object MonochromeImageCodec {
         return writer.toByteArray()
     }
 
-    private fun decodeVarRle(reader: BitReader, count: Int): BooleanArray {
+    private fun decodeVarRle(reader: BitReader, count: Int): BooleanArray? {
         val bits = BooleanArray(count)
-        if (!reader.hasBits) return bits
+        if (!reader.hasBits) return null
         var currentColor = reader.readBit()
+        if (reader.hasUnderflow) return null
         var written = 0
-        while (written < count && reader.hasBits) {
+        while (written < count) {
+            if (!reader.hasBits || reader.hasUnderflow) return null
             val run = readVarRleRun(reader)
-            val toWrite = min(run, count - written)
-            for (i in 0 until toWrite) {
+            if (run <= 0 || reader.hasUnderflow || run > (count - written)) return null
+            for (i in 0 until run) {
                 bits[written++] = currentColor
             }
             currentColor = !currentColor
         }
+        if (reader.hasUnderflow || written != count) return null
         return bits
     }
 
@@ -369,7 +379,7 @@ object MonochromeImageCodec {
         return writer.toByteArray()
     }
 
-    private fun decodeBlock4x4(reader: BitReader, width: Int, height: Int): BooleanArray {
+    private fun decodeBlock4x4(reader: BitReader, width: Int, height: Int): BooleanArray? {
         val bits = BooleanArray(width * height)
         val bxCount = (width + 3) / 4
         val byCount = (height + 3) / 4
@@ -379,10 +389,12 @@ object MonochromeImageCodec {
                 val startX = bx * 4
                 val startY = by * 4
                 val isMixed = reader.readBit()
+                if (reader.hasUnderflow) return null
                 if (!isMixed) {
                     // All 0s: nothing to set (already false)
                 } else {
                     val isAllOne = !reader.readBit()
+                    if (reader.hasUnderflow) return null
                     if (isAllOne) {
                         for (py in 0 until 4) {
                             val y = startY + py
@@ -404,10 +416,12 @@ object MonochromeImageCodec {
                                 }
                             }
                         }
+                        if (reader.hasUnderflow) return null
                     }
                 }
             }
         }
+        if (reader.hasUnderflow) return null
         return bits
     }
 
@@ -478,7 +492,7 @@ object MonochromeImageCodec {
         return writer.toByteArray()
     }
 
-    private fun decodeBlock8x8(reader: BitReader, width: Int, height: Int): BooleanArray {
+    private fun decodeBlock8x8(reader: BitReader, width: Int, height: Int): BooleanArray? {
         val bits = BooleanArray(width * height)
         val bx8Count = (width + 7) / 8
         val by8Count = (height + 7) / 8
@@ -488,10 +502,12 @@ object MonochromeImageCodec {
                 val startX8 = bx8 * 8
                 val startY8 = by8 * 8
                 val isMixed8 = reader.readBit()
+                if (reader.hasUnderflow) return null
                 if (!isMixed8) {
                     // All 0s
                 } else {
                     val isAllOne8 = !reader.readBit()
+                    if (reader.hasUnderflow) return null
                     if (isAllOne8) {
                         for (py in 0 until 8) {
                             val y = startY8 + py
@@ -507,10 +523,12 @@ object MonochromeImageCodec {
                                 val startX4 = startX8 + subX * 4
                                 val startY4 = startY8 + subY * 4
                                 val isMixed4 = reader.readBit()
+                                if (reader.hasUnderflow) return null
                                 if (!isMixed4) {
                                     // Sub-block all 0s
                                 } else {
                                     val isAllOne4 = !reader.readBit()
+                                    if (reader.hasUnderflow) return null
                                     if (isAllOne4) {
                                         for (py in 0 until 4) {
                                             val y = startY4 + py
@@ -529,6 +547,7 @@ object MonochromeImageCodec {
                                                 }
                                             }
                                         }
+                                        if (reader.hasUnderflow) return null
                                     }
                                 }
                             }
@@ -537,6 +556,7 @@ object MonochromeImageCodec {
                 }
             }
         }
+        if (reader.hasUnderflow) return null
         return bits
     }
 
@@ -566,8 +586,8 @@ object MonochromeImageCodec {
         return encodeVarRle(residuals)
     }
 
-    private fun decodeDelta2D(reader: BitReader, width: Int, height: Int): BooleanArray {
-        val residuals = decodeVarRle(reader, width * height)
+    private fun decodeDelta2D(reader: BitReader, width: Int, height: Int): BooleanArray? {
+        val residuals = decodeVarRle(reader, width * height) ?: return null
         val bits = BooleanArray(width * height)
         for (y in 0 until height) {
             for (x in 0 until width) {
@@ -628,25 +648,30 @@ object MonochromeImageCodec {
         return writer.toByteArray()
     }
 
-    private fun decodeLzss(reader: BitReader, expectedByteCount: Int): ByteArray {
+    private fun decodeLzss(reader: BitReader, expectedByteCount: Int): ByteArray? {
         val out = ByteArray(expectedByteCount)
         var outPos = 0
-        while (outPos < expectedByteCount && reader.hasBits) {
+        while (outPos < expectedByteCount) {
+            if (!reader.hasBits || reader.hasUnderflow) return null
             val isMatch = reader.readBit()
+            if (reader.hasUnderflow) return null
             if (isMatch) {
                 val offset = reader.readBits(6) + 1
                 val length = reader.readBits(4) + 2
+                if (reader.hasUnderflow) return null
                 val start = outPos - offset
+                if (start < 0 || outPos + length > expectedByteCount) return null
                 for (i in 0 until length) {
-                    if (outPos < expectedByteCount && start + i >= 0) {
-                        out[outPos] = out[start + i]
-                        outPos++
-                    }
+                    out[outPos] = out[start + i]
+                    outPos++
                 }
             } else {
-                out[outPos++] = reader.readBits(8).toByte()
+                val byteVal = reader.readBits(8)
+                if (reader.hasUnderflow) return null
+                out[outPos++] = byteVal.toByte()
             }
         }
+        if (reader.hasUnderflow || outPos != expectedByteCount) return null
         return out
     }
 
@@ -691,11 +716,27 @@ object MonochromeImageCodec {
         return result
     }
 
+    fun isPixelArt(bytes: ByteArray?): Boolean {
+        if (bytes == null || bytes.size < 4) return false
+        return decode(bytes) != null
+    }
+
     fun decode(bytes: ByteArray): DecodedMonochromeImage? {
-        if (bytes.isEmpty()) return null
+        if (bytes.size < 4) return null
+        // Check for MFT magic "MFT\x01"
+        if (
+            bytes.size >= 4 &&
+            bytes[0] == 0x4D.toByte() &&
+            bytes[1] == 0x46.toByte() &&
+            bytes[2] == 0x54.toByte() &&
+            bytes[3] == 0x01.toByte()
+        ) {
+            return null
+        }
         val header = bytes[0].toInt() and 0xFF
         val enc = (header shr 4) and 0x0F
         val presetIndex = header and 0x0F
+        if (enc > 6) return null
         val preset = PRESETS.getOrNull(presetIndex) ?: return null
         val pixelCount = preset.totalPixels
         val payload = bytes.copyOfRange(1, bytes.size)
@@ -703,21 +744,60 @@ object MonochromeImageCodec {
         val reader = BitReader(payload)
         val bits: BooleanArray =
             when (enc) {
-                ENC_RAW -> bitUnpack(payload, pixelCount)
-                ENC_BLOCK_4X4 -> decodeBlock4x4(reader, preset.width, preset.height)
-                ENC_BLOCK_8X8 -> decodeBlock8x8(reader, preset.width, preset.height)
-                ENC_VAR_RLE_H -> decodeVarRle(reader, pixelCount)
-                ENC_VAR_RLE_V -> transpose(decodeVarRle(reader, pixelCount), preset.height, preset.width)
-                ENC_DELTA_2D -> decodeDelta2D(reader, preset.width, preset.height)
-                ENC_LZSS -> bitUnpack(decodeLzss(reader, (pixelCount + 7) / 8), pixelCount)
+                ENC_RAW -> {
+                    val rawByteCount = (pixelCount + 7) / 8
+                    if (payload.size != rawByteCount && payload.size != rawByteCount + 1) {
+                        return null
+                    }
+                    bitUnpack(payload, pixelCount)
+                }
+
+                ENC_BLOCK_4X4 -> decodeBlock4x4(reader, preset.width, preset.height) ?: return null
+
+                ENC_BLOCK_8X8 -> decodeBlock8x8(reader, preset.width, preset.height) ?: return null
+
+                ENC_VAR_RLE_H -> decodeVarRle(reader, pixelCount) ?: return null
+
+                ENC_VAR_RLE_V -> {
+                    val rle = decodeVarRle(reader, pixelCount) ?: return null
+                    transpose(rle, preset.height, preset.width)
+                }
+
+                ENC_DELTA_2D -> decodeDelta2D(reader, preset.width, preset.height) ?: return null
+
+                ENC_LZSS -> {
+                    val lzssBytes = decodeLzss(reader, (pixelCount + 7) / 8) ?: return null
+                    bitUnpack(lzssBytes, pixelCount)
+                }
+
                 else -> return null
             }
 
         val consumedBytes = if (enc == ENC_RAW) (pixelCount + 7) / 8 else (reader.bitPos + 7) / 8
-        val hasTrailer = payload.size > consumedBytes
+        if (payload.size != consumedBytes && payload.size != consumedBytes + 1) {
+            return null
+        }
+
+        // Validate unused padding bits in the last consumed byte of the bitstream
+        if (enc != ENC_RAW) {
+            val remainderBits = reader.bitPos % 8
+            if (remainderBits != 0) {
+                val padMask = (1 shl (8 - remainderBits)) - 1
+                val lastByte = payload[consumedBytes - 1].toInt() and 0xFF
+                if ((lastByte and padMask) != 0) {
+                    return null
+                }
+            }
+        }
+
+        val hasTrailer = payload.size == consumedBytes + 1
         val trailer = if (hasTrailer) payload.last().toInt() and 0xFF else 0
         val showGrid = hasTrailer && ((trailer and 0x80) != 0)
         val themeIndex = if (hasTrailer) (trailer and 0x7F) else 0
+
+        if (hasTrailer && themeIndex >= THEMES.size) {
+            return null
+        }
 
         val theme = getTheme(themeIndex)
         val pixels =

@@ -37,7 +37,6 @@ import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.meshbridge.MeshBridgeIntegration
 import org.meshtastic.core.meshbridge.MeshBridgeServerManager
 import org.meshtastic.core.model.DeviceAddress
-import org.meshtastic.core.model.InterfaceId
 import org.meshtastic.core.repository.MeshBridgePrefs
 import org.meshtastic.core.repository.MeshConnectionManager
 import org.meshtastic.core.repository.MeshMessageProcessor

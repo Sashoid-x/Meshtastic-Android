@@ -89,6 +89,7 @@ actual val bleScanRequiresLocationServices: Boolean = false
 @Composable actual fun rememberLocalNetworkPermissionState(): PermissionUiState = grantedPermissionUiState()
 
 @Composable actual fun rememberCameraPermissionState(): PermissionUiState = grantedPermissionUiState()
+
 @Composable
 actual fun rememberReadImageGrayValuesFromUri():
     suspend (uri: CommonUri, reqWidth: Int, reqHeight: Int) -> FloatArray? =

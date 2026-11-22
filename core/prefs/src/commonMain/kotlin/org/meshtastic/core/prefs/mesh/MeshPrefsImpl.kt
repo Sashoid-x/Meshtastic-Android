@@ -16,7 +16,6 @@
  */
 package org.meshtastic.core.prefs.mesh
 
-import org.meshtastic.core.prefs.store.booleanPrefsKey
 import kotlinx.atomicfu.atomic
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.CoroutineScope
@@ -32,6 +31,7 @@ import org.meshtastic.core.common.util.normalizeAddress
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.prefs.cachedFlow
 import org.meshtastic.core.prefs.di.MeshDataStore
+import org.meshtastic.core.prefs.store.booleanPrefsKey
 import org.meshtastic.core.prefs.store.intPrefsKey
 import org.meshtastic.core.prefs.store.stringPrefsKey
 import org.meshtastic.core.repository.MeshPrefs

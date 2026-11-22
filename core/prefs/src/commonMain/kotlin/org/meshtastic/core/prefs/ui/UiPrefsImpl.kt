@@ -16,7 +16,6 @@
  */
 package org.meshtastic.core.prefs.ui
 
-import org.meshtastic.core.prefs.store.floatPrefsKey
 import kotlinx.atomicfu.atomic
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +39,7 @@ import org.meshtastic.core.prefs.cachedFlow
 import org.meshtastic.core.prefs.di.UiDataStore
 import org.meshtastic.core.prefs.store.PrefsSnapshot
 import org.meshtastic.core.prefs.store.booleanPrefsKey
+import org.meshtastic.core.prefs.store.floatPrefsKey
 import org.meshtastic.core.prefs.store.intPrefsKey
 import org.meshtastic.core.prefs.store.stringPrefsKey
 import org.meshtastic.core.prefs.store.stringSetPrefsKey

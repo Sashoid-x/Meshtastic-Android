@@ -16,9 +16,6 @@
  */
 package org.meshtastic.core.prefs.meshbridge
 
-import androidx.datastore.preferences.core.booleanPreferencesKey
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.intPreferencesKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
@@ -29,6 +26,8 @@ import kotlinx.coroutines.launch
 import org.koin.core.annotation.Single
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.prefs.di.UiDataStore
+import org.meshtastic.core.prefs.store.booleanPrefsKey
+import org.meshtastic.core.prefs.store.intPrefsKey
 import org.meshtastic.core.repository.MeshBridgePrefs
 
 @Single(binds = [MeshBridgePrefs::class])
@@ -50,7 +49,7 @@ class MeshBridgePrefsImpl(private val dataStore: UiDataStore, dispatchers: Corou
     }
 
     companion object {
-        val KEY_MESH_BRIDGE_ENABLED = booleanPreferencesKey("mesh_bridge_enabled")
-        val KEY_MESH_BRIDGE_CHANNEL = intPreferencesKey("mesh_bridge_channel")
+        val KEY_MESH_BRIDGE_ENABLED = booleanPrefsKey("mesh_bridge_enabled")
+        val KEY_MESH_BRIDGE_CHANNEL = intPrefsKey("mesh_bridge_channel")
     }
 }

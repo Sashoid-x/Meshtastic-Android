@@ -272,6 +272,7 @@ class ContactsViewModelTest {
                 nodeRepository,
                 packetRepository,
                 SnackbarManager(),
+                uiPrefs,
                 radioConfigRepository,
                 connectionStateProvider,
             )

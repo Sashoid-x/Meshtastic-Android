@@ -26,6 +26,7 @@ import okio.FileSystem
 import okio.Path
 import org.meshtastic.core.di.CoroutineDispatchers
 import org.meshtastic.core.prefs.di.asUiDataStore
+import org.meshtastic.core.prefs.store.asPrefsStore
 import org.meshtastic.core.repository.MeshBridgePrefs
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -54,7 +55,7 @@ class MeshBridgePrefsTest {
                 produceFile = { tmpDir / "test.preferences_pb" },
             )
         dispatchers = CoroutineDispatchers(testDispatcher, testDispatcher, testDispatcher)
-        meshBridgePrefs = MeshBridgePrefsImpl(dataStore.asUiDataStore(), dispatchers)
+        meshBridgePrefs = MeshBridgePrefsImpl(dataStore.asPrefsStore().asUiDataStore(), dispatchers)
     }
 
     @AfterTest

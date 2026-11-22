@@ -268,20 +268,20 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             object : Migration(59, 60) {
                 override suspend fun migrate(connection: SQLiteConnection) {
                     if (!connection.hasColumn("packet", "pinned_message")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `packet` ADD COLUMN `pinned_message` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
                     if (!connection.hasColumn("nodes", "heard_on_current_lora")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `nodes` ADD COLUMN `heard_on_current_lora` INTEGER NOT NULL DEFAULT 1",
                         )
                     }
                     if (!connection.hasColumn("nodes", "key_match")) {
-                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `key_match` INTEGER NOT NULL DEFAULT 1")
+                        connection.executeSQL("ALTER TABLE `nodes` ADD COLUMN `key_match` INTEGER NOT NULL DEFAULT 1")
                     }
                     if (!connection.hasColumn("nodes", "new_public_key")) {
-                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `new_public_key` BLOB")
+                        connection.executeSQL("ALTER TABLE `nodes` ADD COLUMN `new_public_key` BLOB")
                     }
                 }
             }
@@ -291,20 +291,20 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             object : Migration(58, 60) {
                 override suspend fun migrate(connection: SQLiteConnection) {
                     if (!connection.hasColumn("packet", "pinned_message")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `packet` ADD COLUMN `pinned_message` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
                     if (!connection.hasColumn("nodes", "heard_on_current_lora")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `nodes` ADD COLUMN `heard_on_current_lora` INTEGER NOT NULL DEFAULT 1",
                         )
                     }
                     if (!connection.hasColumn("nodes", "key_match")) {
-                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `key_match` INTEGER NOT NULL DEFAULT 1")
+                        connection.executeSQL("ALTER TABLE `nodes` ADD COLUMN `key_match` INTEGER NOT NULL DEFAULT 1")
                     }
                     if (!connection.hasColumn("nodes", "new_public_key")) {
-                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `new_public_key` BLOB")
+                        connection.executeSQL("ALTER TABLE `nodes` ADD COLUMN `new_public_key` BLOB")
                     }
                 }
             }
@@ -314,20 +314,20 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             object : Migration(58, 59) {
                 override suspend fun migrate(connection: SQLiteConnection) {
                     if (!connection.hasColumn("packet", "pinned_message")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `packet` ADD COLUMN `pinned_message` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
                     if (!connection.hasColumn("nodes", "heard_on_current_lora")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `nodes` ADD COLUMN `heard_on_current_lora` INTEGER NOT NULL DEFAULT 1",
                         )
                     }
                     if (!connection.hasColumn("nodes", "key_match")) {
-                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `key_match` INTEGER NOT NULL DEFAULT 1")
+                        connection.executeSQL("ALTER TABLE `nodes` ADD COLUMN `key_match` INTEGER NOT NULL DEFAULT 1")
                     }
                     if (!connection.hasColumn("nodes", "new_public_key")) {
-                        connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `new_public_key` BLOB")
+                        connection.executeSQL("ALTER TABLE `nodes` ADD COLUMN `new_public_key` BLOB")
                     }
                 }
             }
@@ -341,12 +341,12 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             object : Migration(61, 62) {
                 override suspend fun migrate(connection: SQLiteConnection) {
                     if (!connection.hasColumn("nodes", "soil_water_metrics")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `nodes` ADD COLUMN `soil_water_metrics` BLOB NOT NULL DEFAULT x''",
                         )
                     }
                     if (!connection.hasColumn("device_hardware", "is_maker")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `device_hardware` ADD COLUMN `is_maker` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
@@ -364,22 +364,22 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             object : Migration(62, 63) {
                 override suspend fun migrate(connection: SQLiteConnection) {
                     if (!connection.hasColumn("nodes", "soil_water_metrics")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `nodes` ADD COLUMN `soil_water_metrics` BLOB NOT NULL DEFAULT x''",
                         )
                     }
                     if (!connection.hasColumn("device_hardware", "is_maker")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `device_hardware` ADD COLUMN `is_maker` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
                     if (!connection.hasColumn("reactions", "xeddsa_signed")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `reactions` ADD COLUMN `xeddsa_signed` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
                     if (!connection.hasColumn("reactions", "ack_proof_status")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `reactions` ADD COLUMN `ack_proof_status` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
@@ -391,22 +391,22 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             object : Migration(61, 63) {
                 override suspend fun migrate(connection: SQLiteConnection) {
                     if (!connection.hasColumn("nodes", "soil_water_metrics")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `nodes` ADD COLUMN `soil_water_metrics` BLOB NOT NULL DEFAULT x''",
                         )
                     }
                     if (!connection.hasColumn("device_hardware", "is_maker")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `device_hardware` ADD COLUMN `is_maker` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
                     if (!connection.hasColumn("reactions", "xeddsa_signed")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `reactions` ADD COLUMN `xeddsa_signed` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
                     if (!connection.hasColumn("reactions", "ack_proof_status")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `reactions` ADD COLUMN `ack_proof_status` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
@@ -425,12 +425,12 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             object : Migration(63, 64) {
                 override suspend fun migrate(connection: SQLiteConnection) {
                     if (!connection.hasColumn("reactions", "xeddsa_signed")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `reactions` ADD COLUMN `xeddsa_signed` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
                     if (!connection.hasColumn("reactions", "ack_proof_status")) {
-                        connection.execSQL(
+                        connection.executeSQL(
                             "ALTER TABLE `reactions` ADD COLUMN `ack_proof_status` INTEGER NOT NULL DEFAULT 0",
                         )
                     }
@@ -472,8 +472,8 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                 }
             }
 
-        private fun createMqttRootsCacheTable(connection: SQLiteConnection) {
-            connection.execSQL(
+        private suspend fun createMqttRootsCacheTable(connection: SQLiteConnection) {
+            connection.executeSQL(
                 "CREATE TABLE IF NOT EXISTS `mqtt_roots_cache` (" +
                     "`id` INTEGER NOT NULL, " +
                     "`roots_json` TEXT NOT NULL, " +
@@ -481,8 +481,8 @@ abstract class MeshtasticDatabase : RoomDatabase() {
             )
         }
 
-        private fun createAutomationTables(connection: SQLiteConnection) {
-            connection.execSQL(
+        private suspend fun createAutomationTables(connection: SQLiteConnection) {
+            connection.executeSQL(
                 "CREATE TABLE IF NOT EXISTS `automation_rule` (" +
                     "`id` TEXT NOT NULL, " +
                     "`name` TEXT NOT NULL, " +
@@ -495,7 +495,7 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     "`fire_count` INTEGER NOT NULL DEFAULT 0, " +
                     "PRIMARY KEY(`id`))",
             )
-            connection.execSQL(
+            connection.executeSQL(
                 "CREATE TABLE IF NOT EXISTS `automation_log` (" +
                     "`id` TEXT NOT NULL, " +
                     "`rule_id` TEXT NOT NULL, " +
@@ -506,16 +506,16 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     "FOREIGN KEY(`rule_id`) REFERENCES `automation_rule`(`id`) " +
                     "ON UPDATE NO ACTION ON DELETE CASCADE)",
             )
-            connection.execSQL(
+            connection.executeSQL(
                 "CREATE INDEX IF NOT EXISTS `index_automation_log_rule_id` ON `automation_log` (`rule_id`)",
             )
-            connection.execSQL(
+            connection.executeSQL(
                 "CREATE INDEX IF NOT EXISTS `index_automation_log_timestamp` ON `automation_log` (`timestamp`)",
             )
         }
 
-        private fun createTopologyTables(connection: SQLiteConnection) {
-            connection.execSQL(
+        private suspend fun createTopologyTables(connection: SQLiteConnection) {
+            connection.executeSQL(
                 "CREATE TABLE IF NOT EXISTS `topology_edge` (" +
                     "`node1` INTEGER NOT NULL, " +
                     "`node2` INTEGER NOT NULL, " +
@@ -525,14 +525,16 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     "`source` TEXT NOT NULL, " +
                     "PRIMARY KEY(`node1`, `node2`))",
             )
-            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_topology_edge_node1` ON `topology_edge` (`node1`)")
-            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_topology_edge_node2` ON `topology_edge` (`node2`)")
-            connection.execSQL("CREATE INDEX IF NOT EXISTS `index_topology_edge_source` ON `topology_edge` (`source`)")
+            connection.executeSQL("CREATE INDEX IF NOT EXISTS `index_topology_edge_node1` ON `topology_edge` (`node1`)")
+            connection.executeSQL("CREATE INDEX IF NOT EXISTS `index_topology_edge_node2` ON `topology_edge` (`node2`)")
+            connection.executeSQL(
+                "CREATE INDEX IF NOT EXISTS `index_topology_edge_source` ON `topology_edge` (`source`)",
+            )
         }
 
-        private fun ensurePacketPinnedMessage(connection: SQLiteConnection) {
+        private suspend fun ensurePacketPinnedMessage(connection: SQLiteConnection) {
             if (!connection.hasColumn("packet", "pinned_message")) {
-                connection.execSQL("ALTER TABLE `packet` ADD COLUMN `pinned_message` INTEGER NOT NULL DEFAULT 0")
+                connection.executeSQL("ALTER TABLE `packet` ADD COLUMN `pinned_message` INTEGER NOT NULL DEFAULT 0")
             }
         }
 
@@ -627,9 +629,9 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                 }
             }
 
-        private fun ensureNodeDisplayName(connection: SQLiteConnection) {
+        private suspend fun ensureNodeDisplayName(connection: SQLiteConnection) {
             if (!connection.hasColumn("nodes", "display_name")) {
-                connection.execSQL("ALTER TABLE `nodes` ADD COLUMN `display_name` TEXT NOT NULL DEFAULT ''")
+                connection.executeSQL("ALTER TABLE `nodes` ADD COLUMN `display_name` TEXT NOT NULL DEFAULT ''")
             }
         }
 
@@ -693,12 +695,12 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                 }
             }
 
-        private fun ensureReactionsMqttColumns(connection: SQLiteConnection) {
+        private suspend fun ensureReactionsMqttColumns(connection: SQLiteConnection) {
             if (!connection.hasColumn("reactions", "via_mqtt")) {
-                connection.execSQL("ALTER TABLE `reactions` ADD COLUMN `via_mqtt` INTEGER NOT NULL DEFAULT 0")
+                connection.executeSQL("ALTER TABLE `reactions` ADD COLUMN `via_mqtt` INTEGER NOT NULL DEFAULT 0")
             }
             if (!connection.hasColumn("reactions", "transport_mechanism")) {
-                connection.execSQL("ALTER TABLE `reactions` ADD COLUMN `transport_mechanism` INTEGER DEFAULT NULL")
+                connection.executeSQL("ALTER TABLE `reactions` ADD COLUMN `transport_mechanism` INTEGER DEFAULT NULL")
             }
         }
 
@@ -779,15 +781,15 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                 }
             }
 
-        private fun createSignalSurveyTables(connection: SQLiteConnection) {
-            connection.execSQL(
+        private suspend fun createSignalSurveyTables(connection: SQLiteConnection) {
+            connection.executeSQL(
                 "CREATE TABLE IF NOT EXISTS `signal_survey_session` (" +
                     "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                     "`started_at` INTEGER NOT NULL, " +
                     "`ended_at` INTEGER, " +
                     "`modem_preset` TEXT)",
             )
-            connection.execSQL(
+            connection.executeSQL(
                 "CREATE TABLE IF NOT EXISTS `signal_sample` (" +
                     "`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                     "`session_id` INTEGER NOT NULL, " +
@@ -801,17 +803,17 @@ abstract class MeshtasticDatabase : RoomDatabase() {
                     "`direct` INTEGER NOT NULL, " +
                     "FOREIGN KEY(`session_id`) REFERENCES `signal_survey_session`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)",
             )
-            connection.execSQL(
+            connection.executeSQL(
                 "CREATE INDEX IF NOT EXISTS `index_signal_sample_session_id` ON `signal_sample` (`session_id`)",
             )
         }
 
-        private fun ensureLogIndexes(connection: SQLiteConnection) {
-            connection.execSQL(
+        private suspend fun ensureLogIndexes(connection: SQLiteConnection) {
+            connection.executeSQL(
                 "CREATE INDEX IF NOT EXISTS `index_log_from_num_port_num_received_date` " +
                     "ON `log` (`from_num`, `port_num`, `received_date`)",
             )
-            connection.execSQL(
+            connection.executeSQL(
                 "CREATE INDEX IF NOT EXISTS `index_log_type_received_date` ON `log` (`type`, `received_date`)",
             )
         }

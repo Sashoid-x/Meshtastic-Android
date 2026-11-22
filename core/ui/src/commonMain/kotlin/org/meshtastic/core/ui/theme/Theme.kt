@@ -162,7 +162,6 @@ fun AppTheme(
 }
 
 const val MODE_DYNAMIC = 6969420
-const val MODE_DYNAMIC = 6969420
 const val MODE_ADV_THEME = 6969421
 
 /** The stored theme preference's light and dark values, which equal AppCompatDelegate's MODE_NIGHT_NO and _YES. */

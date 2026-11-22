@@ -246,8 +246,11 @@ fun ReplySnippet(originalMessage: Message?, onClearReply: () -> Unit, ourNode: N
                     text = stringResource(Res.string.replying_to, replyingToNodeUser?.short_name ?: unknownUserText),
                     style = MaterialTheme.typography.labelMedium,
                 )
+                val isPixelArt =
+                    message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value &&
+                        org.meshtastic.feature.messaging.image.MonochromeImageCodec.isPixelArt(message.rawBytes)
                 val snippetText =
-                    if (message.portNum == org.meshtastic.proto.PortNum.PRIVATE_APP.value) {
+                    if (isPixelArt) {
                         stringResource(Res.string.message_image_preview)
                     } else {
                         val raw = message.text

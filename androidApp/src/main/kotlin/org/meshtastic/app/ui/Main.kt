@@ -40,7 +40,6 @@ import org.meshtastic.core.resources.must_update
 import org.meshtastic.core.ui.navigation.startDestination
 import org.meshtastic.core.ui.viewmodel.UIViewModel
 
-
 @Composable
 fun MainScreen() {
     val viewModel: UIViewModel = koinViewModel()
@@ -56,7 +55,6 @@ fun MainScreen() {
         displayModifier = Modifier.recalculateWindowInsets().safeDrawingPadding(),
         analytics = koinInject<PlatformAnalytics>(),
     )
-
 }
 
 @Composable

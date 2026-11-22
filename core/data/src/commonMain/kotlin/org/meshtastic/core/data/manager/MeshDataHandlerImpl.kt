@@ -179,7 +179,7 @@ class MeshDataHandlerImpl(
 
             PortNum.PRIVATE_APP -> {
                 val payload = packet.decoded?.payload
-                if (payload == null || !isMftPayload(payload)) {
+                if (payload != null && !isMftPayload(payload) && isPixelArtPayload(payload)) {
                     rememberDataPacket(dataPacket, myNodeNum, session = session)
                 }
             }
@@ -643,12 +643,27 @@ class MeshDataHandlerImpl(
 
     private suspend fun updateNotification(contactKey: String, dataPacket: DataPacket, isSilent: Boolean) {
         when (dataPacket.dataType) {
-            PortNum.TEXT_MESSAGE_APP.value,
-            PortNum.PRIVATE_APP.value,
-            -> {
-                val isImage = dataPacket.dataType == PortNum.PRIVATE_APP.value
-                val message = if (isImage) getStringSuspend(Res.string.message_image_preview) else dataPacket.text
+            PortNum.TEXT_MESSAGE_APP.value -> {
+                val message = dataPacket.text
                 if (message != null) {
+                    val isBroadcast = dataPacket.destination is NodeAddress.Broadcast
+                    val channelName = if (isBroadcast) effectiveChannelName(dataPacket.channel) else null
+                    serviceNotifications.updateMessageNotification(
+                        contactKey,
+                        getSenderName(dataPacket),
+                        message,
+                        isBroadcast,
+                        channelName,
+                        isSilent,
+                    )
+                }
+            }
+
+            PortNum.PRIVATE_APP.value -> {
+                val payload = dataPacket.bytes
+                val isImage = payload != null && isPixelArtPayload(payload)
+                if (isImage) {
+                    val message = getStringSuspend(Res.string.message_image_preview)
                     val isBroadcast = dataPacket.destination is NodeAddress.Broadcast
                     val channelName = if (isBroadcast) effectiveChannelName(dataPacket.channel) else null
                     serviceNotifications.updateMessageNotification(
@@ -775,6 +790,22 @@ class MeshDataHandlerImpl(
         payload[1] == 0x46.toByte() &&
         payload[2] == 0x54.toByte() &&
         payload[3] == 0x01.toByte()
+
+    @Suppress("MagicNumber")
+    private fun isPixelArtPayload(payload: ByteString): Boolean {
+        if (payload.size < 4 || isMftPayload(payload)) return false
+        val header = payload[0].toInt() and 0xFF
+        val enc = (header shr 4) and 0x0F
+        val preset = header and 0x0F
+        if (enc > 6 || preset > 9) return false
+        if (enc == 0) {
+            val rawSizes = intArrayOf(195, 128, 192, 192, 192, 192, 198, 198, 195, 195)
+            val expected = rawSizes[preset]
+            val dataSize = payload.size - 1
+            if (dataSize != expected && dataSize != expected + 1) return false
+        }
+        return true
+    }
 
     companion object {
         private const val HOPS_AWAY_UNAVAILABLE = -1
